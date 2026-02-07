@@ -33,7 +33,12 @@ description: >
 Read `references/schema-types.md` for the full list. Key rules:
 
 ### ACTIVE — recommend freely:
-Organization, LocalBusiness, SoftwareApplication, Product (with Certification markup as of April 2025), Offer, Service, Article, BlogPosting, NewsArticle, Review, AggregateRating, BreadcrumbList, WebSite, WebPage, Person, ContactPage, VideoObject, ImageObject, Event, JobPosting, Course, DiscussionForumPosting
+Organization, LocalBusiness, SoftwareApplication, WebApplication, Product (with Certification markup as of April 2025), Offer, Service, Article, BlogPosting, NewsArticle, Review, AggregateRating, BreadcrumbList, WebSite, WebPage, Person, ContactPage, VideoObject, ImageObject, Event, JobPosting, Course, DiscussionForumPosting
+
+### VIDEO & SPECIALIZED — recommend freely:
+BroadcastEvent, Clip, SeekToAction, SoftwareSourceCode
+
+See `schema/templates.json` for ready-to-use JSON-LD templates for these types.
 
 ### RESTRICTED — only for specific sites:
 - **FAQ**: ONLY for government and healthcare authority sites (restricted Aug 2023)
@@ -42,6 +47,11 @@ Organization, LocalBusiness, SoftwareApplication, Product (with Certification ma
 - **HowTo**: Rich results removed September 2023
 - **SpecialAnnouncement**: Deprecated July 31, 2025
 - **CourseInfo, EstimatedSalary, LearningVideo**: Retired June 2025
+- **ClaimReview**: Retired from rich results June 2025
+- **VehicleListing**: Retired from rich results June 2025
+- **Practice Problem**: Retired from rich results late 2025
+- **Dataset**: Retired from rich results late 2025
+- **Book Actions**: Deprecated then reversed — still functional as of Feb 2026 (historical note)
 
 ## Generation
 

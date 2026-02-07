@@ -88,14 +88,17 @@ Or manually:
 ```bash
 rm -rf ~/.claude/skills/seo
 rm -rf ~/.claude/skills/seo-audit
-rm -rf ~/.claude/skills/seo-page
-rm -rf ~/.claude/skills/seo-sitemap
-rm -rf ~/.claude/skills/seo-schema
-rm -rf ~/.claude/skills/seo-images
-rm -rf ~/.claude/skills/seo-technical
+rm -rf ~/.claude/skills/seo-competitor-pages
 rm -rf ~/.claude/skills/seo-content
 rm -rf ~/.claude/skills/seo-geo
+rm -rf ~/.claude/skills/seo-hreflang
+rm -rf ~/.claude/skills/seo-images
+rm -rf ~/.claude/skills/seo-page
 rm -rf ~/.claude/skills/seo-plan
+rm -rf ~/.claude/skills/seo-programmatic
+rm -rf ~/.claude/skills/seo-schema
+rm -rf ~/.claude/skills/seo-sitemap
+rm -rf ~/.claude/skills/seo-technical
 rm -f ~/.claude/agents/seo-*.md
 ```
 

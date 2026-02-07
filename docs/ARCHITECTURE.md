@@ -18,15 +18,18 @@ Claude SEO follows Anthropic's official Claude Code skill specification with a m
 │   │       └── quality-gates.md
 │   │
 │   ├── seo-audit/            # Full site audit
-│   ├── seo-page/             # Single page analysis
-│   ├── seo-technical/        # Technical SEO
+│   ├── seo-competitor-pages/ # Competitor comparison pages
 │   ├── seo-content/          # E-E-A-T analysis
-│   ├── seo-schema/           # Schema markup
 │   ├── seo-geo/              # AI search optimization
+│   ├── seo-hreflang/         # Hreflang/i18n SEO
 │   ├── seo-images/           # Image optimization
+│   ├── seo-page/             # Single page analysis
+│   ├── seo-plan/             # Strategic planning
+│   │   └── assets/           # Industry templates
+│   ├── seo-programmatic/     # Programmatic SEO
+│   ├── seo-schema/           # Schema markup
 │   ├── seo-sitemap/          # Sitemap analysis/generation
-│   └── seo-plan/             # Strategic planning
-│       └── assets/           # Industry templates
+│   └── seo-technical/        # Technical SEO
 │
 └── agents/
     ├── seo-technical.md      # Technical SEO specialist

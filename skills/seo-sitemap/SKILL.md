@@ -46,7 +46,7 @@ description: >
 4. Apply quality gates:
    - ⚠️ WARNING at 30+ location pages (require 60%+ unique content)
    - 🛑 HARD STOP at 50+ location pages (require justification)
-5. Generate valid XML using `scripts/generate_sitemap.py`
+5. Generate valid XML output
 6. Split at 50k URLs with sitemap index
 7. Generate STRUCTURE.md documentation
 

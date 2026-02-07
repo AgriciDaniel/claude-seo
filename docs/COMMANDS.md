@@ -199,17 +199,80 @@ Strategic SEO planning.
 
 ---
 
+### `/seo competitor-pages [url|generate]`
+
+Competitor comparison page generation.
+
+**Examples:**
+```
+/seo competitor-pages https://example.com/vs/competitor
+/seo competitor-pages generate
+```
+
+**Capabilities:**
+- Generate "X vs Y" comparison page layouts
+- Create "Alternatives to X" page structures
+- Build feature comparison matrices with scoring
+- Generate Product + AggregateRating schema markup
+- Apply conversion-optimized CTA placement
+- Enforce fairness guidelines (accurate data, source citations)
+
+---
+
+### `/seo hreflang [url]`
+
+Hreflang and international SEO audit and generation.
+
+**Example:**
+```
+/seo hreflang https://example.com
+```
+
+**Capabilities:**
+- Validate self-referencing hreflang tags
+- Check return tag reciprocity (A→B requires B→A)
+- Verify x-default tag presence
+- Validate ISO 639-1 language and ISO 3166-1 region codes
+- Check canonical URL alignment with hreflang
+- Detect protocol mismatches (HTTP vs HTTPS)
+- Generate correct hreflang link tags and sitemap XML
+
+---
+
+### `/seo programmatic [url|plan]`
+
+Programmatic SEO analysis and planning for pages generated at scale.
+
+**Examples:**
+```
+/seo programmatic https://example.com/tools/
+/seo programmatic plan
+```
+
+**Capabilities:**
+- Assess data source quality (CSV, JSON, API, database)
+- Plan template engines with unique content per page
+- Design URL pattern strategies (`/tools/[tool-name]`, `/[city]/[service]`)
+- Automate internal linking (hub/spoke, related items, breadcrumbs)
+- Enforce thin content safeguards (quality gates, word count thresholds)
+- Prevent index bloat (noindex low-value, pagination, faceted nav)
+
+---
+
 ## Quick Reference
 
 | Command | Use Case |
 |---------|----------|
 | `/seo audit <url>` | Full website audit |
-| `/seo page <url>` | Single page analysis |
-| `/seo technical <url>` | Technical SEO check |
+| `/seo competitor-pages [url\|generate]` | Competitor comparison pages |
 | `/seo content <url>` | E-E-A-T analysis |
-| `/seo schema <url>` | Schema validation |
 | `/seo geo <url>` | AI search optimization |
+| `/seo hreflang [url]` | Hreflang/i18n SEO audit |
 | `/seo images <url>` | Image optimization |
+| `/seo page <url>` | Single page analysis |
+| `/seo plan <type>` | Strategic planning |
+| `/seo programmatic [url\|plan]` | Programmatic SEO analysis |
+| `/seo schema <url>` | Schema validation |
 | `/seo sitemap <url>` | Sitemap validation |
 | `/seo sitemap generate` | Create new sitemap |
-| `/seo plan <type>` | Strategic planning |
+| `/seo technical <url>` | Technical SEO check |
