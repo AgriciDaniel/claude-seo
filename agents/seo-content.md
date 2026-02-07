@@ -1,3 +1,4 @@
+<!-- Updated: 2026-02-07 -->
 ---
 name: seo-content
 description: Content quality reviewer. Evaluates E-E-A-T signals, readability, content depth, AI citation readiness, and thin content detection.
@@ -32,8 +33,10 @@ When given content to analyze:
 | Homepage | 500 |
 | Service page | 800 |
 | Blog post | 1,500 |
-| Product page | 400 |
+| Product page | 300+ (400+ for complex products) |
 | Location page | 500-600 |
+
+> **Note:** These are topical coverage floors, not targets. Google confirms word count is NOT a direct ranking factor. The goal is comprehensive topical coverage.
 
 ## AI Content Assessment (Sept 2025 QRG)
 
@@ -43,6 +46,8 @@ AI content is acceptable IF it demonstrates genuine E-E-A-T. Flag these markers 
 - No first-hand experience signals
 - Factual inaccuracies
 - Repetitive structure across pages
+
+> **Helpful Content System (March 2024):** The Helpful Content System was merged into Google's core ranking algorithm during the March 2024 core update. It no longer operates as a standalone classifier. Helpfulness signals are now evaluated within every core update.
 
 ## Cross-Skill Delegation
 

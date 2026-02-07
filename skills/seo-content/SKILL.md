@@ -1,3 +1,4 @@
+<!-- Updated: 2026-02-07 -->
 ---
 name: seo-content
 description: >
@@ -46,11 +47,15 @@ Compare against page type minimums:
 | Homepage | 500 |
 | Service page | 800 |
 | Blog post | 1,500 |
-| Product page | 400 |
+| Product page | 300+ (400+ for complex products) |
 | Location page | 500-600 |
+
+> **Important:** These are **topical coverage floors**, not targets. Google has confirmed word count is NOT a direct ranking factor. The goal is comprehensive topical coverage — a 500-word page that thoroughly answers the query will outrank a 2,000-word page that doesn't. Use these as guidelines for adequate coverage depth, not rigid requirements.
 
 ### Readability
 - Flesch Reading Ease: target 60-70 for general audience
+
+> **Note:** Flesch Reading Ease is a useful proxy for content accessibility but is NOT a direct Google ranking factor. John Mueller has confirmed Google does not use basic readability scores for ranking. Yoast deprioritized Flesch scores in v19.3. Use readability analysis as a content quality indicator, not as an SEO metric to optimize directly.
 - Grade level: match target audience
 - Sentence length: average 15-20 words
 - Paragraph length: 2-4 sentences
@@ -101,6 +106,8 @@ Google's raters now formally assess whether content appears AI-generated.
 - No author attribution
 - Factual inaccuracies
 
+> **Helpful Content System (March 2024):** The Helpful Content System was merged into Google's core ranking algorithm during the March 2024 core update. It no longer operates as a standalone classifier. Helpfulness signals are now weighted within every core update — the same principles apply (people-first content, demonstrating E-E-A-T, satisfying user intent), but enforcement is continuous rather than through separate HCU updates.
+
 ## AI Citation Readiness (GEO signals)
 
 Optimize for AI search engines (ChatGPT, Perplexity, Google AI Overviews):
@@ -111,6 +118,21 @@ Optimize for AI search engines (ChatGPT, Perplexity, Google AI Overviews):
 - Answer-first formatting for key questions
 - Tables and lists for comparative data
 - Clear attribution and source citations
+
+### AI Search Visibility & GEO (2025-2026)
+
+**Google AI Mode** launched publicly in May 2025 as a separate tab in Google Search, available in 180+ countries. Unlike AI Overviews (which appear above organic results), AI Mode provides a fully conversational search experience with **zero organic blue links** — making AI citation the only visibility mechanism.
+
+**Key optimization strategies for AI citation:**
+- **Structured answers:** Clear question-answer formats, definition patterns, and step-by-step instructions that AI systems can extract and cite
+- **First-party data:** Original research, statistics, case studies, and unique datasets are highly cited by AI systems
+- **Schema markup:** Article, FAQ (for non-Google AI platforms), and structured content schemas help AI systems parse and attribute content
+- **Topical authority:** AI systems preferentially cite sources that demonstrate deep expertise — build content clusters, not isolated pages
+- **Entity clarity:** Ensure brand, authors, and key concepts are clearly defined with structured data (Organization, Person schema)
+- **Multi-platform tracking:** Monitor visibility across Google AI Overviews, AI Mode, ChatGPT, Perplexity, and Bing Copilot — not just traditional rankings. Treat AI citation as a standalone KPI alongside organic rankings and traffic.
+
+**Generative Engine Optimization (GEO):**
+GEO is the emerging discipline of optimizing content specifically for AI-generated answers. Key GEO signals include: quotability (clear, concise extractable facts), attribution (source citations within your content), structure (well-organized heading hierarchy), and freshness (regularly updated data). Cross-reference the `seo-geo` skill for detailed GEO workflows.
 
 ## Content Freshness
 
