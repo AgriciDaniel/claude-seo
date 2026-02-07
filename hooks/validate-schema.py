@@ -13,7 +13,7 @@ Hook configuration in ~/.claude/settings.json:
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.claude/skills/seo-pro/hooks/validate-schema.py \"$FILE_PATH\"",
+            "command": "python3 ~/.claude/skills/seo/hooks/validate-schema.py \"$FILE_PATH\"",
             "exitCodes": { "2": "block" }
           }
         ]

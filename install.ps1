@@ -1,10 +1,10 @@
-# SEO PRO Installer for Windows
+# Claude SEO Installer for Windows
 # PowerShell installation script
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "║   SEO PRO - Installer                ║" -ForegroundColor Cyan
+Write-Host "║   Claude SEO - Installer             ║" -ForegroundColor Cyan
 Write-Host "║   Claude Code SEO Skill              ║" -ForegroundColor Cyan
 Write-Host "════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
@@ -27,7 +27,7 @@ try {
 }
 
 # Set paths
-$SkillDir = "$env:USERPROFILE\.claude\skills\seo-pro"
+$SkillDir = "$env:USERPROFILE\.claude\skills\seo"
 $AgentDir = "$env:USERPROFILE\.claude\agents"
 $RepoUrl = "https://github.com/AgriciDaniel/claude-seo"
 
@@ -41,12 +41,12 @@ if (Test-Path $TempDir) {
     Remove-Item -Recurse -Force $TempDir
 }
 
-Write-Host "↓ Downloading SEO PRO..." -ForegroundColor Yellow
+Write-Host "↓ Downloading Claude SEO..." -ForegroundColor Yellow
 git clone --depth 1 $RepoUrl $TempDir 2>$null
 
 # Copy skill files
 Write-Host "→ Installing skill files..." -ForegroundColor Yellow
-Copy-Item -Recurse -Force "$TempDir\seo-pro\*" $SkillDir
+Copy-Item -Recurse -Force "$TempDir\seo\*" $SkillDir
 
 # Copy sub-skills
 $SkillsPath = "$TempDir\skills"
@@ -98,7 +98,7 @@ try {
 Remove-Item -Recurse -Force $TempDir
 
 Write-Host ""
-Write-Host "✓ SEO PRO installed successfully!" -ForegroundColor Green
+Write-Host "✓ Claude SEO installed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Usage:" -ForegroundColor Cyan
 Write-Host "  1. Start Claude Code:  claude"

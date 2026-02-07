@@ -2,14 +2,14 @@
 
 ## Overview
 
-SEO PRO follows Anthropic's official Claude Code skill specification with a modular, multi-skill architecture.
+Claude SEO follows Anthropic's official Claude Code skill specification with a modular, multi-skill architecture.
 
 ## Directory Structure
 
 ```
 ~/.claude/
 ├── skills/
-│   ├── seo-pro/              # Main orchestrator skill
+│   ├── seo/              # Main orchestrator skill
 │   │   ├── SKILL.md          # Entry point with routing logic
 │   │   └── references/       # On-demand reference files
 │   │       ├── cwv-thresholds.md
@@ -85,7 +85,7 @@ User Request
     │
     ▼
 ┌─────────────────┐
-│   seo-pro       │  ← Main orchestrator
+│   seo       │  ← Main orchestrator
 │   (SKILL.md)    │
 └────────┬────────┘
          │
@@ -121,7 +121,7 @@ User Request (e.g., /seo page)
     │
     ▼
 ┌─────────────────┐
-│   seo-pro       │  ← Routes to sub-skill
+│   seo       │  ← Routes to sub-skill
 └────────┬────────┘
          │
          ▼
@@ -175,7 +175,7 @@ User Request (e.g., /seo page)
 1. Create `skills/seo-newskill/SKILL.md`
 2. Add YAML frontmatter with name and description
 3. Write skill instructions
-4. Update main `seo-pro/SKILL.md` to route to new skill
+4. Update main `seo/SKILL.md` to route to new skill
 
 ### Adding a New Subagent
 

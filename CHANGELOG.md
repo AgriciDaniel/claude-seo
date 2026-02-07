@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2026-02-07
 
 ### Added
-- Initial release of SEO PRO
+- Initial release of Claude SEO
 - 9 specialized skills: audit, page, sitemap, schema, images, technical, content, geo, plan
 - 6 subagents for parallel analysis: seo-technical, seo-content, seo-schema, seo-sitemap, seo-performance, seo-visual
 - Industry templates: SaaS, local service, e-commerce, publisher, agency, generic

@@ -1,4 +1,4 @@
-# SEO PRO
+# Claude SEO
 
 Comprehensive SEO analysis skill for Claude Code. Covers technical SEO, on-page analysis, content quality (E-E-A-T), schema markup, image optimization, sitemap architecture, AI search optimization (GEO), and strategic planning.
 
@@ -105,7 +105,7 @@ New for 2026 - optimize for:
 ## Architecture
 
 ```
-~/.claude/skills/seo-pro/     # Main skill
+~/.claude/skills/seo/         # Main skill
 ~/.claude/skills/seo-*/       # Sub-skills (9 total)
 ~/.claude/agents/seo-*.md     # Subagents (6 total)
 ```

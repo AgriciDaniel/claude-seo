@@ -9,7 +9,7 @@ description: >
   "content analysis", "image optimization", "AI Overviews", "GEO".
 ---
 
-# SEO PRO — Universal SEO Skill
+# SEO — Universal SEO Analysis Skill
 
 Comprehensive SEO analysis across all industries (SaaS, local services,
 e-commerce, publishers, agencies). Orchestrates 9 specialized sub-skills

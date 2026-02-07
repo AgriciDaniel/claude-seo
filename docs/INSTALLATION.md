@@ -57,7 +57,7 @@ The installer copies files to:
 
 | Component | Path |
 |-----------|------|
-| Main skill | `~/.claude/skills/seo-pro/` |
+| Main skill | `~/.claude/skills/seo/` |
 | Sub-skills | `~/.claude/skills/seo-*/` |
 | Subagents | `~/.claude/agents/seo-*.md` |
 
@@ -86,7 +86,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/uninst
 Or manually:
 
 ```bash
-rm -rf ~/.claude/skills/seo-pro
+rm -rf ~/.claude/skills/seo
 rm -rf ~/.claude/skills/seo-audit
 rm -rf ~/.claude/skills/seo-page
 rm -rf ~/.claude/skills/seo-sitemap
@@ -118,7 +118,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/instal
 Ensure the skill is installed in the correct location:
 
 ```bash
-ls ~/.claude/skills/seo-pro/SKILL.md
+ls ~/.claude/skills/seo/SKILL.md
 ```
 
 If the file doesn't exist, re-run the installer.
@@ -144,7 +144,7 @@ playwright install chromium
 Make sure scripts are executable:
 
 ```bash
-chmod +x ~/.claude/skills/seo-pro/scripts/*.py
-chmod +x ~/.claude/skills/seo-pro/hooks/*.py
-chmod +x ~/.claude/skills/seo-pro/hooks/*.sh
+chmod +x ~/.claude/skills/seo/scripts/*.py
+chmod +x ~/.claude/skills/seo/hooks/*.py
+chmod +x ~/.claude/skills/seo/hooks/*.sh
 ```

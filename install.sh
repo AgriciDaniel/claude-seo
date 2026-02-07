@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# SEO PRO Installer
+# Claude SEO Installer
 # Wraps everything in main() to prevent partial execution on network failure
 
 main() {
-    SKILL_DIR="${HOME}/.claude/skills/seo-pro"
+    SKILL_DIR="${HOME}/.claude/skills/seo"
     AGENT_DIR="${HOME}/.claude/agents"
     REPO_URL="https://github.com/AgriciDaniel/claude-seo"
 
     echo "════════════════════════════════════════"
-    echo "║   SEO PRO - Installer                ║"
+    echo "║   Claude SEO - Installer             ║"
     echo "║   Claude Code SEO Skill              ║"
     echo "════════════════════════════════════════"
     echo ""
@@ -31,12 +31,12 @@ main() {
     TEMP_DIR=$(mktemp -d)
     trap "rm -rf ${TEMP_DIR}" EXIT
 
-    echo "↓ Downloading SEO PRO..."
+    echo "↓ Downloading Claude SEO..."
     git clone --depth 1 "${REPO_URL}" "${TEMP_DIR}/claude-seo" 2>/dev/null
 
     # Copy skill files
     echo "→ Installing skill files..."
-    cp -r "${TEMP_DIR}/claude-seo/seo-pro/"* "${SKILL_DIR}/"
+    cp -r "${TEMP_DIR}/claude-seo/seo/"* "${SKILL_DIR}/"
 
     # Copy sub-skills
     if [ -d "${TEMP_DIR}/claude-seo/skills" ]; then
@@ -78,7 +78,7 @@ main() {
     echo "⚠  Playwright browser install failed. Screenshots won't work. Run: playwright install chromium"
 
     echo ""
-    echo "✓ SEO PRO installed successfully!"
+    echo "✓ Claude SEO installed successfully!"
     echo ""
     echo "Usage:"
     echo "  1. Start Claude Code:  claude"

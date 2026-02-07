@@ -10,12 +10,12 @@
 
 1. Verify installation:
 ```bash
-ls ~/.claude/skills/seo-pro/SKILL.md
+ls ~/.claude/skills/seo/SKILL.md
 ```
 
 2. Check SKILL.md has proper frontmatter:
 ```bash
-head -5 ~/.claude/skills/seo-pro/SKILL.md
+head -5 ~/.claude/skills/seo/SKILL.md
 ```
 Should start with `---` followed by YAML.
 
@@ -37,7 +37,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/instal
 
 **Solution:**
 ```bash
-pip install -r ~/.claude/skills/seo-pro/requirements.txt
+pip install -r ~/.claude/skills/seo/requirements.txt
 ```
 
 Or install individually:
@@ -70,9 +70,9 @@ python -m playwright install chromium
 
 **Solution:**
 ```bash
-chmod +x ~/.claude/skills/seo-pro/scripts/*.py
-chmod +x ~/.claude/skills/seo-pro/hooks/*.py
-chmod +x ~/.claude/skills/seo-pro/hooks/*.sh
+chmod +x ~/.claude/skills/seo/scripts/*.py
+chmod +x ~/.claude/skills/seo/hooks/*.py
+chmod +x ~/.claude/skills/seo/hooks/*.sh
 ```
 
 ---
@@ -98,7 +98,7 @@ cat ~/.claude/settings.json
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.claude/skills/seo-pro/hooks/validate-schema.py \"$FILE_PATH\"",
+            "command": "python3 ~/.claude/skills/seo/hooks/validate-schema.py \"$FILE_PATH\"",
             "exitCodes": { "2": "block" }
           }
         ]
@@ -110,7 +110,7 @@ cat ~/.claude/settings.json
 
 3. Test hook directly:
 ```bash
-python3 ~/.claude/skills/seo-pro/hooks/validate-schema.py test.html
+python3 ~/.claude/skills/seo/hooks/validate-schema.py test.html
 ```
 
 ---
@@ -191,11 +191,11 @@ To see detailed output, check Claude Code's internal logs or run scripts directl
 
 ```bash
 # Test fetch
-python3 ~/.claude/skills/seo-pro/scripts/fetch_page.py https://example.com
+python3 ~/.claude/skills/seo/scripts/fetch_page.py https://example.com
 
 # Test parse
-python3 ~/.claude/skills/seo-pro/scripts/parse_html.py page.html --json
+python3 ~/.claude/skills/seo/scripts/parse_html.py page.html --json
 
 # Test screenshot
-python3 ~/.claude/skills/seo-pro/scripts/capture_screenshot.py https://example.com
+python3 ~/.claude/skills/seo/scripts/capture_screenshot.py https://example.com
 ```

@@ -10,7 +10,7 @@ description: >
 
 ## E-E-A-T Framework (updated Sept 2025 QRG)
 
-Read `seo-pro/references/eeat-framework.md` for full criteria.
+Read `seo/references/eeat-framework.md` for full criteria.
 
 ### Experience (first-hand signals)
 - Original research, case studies, before/after results

@@ -2,7 +2,7 @@
 
 ## Overview
 
-All SEO PRO commands start with `/seo` followed by a subcommand.
+All Claude SEO commands start with `/seo` followed by a subcommand.
 
 ## Command List
 

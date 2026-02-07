@@ -12,7 +12,7 @@ description: >
 ## Process
 
 1. **Fetch homepage** — use `scripts/fetch_page.py` to retrieve HTML
-2. **Detect business type** — analyze homepage signals per seo-pro orchestrator
+2. **Detect business type** — analyze homepage signals per seo orchestrator
 3. **Crawl site** — follow internal links up to 500 pages, respect robots.txt
 4. **Delegate to subagents** (if available, otherwise run inline sequentially):
    - `seo-technical` — robots.txt, sitemaps, canonicals, Core Web Vitals, security headers
