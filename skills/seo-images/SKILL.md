@@ -1,3 +1,4 @@
+<!-- Updated: 2026-02-07 -->
 ---
 name: seo-images
 description: >
@@ -28,13 +29,16 @@ description: >
 - "Click here" (not descriptive)
 
 ### File Size
-| Status | Threshold |
-|--------|-----------|
-| ✅ Good | <100KB |
-| ⚠️ Warning | >200KB |
-| 🛑 Critical | >500KB |
 
-Recommend compression to <100KB where possible without quality loss.
+**Tiered thresholds by image category:**
+
+| Image Category | Target | Warning | Critical |
+|----------------|--------|---------|----------|
+| Thumbnails | < 50KB | > 100KB | > 200KB |
+| Content images | < 100KB | > 200KB | > 500KB |
+| Hero/banner images | < 200KB | > 300KB | > 700KB |
+
+Recommend compression to target thresholds where possible without quality loss.
 
 ### Format
 | Format | Browser Support | Use Case |
@@ -46,6 +50,24 @@ Recommend compression to <100KB where possible without quality loss.
 | SVG | 100% | Icons, logos, illustrations |
 
 Recommend WebP/AVIF over JPEG/PNG. Check for `<picture>` element with format fallbacks.
+
+#### Recommended `<picture>` Element Pattern
+
+Use progressive enhancement with the most efficient format first:
+
+```html
+<picture>
+  <source srcset="image.avif" type="image/avif">
+  <source srcset="image.webp" type="image/webp">
+  <img src="image.jpg" alt="Descriptive alt text" width="800" height="600" loading="lazy" decoding="async">
+</picture>
+```
+
+The browser will use the first supported format. Current browser support: AVIF 93.8%, WebP 95.3%.
+
+#### JPEG XL — Emerging Format
+
+In November 2025, Google's Chromium team reversed its 2022 decision and announced it will restore JPEG XL support in Chrome using a Rust-based decoder. The implementation is feature-complete but not yet in Chrome stable. JPEG XL offers lossless JPEG recompression (~20% savings with zero quality loss) and competitive lossy compression. Not yet practical for web deployment, but worth monitoring for future adoption.
 
 ### Responsive Images
 - `srcset` attribute for multiple sizes
@@ -72,6 +94,24 @@ Recommend WebP/AVIF over JPEG/PNG. Check for `<picture>` element with format fal
 
 <!-- Above fold - eager load (default) -->
 <img src="hero.jpg" alt="Hero image">
+```
+
+### `fetchpriority="high"` for LCP Images
+
+Add `fetchpriority="high"` to your hero/LCP image to prioritize its download in the browser's network queue:
+
+```html
+<img src="hero.webp" fetchpriority="high" alt="Hero image description" width="1200" height="630">
+```
+
+**Critical:** Do NOT lazy-load above-the-fold/LCP images. Using `loading="lazy"` on LCP images directly harms LCP scores. Reserve `loading="lazy"` for below-the-fold images only.
+
+### `decoding="async"` for Non-LCP Images
+
+Add `decoding="async"` to non-LCP images to prevent image decoding from blocking the main thread:
+
+```html
+<img src="photo.webp" alt="Description" width="600" height="400" loading="lazy" decoding="async">
 ```
 
 ### CLS Prevention
