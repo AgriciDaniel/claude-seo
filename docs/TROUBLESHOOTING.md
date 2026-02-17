@@ -42,24 +42,28 @@ pip install -r ~/.claude/skills/seo/requirements.txt
 
 Or install individually:
 ```bash
-pip install beautifulsoup4 requests lxml playwright Pillow urllib3 validators
+pip install beautifulsoup4 requests lxml Pillow urllib3 validators
 ```
 
 ---
 
-### Playwright Screenshot Errors
+### agent-browser Screenshot Errors
 
-**Symptom:** `playwright._impl._errors.Error: Executable doesn't exist`
+**Symptom:** `agent-browser: command not found`
+
+**Solution:**
+
+Ensure `agent-browser` is installed and on your PATH. Check the agent-browser skill
+documentation for installation instructions.
+
+**Symptom:** Screenshot or navigation fails silently
 
 **Solution:**
 ```bash
-playwright install chromium
-```
-
-If that fails:
-```bash
-pip install playwright
-python -m playwright install chromium
+# Verify agent-browser is working
+agent-browser open https://example.com
+agent-browser screenshot /tmp/test.png
+agent-browser close
 ```
 
 ---
@@ -197,5 +201,5 @@ python3 ~/.claude/skills/seo/scripts/fetch_page.py https://example.com
 python3 ~/.claude/skills/seo/scripts/parse_html.py page.html --json
 
 # Test screenshot
-python3 ~/.claude/skills/seo/scripts/capture_screenshot.py https://example.com
+bash ~/.claude/skills/seo/scripts/capture_screenshot.sh https://example.com
 ```

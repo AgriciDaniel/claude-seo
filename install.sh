@@ -84,10 +84,12 @@ main() {
     pip install --quiet -r "${TEMP_DIR}/claude-seo/requirements.txt" 2>/dev/null || \
     echo "⚠  Could not auto-install Python packages. Run: pip install -r requirements.txt"
 
-    # Optional: Install Playwright browsers
-    echo "→ Installing Playwright browsers (optional)..."
-    python3 -m playwright install chromium 2>/dev/null || \
-    echo "⚠  Playwright browser install failed. Screenshots won't work. Run: playwright install chromium"
+    # Optional: verify agent-browser
+    if command -v agent-browser &>/dev/null; then
+        echo "✓ agent-browser found — visual analysis is available"
+    else
+        echo "⚠  agent-browser not found. Screenshots won't work. Install the agent-browser skill for visual analysis."
+    fi
 
     echo ""
     echo "✓ Claude SEO installed successfully!"

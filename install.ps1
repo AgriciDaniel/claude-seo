@@ -102,12 +102,11 @@ try {
     Write-Host "⚠  Could not auto-install Python packages. Run: pip install -r requirements.txt" -ForegroundColor Yellow
 }
 
-# Optional: Install Playwright browsers
-Write-Host "→ Installing Playwright browsers (optional)..." -ForegroundColor Yellow
-try {
-    python -m playwright install chromium 2>$null
-} catch {
-    Write-Host "⚠  Playwright browser install failed. Screenshots won't work." -ForegroundColor Yellow
+# Optional: verify agent-browser
+if (Get-Command agent-browser -ErrorAction SilentlyContinue) {
+    Write-Host "✓ agent-browser found — visual analysis is available" -ForegroundColor Green
+} else {
+    Write-Host "⚠  agent-browser not found. Screenshots won't work. Install the agent-browser skill for visual analysis." -ForegroundColor Yellow
 }
 
 # Cleanup

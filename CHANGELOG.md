@@ -5,13 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- **Browser automation**: Replaced Playwright with `agent-browser` CLI for all screenshot and visual analysis tasks
+  - `scripts/capture_screenshot.py` → `scripts/capture_screenshot.sh`
+  - `scripts/analyze_visual.py` → `scripts/analyze_visual.sh`
+  - `agents/seo-visual.md` updated to use `agent-browser` commands
+- Removed `playwright` from `requirements.txt`
+
+---
+
 ## [1.1.0] - 2026-02-07
 
 ### Security (CRITICAL)
 - **urllib3 ≥2.6.3**: Fixes CVE-2026-21441 (CVSS 8.9) - decompression bypass vulnerability
 - **lxml ≥6.0.2**: Updated from 5.3.2 for additional libxml2 security patches
 - **Pillow ≥12.1.0**: Fixes CVE-2025-48379
-- **playwright ≥1.55.1**: Fixes CVE-2025-59288 (macOS)
 - **requests ≥2.32.4**: Fixes CVE-2024-47081, CVE-2024-35195
 
 ### Added
