@@ -7,7 +7,7 @@
 - **Claude Code CLI** installed and configured
 
 Optional:
-- **Playwright** for screenshot capabilities
+- **agent-browser** for screenshot and visual analysis capabilities
 
 ## Quick Install
 
@@ -44,12 +44,9 @@ cd claude-seo
 pip install -r requirements.txt
 ```
 
-4. **Install Playwright browsers** (optional, for screenshots)
+4. **Install agent-browser** (optional, for screenshots and visual analysis)
 
-```bash
-pip install playwright
-playwright install chromium
-```
+Follow the installation instructions at the agent-browser skill documentation.
 
 ## Installation Paths
 
@@ -131,15 +128,15 @@ If the file doesn't exist, re-run the installer.
 Install dependencies manually:
 
 ```bash
-pip install beautifulsoup4 requests lxml playwright Pillow urllib3 validators
+pip install beautifulsoup4 requests lxml Pillow urllib3 validators
 ```
 
-### Playwright screenshot errors
+### agent-browser screenshot errors
 
-Install Chromium browser:
+Verify `agent-browser` is installed and on PATH:
 
 ```bash
-playwright install chromium
+agent-browser --help
 ```
 
 ### Permission errors on Unix
