@@ -22,9 +22,15 @@ description: >
 ### Content Quality
 - Word count vs page type minimums (see quality-gates.md)
 - Readability: Flesch Reading Ease score, grade level
-- Keyword density: natural (1-3%), semantic variations present
+- **Macro context focus**: Does the page have a single, clear primary topic? Mixed-intent pages fragment topical authority.
+- **Entity-Attribute-Value (EAV) completeness**: Identify the primary entities on the page. Are their key attributes and values present? Missing EAV coverage = topical gaps that competitors can exploit.
+- **Semantic field coverage**: Assess whether related terms, synonyms, and NLP-adjacent concepts are naturally present — not keyword density %, but the breadth of semantic coverage.
+- **Extractive answer passages**: Are key questions answered with short (~40-word), self-contained passages that search engines and AI systems can extract?
+- **H2s as user questions**: Do H2 headings reflect real user questions or subtopics — not generic label headings?
 - E-E-A-T signals: author bio, credentials, first-hand experience markers
 - Content freshness: publication date, last updated date
+
+> **On keyword density:** Do NOT report a keyword density percentage as a target metric. Google does not use keyword density as a ranking factor. Focus on semantic completeness (EAV coverage, entity presence, related concept breadth) rather than repetition count.
 
 ### Technical Elements
 - Canonical tag: present, self-referencing or correct
@@ -57,11 +63,12 @@ description: >
 ```
 Overall Score: XX/100
 
-On-Page SEO:     XX/100  ████████░░
-Content Quality: XX/100  ██████████
-Technical:       XX/100  ███████░░░
-Schema:          XX/100  █████░░░░░
-Images:          XX/100  ████████░░
+On-Page SEO:        XX/100  ████████░░
+Content Quality:    XX/100  ██████████
+Topical Authority:  XX/100  ██████░░░░
+Technical:          XX/100  ███████░░░
+Schema:             XX/100  █████░░░░░
+Images:             XX/100  ████████░░
 ```
 
 ### Issues Found

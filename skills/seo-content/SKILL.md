@@ -59,17 +59,38 @@ Compare against page type minimums:
 - Sentence length: average 15-20 words
 - Paragraph length: 2-4 sentences
 
-### Keyword Optimization
-- Primary keyword in title, H1, first 100 words
-- Natural density (1-3%)
-- Semantic variations present
-- No keyword stuffing
+### Topical Authority & Semantic Coverage
+
+> **Koray's Holistic SEO principle:** Topical Authority = Topical Coverage + Historical Data + Cost of Retrieval. Ranking is achieved by being the most comprehensive and trustworthy source on a topic — not by targeting isolated keywords.
+
+- **Macro context**: Each page should have exactly **one primary topic/macro context**. Mixed intent pages dilute topical authority.
+- **Entity-Attribute-Value (EAV) coverage**: Identify the main entities on the page, map their attributes (properties, relationships), and verify that values (data, facts, descriptions) are complete and accurate.
+- **Topical gaps**: Flag subtopics, related questions, or semantic angles that are undercovered relative to top-ranking competitors.
+- **Semantic variations**: Use synonyms, related terms, and NLP-friendly phrasing — NOT mechanical keyword repetition.
+- **Extractive answers**: Key questions should be answered in ~40-word, self-contained passages that search engines and AI systems can extract and cite.
+- **H2 headings as user questions**: Structure H2s around the actual questions users ask, creating passage-level topical signals.
+
+> **Note on keyword density:** Google does not use keyword density as a ranking signal. Do NOT report a target density percentage. Instead, assess whether the full semantic field — entities, attributes, synonyms, and related concepts — is adequately covered.
+
+### Topical Coverage Assessment
+Evaluate how well the page covers its topic:
+| Dimension | Check |
+|-----------|-------|
+| Single macro context | One primary topic per page |
+| Entity completeness | All key entities named and attributed |
+| EAV coverage | Attributes and values present for each entity |
+| Related subtopics | Adjacent questions addressed or linked |
+| Semantic field | Synonyms and related terms naturally present |
+| Extractive passages | Key answers are short, quotable, self-contained |
+| H2 as questions | Headings reflect real user queries |
 
 ### Content Structure
 - Logical heading hierarchy (H1 → H2 → H3)
+- H2s framed as user questions or subtopic statements (not generic labels)
 - Scannable sections with descriptive headings
 - Bullet/numbered lists where appropriate
 - Table of contents for long-form content
+- Each section addresses a distinct sub-question (avoid topic mixing)
 
 ### Multimedia
 - Relevant images with proper alt text
@@ -77,11 +98,15 @@ Compare against page type minimums:
 - Infographics for complex data
 - Charts/graphs for statistics
 
-### Internal Linking
-- 3-5 relevant internal links per 1000 words
-- Descriptive anchor text
-- Links to related content
-- No orphan pages
+### Internal Linking & Semantic Content Networks
+
+> **Koray's principle:** Internal links should form a **semantic content network** — every link should reflect a meaningful topical relationship, not just a page-count metric.
+
+- **Semantic relevance**: Each internal link should connect pages that share entity or topical overlap — anchor text must reflect the semantic relationship.
+- **Hub-and-spoke topology**: Identify whether the page is a hub (pillar/cluster index) or spoke (deep subtopic). Link direction and density should reflect this role.
+- **No orphan pages**: Every page must be reachable through topically relevant anchor text.
+- **Contextual bridges**: Links create "contextual bridges" between related entities — audit whether linked pages are genuinely semantically adjacent.
+- **Quantity as proxy**: 3-5 internal links per 1,000 words is a useful benchmark, but semantic quality of links matters more than count.
 
 ### External Linking
 - Cite authoritative sources
@@ -150,6 +175,17 @@ GEO is the emerging discipline of optimizing content specifically for AI-generat
 | Expertise | XX/25 | ... |
 | Authoritativeness | XX/25 | ... |
 | Trustworthiness | XX/25 | ... |
+
+### Topical Authority Assessment
+| Dimension | Status | Notes |
+|-----------|--------|-------|
+| Single macro context | ✅/⚠️/❌ | ... |
+| Entity-Attribute-Value coverage | ✅/⚠️/❌ | ... |
+| Semantic field completeness | ✅/⚠️/❌ | ... |
+| H2s as user questions | ✅/⚠️/❌ | ... |
+| Extractive answer passages | ✅/⚠️/❌ | ... |
+| Semantic content network links | ✅/⚠️/❌ | ... |
+| Topical gaps vs competitors | ✅/⚠️/❌ | ... |
 
 ### AI Citation Readiness: XX/100
 

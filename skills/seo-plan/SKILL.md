@@ -27,14 +27,23 @@ description: >
 ### 3. Architecture Design
 - Load industry template from `assets/` directory
 - Design URL hierarchy and content pillars
-- Plan internal linking strategy
+- **Topical Map**: Create a hierarchical map of all topics, subtopics, and semantic relationships in the niche. Each node in the map = one page with a single macro context. The map defines complete topical coverage — no gaps.
+- **Semantic Content Network**: Design how pages link to each other based on entity/topical adjacency (not just navigation). Every internal link should reflect a meaningful semantic relationship.
+- Plan internal linking strategy (hub/spoke topology: pillar pages → cluster/subtopic pages)
 - Sitemap structure with quality gates applied
 - Information architecture for user journeys
+- **Entity identity**: Define the core entities of the brand (Organization, People, Products, Services) and how they will be represented in structured data and Knowledge Graph signals.
 
 ### 4. Content Strategy
-- Content gaps vs competitors
+
+> **Koray's Holistic SEO principle:** Build Topical Authority through comprehensive topical coverage, not by accumulating backlinks or targeting individual keywords in isolation.
+
+- **Topical Authority roadmap**: Prioritize content to fill the topical map systematically — cover all subtopics within a niche cluster before moving to adjacent clusters.
+- Content gaps vs competitors (semantic angle analysis, not just keyword gap)
 - Page types and estimated counts
-- Blog/resource topics and publishing cadence
+- **One macro context per page**: Each planned page addresses exactly one primary topic/question. Flag any brief/category pages that mix multiple intents.
+- **EAV planning**: For key pages, pre-define the Entities, Attributes, and Values to cover so writers know the semantic scope.
+- Blog/resource topics and publishing cadence (topically ordered, not chronological)
 - E-E-A-T building plan (author bios, credentials, experience signals)
 - Content calendar with priorities
 
@@ -85,19 +94,25 @@ Load from `assets/` directory:
 
 ### Deliverables
 - `SEO-STRATEGY.md` — Complete strategic plan
-- `COMPETITOR-ANALYSIS.md` — Competitive insights
-- `CONTENT-CALENDAR.md` — Content roadmap
+- `TOPICAL-MAP.md` — Full topic hierarchy with macro context per node, semantic relationships, and coverage gaps
+- `SEMANTIC-CONTENT-NETWORK.md` — Internal linking plan based on entity/topical adjacency
+- `COMPETITOR-ANALYSIS.md` — Competitive insights (topical coverage gaps, entity signals)
+- `CONTENT-CALENDAR.md` — Content roadmap (topically ordered)
 - `IMPLEMENTATION-ROADMAP.md` — Phased action plan
 - `SITE-STRUCTURE.md` — URL hierarchy and architecture
+- `ENTITY-IDENTITY.md` — Brand entity definitions, Knowledge Graph signals, schema plan
 
 ### KPI Targets
 | Metric | Baseline | 3 Month | 6 Month | 12 Month |
 |--------|----------|---------|---------|----------|
 | Organic Traffic | ... | ... | ... | ... |
-| Keyword Rankings | ... | ... | ... | ... |
-| Domain Authority | ... | ... | ... | ... |
+| Keyword Rankings (target cluster) | ... | ... | ... | ... |
+| Topical Map Coverage (% of nodes published) | ... | ... | ... | ... |
 | Indexed Pages | ... | ... | ... | ... |
 | Core Web Vitals | ... | ... | ... | ... |
+| Knowledge Panel / Entity recognition | ... | ... | ... | ... |
+
+> **Note on Domain Authority:** Domain Authority (DA/DR) is a third-party proxy metric, not a Google signal. Per Koray's holistic SEO methodology, prioritize **topical coverage completeness** as the primary growth lever — comprehensive topical authority achieves rankings independently of link acquisition. Track link metrics as supplementary signals, not primary KPIs.
 
 ### Success Criteria
 - Clear, measurable goals per phase

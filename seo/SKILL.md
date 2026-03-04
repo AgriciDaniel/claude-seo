@@ -5,13 +5,17 @@ description: >
   audits, single-page deep analysis, technical SEO checks (crawlability, indexability,
   Core Web Vitals with INP), schema markup detection/validation/generation, content
   quality assessment (E-E-A-T framework per Dec 2025 update extending to all
-  competitive queries), image optimization, sitemap analysis, and Generative Engine
-  Optimization (GEO) for AI Overviews, ChatGPT, and Perplexity citations. Analyzes
-  AI crawler accessibility (GPTBot, ClaudeBot, PerplexityBot), llms.txt compliance,
-  brand mention signals, and passage-level citability. Industry detection for SaaS,
-  e-commerce, local business, publishers, agencies. Triggers on: "SEO", "audit",
-  "schema", "Core Web Vitals", "sitemap", "E-E-A-T", "AI Overviews", "GEO",
-  "technical SEO", "content quality", "page speed", "structured data".
+  competitive queries), topical authority analysis (topical maps, semantic content
+  networks, entity-attribute-value coverage, macro context focus per page), entity
+  identity management (Knowledge Graph signals, Organization/Person schema), image
+  optimization, sitemap analysis, and Generative Engine Optimization (GEO) for AI
+  Overviews, ChatGPT, and Perplexity citations. Analyzes AI crawler accessibility
+  (GPTBot, ClaudeBot, PerplexityBot), llms.txt compliance, brand mention signals, and
+  passage-level citability. Industry detection for SaaS, e-commerce, local business,
+  publishers, agencies. Triggers on: "SEO", "audit", "schema", "Core Web Vitals",
+  "sitemap", "E-E-A-T", "AI Overviews", "GEO", "technical SEO", "content quality",
+  "page speed", "structured data", "topical authority", "topical map", "semantic SEO",
+  "entity SEO", "holistic SEO", "content network".
 allowed-tools:
   - Read
   - Grep
@@ -79,6 +83,7 @@ Load these on-demand as needed — do NOT load all at startup:
 - `references/schema-types.md` — All supported schema types with deprecation status
 - `references/eeat-framework.md` — E-E-A-T evaluation criteria (Sept 2025 QRG update)
 - `references/quality-gates.md` — Content length minimums, uniqueness thresholds
+- `references/topical-authority.md` — Topical authority principles: topical maps, EAV coverage, semantic content networks, entity identity (Koray's holistic SEO methodology)
 
 ## Scoring Methodology
 
@@ -87,13 +92,16 @@ Weighted aggregate of all categories:
 
 | Category | Weight |
 |----------|--------|
-| Technical SEO | 25% |
-| Content Quality | 25% |
-| On-Page SEO | 20% |
+| Technical SEO | 20% |
+| Content Quality & E-E-A-T | 20% |
+| Topical Authority | 15% |
+| On-Page SEO | 15% |
 | Schema / Structured Data | 10% |
 | Performance (CWV) | 10% |
 | Images | 5% |
 | AI Search Readiness | 5% |
+
+> **Topical Authority (15%)** measures: macro context focus per page, EAV/entity coverage completeness, semantic content network quality, topical map coverage, and entity identity signals. Per Koray's holistic SEO methodology, topical authority is the primary organic ranking driver independent of link acquisition.
 
 ### Priority Levels
 - **Critical**: Blocks indexing or causes penalties (immediate fix required)
