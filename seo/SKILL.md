@@ -12,6 +12,7 @@ description: >
   e-commerce, local business, publishers, agencies. Triggers on: "SEO", "audit",
   "schema", "Core Web Vitals", "sitemap", "E-E-A-T", "AI Overviews", "GEO",
   "technical SEO", "content quality", "page speed", "structured data".
+allowed-tools: Read, Grep, Glob, Bash, WebFetch, Write
 ---
 
 # SEO — Universal SEO Analysis Skill
