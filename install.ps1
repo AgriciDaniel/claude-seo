@@ -82,7 +82,16 @@ $keepTemp = ($env:CLAUDE_SEO_KEEP_TEMP -eq '1')
 
 try {
     Write-Host "↓ Downloading Claude SEO..." -ForegroundColor Yellow
-    $clone = Invoke-External -Exe 'git' -Args @('clone','--depth','1',$RepoUrl,$TempDir) -Quiet
+    # Git writes progress to stderr; with ErrorActionPreference=Stop this can be
+    # treated as a terminating error in Windows PowerShell. Run clone under
+    # Continue and restore the original preference immediately after.
+    $prevErrorAction = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $clone = Invoke-External -Exe 'git' -Args @('clone','--depth','1',$RepoUrl,$TempDir) -Quiet
+    } finally {
+        $ErrorActionPreference = $prevErrorAction
+    }
     if ($clone.ExitCode -ne 0) {
         throw "git clone failed. Output:`n$($clone.Output -join "`n")"
     }
