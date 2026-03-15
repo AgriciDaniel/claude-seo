@@ -1,12 +1,12 @@
-# Claude SEO Installer for Windows
+﻿# Claude SEO Installer for Windows
 # PowerShell installation script
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "║   Claude SEO - Installer             ║" -ForegroundColor Cyan
-Write-Host "║   Claude Code SEO Skill              ║" -ForegroundColor Cyan
-Write-Host "════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "|   Claude SEO - Installer             |" -ForegroundColor Cyan
+Write-Host "|   Claude Code SEO Skill              |" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 function Resolve-Python {
@@ -61,23 +61,23 @@ function Invoke-External {
 # Check prerequisites
 $python = Resolve-Python
 if ($null -eq $python) {
-    Write-Host "✗ Python is required but was not found (tried 'python' and 'py')." -ForegroundColor Red
+    Write-Host "[x] Python is required but was not found (tried 'python' and 'py')." -ForegroundColor Red
     exit 1
 }
 
 try {
     $pythonVersion = & $python.Exe @($python.Args + @('--version')) 2>&1
-    Write-Host "✓ $pythonVersion detected" -ForegroundColor Green
+    Write-Host "[+] $pythonVersion detected" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Python is installed but could not be executed." -ForegroundColor Red
+    Write-Host "[x] Python is installed but could not be executed." -ForegroundColor Red
     exit 1
 }
 
 try {
     git --version | Out-Null
-    Write-Host "✓ Git detected" -ForegroundColor Green
+    Write-Host "[+] Git detected" -ForegroundColor Green
 } catch {
-    Write-Host "✗ Git is required but not installed." -ForegroundColor Red
+    Write-Host "[x] Git is required but not installed." -ForegroundColor Red
     exit 1
 }
 
@@ -102,14 +102,14 @@ if (Test-Path $TempDir) {
 $keepTemp = ($env:CLAUDE_SEO_KEEP_TEMP -eq '1')
 
 try {
-    Write-Host "↓ Downloading Claude SEO ($RepoTag)..." -ForegroundColor Yellow
+    Write-Host "== Downloading Claude SEO ($RepoTag)..." -ForegroundColor Yellow
     $clone = Invoke-External -Exe 'git' -Args @('clone','--depth','1','--branch',$RepoTag,$RepoUrl,$TempDir) -Quiet
     if ($clone.ExitCode -ne 0) {
         throw "git clone failed. Output:`n$($clone.Output -join "`n")"
     }
 
     # Copy skill files
-    Write-Host "→ Installing skill files..." -ForegroundColor Yellow
+    Write-Host "=> Installing skill files..." -ForegroundColor Yellow
     $skillSource = Join-Path $TempDir 'seo'
     if (-not (Test-Path $skillSource)) {
         $skillSource = Join-Path $TempDir 'skills\seo'
@@ -146,7 +146,7 @@ try {
     }
 
     # Copy agents
-    Write-Host "→ Installing subagents..." -ForegroundColor Yellow
+    Write-Host "=> Installing subagents..." -ForegroundColor Yellow
     $AgentsPath = Join-Path $TempDir 'agents'
     if (Test-Path $AgentsPath) {
         Copy-Item -Force (Join-Path $AgentsPath '*.md') $AgentDir -ErrorAction SilentlyContinue
@@ -176,7 +176,7 @@ try {
     }
 
     # Install Python dependencies
-    Write-Host "→ Installing Python dependencies..." -ForegroundColor Yellow
+    Write-Host "=> Installing Python dependencies..." -ForegroundColor Yellow
     if (Test-Path $reqFile) {
         try {
             $pip = Invoke-External -Exe $python.Exe -Args @($python.Args + @('-m','pip','install','-q','-r',$reqFile)) -Quiet
@@ -184,26 +184,26 @@ try {
                 throw ($pip.Output -join "`n")
             }
         } catch {
-            Write-Host "  ⚠  Could not auto-install Python packages." -ForegroundColor Yellow
+            Write-Host "  [!]  Could not auto-install Python packages." -ForegroundColor Yellow
             Write-Host "  Try: $($python.Exe) $($python.Args -join ' ') -m pip install -r `"$installedReqFile`"" -ForegroundColor Yellow
         }
     } else {
-        Write-Host "  ⚠  No requirements.txt found; skipping Python dependency install." -ForegroundColor Yellow
+        Write-Host "  [!]  No requirements.txt found; skipping Python dependency install." -ForegroundColor Yellow
     }
 
     # Optional: Install Playwright browsers
-    Write-Host "→ Installing Playwright browsers (optional, for visual analysis)..." -ForegroundColor Yellow
+    Write-Host "=> Installing Playwright browsers (optional, for visual analysis)..." -ForegroundColor Yellow
     try {
         $pw = Invoke-External -Exe $python.Exe -Args @($python.Args + @('-m','playwright','install','chromium')) -Quiet
         if ($pw.ExitCode -ne 0) {
             throw ($pw.Output -join "`n")
         }
     } catch {
-        Write-Host "  ⚠  Playwright install failed. Visual analysis will use WebFetch fallback." -ForegroundColor Yellow
+        Write-Host "  [!]  Playwright install failed. Visual analysis will use WebFetch fallback." -ForegroundColor Yellow
     }
 } catch {
     Write-Host ""
-    Write-Host "✗ Installation failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "[x] Installation failed: $($_.Exception.Message)" -ForegroundColor Red
     if ($keepTemp -and (Test-Path $TempDir)) {
         Write-Host "Temp dir kept at: $TempDir" -ForegroundColor Yellow
     }
@@ -215,7 +215,7 @@ try {
 }
 
 Write-Host ""
-Write-Host "✓ Claude SEO installed successfully!" -ForegroundColor Green
+Write-Host "[+] Claude SEO installed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Usage:" -ForegroundColor Cyan
 Write-Host "  1. Start Claude Code:  claude"
