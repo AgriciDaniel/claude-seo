@@ -13,7 +13,7 @@ schema markup, image optimization, sitemap architecture, and AI search optimizat
 ```
 claude-seo/
   CLAUDE.md                          # Project instructions (this file)
-  .claude-plugin/plugin.json         # Plugin manifest (v1.3.2)
+  .claude-plugin/plugin.json         # Plugin manifest v1.5.0
   seo/                               # Main orchestrator skill
     SKILL.md                         # Entry point, routing table, core rules
     references/                      # On-demand knowledge files
@@ -41,6 +41,9 @@ claude-seo/
     seo-performance.md             # Core Web Vitals, page speed
     seo-visual.md                  # Screenshots, mobile rendering
     seo-geo.md                     # AI crawler access, GEO, citability
+  extensions/                          # Optional add-on capabilities
+    dataforseo/                    # Live SEO data via DataForSEO MCP
+    banana/                        # AI image generation via Gemini MCP
   docs/                              # Extended documentation
     ARCHITECTURE.md                # System design overview
     COMMANDS.md                    # Full command reference
@@ -65,6 +68,7 @@ claude-seo/
 | `/seo programmatic` | Programmatic SEO analysis and planning |
 | `/seo competitor-pages` | Competitor comparison page generation |
 | `/seo hreflang <url>` | International SEO / hreflang audit |
+| `/seo image-gen [use-case] <desc>` | AI image generation for SEO assets (extension) |
 
 ## Development Rules
 
@@ -81,4 +85,4 @@ claude-seo/
 1. **Progressive Disclosure**: Metadata always loaded, instructions on activation, resources on demand
 2. **Industry Detection**: Auto-detect SaaS, e-commerce, local, publisher, agency
 3. **Parallel Execution**: Full audits spawn 7 subagents simultaneously
-4. **Extension System**: DataForSEO MCP integration for live data
+4. **Extension System**: DataForSEO MCP for live data, Banana MCP for AI image generation

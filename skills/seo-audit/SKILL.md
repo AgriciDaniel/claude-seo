@@ -21,6 +21,7 @@ description: >
    - `seo-sitemap` — structure analysis, quality gates, missing pages
    - `seo-performance` — LCP, INP, CLS measurements
    - `seo-visual` — screenshots, mobile testing, above-fold analysis
+   - `seo-geo` — AI crawler access, llms.txt, citability, brand mention signals
 5. **Score** — aggregate into SEO Health Score (0-100)
 6. **Report** — generate prioritized action plan
 
@@ -45,13 +46,13 @@ Delay between requests: 1 second
 
 | Category | Weight |
 |----------|--------|
-| Technical SEO | 25% |
-| Content Quality | 25% |
+| Technical SEO | 22% |
+| Content Quality | 23% |
 | On-Page SEO | 20% |
 | Schema / Structured Data | 10% |
 | Performance (CWV) | 10% |
+| AI Search Readiness | 10% |
 | Images | 5% |
-| AI Search Readiness | 5% |
 
 ## Report Structure
 

@@ -198,20 +198,48 @@ Extensions are opt-in add-ons that integrate external data sources via MCP serve
 
 ```
 extensions/
-└── dataforseo/               # DataForSEO MCP integration
+├── dataforseo/               # DataForSEO MCP integration
+│   ├── README.md                  # Extension documentation
+│   ├── install.sh                 # Unix installer
+│   ├── install.ps1                # Windows installer
+│   ├── uninstall.sh               # Unix uninstaller
+│   ├── uninstall.ps1              # Windows uninstaller
+│   ├── field-config.json          # API response field filtering
+│   ├── skills/
+│   │   └── seo-dataforseo/
+│   │       └── SKILL.md           # Sub-skill (22 commands)
+│   ├── agents/
+│   │   └── seo-dataforseo.md      # Subagent
+│   └── docs/
+│       └── DATAFORSEO-SETUP.md    # Account setup guide
+│
+└── banana/                   # Banana Image Generation (Gemini AI)
     ├── README.md                  # Extension documentation
     ├── install.sh                 # Unix installer
-    ├── install.ps1                # Windows installer
     ├── uninstall.sh               # Unix uninstaller
-    ├── uninstall.ps1              # Windows uninstaller
-    ├── field-config.json          # API response field filtering
     ├── skills/
-    │   └── seo-dataforseo/
-    │       └── SKILL.md           # Sub-skill (22 commands)
+    │   └── seo-image-gen/
+    │       └── SKILL.md           # Sub-skill (6 commands)
     ├── agents/
-    │   └── seo-dataforseo.md      # Subagent
+    │   └── seo-image-gen.md       # Image audit subagent
+    ├── scripts/                   # Python scripts (stdlib only)
+    │   ├── generate.py            # Direct API fallback
+    │   ├── edit.py                # Image editing fallback
+    │   ├── batch.py               # CSV batch workflow
+    │   ├── cost_tracker.py        # Usage and cost tracking
+    │   ├── presets.py             # Brand preset management
+    │   ├── setup_mcp.py           # MCP configuration
+    │   └── validate_setup.py      # Installation verification
+    ├── references/                # On-demand knowledge
+    │   ├── prompt-engineering.md  # 6-component Reasoning Brief
+    │   ├── gemini-models.md       # Model specs and pricing
+    │   ├── mcp-tools.md           # MCP tool reference
+    │   ├── post-processing.md     # ImageMagick recipes
+    │   ├── cost-tracking.md       # Cost tracking guide
+    │   ├── presets.md             # Preset schema
+    │   └── seo-image-presets.md   # SEO-specific presets
     └── docs/
-        └── DATAFORSEO-SETUP.md    # Account setup guide
+        └── BANANA-SETUP.md        # API key and MCP setup
 ```
 
 ### Available Extensions
@@ -219,6 +247,7 @@ extensions/
 | Extension | Package | What it Adds |
 |-----------|---------|-------------|
 | **DataForSEO** | `dataforseo-mcp-server` | 22 commands: live SERP, keywords, backlinks, on-page analysis, content analysis, business listings, AI visibility, LLM mentions |
+| **Banana Image Gen** | `@ycse/nanobanana-mcp` | 6 commands: OG image, hero image, product photo, infographic, custom, and batch generation via Gemini AI |
 
 ### Extension Convention
 

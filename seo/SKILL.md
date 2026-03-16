@@ -17,8 +17,8 @@ description: >
 # SEO — Universal SEO Analysis Skill
 
 Comprehensive SEO analysis across all industries (SaaS, local services,
-e-commerce, publishers, agencies). Orchestrates 12 specialized sub-skills
-and 7 subagents (+ optional extension sub-skills).
+e-commerce, publishers, agencies). Orchestrates 12 specialized sub-skills and 7 subagents
+(+ optional extension sub-skills like seo-dataforseo).
 
 ## Quick Reference
 
@@ -37,6 +37,7 @@ and 7 subagents (+ optional extension sub-skills).
 | `/seo competitor-pages [url\|generate]` | Competitor comparison page generation |
 | `/seo hreflang [url]` | Hreflang/i18n SEO audit and generation |
 | `/seo dataforseo [command]` | Live SEO data via DataForSEO (extension) |
+| `/seo image-gen [use-case] <description>` | AI image generation for SEO assets (extension) |
 
 ## Orchestration Logic
 
@@ -98,7 +99,7 @@ Weighted aggregate of all categories:
 
 ## Sub-Skills
 
-This skill orchestrates 12 specialized sub-skills (+ 1 extension):
+This skill orchestrates 12 specialized sub-skills (+ 2 extensions):
 
 1. **seo-audit** — Full website audit with parallel delegation
 2. **seo-page** — Deep single-page analysis
@@ -113,6 +114,7 @@ This skill orchestrates 12 specialized sub-skills (+ 1 extension):
 11. **seo-competitor-pages** — Competitor comparison page generation
 12. **seo-hreflang** — Hreflang/i18n SEO audit and generation
 13. **seo-dataforseo** — Live SEO data via DataForSEO MCP (extension)
+14. **seo-image-gen** — AI image generation for SEO assets via Gemini (extension)
 
 ## Subagents
 
@@ -125,3 +127,4 @@ For parallel analysis during audits:
 - `seo-visual` — Screenshots, mobile testing, above-fold
 - `seo-geo` — AI crawler access, llms.txt, citability, brand mention signals
 - `seo-dataforseo` — Live SERP, keyword, backlink, local SEO data (extension, optional)
+- `seo-image-gen` — SEO image audit and generation plan (extension, optional)

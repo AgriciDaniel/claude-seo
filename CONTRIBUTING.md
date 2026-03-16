@@ -39,3 +39,9 @@ bash install.sh
 - Reference files should be focused and under 200 lines
 - Follow kebab-case naming for all directories and files
 - Keep dependencies minimal
+
+### Code Style
+
+- Python: Follow PEP 8 conventions. Use `ruff check` or `flake8` for linting before submitting
+- Shell: Use `set -euo pipefail` and quote all variables
+- Markdown: Keep lines under 120 characters where practical

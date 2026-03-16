@@ -314,6 +314,37 @@ Live SEO data via DataForSEO MCP server (extension). 22 commands across 9 API mo
 
 ---
 
+### `/seo image-gen [use-case] <description>`
+
+AI image generation for SEO assets (extension). Powered by Gemini via nanobanana-mcp.
+
+**Prerequisites:** Banana extension installed (`./extensions/banana/install.sh`)
+
+**Use Cases:**
+```
+/seo image-gen og <description>          # OG/social preview image (16:9, 1K)
+/seo image-gen hero <description>        # Blog hero image (16:9, 2K)
+/seo image-gen product <description>     # Product photography (4:3, 2K)
+/seo image-gen infographic <description> # Infographic visual (2:3, 4K)
+/seo image-gen custom <description>      # Custom with full Creative Director pipeline
+/seo image-gen batch <description> [N]   # Generate N variations (default: 3)
+```
+
+**Example:**
+```
+/seo image-gen og "Professional SaaS analytics dashboard with clean UI"
+/seo image-gen hero "Dramatic sunset over modern city skyline"
+/seo image-gen product "Wireless noise-canceling headphones on marble surface"
+```
+
+**What it does:**
+1. Maps SEO use case to optimized domain mode, aspect ratio, and resolution
+2. Constructs 6-component Reasoning Brief (Creative Director pipeline)
+3. Generates image via Gemini API
+4. Provides SEO checklist (alt text, file naming, WebP, schema markup)
+
+---
+
 ## Quick Reference
 
 | Command | Use Case |
@@ -324,6 +355,7 @@ Live SEO data via DataForSEO MCP server (extension). 22 commands across 9 API mo
 | `/seo geo <url>` | AI search optimization |
 | `/seo hreflang [url]` | Hreflang/i18n SEO audit |
 | `/seo images <url>` | Image optimization |
+| `/seo image-gen [use-case] <desc>` | AI image generation (extension) |
 | `/seo page <url>` | Single page analysis |
 | `/seo plan <type>` | Strategic planning |
 | `/seo programmatic [url\|plan]` | Programmatic SEO analysis |
