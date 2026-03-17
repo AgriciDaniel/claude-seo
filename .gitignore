@@ -63,7 +63,6 @@ rankenstein-schema-audit.md
 capture_closeups.py
 capture_desktop.py
 generate_charts.py
-generate_pdf.py
 
 # Debug logs
 firebase-debug.log
