@@ -1,0 +1,41 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Fetch Page (SEO scraper)",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["scripts/fetch_page_server.py", "--port", "7801"],
+      "port": 7801
+    },
+    {
+      "name": "Analyze Visual (Playwright screenshots)",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["scripts/analyze_visual.py"],
+      "port": null
+    },
+    {
+      "name": "Capture Screenshot",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["scripts/capture_screenshot.py"],
+      "port": null
+    },
+    {
+      "name": "Parse HTML",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["scripts/parse_html.py"],
+      "port": null
+    },
+    {
+      "name": "Generate DOCX Reports",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/generate_docx.js"],
+      "port": null
+    },
+    {
+      "name": "Upload to Google Drive",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["scripts/upload_to_drive.py"],
+      "port": null
+    }
+  ]
+}
