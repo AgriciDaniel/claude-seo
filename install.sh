@@ -10,7 +10,7 @@ main() {
     REPO_URL="https://github.com/AgriciDaniel/claude-seo"
     # Pin to a specific release tag to prevent silent updates from main.
     # Override: CLAUDE_SEO_TAG=main bash install.sh
-    REPO_TAG="${CLAUDE_SEO_TAG:-v1.4.0}"
+    REPO_TAG="${CLAUDE_SEO_TAG:-v1.5.0}"
 
     echo "════════════════════════════════════════"
     echo "║   Claude SEO - Installer             ║"
@@ -84,6 +84,37 @@ main() {
         cp -r "${TEMP_DIR}/claude-seo/hooks/"* "${SKILL_DIR}/hooks/"
         chmod +x "${SKILL_DIR}/hooks/"*.sh 2>/dev/null || true
         chmod +x "${SKILL_DIR}/hooks/"*.py 2>/dev/null || true
+    fi
+
+    # Copy extensions (optional add-ons: dataforseo, banana)
+    if [ -d "${TEMP_DIR}/claude-seo/extensions" ]; then
+        echo "→ Installing extensions..."
+        for ext_dir in "${TEMP_DIR}/claude-seo/extensions"/*/; do
+            ext_name=$(basename "${ext_dir}")
+            # Extension skills
+            if [ -d "${ext_dir}skills" ]; then
+                for ext_skill in "${ext_dir}skills"/*/; do
+                    ext_skill_name=$(basename "${ext_skill}")
+                    target="${HOME}/.claude/skills/${ext_skill_name}"
+                    mkdir -p "${target}"
+                    cp -r "${ext_skill}"* "${target}/"
+                done
+            fi
+            # Extension agents
+            if [ -d "${ext_dir}agents" ]; then
+                cp -r "${ext_dir}agents/"*.md "${AGENT_DIR}/" 2>/dev/null || true
+            fi
+            # Extension references → skill dir
+            if [ -d "${ext_dir}references" ]; then
+                mkdir -p "${SKILL_DIR}/extensions/${ext_name}/references"
+                cp -r "${ext_dir}references/"* "${SKILL_DIR}/extensions/${ext_name}/references/"
+            fi
+            # Extension scripts → skill dir
+            if [ -d "${ext_dir}scripts" ]; then
+                mkdir -p "${SKILL_DIR}/extensions/${ext_name}/scripts"
+                cp -r "${ext_dir}scripts/"* "${SKILL_DIR}/extensions/${ext_name}/scripts/"
+            fi
+        done
     fi
 
     # Copy requirements.txt to skill dir so users can retry later
