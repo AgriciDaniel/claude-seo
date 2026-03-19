@@ -8,9 +8,17 @@ main() {
     SKILL_DIR="${HOME}/.claude/skills/seo"
     AGENT_DIR="${HOME}/.claude/agents"
     REPO_URL="https://github.com/AgriciDaniel/claude-seo"
-    # Pin to a specific release tag to prevent silent updates from main.
-    # Override: CLAUDE_SEO_TAG=main bash install.sh
-    REPO_TAG="${CLAUDE_SEO_TAG:-v1.5.0}"
+    # Fetch latest release tag from GitHub; fall back to main if unavailable.
+    # Override: CLAUDE_SEO_TAG=v1.4.0 bash install.sh
+    if [ -z "${CLAUDE_SEO_TAG:-}" ]; then
+        REPO_TAG=$(git ls-remote --tags --sort=-v:refname "${REPO_URL}" 'v*' 2>/dev/null | head -1 | sed 's|.*/||')
+        if [ -z "${REPO_TAG}" ]; then
+            REPO_TAG="main"
+            echo "⚠  Could not detect latest release tag, falling back to main"
+        fi
+    else
+        REPO_TAG="${CLAUDE_SEO_TAG}"
+    fi
 
     echo "════════════════════════════════════════"
     echo "║   Claude SEO - Installer             ║"
