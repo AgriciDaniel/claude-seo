@@ -17,21 +17,31 @@ const VIEWPORTS = [
   { name: 'mobile',  width: 375,  height: 812  },
 ];
 
+async function safePg(browser, vp) {
+  const pg = await browser.newPage({
+    viewport: { width: vp.width, height: vp.height },
+  });
+  await pg.setExtraHTTPHeaders({ 'Accept-Language': 'ru-RU,ru;q=0.9' });
+  try {
+    await pg.goto(URL, { waitUntil: 'domcontentloaded', timeout: 40000 });
+  } catch (e) {
+    console.error('goto failed:', e.message);
+  }
+  // Wait for layout settle without waiting for fonts
+  await pg.waitForTimeout(2000);
+  return pg;
+}
+
 async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 
-  const browser = await chromium.launch({ args: ['--no-sandbox'] });
+  const browser = await chromium.launch({
+    args: ['--no-sandbox', '--disable-web-security'],
+  });
   const results = {};
 
   // ── Signal extraction at desktop width ───────────────────────────────────
-  const sigPage = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
-  await sigPage.setExtraHTTPHeaders({ 'Accept-Language': 'ru-RU,ru;q=0.9' });
-
-  try {
-    await sigPage.goto(URL, { waitUntil: 'networkidle', timeout: 30000 });
-  } catch {
-    await sigPage.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  }
+  const sigPage = await safePg(browser, { width: 1920, height: 1080 });
 
   const html = await sigPage.content();
 
@@ -184,32 +194,29 @@ async function main() {
 
   // ── Screenshot pass across viewports ─────────────────────────────────────
   for (const vp of VIEWPORTS) {
-    const pg = await browser.newPage({ viewport: { width: vp.width, height: vp.height } });
-    await pg.setExtraHTTPHeaders({ 'Accept-Language': 'ru-RU,ru;q=0.9' });
-    try {
-      await pg.goto(URL, { waitUntil: 'networkidle', timeout: 30000 });
-    } catch {
-      await pg.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
-    }
-    // Brief pause for web fonts / lazy images
-    await pg.waitForTimeout(1500);
+    const pg = await safePg(browser, vp);
     const outPath = path.join(OUTPUT_DIR, `${vp.name}.png`);
-    await pg.screenshot({ path: outPath, fullPage: false });
-    console.error(`Saved ${outPath}`);
+    try {
+      await pg.screenshot({ path: outPath, fullPage: false, timeout: 60000 });
+      console.error(`Saved ${outPath}`);
+    } catch (e) {
+      console.error(`Screenshot failed for ${vp.name}: ${e.message}`);
+    }
     await pg.close();
   }
 
-  // Also capture mobile full-page
-  const mobilePg = await browser.newPage({ viewport: { width: 375, height: 812 } });
-  await mobilePg.setExtraHTTPHeaders({ 'Accept-Language': 'ru-RU,ru;q=0.9' });
+  // Mobile full-page scroll
+  const mobilePg = await safePg(browser, { width: 375, height: 812 });
   try {
-    await mobilePg.goto(URL, { waitUntil: 'networkidle', timeout: 30000 });
-  } catch {
-    await mobilePg.goto(URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await mobilePg.screenshot({
+      path: path.join(OUTPUT_DIR, 'mobile_full.png'),
+      fullPage: true,
+      timeout: 60000,
+    });
+    console.error('Saved mobile_full.png');
+  } catch (e) {
+    console.error(`mobile_full screenshot failed: ${e.message}`);
   }
-  await mobilePg.waitForTimeout(1500);
-  await mobilePg.screenshot({ path: path.join(OUTPUT_DIR, 'mobile_full.png'), fullPage: true });
-  console.error(`Saved mobile_full.png`);
   await mobilePg.close();
 
   await browser.close();
