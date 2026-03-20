@@ -75,6 +75,7 @@ def fetch_page(
         "content": None,
         "headers": {},
         "redirect_chain": [],
+        "redirect_details": [],
         "error": None,
     }
 
@@ -118,9 +119,13 @@ def fetch_page(
         result["content"] = response.text
         result["headers"] = dict(response.headers)
 
-        # Track redirect chain
+        # Track redirect chain with status codes
         if response.history:
             result["redirect_chain"] = [r.url for r in response.history]
+            result["redirect_details"] = [
+                {"url": r.url, "status_code": r.status_code}
+                for r in response.history
+            ]
 
     except requests.exceptions.Timeout:
         result["error"] = f"Request timed out after {timeout} seconds"
@@ -179,8 +184,10 @@ def main():
     # Print metadata to stderr
     print(f"\nURL: {result['url']}", file=sys.stderr)
     print(f"Status: {result['status_code']}", file=sys.stderr)
-    if result["redirect_chain"]:
-        print(f"Redirects: {' -> '.join(result['redirect_chain'])}", file=sys.stderr)
+    if result["redirect_details"]:
+        for rd in result["redirect_details"]:
+            print(f"  {rd['status_code']} -> {rd['url']}", file=sys.stderr)
+        print(f"  {result['status_code']} -> {result['url']} (final)", file=sys.stderr)
 
 
 if __name__ == "__main__":

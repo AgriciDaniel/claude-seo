@@ -1,10 +1,12 @@
 ---
 name: seo-technical
 description: >
-  Technical SEO audit across 9 categories: crawlability, indexability, security,
-  URL structure, mobile, Core Web Vitals, structured data, JavaScript rendering,
-  and IndexNow protocol. Use when user says "technical SEO", "crawl issues",
-  "robots.txt", "Core Web Vitals", "site speed", or "security headers".
+  Technical SEO audit across 11 categories: crawlability (with image weight
+  extraction), indexability, security, URL structure, mobile, Core Web Vitals,
+  structured data, JavaScript rendering, IndexNow protocol, HTTP response codes
+  (3XX/4XX/5XX analysis), and meta description quality. Use when user says
+  "technical SEO", "crawl issues", "robots.txt", "Core Web Vitals", "site speed",
+  "security headers", "broken links", "redirects", or "meta description".
 user-invokable: true
 argument-hint: "[url]"
 allowed-tools:
@@ -26,6 +28,7 @@ allowed-tools:
 - Crawl depth: important pages within 3 clicks of homepage
 - JavaScript rendering: check if critical content requires JS execution
 - Crawl budget: for large sites (>10k pages), efficiency matters
+- Image weight: extract size of all images via HEAD requests, flag oversized (>200KB per image, >1MB total per page)
 
 #### AI Crawler Management
 
@@ -74,6 +77,7 @@ Allow: /
 - Pagination: rel=next/prev or load-more pattern
 - Hreflang: correct for multi-language/multi-region sites
 - Index bloat: unnecessary pages consuming crawl budget
+- Meta description: presence, length (120-160 chars), uniqueness across pages, keyword inclusion
 
 ### 3. Security
 - HTTPS: enforced, valid SSL certificate, no mixed content
@@ -134,6 +138,22 @@ Google updated its JavaScript SEO documentation in December 2025 with critical c
 - Supported by search engines other than Google
 - Recommend implementation for faster indexing on non-Google engines
 
+### 10. HTTP Response Codes
+- Crawl all internal links and collect HTTP status codes
+- Flag 301/302 redirects: verify intent, detect chains (>1 hop loses link equity)
+- Flag 4XX errors: 404 broken links, 403 blocked resources, 410 gone pages
+- Flag 5XX server errors as Critical
+- Report SSL/HTTPS errors: expired certificates, mixed content, connection failures
+- Provide full breakdown: total URLs crawled, count per status code, list of non-200 URLs
+
+### 11. Meta Description Quality
+- Check presence on every indexable page (missing = Critical)
+- Validate length: 120-160 characters (too short or too long = High)
+- Detect duplicates across pages (same description on multiple pages = High)
+- Flag empty meta descriptions (tag present but no content = Critical)
+- Flag keyword stuffing or all-caps descriptions
+- Reference `quality-gates.md` for detailed requirements
+
 ## Output
 
 ### Technical Score: XX/100
@@ -150,6 +170,8 @@ Google updated its JavaScript SEO documentation in December 2025 with critical c
 | Structured Data | pass/warn/fail | XX/100 |
 | JS Rendering | pass/warn/fail | XX/100 |
 | IndexNow | pass/warn/fail | XX/100 |
+| HTTP Response Codes | pass/warn/fail | XX/100 |
+| Meta Descriptions | pass/warn/fail | XX/100 |
 
 ### Critical Issues (fix immediately)
 ### High Priority (fix within 1 week)
