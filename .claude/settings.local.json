@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''scripts/fetch_page.py''\\).read\\(\\)\\); print\\(''fetch_page.py: OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''scripts/parse_html.py''\\).read\\(\\)\\); print\\(''parse_html.py: OK''\\)\")",
+      "Bash(REPO=\"C:/Users/jonat/OneDrive/Documents/GitHub/claude-seo\")",
+      "Bash(SKILL_DIR=\"$HOME/.claude/skills/seo\")",
+      "Bash(AGENT_DIR=\"$HOME/.claude/agents\")",
+      "Bash(mkdir -p \"$SKILL_DIR\" \"$AGENT_DIR\")",
+      "Bash(cp \"$REPO/agents/\"*.md \"$AGENT_DIR/\")",
+      "Bash(mkdir -p \"$SKILL_DIR/scripts\")",
+      "Bash(cp -r \"$REPO/scripts/\"* \"$SKILL_DIR/scripts/\")",
+      "Bash(mkdir -p \"$SKILL_DIR/schema\")",
+      "Bash(cp -r \"$REPO/schema/\"* \"$SKILL_DIR/schema/\")",
+      "Bash(pip install:*)",
+      "Bash(python -m playwright install chromium)",
+      "Read(//c/Users/jonat/OneDrive/Documents/GitHub/claude-seo/$HOME/.claude/**)",
+      "Read(//c/Users/jonat/OneDrive/Documents/GitHub/claude-seo/$HOME/.claude/skills/**)",
+      "Read(//c/Users/jonat/OneDrive/Documents/GitHub/claude-seo/$HOME/.claude/skills/seo/**)",
+      "Bash(python -c \"import requests; import bs4; import lxml; import playwright; print\\(''All deps OK''\\)\")"
+    ]
+  }
+}

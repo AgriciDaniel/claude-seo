@@ -16,6 +16,11 @@ from typing import Optional
 from urllib.parse import urljoin, urlparse
 
 try:
+    import requests as _requests
+except ImportError:
+    _requests = None
+
+try:
     from bs4 import BeautifulSoup
 except ImportError:
     print("Error: beautifulsoup4 required. Install with: pip install beautifulsoup4")
@@ -44,12 +49,20 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     result = {
         "title": None,
         "meta_description": None,
+        "meta_description_analysis": {},
         "meta_robots": None,
         "canonical": None,
         "h1": [],
         "h2": [],
         "h3": [],
         "images": [],
+        "images_weight": {
+            "total_bytes": 0,
+            "total_human": "0 B",
+            "count": 0,
+            "details": [],
+            "oversized": [],
+        },
         "links": {
             "internal": [],
             "external": [],
@@ -151,6 +164,74 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         except (json.JSONDecodeError, TypeError):
             pass
 
+    # Meta description analysis
+    md = result["meta_description"]
+    if md is not None:
+        md_len = len(md)
+        issues = []
+        if md_len < 120:
+            issues.append("too_short")
+        if md_len > 160:
+            issues.append("too_long")
+        if md_len > 0 and md == md.upper():
+            issues.append("all_caps")
+        if md_len == 0:
+            issues.append("empty")
+        result["meta_description_analysis"] = {
+            "length": md_len,
+            "status": "missing" if md_len == 0 else (
+                "good" if 120 <= md_len <= 160 else "warning"
+            ),
+            "issues": issues,
+        }
+    else:
+        result["meta_description_analysis"] = {
+            "length": 0,
+            "status": "missing",
+            "issues": ["missing"],
+        }
+
+    # Image weight extraction via HEAD requests
+    if base_url and _requests:
+        total_bytes = 0
+        oversized = []
+        details = []
+        for img_data in result["images"]:
+            src = img_data.get("src", "")
+            if not src or not src.startswith(("http://", "https://")):
+                continue
+            try:
+                head = _requests.head(src, timeout=10, allow_redirects=True)
+                content_length = int(head.headers.get("Content-Length", 0))
+                content_type = head.headers.get("Content-Type", "")
+                img_detail = {
+                    "src": src,
+                    "size_bytes": content_length,
+                    "size_human": _human_size(content_length),
+                    "content_type": content_type,
+                    "status_code": head.status_code,
+                }
+                details.append(img_detail)
+                if head.status_code == 200:
+                    total_bytes += content_length
+                    if content_length > 200 * 1024:
+                        oversized.append(img_detail)
+            except Exception:
+                details.append({
+                    "src": src,
+                    "size_bytes": 0,
+                    "size_human": "unknown",
+                    "content_type": "",
+                    "status_code": None,
+                })
+        result["images_weight"] = {
+            "total_bytes": total_bytes,
+            "total_human": _human_size(total_bytes),
+            "count": len(details),
+            "details": details,
+            "oversized": oversized,
+        }
+
     # Word count (visible text only)
     for element in soup(["script", "style", "nav", "footer", "header"]):
         element.decompose()
@@ -160,6 +241,15 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     result["word_count"] = len(words)
 
     return result
+
+
+def _human_size(num_bytes: int) -> str:
+    """Convert bytes to human-readable string."""
+    for unit in ("B", "KB", "MB", "GB"):
+        if abs(num_bytes) < 1024:
+            return f"{num_bytes:.1f} {unit}" if unit != "B" else f"{num_bytes} B"
+        num_bytes /= 1024.0
+    return f"{num_bytes:.1f} TB"
 
 
 def main():
@@ -187,10 +277,20 @@ def main():
     else:
         print(f"Title: {result['title']}")
         print(f"Meta Description: {result['meta_description']}")
+        mda = result["meta_description_analysis"]
+        print(f"  Length: {mda['length']} chars | Status: {mda['status']}")
+        if mda["issues"]:
+            print(f"  Issues: {', '.join(mda['issues'])}")
         print(f"Canonical: {result['canonical']}")
         print(f"H1 Tags: {len(result['h1'])}")
         print(f"H2 Tags: {len(result['h2'])}")
         print(f"Images: {len(result['images'])}")
+        iw = result["images_weight"]
+        print(f"  Total image weight: {iw['total_human']} ({iw['count']} images)")
+        if iw["oversized"]:
+            print(f"  Oversized (>200KB): {len(iw['oversized'])} images")
+            for ov in iw["oversized"]:
+                print(f"    - {ov['src']} ({ov['size_human']})")
         print(f"Internal Links: {len(result['links']['internal'])}")
         print(f"External Links: {len(result['links']['external'])}")
         print(f"Schema Blocks: {len(result['schema'])}")
