@@ -2,7 +2,7 @@
 
 ![Claude SEO](screenshots/cover-image.jpeg)
 
-# Claude SEO v1.6.0 -- SEO Audit Skill for Claude Code
+# Claude SEO - SEO Audit Skill for Claude Code
 
 Comprehensive SEO analysis skill for Claude Code. Covers technical SEO, on-page analysis, content quality (E-E-A-T), schema markup, image optimization, sitemap architecture, AI search optimization (GEO), and strategic planning.
 
