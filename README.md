@@ -242,7 +242,7 @@ See `schema/templates.json` for ready-to-use JSON-LD snippets.
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - Claude Code CLI
 - Optional: Playwright for screenshots
 - Optional: Google API credentials for enriched data (see `/seo google setup`)

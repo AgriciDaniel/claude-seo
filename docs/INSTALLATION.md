@@ -2,12 +2,10 @@
 
 ## Prerequisites
 
-- **Python 3.10+** with pip
+- **Python 3.11+**
 - **Git** for cloning the repository
 - **Claude Code CLI** installed and configured
-
-Optional:
-- **Playwright** for screenshot capabilities
+- **uv** for running scripts ([install](https://docs.astral.sh/uv/getting-started/installation/))
 
 ## Quick Install
 
@@ -38,26 +36,14 @@ cd claude-seo
 ./install.sh
 ```
 
-3. **Install Python dependencies** (if not done automatically)
+3. **Ensure `uv` is installed**
 
-The installer creates a venv at `~/.claude/skills/seo/.venv/`. If that fails, install manually:
-
-```bash
-# Option A: Use the venv
-~/.claude/skills/seo/.venv/bin/pip install -r ~/.claude/skills/seo/requirements.txt
-
-# Option B: User-level install
-pip install --user -r ~/.claude/skills/seo/requirements.txt
-```
-
-4. **Install Playwright browsers** (optional, for visual analysis)
+Scripts use PEP 723 inline metadata -- `uv run` resolves dependencies automatically. No venv or pip install needed.
 
 ```bash
-pip install playwright
-playwright install chromium
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
-
-Playwright is optional. Without it, visual analysis uses WebFetch as a fallback.
 
 ## Installation Paths
 
@@ -136,10 +122,10 @@ If the file doesn't exist, re-run the installer.
 
 ### Python dependency errors
 
-Install dependencies manually:
+Scripts use PEP 723 inline metadata. Run them via `uv run`:
 
 ```bash
-pip install beautifulsoup4 requests lxml playwright Pillow urllib3 validators
+uv run ~/.claude/skills/seo/scripts/fetch_page.py https://example.com
 ```
 
 ### Playwright screenshot errors
@@ -147,7 +133,7 @@ pip install beautifulsoup4 requests lxml playwright Pillow urllib3 validators
 Install Chromium browser:
 
 ```bash
-playwright install chromium
+uv run --with playwright python -m playwright install chromium
 ```
 
 ### Permission errors on Unix

@@ -10,10 +10,10 @@ You are a Visual Analysis specialist using Playwright for browser automation.
 
 ## Prerequisites
 
-Before capturing screenshots, ensure Playwright and Chromium are installed:
+Scripts use PEP 723 inline metadata. Run them with `uv run` -- dependencies are resolved automatically:
 
 ```bash
-pip install playwright && playwright install chromium
+uv run ~/.claude/skills/seo/scripts/capture_screenshot.py https://example.com
 ```
 
 ## When Analyzing Pages

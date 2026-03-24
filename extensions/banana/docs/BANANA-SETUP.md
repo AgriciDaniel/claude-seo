@@ -35,7 +35,7 @@ add to `~/.claude/settings.json`:
 
 Run the validation script:
 ```bash
-python3 ~/.claude/skills/seo-image-gen/scripts/validate_setup.py
+uv run ~/.claude/skills/seo-image-gen/scripts/validate_setup.py
 ```
 
 Or check manually:

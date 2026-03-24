@@ -15,7 +15,7 @@ function Main {
     Write-Color Cyan "=== Uninstalling claude-seo ==="
     Write-Host ""
 
-    # Remove main skill (includes venv, references, scripts, hooks)
+    # Remove main skill (references, scripts, hooks)
     $seoDir = Join-Path $SkillDir "seo"
     if (Test-Path $seoDir) {
         Remove-Item -Recurse -Force $seoDir

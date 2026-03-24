@@ -95,8 +95,8 @@ claude-seo/
 - Scripts must have docstrings, CLI interface, and JSON output
 - Follow kebab-case naming for all skill directories
 - Agents invoked via Agent tool, never via Bash
-- Python dependencies install into `~/.claude/skills/seo/.venv/`
-- Test with `python -m pytest tests/` after changes (if applicable)
+- Scripts use PEP 723 inline metadata; run via `uv run`
+- Test with `uv run pytest` after changes (if applicable)
 
 ## Report Generation Rules
 
