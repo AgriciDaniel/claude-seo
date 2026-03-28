@@ -44,29 +44,6 @@ function Invoke-External {
     return @{ ExitCode = $exitCode; Output = $output }
 }
 
-# Helper: symlink in local mode, copy in remote mode
-function Install-To {
-    param(
-        [Parameter(Mandatory = $true)][string]$Source,
-        [Parameter(Mandatory = $true)][string]$Destination,
-        [bool]$IsLocal = $false
-    )
-
-    if ($IsLocal) {
-        if (Test-Path $Destination) {
-            Remove-Item -Recurse -Force $Destination
-        }
-        New-Item -ItemType SymbolicLink -Path $Destination -Target $Source | Out-Null
-    } else {
-        if (Test-Path $Source -PathType Container) {
-            New-Item -ItemType Directory -Force -Path $Destination | Out-Null
-            Copy-Item -Recurse -Force "$Source\*" $Destination
-        } else {
-            Copy-Item -Force $Source $Destination
-        }
-    }
-}
-
 # Check prerequisites
 if (Get-Command python3 -ErrorAction SilentlyContinue) {
     $pyVer = python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
@@ -78,6 +55,14 @@ if (Get-Command python3 -ErrorAction SilentlyContinue) {
     Write-Host "[!] Python 3 not found. uv can install it automatically if needed." -ForegroundColor Yellow
 }
 
+try {
+    git --version | Out-Null
+    Write-Host "[+] Git detected" -ForegroundColor Green
+} catch {
+    Write-Host "[x] Git is required but not installed." -ForegroundColor Red
+    exit 1
+}
+
 # Set paths
 $SkillDir = "$env:USERPROFILE\.claude\skills\seo"
 $AgentDir = "$env:USERPROFILE\.claude\agents"
@@ -86,85 +71,87 @@ $RepoUrl = "https://github.com/AgriciDaniel/claude-seo"
 # Override: $env:CLAUDE_SEO_TAG = 'main'; .\install.ps1
 $RepoTag = if ($env:CLAUDE_SEO_TAG) { $env:CLAUDE_SEO_TAG } else { 'v1.6.0' }
 
-# Determine source: local repo or GitHub download
-# Local mode: auto-detected when install.ps1 is run from within the repo
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$LocalSource = $null
-
-if (Test-Path (Join-Path $ScriptDir 'seo\SKILL.md')) {
-    $LocalSource = $ScriptDir
-}
-
 # Create directories
 New-Item -ItemType Directory -Force -Path $SkillDir | Out-Null
 New-Item -ItemType Directory -Force -Path $AgentDir | Out-Null
 
-if ($LocalSource) {
-    Write-Host "=> Installing from local source (symlinked): $LocalSource" -ForegroundColor Yellow
-    $SourceDir = $LocalSource
-} else {
-    try {
-        git --version | Out-Null
-        Write-Host "[+] Git detected" -ForegroundColor Green
-    } catch {
-        Write-Host "[x] Git is required but not installed." -ForegroundColor Red
-        exit 1
-    }
+# Clone to temp directory
+$TempDir = Join-Path $env:TEMP "claude-seo-install"
+if (Test-Path $TempDir) {
+    Remove-Item -Recurse -Force $TempDir
+}
 
-    $TempDir = Join-Path $env:TEMP "claude-seo-install"
-    if (Test-Path $TempDir) {
-        Remove-Item -Recurse -Force $TempDir
-    }
+$keepTemp = ($env:CLAUDE_SEO_KEEP_TEMP -eq '1')
 
+try {
     Write-Host ">> Downloading Claude SEO ($RepoTag)..." -ForegroundColor Yellow
     $clone = Invoke-External -Exe 'git' -Args @('clone','--depth','1','--branch',$RepoTag,$RepoUrl,$TempDir) -Quiet
     if ($clone.ExitCode -ne 0) {
         throw "git clone failed. Output:`n$($clone.Output -join "`n")"
     }
-    $SourceDir = $TempDir
-}
 
-$IsLocal = $null -ne $LocalSource
-
-try {
-    # Main skill: install individual items from seo/ into SkillDir
+    # Copy skill files
     Write-Host "=> Installing skill files..." -ForegroundColor Yellow
-    $skillSource = Join-Path $SourceDir 'seo'
+    $skillSource = Join-Path $TempDir 'seo'
     if (-not (Test-Path $skillSource)) {
-        throw "Could not find skill source folder (seo/)."
+        $skillSource = Join-Path $TempDir 'skills\seo'
     }
-    Get-ChildItem $skillSource | ForEach-Object {
-        Install-To -Source $_.FullName -Destination (Join-Path $SkillDir $_.Name) -IsLocal $IsLocal
+    if (-not (Test-Path $skillSource)) {
+        throw "Could not find skill source folder in repo clone."
     }
+    Copy-Item -Recurse -Force (Join-Path $skillSource '*') $SkillDir
 
-    # Sub-skills
-    $SkillsPath = Join-Path $SourceDir 'skills'
+    # Copy sub-skills
+    $SkillsPath = "$TempDir\skills"
     if (Test-Path $SkillsPath) {
         Get-ChildItem -Directory $SkillsPath | ForEach-Object {
             $target = "$env:USERPROFILE\.claude\skills\$($_.Name)"
-            Install-To -Source $_.FullName -Destination $target -IsLocal $IsLocal
+            New-Item -ItemType Directory -Force -Path $target | Out-Null
+            Copy-Item -Recurse -Force "$($_.FullName)\*" $target
         }
     }
 
-    # Schema, pdf, scripts, hooks -> merged into SkillDir
-    foreach ($dirName in @('schema', 'pdf', 'scripts', 'hooks')) {
-        $dirPath = Join-Path $SourceDir $dirName
-        if (Test-Path $dirPath) {
-            Install-To -Source $dirPath -Destination (Join-Path $SkillDir $dirName) -IsLocal $IsLocal
-        }
+    # Copy schema templates
+    $SchemaPath = "$TempDir\schema"
+    if (Test-Path $SchemaPath) {
+        $SkillSchema = "$SkillDir\schema"
+        New-Item -ItemType Directory -Force -Path $SkillSchema | Out-Null
+        Copy-Item -Recurse -Force "$SchemaPath\*" $SkillSchema
     }
 
-    # Agents
+    # Copy reference docs
+    $PdfPath = "$TempDir\pdf"
+    if (Test-Path $PdfPath) {
+        $SkillPdf = "$SkillDir\pdf"
+        New-Item -ItemType Directory -Force -Path $SkillPdf | Out-Null
+        Copy-Item -Recurse -Force "$PdfPath\*" $SkillPdf
+    }
+
+    # Copy agents
     Write-Host "=> Installing subagents..." -ForegroundColor Yellow
-    $AgentsPath = Join-Path $SourceDir 'agents'
+    $AgentsPath = Join-Path $TempDir 'agents'
     if (Test-Path $AgentsPath) {
-        Get-ChildItem $AgentsPath -Filter '*.md' | ForEach-Object {
-            Install-To -Source $_.FullName -Destination (Join-Path $AgentDir $_.Name) -IsLocal $IsLocal
-        }
+        Copy-Item -Force (Join-Path $AgentsPath '*.md') $AgentDir -ErrorAction SilentlyContinue
     }
 
-    # Extensions (optional add-ons: dataforseo, banana)
-    $ExtensionsPath = Join-Path $SourceDir 'extensions'
+    # Copy shared scripts
+    $ScriptsPath = "$TempDir\scripts"
+    if (Test-Path $ScriptsPath) {
+        $SkillScripts = "$SkillDir\scripts"
+        New-Item -ItemType Directory -Force -Path $SkillScripts | Out-Null
+        Copy-Item -Recurse -Force "$ScriptsPath\*" $SkillScripts
+    }
+
+    # Copy hooks
+    $HooksPath = "$TempDir\hooks"
+    if (Test-Path $HooksPath) {
+        $SkillHooks = "$SkillDir\hooks"
+        New-Item -ItemType Directory -Force -Path $SkillHooks | Out-Null
+        Copy-Item -Recurse -Force "$HooksPath\*" $SkillHooks
+    }
+
+    # Copy extensions (optional add-ons: dataforseo, banana)
+    $ExtensionsPath = Join-Path $TempDir 'extensions'
     if (Test-Path $ExtensionsPath) {
         Write-Host "=> Installing extensions..." -ForegroundColor Yellow
         Get-ChildItem -Directory $ExtensionsPath | ForEach-Object {
@@ -175,29 +162,28 @@ try {
             if (Test-Path $extSkills) {
                 Get-ChildItem -Directory $extSkills | ForEach-Object {
                     $target = "$env:USERPROFILE\.claude\skills\$($_.Name)"
-                    Install-To -Source $_.FullName -Destination $target -IsLocal $IsLocal
+                    New-Item -ItemType Directory -Force -Path $target | Out-Null
+                    Copy-Item -Recurse -Force "$($_.FullName)\*" $target
                 }
             }
             # Extension agents
             $extAgents = Join-Path $extDir 'agents'
             if (Test-Path $extAgents) {
-                Get-ChildItem $extAgents -Filter '*.md' | ForEach-Object {
-                    Install-To -Source $_.FullName -Destination (Join-Path $AgentDir $_.Name) -IsLocal $IsLocal
-                }
+                Copy-Item -Force (Join-Path $extAgents '*.md') $AgentDir -ErrorAction SilentlyContinue
             }
             # Extension references
             $extRefs = Join-Path $extDir 'references'
             if (Test-Path $extRefs) {
-                $refTarget = Join-Path $SkillDir "extensions\$extName"
+                $refTarget = "$SkillDir\extensions\$extName\references"
                 New-Item -ItemType Directory -Force -Path $refTarget | Out-Null
-                Install-To -Source $extRefs -Destination (Join-Path $refTarget 'references') -IsLocal $IsLocal
+                Copy-Item -Recurse -Force "$extRefs\*" $refTarget
             }
             # Extension scripts
             $extScripts = Join-Path $extDir 'scripts'
             if (Test-Path $extScripts) {
-                $scriptTarget = Join-Path $SkillDir "extensions\$extName"
+                $scriptTarget = "$SkillDir\extensions\$extName\scripts"
                 New-Item -ItemType Directory -Force -Path $scriptTarget | Out-Null
-                Install-To -Source $extScripts -Destination (Join-Path $scriptTarget 'scripts') -IsLocal $IsLocal
+                Copy-Item -Recurse -Force "$extScripts\*" $scriptTarget
             }
         }
     }
@@ -222,18 +208,18 @@ try {
 } catch {
     Write-Host ""
     Write-Host "[x] Installation failed: $($_.Exception.Message)" -ForegroundColor Red
+    if ($keepTemp -and (Test-Path $TempDir)) {
+        Write-Host "Temp dir kept at: $TempDir" -ForegroundColor Yellow
+    }
     throw
 } finally {
-    if (-not $IsLocal -and (Test-Path -ErrorAction SilentlyContinue $TempDir)) {
+    if (-not $keepTemp -and (Test-Path $TempDir)) {
         Remove-Item -Recurse -Force $TempDir
     }
 }
 
 Write-Host ""
 Write-Host "[+] Claude SEO installed successfully!" -ForegroundColor Green
-if ($IsLocal) {
-    Write-Host "  (local mode: changes to source files are reflected immediately)" -ForegroundColor Green
-}
 Write-Host ""
 Write-Host "Usage:" -ForegroundColor Cyan
 Write-Host "  1. Start Claude Code:  claude"
