@@ -102,15 +102,51 @@ All 9 DataForSEO modules are enabled:
 | CONTENT_ANALYSIS | Content quality, trends | content |
 | AI_OPTIMIZATION | ChatGPT scraper, LLM mentions | ai-scrape, ai-mentions |
 
-## API Credits
+## API Credits & Cost Configuration
 
-DataForSEO charges per API call. Credit costs vary by endpoint:
+DataForSEO charges per API call. Claude SEO includes a cost estimation and approval
+system to prevent surprise spending.
 
-- **SERP** calls: ~0.001-0.003 per request
-- **Keyword** research: ~0.0005-0.002 per keyword
-- **Backlinks**: ~0.002-0.01 per request
-- **On-page** analysis: ~0.01-0.05 per page
-- **AI optimization**: ~0.01 per request
+### Cost Configuration
+
+Initialize defaults on first use:
+```bash
+python3 scripts/dataforseo_costs.py init
+```
+
+Configure the approval mode:
+```bash
+# Always ask before any API call
+python3 scripts/dataforseo_costs.py config --set approval_mode=always
+
+# Ask only when estimated cost >= threshold (default: $0.50)
+python3 scripts/dataforseo_costs.py config --set approval_mode=threshold threshold_usd=3.00
+
+# No approval needed (not recommended)
+python3 scripts/dataforseo_costs.py config --set approval_mode=none
+```
+
+### Cost Estimates
+
+| Endpoint Type | Approximate Cost |
+|--------------|-----------------|
+| SERP (single query, live) | $0.002 |
+| SERP (single query, standard) | $0.0006 |
+| Keyword volume (per keyword) | $0.0001-0.001 |
+| Backlink summary | $0.02 + $0.00003/row |
+| On-page Lighthouse | $0.00425/page |
+| AI optimization (LLM mentions) | $0.10/task + $0.001/row |
+| ChatGPT scraper | $0.004/page (live) |
+
+The default config uses conservative limits (standard queue, reduced depth) that
+cut costs by ~60-80% vs aggressive defaults. See `seo-dataforseo/references/cost-config.md`.
+
+### Spending Tracker
+
+```bash
+python3 scripts/dataforseo_costs.py summary   # Total + last 7 days
+python3 scripts/dataforseo_costs.py today      # Today's spend vs budget
+```
 
 New accounts include a free trial balance. See [DataForSEO pricing](https://dataforseo.com/pricing) for current rates.
 

@@ -63,7 +63,30 @@ If the installer's auto-configuration fails, add this to `~/.claude/settings.jso
 
 Replace the username, password, and FIELD_CONFIG_PATH with your actual values.
 
-## 5. Verify Installation
+## 5. Configure Cost Controls
+
+Claude SEO includes a cost estimation and approval system. Initialize it:
+
+```bash
+python3 scripts/dataforseo_costs.py init
+```
+
+This creates `~/.claude-seo/dataforseo-cost-config.json` with conservative defaults:
+- **Approval mode:** `threshold` (asks for approval when estimated cost >= $0.50)
+- **Queue:** Standard (cheapest) preferred over live
+- **Limits:** Reduced SERP depth, keyword counts, and row limits
+
+To always require approval before any API call:
+```bash
+python3 scripts/dataforseo_costs.py config --set approval_mode=always
+```
+
+To set a custom spending threshold:
+```bash
+python3 scripts/dataforseo_costs.py config --set threshold_usd=3.00
+```
+
+## 6. Verify Installation
 
 After installing, start Claude Code and run:
 
