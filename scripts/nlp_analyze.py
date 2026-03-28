@@ -14,9 +14,9 @@ Enhances E-E-A-T scoring with NLP entity coverage, sentiment analysis,
 and Google's own content classification taxonomy.
 
 Usage:
-    python nlp_analyze.py --text "Your content here" --json
-    python nlp_analyze.py --url https://example.com --json
-    python nlp_analyze.py --text "Your content" --features entities,sentiment,classify
+    uv run nlp_analyze.py --text "Your content here" --json
+    uv run nlp_analyze.py --url https://example.com --json
+    uv run nlp_analyze.py --text "Your content" --features entities,sentiment,classify
 """
 
 import argparse
@@ -27,7 +27,7 @@ from typing import Optional
 try:
     import requests
 except ImportError:
-    print("Error: requests library required. Install with: pip install requests", file=sys.stderr)
+    print("Error: requests library required. Run with: uv run nlp_analyze.py (deps auto-install)", file=sys.stderr)
     sys.exit(1)
 
 try:

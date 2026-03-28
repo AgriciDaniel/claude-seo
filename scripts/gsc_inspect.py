@@ -14,9 +14,9 @@ Inspects URLs for indexing status, canonical selection, crawl info,
 mobile usability, and rich results. Supports single URL and batch mode.
 
 Usage:
-    python gsc_inspect.py https://example.com/page --site-url sc-domain:example.com
-    python gsc_inspect.py --batch urls.txt --site-url sc-domain:example.com
-    python gsc_inspect.py https://example.com/page --json
+    uv run gsc_inspect.py https://example.com/page --site-url sc-domain:example.com
+    uv run gsc_inspect.py --batch urls.txt --site-url sc-domain:example.com
+    uv run gsc_inspect.py https://example.com/page --json
 """
 
 import argparse
@@ -30,7 +30,7 @@ try:
 except ImportError:
     print(
         "Error: google-api-python-client required. "
-        "Install with: pip install google-api-python-client",
+        "Run with: uv run gsc_inspect.py (deps auto-install)",
         file=sys.stderr,
     )
     sys.exit(1)

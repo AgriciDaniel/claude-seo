@@ -14,9 +14,9 @@ YouTube mentions have the strongest AI visibility correlation (0.737).
 This script provides authoritative YouTube data directly from Google.
 
 Usage:
-    python youtube_search.py search "claude code seo"
-    python youtube_search.py video dQw4w9WgXcQ --json
-    python youtube_search.py channel UCxxxxxx --json
+    uv run youtube_search.py search "claude code seo"
+    uv run youtube_search.py video dQw4w9WgXcQ --json
+    uv run youtube_search.py channel UCxxxxxx --json
 """
 
 import argparse
@@ -29,7 +29,7 @@ try:
 except ImportError:
     print(
         "Error: google-api-python-client required. "
-        "Install with: pip install google-api-python-client",
+        "Run with: uv run youtube_search.py (deps auto-install)",
         file=sys.stderr,
     )
     sys.exit(1)

@@ -13,9 +13,9 @@ Fetches up to 25 weekly data points from the Chrome UX Report History API
 and identifies improving, stable, or degrading trends per metric.
 
 Usage:
-    python crux_history.py https://example.com
-    python crux_history.py https://example.com --form-factor PHONE --json
-    python crux_history.py https://example.com --origin
+    uv run crux_history.py https://example.com
+    uv run crux_history.py https://example.com --form-factor PHONE --json
+    uv run crux_history.py https://example.com --origin
 """
 
 import argparse
@@ -27,7 +27,7 @@ from urllib.parse import urlparse
 try:
     import requests
 except ImportError:
-    print("Error: requests library required. Install with: pip install requests")
+    print("Error: requests library required. Run with: uv run crux_history.py (deps auto-install)")
     sys.exit(1)
 
 try:

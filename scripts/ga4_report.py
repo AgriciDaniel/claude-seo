@@ -12,9 +12,9 @@ Queries the Google Analytics Data API for organic search traffic,
 top landing pages, and session metrics with channel filtering.
 
 Usage:
-    python ga4_report.py --property 123456789
-    python ga4_report.py --property 123456789 --days 90 --report top-pages
-    python ga4_report.py --property 123456789 --report organic --json
+    uv run ga4_report.py --property 123456789
+    uv run ga4_report.py --property 123456789 --days 90 --report top-pages
+    uv run ga4_report.py --property 123456789 --report organic --json
 """
 
 import argparse
@@ -37,7 +37,7 @@ try:
 except ImportError:
     print(
         "Error: google-analytics-data required. "
-        "Install with: pip install google-analytics-data",
+        "Run with: uv run ga4_report.py (deps auto-install)",
         file=sys.stderr,
     )
     sys.exit(1)

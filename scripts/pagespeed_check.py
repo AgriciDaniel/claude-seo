@@ -13,10 +13,10 @@ Runs Lighthouse lab analysis via PSI and fetches real Chrome UX field data
 via the CrUX API. Merges both perspectives into a single report.
 
 Usage:
-    python pagespeed_check.py https://example.com
-    python pagespeed_check.py https://example.com --strategy mobile
-    python pagespeed_check.py https://example.com --crux-only
-    python pagespeed_check.py https://example.com --psi-only --json
+    uv run pagespeed_check.py https://example.com
+    uv run pagespeed_check.py https://example.com --strategy mobile
+    uv run pagespeed_check.py https://example.com --crux-only
+    uv run pagespeed_check.py https://example.com --psi-only --json
 """
 
 import argparse
@@ -28,7 +28,7 @@ from urllib.parse import urlparse
 try:
     import requests
 except ImportError:
-    print("Error: requests library required. Install with: pip install requests")
+    print("Error: requests library required. Run with: uv run pagespeed_check.py (deps auto-install)")
     sys.exit(1)
 
 # Import credential helper (same directory)
