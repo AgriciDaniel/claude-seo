@@ -24,4 +24,5 @@ jobs:
           python3 -m py_compile scripts/parse_html.py
           python3 -m py_compile scripts/analyze_visual.py
           python3 -m py_compile scripts/capture_screenshot.py
+          python3 -m py_compile scripts/dataforseo_costs.py
           echo "All scripts passed syntax check"

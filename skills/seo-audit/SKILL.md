@@ -121,7 +121,16 @@ Delay between requests: 1 second
 
 ## DataForSEO Integration (Optional)
 
-If DataForSEO MCP tools are available, spawn the `seo-dataforseo` agent alongside existing subagents to enrich the audit with live data: real SERP positions, backlink profiles with spam scores, on-page analysis (Lighthouse), business listings, and AI visibility checks (ChatGPT scraper, LLM mentions).
+If DataForSEO MCP tools are available, spawn the `seo-dataforseo` agent alongside
+existing subagents to enrich the audit with live data: real SERP positions, backlink
+profiles with spam scores, on-page analysis (Lighthouse), business listings, and AI
+visibility checks (ChatGPT scraper, LLM mentions).
+
+**Cost awareness:** Before spawning the DataForSEO agent for a full audit, run
+`python3 scripts/dataforseo_costs.py check --command serp` to verify the user's cost
+configuration. A full audit with DataForSEO enrichment typically costs $0.50–$1.50.
+The `seo-dataforseo` agent enforces per-call cost checks and approval workflows
+automatically. See `seo-dataforseo/references/cost-config.md` for details.
 
 ## Google API Integration (Optional)
 
