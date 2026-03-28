@@ -1,0 +1,30 @@
+{
+  "name": "claude-seo",
+  "version": "1.7.0",
+  "description": "Comprehensive SEO analysis skill for Claude Code. Covers technical SEO, content quality (E-E-A-T), schema markup, image optimization, sitemap architecture, AI search optimization (GEO), local SEO (GBP, citations, reviews, map pack), maps intelligence, and strategic planning across all industries.",
+  "author": {
+    "name": "AgriciDaniel",
+    "url": "https://github.com/AgriciDaniel"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/AgriciDaniel/claude-seo",
+  "repository": "https://github.com/AgriciDaniel/claude-seo",
+  "keywords": [
+    "seo",
+    "technical-seo",
+    "content-quality",
+    "e-e-a-t",
+    "schema-markup",
+    "core-web-vitals",
+    "local-seo",
+    "geo",
+    "ai-search",
+    "sitemap",
+    "image-optimization",
+    "hreflang",
+    "google-search-console",
+    "pagespeed",
+    "crux",
+    "ga4"
+  ]
+}

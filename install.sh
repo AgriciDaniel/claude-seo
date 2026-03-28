@@ -144,11 +144,25 @@ main() {
         echo "  ⚠  Playwright install failed. Visual analysis will use WebFetch fallback."
     fi
 
+    # Install for Antigravity (Gemini)
+    ANTIGRAVITY_PLUGINS_DIR="${HOME}/.gemini/antigravity/plugins"
+    if [ -d "${ANTIGRAVITY_PLUGINS_DIR}" ]; then
+        echo "→ Installing for Antigravity..."
+        ANTIGRAVITY_DIR="${ANTIGRAVITY_PLUGINS_DIR}/claude-seo"
+        mkdir -p "${ANTIGRAVITY_DIR}"
+        cp -R "${TEMP_DIR}/claude-seo/"* "${ANTIGRAVITY_DIR}/" 2>/dev/null || true
+        if [ -f "${TEMP_DIR}/claude-seo/plugin.json" ]; then
+            cp "${TEMP_DIR}/claude-seo/plugin.json" "${ANTIGRAVITY_DIR}/plugin.json" 2>/dev/null || true
+        elif [ -f "${TEMP_DIR}/claude-seo/.claude-plugin/plugin.json" ]; then
+            cp "${TEMP_DIR}/claude-seo/.claude-plugin/plugin.json" "${ANTIGRAVITY_DIR}/plugin.json" 2>/dev/null || true
+        fi
+    fi
+
     echo ""
     echo "✓ Claude SEO installed successfully!"
     echo ""
     echo "Usage:"
-    echo "  1. Start Claude Code:  claude"
+    echo "  1. Start Claude Code or Antigravity/Gemini."
     echo "  2. Run commands:       /seo audit https://example.com"
     echo ""
     echo "Python deps location: ${SKILL_DIR}/requirements.txt"

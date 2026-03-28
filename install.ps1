@@ -239,6 +239,22 @@ try {
     } catch {
         Write-Host "  [!]  Playwright install failed. Visual analysis will use WebFetch fallback." -ForegroundColor Yellow
     }
+
+    # Install for Antigravity (Gemini)
+    $AntigravityPluginsDir = Join-Path $env:USERPROFILE '.gemini\antigravity\plugins'
+    if (Test-Path $AntigravityPluginsDir) {
+        Write-Host "=> Installing for Antigravity..." -ForegroundColor Yellow
+        $AntigravityDir = Join-Path $AntigravityPluginsDir 'claude-seo'
+        New-Item -ItemType Directory -Force -Path $AntigravityDir | Out-Null
+        Copy-Item -Recurse -Force (Join-Path $TempDir '*') $AntigravityDir -ErrorAction SilentlyContinue
+        $rootPlugin = Join-Path $TempDir 'plugin.json'
+        $claudePlugin = Join-Path $TempDir '.claude-plugin\plugin.json'
+        if (Test-Path $rootPlugin) {
+            Copy-Item -Force $rootPlugin (Join-Path $AntigravityDir 'plugin.json') -ErrorAction SilentlyContinue
+        } elseif (Test-Path $claudePlugin) {
+            Copy-Item -Force $claudePlugin (Join-Path $AntigravityDir 'plugin.json') -ErrorAction SilentlyContinue
+        }
+    }
 } catch {
     Write-Host ""
     Write-Host "[x] Installation failed: $($_.Exception.Message)" -ForegroundColor Red
@@ -256,7 +272,7 @@ Write-Host ""
 Write-Host "[+] Claude SEO installed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Usage:" -ForegroundColor Cyan
-Write-Host "  1. Start Claude Code:  claude"
+Write-Host "  1. Start Claude Code or Antigravity/Gemini."
 Write-Host "  2. Run commands:       /seo audit https://example.com"
 Write-Host ""
 Write-Host "Python deps location: $installedReqFile" -ForegroundColor Gray

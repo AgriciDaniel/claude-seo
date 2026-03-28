@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This file provides project instructions for AI coding agents (Cursor, Cursor Cloud).
+This file provides project instructions for AI coding agents (Cursor, Cursor Cloud, Google Deepmind Antigravity, Gemini).
 Claude Code users: see `CLAUDE.md` for the equivalent instructions in Claude Code's native format.
 
 ## Project Overview
@@ -21,7 +21,8 @@ AI search optimization, local SEO, and maps intelligence.
 ```
 claude-seo/
   CLAUDE.md                        # Project instructions (Claude Code)
-  AGENTS.md                        # Project instructions (Cursor / Cursor Cloud)
+  AGENTS.md                        # Project instructions (Cursor, Antigravity, Gemini)
+  plugin.json                      # Native plugin manifest for Antigravity discovery
   .claude-plugin/
     plugin.json                    # Plugin manifest (v1.6.1)
     marketplace.json               # Marketplace catalog for distribution
@@ -82,6 +83,8 @@ claude-seo/
 These commands are invoked as `/seo <command>` in Claude Code. In Cursor, the same
 analyses can be performed by asking the agent to run the equivalent Python scripts
 or by referencing the skill/agent markdown files as context.
+
+In Google Antigravity/Gemini, the same skills and agents are natively loaded since the repository perfectly matches the Antigravity Plugin and Skills open standard, using the `plugin.json` at the root.
 
 | Command | Purpose |
 |---------|---------|

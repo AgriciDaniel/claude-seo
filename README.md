@@ -2,15 +2,16 @@
 
 ![Claude SEO](screenshots/cover-image.jpeg)
 
-# Claude SEO - SEO Audit Skill for Claude Code, Cursor & Cursor Cloud
+# Claude SEO - SEO Audit Skill for Claude Code, Cursor & Antigravity
 
-Comprehensive SEO analysis skill for Claude Code — also compatible with Cursor and Cursor Cloud. Covers technical SEO, on-page analysis, content quality (E-E-A-T), schema markup, image optimization, sitemap architecture, AI search optimization (GEO), local SEO, maps intelligence, Google SEO APIs (Search Console, PageSpeed, CrUX, GA4), PDF report generation, and strategic planning.
+Comprehensive SEO analysis skill for Claude Code — also compatible with Cursor, Cursor Cloud, and Google Deepmind Antigravity (Gemini). Covers technical SEO, on-page analysis, content quality (E-E-A-T), schema markup, image optimization, sitemap architecture, AI search optimization (GEO), local SEO, maps intelligence, Google SEO APIs (Search Console, PageSpeed, CrUX, GA4), PDF report generation, and strategic planning.
 
 ![SEO Command Demo](screenshots/seo-command-demo.gif)
 
 [![CI](https://github.com/AgriciDaniel/claude-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/AgriciDaniel/claude-seo/actions/workflows/ci.yml)
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
 [![Cursor Compatible](https://img.shields.io/badge/Cursor-Compatible-purple)](https://cursor.sh)
+[![Antigravity Plugin](https://img.shields.io/badge/Antigravity-Plugin-green)](https://github.com/AgriciDaniel/claude-seo)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/AgriciDaniel/claude-seo)](https://github.com/AgriciDaniel/claude-seo/releases)
 
@@ -18,6 +19,7 @@ Comprehensive SEO analysis skill for Claude Code — also compatible with Cursor
 
 - [Installation](#installation)
 - [Cursor / Cursor Cloud](#cursor--cursor-cloud)
+- [Antigravity / Gemini](#antigravity--gemini)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
 - [Features](#features)
@@ -71,6 +73,7 @@ powershell -ExecutionPolicy Bypass -File claude-seo\install.ps1
 
 > **Why git clone instead of `irm | iex`?** Claude Code's own security guardrails flag `irm ... | iex` as a supply chain risk (downloading and executing remote code with no verification). The git clone approach lets you inspect the script at `claude-seo\install.ps1` before running it.
 
+
 ## Cursor / Cursor Cloud
 
 This repository is fully compatible with **Cursor** and **Cursor Cloud** in addition to Claude Code.
@@ -81,6 +84,7 @@ This repository is fully compatible with **Cursor** and **Cursor Cloud** in addi
 |-------------|-------------------|----------------------|
 | **Claude Code** | `CLAUDE.md` | Skills and agents auto-discovered from `~/.claude/skills/` and `~/.claude/agents/` after running `install.sh` |
 | **Cursor / Cursor Cloud** | `AGENTS.md` | Agent reads `AGENTS.md` for project context; Python scripts run directly from the repo |
+| **Antigravity / Gemini** | `AGENTS.md` + `plugin.json` | Plugin auto-discovered via root `plugin.json`; `skills/` and `agents/` loaded natively |
 
 ### Development setup (Cursor / Cursor Cloud)
 
@@ -109,6 +113,35 @@ reference these files as context (e.g. `@skills/seo/SKILL.md`) to give the agent
 the same routing logic, quality gates, and SEO expertise that Claude Code uses natively.
 
 See `AGENTS.md` for the full project overview, commands, development rules, and environment-specific gotchas.
+
+## Antigravity / Gemini
+
+This repository is a native **Antigravity plugin**. The root `plugin.json` allows Antigravity to auto-discover all skills and agents.
+
+### How it works
+
+Antigravity natively understands the Agent Skills open standard used by this repository:
+- **`plugin.json`** at the root declares the plugin metadata.
+- **`skills/`** directory contains all `SKILL.md` files, auto-loaded as skills.
+- **`agents/`** directory contains all subagent definitions, auto-loaded as subagents.
+- **`AGENTS.md`** provides project-level instructions (shared with Cursor).
+
+### Installation (Antigravity)
+
+The `install.sh` / `install.ps1` scripts automatically detect Antigravity and install the plugin if `~/.gemini/antigravity/plugins/` exists.
+
+Alternatively, clone or symlink the repo directly:
+
+```bash
+# Option A: Clone into the Antigravity plugins directory
+git clone --depth 1 https://github.com/AgriciDaniel/claude-seo.git \
+  ~/.gemini/antigravity/plugins/claude-seo
+
+# Option B: Symlink an existing clone
+ln -s /path/to/claude-seo ~/.gemini/antigravity/plugins/claude-seo
+```
+
+Once installed, Antigravity will automatically load all SEO skills and agents. Ask Gemini to run any SEO analysis by referencing the skill names (e.g., "run a full SEO audit on https://example.com").
 
 ## Quick Start
 
@@ -284,7 +317,7 @@ See `schema/templates.json` for ready-to-use JSON-LD snippets.
 ## Requirements
 
 - Python 3.10+
-- Claude Code CLI, Cursor, or Cursor Cloud
+- Claude Code CLI, Cursor, Cursor Cloud, or Antigravity/Gemini
 - Optional: Playwright for screenshots
 - Optional: Google API credentials for enriched data (see `/seo google setup`)
 
@@ -386,4 +419,4 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before sub
 
 ---
 
-Built for Claude Code, Cursor & Cursor Cloud by [@AgriciDaniel](https://github.com/AgriciDaniel)
+Built for Claude Code, Cursor & Antigravity by [@AgriciDaniel](https://github.com/AgriciDaniel)
