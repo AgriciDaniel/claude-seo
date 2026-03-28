@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "playwright>=1.58.0",
+# ]
+# ///
 """
 Analyze visual aspects of a web page using Playwright.
 
 Usage:
-    python analyze_visual.py https://example.com
+    uv run analyze_visual.py https://example.com
 """
 
 import argparse
@@ -13,11 +19,7 @@ import socket
 import sys
 from urllib.parse import ParseResult, urlparse
 
-try:
-    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
-except ImportError:
-    print("Error: playwright required. Install with: pip install playwright && playwright install chromium")
-    sys.exit(1)
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
 
 def normalize_url(url: str) -> tuple[str, ParseResult]:

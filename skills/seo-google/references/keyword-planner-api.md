@@ -52,7 +52,7 @@ Add to `~/.config/claude-seo/google-api.json`:
 ## Python Library
 
 ```bash
-pip install google-ads
+uv run scripts/keyword_planner.py  # deps auto-install via PEP 723
 ```
 
 Uses `google-ads` library (separate from `google-api-python-client`).

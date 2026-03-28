@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "google-api-python-client>=2.100.0,<3.0.0",
+#     "google-auth>=2.20.0,<3.0.0",
+#     "google-auth-httplib2>=0.2.0,<1.0.0",
+# ]
+# ///
 """
 Google Indexing API v3 - notify Google of URL updates and removals.
 
@@ -10,10 +18,10 @@ JobPosting or BroadcastEvent/VideoObject structured data. Google may
 process other page types but provides no guarantees.
 
 Usage:
-    python indexing_notify.py https://example.com/jobs/123
-    python indexing_notify.py https://example.com/jobs/123 --action URL_DELETED
-    python indexing_notify.py --batch urls.txt
-    python indexing_notify.py --status https://example.com/jobs/123
+    uv run indexing_notify.py https://example.com/jobs/123
+    uv run indexing_notify.py https://example.com/jobs/123 --action URL_DELETED
+    uv run indexing_notify.py --batch urls.txt
+    uv run indexing_notify.py --status https://example.com/jobs/123
 """
 
 import argparse
@@ -28,7 +36,7 @@ try:
 except ImportError:
     print(
         "Error: google-api-python-client required. "
-        "Install with: pip install google-api-python-client",
+        "Run with: uv run indexing_notify.py (deps auto-install)",
         file=sys.stderr,
     )
     sys.exit(1)

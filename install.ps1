@@ -9,20 +9,6 @@ Write-Host "|   Claude Code SEO Skill              |" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-function Resolve-Python {
-    $pythonCmd = Get-Command -Name python -ErrorAction SilentlyContinue
-    if ($null -ne $pythonCmd) {
-        return @{ Exe = 'python'; Args = @() }
-    }
-
-    $pyCmd = Get-Command -Name py -ErrorAction SilentlyContinue
-    if ($null -ne $pyCmd) {
-        return @{ Exe = 'py'; Args = @('-3') }
-    }
-
-    return $null
-}
-
 function Invoke-External {
     param(
         [Parameter(Mandatory = $true)][string]$Exe,
@@ -59,18 +45,17 @@ function Invoke-External {
 }
 
 # Check prerequisites
-$python = Resolve-Python
-if ($null -eq $python) {
-    Write-Host "[x] Python is required but was not found (tried 'python' and 'py')." -ForegroundColor Red
-    exit 1
-}
-
-try {
-    $pythonVersion = & $python.Exe @($python.Args + @('--version')) 2>&1
-    Write-Host "[+] $pythonVersion detected" -ForegroundColor Green
-} catch {
-    Write-Host "[x] Python is installed but could not be executed." -ForegroundColor Red
-    exit 1
+if (Get-Command python3 -ErrorAction SilentlyContinue) {
+    $pyVer = python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+    if ($pyVer) { Write-Host "[+] Python $pyVer detected" -ForegroundColor Green }
+} elseif (Get-Command python -ErrorAction SilentlyContinue) {
+    $pyVer = python -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+    if ($pyVer) { Write-Host "[+] Python $pyVer detected" -ForegroundColor Green }
+} elseif (Get-Command py -ErrorAction SilentlyContinue) {
+    $pyVer = py -3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>$null
+    if ($pyVer) { Write-Host "[+] Python $pyVer detected (via py launcher)" -ForegroundColor Green }
+} else {
+    Write-Host "[!] Python 3 not found. uv can install it automatically if needed." -ForegroundColor Yellow
 }
 
 try {
@@ -206,38 +191,22 @@ try {
         }
     }
 
-    # Copy requirements.txt to skill dir for retry
-    $reqFile = Join-Path $TempDir 'requirements.txt'
-    $installedReqFile = Join-Path $SkillDir 'requirements.txt'
-    if (Test-Path $reqFile) {
-        Copy-Item -Force $reqFile $installedReqFile
-    }
-
-    # Install Python dependencies
-    Write-Host "=> Installing Python dependencies..." -ForegroundColor Yellow
-    if (Test-Path $reqFile) {
+    # Check for uv (required for running scripts via PEP 723 inline metadata)
+    $uvCmd = Get-Command -Name uv -ErrorAction SilentlyContinue
+    if ($null -ne $uvCmd) {
+        Write-Host "  [+] uv detected -- scripts will auto-resolve dependencies via PEP 723" -ForegroundColor Green
+        Write-Host "=> Installing Playwright browsers (optional, for visual analysis)..." -ForegroundColor Yellow
         try {
-            $pip = Invoke-External -Exe $python.Exe -Args @($python.Args + @('-m','pip','install','-q','-r',$reqFile)) -Quiet
-            if ($pip.ExitCode -ne 0) {
-                throw ($pip.Output -join "`n")
+            $pw = Invoke-External -Exe 'uv' -Args @('run','--with','playwright','python','-m','playwright','install','chromium') -Quiet
+            if ($pw.ExitCode -ne 0) {
+                throw ($pw.Output -join "`n")
             }
         } catch {
-            Write-Host "  [!]  Could not auto-install Python packages." -ForegroundColor Yellow
-            Write-Host "  Try: $($python.Exe) $($python.Args -join ' ') -m pip install -r `"$installedReqFile`"" -ForegroundColor Yellow
+            Write-Host "  [!]  Playwright browser install failed. Visual analysis will use WebFetch fallback." -ForegroundColor Yellow
         }
     } else {
-        Write-Host "  [!]  No requirements.txt found; skipping Python dependency install." -ForegroundColor Yellow
-    }
-
-    # Optional: Install Playwright browsers
-    Write-Host "=> Installing Playwright browsers (optional, for visual analysis)..." -ForegroundColor Yellow
-    try {
-        $pw = Invoke-External -Exe $python.Exe -Args @($python.Args + @('-m','playwright','install','chromium')) -Quiet
-        if ($pw.ExitCode -ne 0) {
-            throw ($pw.Output -join "`n")
-        }
-    } catch {
-        Write-Host "  [!]  Playwright install failed. Visual analysis will use WebFetch fallback." -ForegroundColor Yellow
+        Write-Host "  [!]  uv not found. Install it: https://docs.astral.sh/uv/getting-started/installation/" -ForegroundColor Yellow
+        Write-Host "       Scripts use PEP 723 inline metadata and require 'uv run' to execute." -ForegroundColor Yellow
     }
 } catch {
     Write-Host ""
@@ -259,4 +228,4 @@ Write-Host "Usage:" -ForegroundColor Cyan
 Write-Host "  1. Start Claude Code:  claude"
 Write-Host "  2. Run commands:       /seo audit https://example.com"
 Write-Host ""
-Write-Host "Python deps location: $installedReqFile" -ForegroundColor Gray
+Write-Host "To uninstall: irm https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/uninstall.ps1 | iex" -ForegroundColor Gray

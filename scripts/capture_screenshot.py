@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "playwright>=1.58.0",
+# ]
+# ///
 """
 Capture screenshots of web pages using Playwright.
 
 Usage:
-    python capture_screenshot.py https://example.com
-    python capture_screenshot.py https://example.com --mobile
-    python capture_screenshot.py https://example.com --output screenshots/
+    uv run capture_screenshot.py https://example.com
+    uv run capture_screenshot.py https://example.com --mobile
+    uv run capture_screenshot.py https://example.com --output screenshots/
 """
 
 import argparse
@@ -15,11 +21,7 @@ import socket
 import sys
 from urllib.parse import ParseResult, urlparse
 
-try:
-    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
-except ImportError:
-    print("Error: playwright required. Install with: pip install playwright && playwright install chromium")
-    sys.exit(1)
+from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
 
 VIEWPORTS = {

@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "matplotlib>=3.8.0,<4.0.0",
+#     "weasyprint>=61.0,<70.0",
+# ]
+# ///
 """
 Google SEO Report Generator - Professional PDF/HTML reports from API data.
 
@@ -6,11 +13,11 @@ Consumes JSON output from seo-google scripts and generates formatted reports
 with charts, analytics, and actionable recommendations.
 
 Usage:
-    python google_report.py --type cwv-audit --data cwv-data.json --domain example.com
-    python google_report.py --type gsc-performance --data gsc-data.json --domain example.com
-    python google_report.py --type indexation --data inspect-data.json --domain example.com
-    python google_report.py --type full --data full-data.json --domain example.com
-    cat data.json | python google_report.py --type cwv-audit --domain example.com
+    uv run google_report.py --type cwv-audit --data cwv-data.json --domain example.com
+    uv run google_report.py --type gsc-performance --data gsc-data.json --domain example.com
+    uv run google_report.py --type indexation --data inspect-data.json --domain example.com
+    uv run google_report.py --type full --data full-data.json --domain example.com
+    cat data.json | uv run google_report.py --type cwv-audit --domain example.com
 """
 
 import argparse
@@ -28,13 +35,13 @@ try:
     import matplotlib.patches as mpatches
     import numpy as np
 except ImportError:
-    print("Error: matplotlib required. Install with: pip install matplotlib", file=sys.stderr)
+    print("Error: matplotlib required. Run with: uv run google_report.py (deps auto-install)", file=sys.stderr)
     sys.exit(1)
 
 try:
     from weasyprint import HTML
 except ImportError:
-    print("Error: weasyprint required. Install with: pip install weasyprint", file=sys.stderr)
+    print("Error: weasyprint required. Run with: uv run google_report.py (deps auto-install)", file=sys.stderr)
     sys.exit(1)
 
 

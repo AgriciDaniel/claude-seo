@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "google-ads>=25.1.0,<26.0.0",
+# ]
+# ///
 """
 Google Ads API - Keyword Planner for SEO keyword research.
 
@@ -6,15 +12,15 @@ Gold-standard source for keyword search volume, CPC, and competition data.
 Requires a Google Ads Manager account with a developer token.
 
 Usage:
-    python keyword_planner.py ideas "seo tools" --json
-    python keyword_planner.py volume "seo tools,seo audit,seo checker" --json
-    python keyword_planner.py forecast "seo tools" --json
+    uv run keyword_planner.py ideas "seo tools" --json
+    uv run keyword_planner.py volume "seo tools,seo audit,seo checker" --json
+    uv run keyword_planner.py forecast "seo tools" --json
 
 Prerequisites:
     - Google Ads Manager account (can be free)
     - Developer Token (apply at Google Ads API Center)
     - OAuth credentials or service account
-    - google-ads Python library: pip install google-ads
+    - google-ads Python library (auto-installed by uv run)
     - Config: ~/.config/claude-seo/google-api.json with:
       {
         "ads_developer_token": "YOUR_DEV_TOKEN",
@@ -50,7 +56,7 @@ def _build_ads_client() -> Optional[object]:
     """Build Google Ads client from config."""
     if not HAS_GOOGLE_ADS:
         print(
-            "Error: google-ads library required. Install with: pip install google-ads",
+            "Error: google-ads library required. Run with: uv run keyword_planner.py (deps auto-install)",
             file=sys.stderr,
         )
         return None

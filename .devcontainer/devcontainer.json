@@ -1,7 +1,7 @@
 {
   "name": "Claude SEO Development",
   "image": "mcr.microsoft.com/devcontainers/python:3.12",
-  "postCreateCommand": "pip install -r requirements.txt && python -m playwright install chromium || true",
+  "postCreateCommand": "curl -LsSf https://astral.sh/uv/install.sh | sh && (uv run --with playwright python -m playwright install chromium || true)",
   "customizations": {
     "vscode": {
       "extensions": [

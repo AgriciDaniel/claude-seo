@@ -19,17 +19,13 @@ main() {
     echo ""
 
     # Check prerequisites
-    command -v python3 >/dev/null 2>&1 || { echo "✗ Python 3 is required but not installed."; exit 1; }
-    command -v git >/dev/null 2>&1 || { echo "✗ Git is required but not installed."; exit 1; }
-
-    # Check Python version (3.10+ required)
-    PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-    PYTHON_OK=$(python3 -c 'import sys; print(1 if sys.version_info >= (3, 10) else 0)')
-    if [ "${PYTHON_OK}" = "0" ]; then
-        echo "✗ Python 3.10+ is required but ${PYTHON_VERSION} was found."
-        exit 1
+    if command -v python3 >/dev/null 2>&1; then
+        PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+        echo "✓ Python ${PYTHON_VERSION} detected"
+    else
+        echo "⚠  Python 3 not found. uv can install it automatically if needed."
     fi
-    echo "✓ Python ${PYTHON_VERSION} detected"
+    command -v git >/dev/null 2>&1 || { echo "✗ Git is required but not installed."; exit 1; }
 
     # Create directories
     mkdir -p "${SKILL_DIR}"
@@ -119,29 +115,15 @@ main() {
         done
     fi
 
-    # Copy requirements.txt to skill dir so users can retry later
-    cp "${TEMP_DIR}/claude-seo/requirements.txt" "${SKILL_DIR}/requirements.txt" 2>/dev/null || true
-
-    # Install Python dependencies (venv preferred, --user fallback)
-    echo "→ Installing Python dependencies..."
-    VENV_DIR="${SKILL_DIR}/.venv"
-    if python3 -m venv "${VENV_DIR}" 2>/dev/null; then
-        "${VENV_DIR}/bin/pip" install --quiet -r "${TEMP_DIR}/claude-seo/requirements.txt" 2>/dev/null && \
-            echo "  ✓ Installed in venv at ${VENV_DIR}" || \
-            echo "  ⚠  Venv pip install failed. Run: ${VENV_DIR}/bin/pip install -r ${SKILL_DIR}/requirements.txt"
+    # Check for uv (required for running scripts via PEP 723 inline metadata)
+    if command -v uv >/dev/null 2>&1; then
+        echo "  ✓ uv detected -- scripts will auto-resolve dependencies via PEP 723"
+        echo "→ Installing Playwright browsers (optional, for visual analysis)..."
+        uv run --with playwright python -m playwright install chromium 2>/dev/null || \
+            echo "  ⚠  Playwright browser install failed. Visual analysis will use WebFetch fallback."
     else
-        pip install --quiet --user -r "${TEMP_DIR}/claude-seo/requirements.txt" 2>/dev/null || \
-        echo "  ⚠  Could not auto-install. Run: pip install --user -r ${SKILL_DIR}/requirements.txt"
-    fi
-
-    # Optional: Install Playwright browsers (for screenshot analysis)
-    echo "→ Installing Playwright browsers (optional, for visual analysis)..."
-    if [ -f "${VENV_DIR}/bin/playwright" ]; then
-        "${VENV_DIR}/bin/python" -m playwright install chromium 2>/dev/null || \
-        echo "  ⚠  Playwright install failed. Visual analysis will use WebFetch fallback."
-    else
-        python3 -m playwright install chromium 2>/dev/null || \
-        echo "  ⚠  Playwright install failed. Visual analysis will use WebFetch fallback."
+        echo "  ⚠  uv not found. Install it: https://docs.astral.sh/uv/getting-started/installation/"
+        echo "     Scripts use PEP 723 inline metadata and require 'uv run' to execute."
     fi
 
     echo ""
@@ -151,7 +133,6 @@ main() {
     echo "  1. Start Claude Code:  claude"
     echo "  2. Run commands:       /seo audit https://example.com"
     echo ""
-    echo "Python deps location: ${SKILL_DIR}/requirements.txt"
     echo "To uninstall: curl -fsSL ${REPO_URL}/raw/main/uninstall.sh | bash"
 }
 

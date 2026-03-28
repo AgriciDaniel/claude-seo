@@ -22,4 +22,4 @@ Only the latest version receives security updates.
 
 - No credentials or API keys are stored in this repository
 - Install scripts write only to user-level directories (`~/.claude/`)
-- Python dependencies install in isolated virtual environments
+- Python scripts use PEP 723 inline metadata; dependencies are resolved per-script by `uv run`

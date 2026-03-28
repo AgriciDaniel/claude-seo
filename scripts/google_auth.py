@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "google-api-python-client>=2.100.0,<3.0.0",
+#     "google-auth>=2.20.0,<3.0.0",
+#     "google-auth-httplib2>=0.2.0,<1.0.0",
+# ]
+# ///
 """
 Google API credential management for Claude SEO.
 
@@ -7,12 +15,12 @@ CrUX, Indexing API, and GA4. Supports service accounts, OAuth web credentials
 with token refresh, API keys, and environment variable fallbacks.
 
 Usage:
-    python google_auth.py --check                  # Check all credentials
-    python google_auth.py --check gsc              # Check specific service
-    python google_auth.py --check --json            # JSON output
-    python google_auth.py --setup                   # Show setup instructions
-    python google_auth.py --tier                    # Show detected credential tier
-    python google_auth.py --auth --creds /path/to/client_secret.json  # OAuth browser flow
+    uv run google_auth.py --check                  # Check all credentials
+    uv run google_auth.py --check gsc              # Check specific service
+    uv run google_auth.py --check --json            # JSON output
+    uv run google_auth.py --setup                   # Show setup instructions
+    uv run google_auth.py --tier                    # Show detected credential tier
+    uv run google_auth.py --auth --creds /path/to/client_secret.json  # OAuth browser flow
 """
 
 import argparse
@@ -119,7 +127,7 @@ def get_service_account_credentials(scopes: list):
     except ImportError:
         print(
             "Error: google-auth library required. "
-            "Install with: pip install google-auth",
+            "Run with: uv run google_auth.py (deps auto-install)",
             file=sys.stderr,
         )
         return None
@@ -251,7 +259,7 @@ def get_oauth_credentials(scopes: list):
                     client_secret=client_secret,
                 )
             except ImportError:
-                print("Error: google-auth required. Install with: pip install google-auth", file=sys.stderr)
+                print("Error: google-auth required. Run with: uv run google_auth.py (deps auto-install)", file=sys.stderr)
 
     # Fall back to service account
     return get_service_account_credentials(scopes)
@@ -321,7 +329,7 @@ def run_oauth_flow(creds_path: str):
         print("\nAuthentication failed or timed out.", file=sys.stderr)
         print("If the browser showed 'localhost refused to connect', copy the full URL")
         print("from the browser address bar and run:")
-        print(f"  python scripts/google_auth.py --exchange --creds {creds_path} --code 'THE_CODE'")
+        print(f"  uv run scripts/google_auth.py --exchange --creds {creds_path} --code 'THE_CODE'")
         sys.exit(1)
 
     # Exchange code for tokens
@@ -425,7 +433,7 @@ def build_service(api_name: str, version: str, scopes: list):
     except ImportError:
         print(
             "Error: google-api-python-client required. "
-            "Install with: pip install google-api-python-client",
+            "Run with: uv run google_auth.py (deps auto-install)",
             file=sys.stderr,
         )
         return None
@@ -493,7 +501,7 @@ def check_credentials(service: str) -> dict:
             if not sa_path:
                 result["error"] = (
                     "No OAuth token or service account found. Either:\n"
-                    "         1. Run: python scripts/google_auth.py --auth --creds /path/to/client_secret.json\n"
+                    "         1. Run: uv run scripts/google_auth.py --auth --creds /path/to/client_secret.json\n"
                     f"         2. Or add 'service_account_path' to {CONFIG_PATH}"
                 )
             else:
@@ -658,7 +666,7 @@ Google SEO API Setup Instructions
    }
 
 7. VERIFY
-   python scripts/google_auth.py --check
+   uv run scripts/google_auth.py --check
 
 ENVIRONMENT VARIABLE ALTERNATIVES:
    GOOGLE_API_KEY              - API key

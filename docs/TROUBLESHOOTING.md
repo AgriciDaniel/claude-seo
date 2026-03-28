@@ -37,50 +37,20 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/instal
 
 **Solution:**
 
-As of v1.2.0, dependencies are installed in a venv. Try:
+Scripts use PEP 723 inline metadata. Ensure you run them via `uv run`:
 
 ```bash
-# Use the venv pip
-~/.claude/skills/seo/.venv/bin/pip install -r ~/.claude/skills/seo/requirements.txt
+uv run ~/.claude/skills/seo/scripts/fetch_page.py https://example.com
 ```
 
-If the venv doesn't exist, install with `--user`:
+If `uv` is not installed:
 ```bash
-pip install --user -r ~/.claude/skills/seo/requirements.txt
+# macOS
+brew install uv
+
+# Linux / macOS (without Homebrew)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
-
-Or install individually:
-```bash
-pip install --user beautifulsoup4 requests lxml playwright Pillow urllib3 validators
-```
-
-### requirements.txt Not Found
-
-**Symptom:** `No such file: requirements.txt` after install
-
-**Solution:** As of v1.2.0, requirements.txt is copied to the skill directory:
-
-```bash
-ls ~/.claude/skills/seo/requirements.txt
-```
-
-If missing, download it directly:
-```bash
-curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/requirements.txt \
-  -o ~/.claude/skills/seo/requirements.txt
-```
-
-### Windows Python Detection Issues
-
-**Symptom:** `python is not recognized` or `pip points to wrong Python`
-
-**Solution (v1.2.0+):** The Windows installer now tries both `python` and `py -3`. If both fail:
-
-1. Install Python from [python.org](https://python.org) and check "Add to PATH"
-2. Or use the Windows launcher: `py -3 -m pip install -r requirements.txt`
-3. Use `python -m pip` instead of bare `pip`
-
----
 
 ### Playwright Screenshot Errors
 
@@ -88,13 +58,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/requir
 
 **Solution:**
 ```bash
-playwright install chromium
-```
-
-If that fails:
-```bash
-pip install playwright
-python -m playwright install chromium
+uv run --with playwright python -m playwright install chromium
 ```
 
 ---
@@ -188,11 +152,11 @@ To see detailed output, check Claude Code's internal logs or run scripts directl
 
 ```bash
 # Test fetch
-python3 ~/.claude/skills/seo/scripts/fetch_page.py https://example.com
+uv run ~/.claude/skills/seo/scripts/fetch_page.py https://example.com
 
 # Test parse
-python3 ~/.claude/skills/seo/scripts/parse_html.py page.html --json
+uv run ~/.claude/skills/seo/scripts/parse_html.py page.html --json
 
 # Test screenshot
-python3 ~/.claude/skills/seo/scripts/capture_screenshot.py https://example.com
+uv run ~/.claude/skills/seo/scripts/capture_screenshot.py https://example.com
 ```

@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "google-api-python-client>=2.100.0,<3.0.0",
+#     "google-auth>=2.20.0,<3.0.0",
+#     "google-auth-httplib2>=0.2.0,<1.0.0",
+# ]
+# ///
 """
 YouTube Data API v3 - Search, video details, and channel data for SEO.
 
@@ -6,9 +14,9 @@ YouTube mentions have the strongest AI visibility correlation (0.737).
 This script provides authoritative YouTube data directly from Google.
 
 Usage:
-    python youtube_search.py search "claude code seo"
-    python youtube_search.py video dQw4w9WgXcQ --json
-    python youtube_search.py channel UCxxxxxx --json
+    uv run youtube_search.py search "claude code seo"
+    uv run youtube_search.py video dQw4w9WgXcQ --json
+    uv run youtube_search.py channel UCxxxxxx --json
 """
 
 import argparse
@@ -21,7 +29,7 @@ try:
 except ImportError:
     print(
         "Error: google-api-python-client required. "
-        "Install with: pip install google-api-python-client",
+        "Run with: uv run youtube_search.py (deps auto-install)",
         file=sys.stderr,
     )
     sys.exit(1)

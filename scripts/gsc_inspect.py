@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "google-api-python-client>=2.100.0,<3.0.0",
+#     "google-auth>=2.20.0,<3.0.0",
+#     "google-auth-httplib2>=0.2.0,<1.0.0",
+# ]
+# ///
 """
 Google Search Console URL Inspection API helper.
 
@@ -6,9 +14,9 @@ Inspects URLs for indexing status, canonical selection, crawl info,
 mobile usability, and rich results. Supports single URL and batch mode.
 
 Usage:
-    python gsc_inspect.py https://example.com/page --site-url sc-domain:example.com
-    python gsc_inspect.py --batch urls.txt --site-url sc-domain:example.com
-    python gsc_inspect.py https://example.com/page --json
+    uv run gsc_inspect.py https://example.com/page --site-url sc-domain:example.com
+    uv run gsc_inspect.py --batch urls.txt --site-url sc-domain:example.com
+    uv run gsc_inspect.py https://example.com/page --json
 """
 
 import argparse
@@ -22,7 +30,7 @@ try:
 except ImportError:
     print(
         "Error: google-api-python-client required. "
-        "Install with: pip install google-api-python-client",
+        "Run with: uv run gsc_inspect.py (deps auto-install)",
         file=sys.stderr,
     )
     sys.exit(1)

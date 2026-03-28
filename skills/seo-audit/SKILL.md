@@ -32,7 +32,7 @@ metadata:
    - `seo-geo` -- AI crawler access, llms.txt, citability, brand mention signals
    - `seo-local` -- GBP signals, NAP consistency, reviews, local schema, industry-specific local factors (spawn when Local Service industry detected: brick-and-mortar, SAB, or hybrid business type)
    - `seo-maps` -- Geo-grid rank tracking, GBP audit, review intelligence, competitor radius mapping (spawn when Local Service detected AND DataForSEO MCP available)
-   - `seo-google` -- CWV field data (CrUX), URL indexation (GSC), organic traffic (GA4) (spawn when Google API credentials detected via `python scripts/google_auth.py --check`)
+   - `seo-google` -- CWV field data (CrUX), URL indexation (GSC), organic traffic (GA4) (spawn when Google API credentials detected via `uv run scripts/google_auth.py --check`)
 5. **Score** -- aggregate into SEO Health Score (0-100)
 6. **Report** -- generate prioritized action plan
 
@@ -125,7 +125,7 @@ If DataForSEO MCP tools are available, spawn the `seo-dataforseo` agent alongsid
 
 ## Google API Integration (Optional)
 
-If Google API credentials are configured (`python scripts/google_auth.py --check`), spawn the `seo-google` agent to enrich the audit with real Google field data: CrUX Core Web Vitals (replaces lab-only estimates), GSC URL indexation status, search performance (clicks, impressions, CTR), and GA4 organic traffic trends. The Performance (CWV) category score benefits most from field data.
+If Google API credentials are configured (`uv run scripts/google_auth.py --check`), spawn the `seo-google` agent to enrich the audit with real Google field data: CrUX Core Web Vitals (replaces lab-only estimates), GSC URL indexation status, search performance (clicks, impressions, CTR), and GA4 organic traffic trends. The Performance (CWV) category score benefits most from field data.
 
 ## Error Handling
 

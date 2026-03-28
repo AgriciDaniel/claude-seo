@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "google-api-python-client>=2.100.0,<3.0.0",
+#     "google-auth>=2.20.0,<3.0.0",
+#     "google-auth-httplib2>=0.2.0,<1.0.0",
+# ]
+# ///
 """
 Google Search Console Search Analytics query helper.
 
@@ -6,10 +14,10 @@ Queries the GSC Search Analytics API for clicks, impressions, CTR, and position
 data. Supports filtering by dimensions, auto-pagination, and quick-win detection.
 
 Usage:
-    python gsc_query.py --property sc-domain:example.com
-    python gsc_query.py --property sc-domain:example.com --days 90 --dimensions query
-    python gsc_query.py sitemaps --property sc-domain:example.com
-    python gsc_query.py sites
+    uv run gsc_query.py --property sc-domain:example.com
+    uv run gsc_query.py --property sc-domain:example.com --days 90 --dimensions query
+    uv run gsc_query.py sitemaps --property sc-domain:example.com
+    uv run gsc_query.py sites
 """
 
 import argparse
@@ -23,7 +31,7 @@ try:
 except ImportError:
     print(
         "Error: google-api-python-client required. "
-        "Install with: pip install google-api-python-client",
+        "Run with: uv run gsc_query.py (deps auto-install)",
         file=sys.stderr,
     )
     sys.exit(1)

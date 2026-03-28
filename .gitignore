@@ -30,6 +30,7 @@ venv/
 .venv/
 env/
 .env/
+uv.lock
 
 # Secrets and credentials (NEVER commit these)
 .env

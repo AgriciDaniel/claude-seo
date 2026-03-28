@@ -6,11 +6,11 @@ Configures @ycse/nanobanana-mcp in Claude Code's settings.json
 with the user's Google AI API key.
 
 Usage:
-    python3 setup_mcp.py                    # Interactive (prompts for key)
-    python3 setup_mcp.py --key YOUR_KEY     # Non-interactive
-    python3 setup_mcp.py --check            # Verify existing setup
-    python3 setup_mcp.py --remove           # Remove MCP config
-    python3 setup_mcp.py --help             # Show usage
+    uv run setup_mcp.py                    # Interactive (prompts for key)
+    uv run setup_mcp.py --key YOUR_KEY     # Non-interactive
+    uv run setup_mcp.py --check            # Verify existing setup
+    uv run setup_mcp.py --remove           # Remove MCP config
+    uv run setup_mcp.py --help             # Show usage
 """
 
 import json
@@ -103,7 +103,7 @@ def main() -> None:
     args = sys.argv[1:]
 
     if "--help" in args or "-h" in args:
-        print("Usage: python3 setup_mcp.py [OPTIONS]")
+        print("Usage: uv run setup_mcp.py [OPTIONS]")
         print()
         print("Options:")
         print("  --key KEY        Provide API key non-interactively")

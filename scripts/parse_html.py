@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "beautifulsoup4>=4.14.3",
+#     "lxml>=6.0.2",
+# ]
+# ///
 """
 Parse HTML and extract SEO-relevant elements.
 
 Usage:
-    python parse_html.py page.html
-    python parse_html.py --url https://example.com
+    uv run parse_html.py page.html
+    uv run parse_html.py --url https://example.com
 """
 
 import argparse
@@ -15,17 +22,11 @@ import sys
 from typing import Optional
 from urllib.parse import urljoin, urlparse
 
-try:
-    from bs4 import BeautifulSoup
-except ImportError:
-    print("Error: beautifulsoup4 required. Install with: pip install beautifulsoup4")
-    sys.exit(1)
+from bs4 import BeautifulSoup
 
-try:
-    import lxml  # noqa: F401
-    _HTML_PARSER = "lxml"
-except ImportError:
-    _HTML_PARSER = "html.parser"
+import lxml  # noqa: F401
+
+_HTML_PARSER = "lxml"
 
 
 def parse_html(html: str, base_url: Optional[str] = None) -> dict:

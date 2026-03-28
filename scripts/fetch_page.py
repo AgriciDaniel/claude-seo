@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [
+#     "requests>=2.32.5",
+#     "urllib3>=2.6.3",
+# ]
+# ///
 """
 Fetch a web page with proper headers and error handling.
 
 Usage:
-    python fetch_page.py https://example.com
-    python fetch_page.py https://example.com --output page.html
+    uv run fetch_page.py https://example.com
+    uv run fetch_page.py https://example.com --output page.html
 """
 
 import argparse
@@ -14,11 +21,7 @@ import sys
 from typing import Optional
 from urllib.parse import urlparse
 
-try:
-    import requests
-except ImportError:
-    print("Error: requests library required. Install with: pip install requests")
-    sys.exit(1)
+import requests
 
 
 DEFAULT_USER_AGENT = (
