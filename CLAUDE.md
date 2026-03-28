@@ -40,7 +40,9 @@ claude-seo/
     seo-google/                  # Google SEO APIs
       SKILL.md
       references/                # API reference files (7 files)
-    seo-dataforseo/SKILL.md     # Live SEO data via DataForSEO MCP
+    seo-dataforseo/             # Live SEO data via DataForSEO MCP
+      SKILL.md
+      references/                # Cost config reference (1 file)
     seo-image-gen/              # AI image generation for SEO assets
       SKILL.md
       references/                # Image gen reference files (7 files)
@@ -125,3 +127,4 @@ Part of the Claude Code skill family:
 2. **Industry Detection**: Auto-detect SaaS, e-commerce, local, publisher, agency
 3. **Parallel Execution**: Full audits spawn up to 11 subagents simultaneously
 4. **Extension System**: DataForSEO MCP for live data, Banana MCP for AI image generation
+5. **Cost Awareness**: DataForSEO calls go through cost estimation and configurable approval

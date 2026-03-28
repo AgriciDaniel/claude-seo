@@ -43,7 +43,9 @@ claude-seo/
     seo-programmatic/SKILL.md      # Programmatic SEO at scale
     seo-competitor-pages/SKILL.md  # Competitor comparison pages
     seo-hreflang/SKILL.md          # International SEO / hreflang
-    seo-dataforseo/SKILL.md        # Live SEO data via DataForSEO MCP
+    seo-dataforseo/                # Live SEO data via DataForSEO MCP
+      SKILL.md
+      references/                  # Cost config reference (1 file)
     seo-image-gen/                 # AI image generation for SEO assets
       SKILL.md
       references/                  # Image gen reference files (7 files)
@@ -146,12 +148,15 @@ python3 -m playwright install --with-deps chromium   # optional
 |------|---------|
 | Install deps | `pip install -r requirements.txt` |
 | Install Playwright | `python3 -m playwright install --with-deps chromium` |
-| CI lint (syntax) | `python3 -m py_compile scripts/fetch_page.py && python3 -m py_compile scripts/parse_html.py && python3 -m py_compile scripts/analyze_visual.py && python3 -m py_compile scripts/capture_screenshot.py` |
+| CI lint (syntax) | `python3 -m py_compile scripts/fetch_page.py && python3 -m py_compile scripts/parse_html.py && python3 -m py_compile scripts/analyze_visual.py && python3 -m py_compile scripts/capture_screenshot.py && python3 -m py_compile scripts/dataforseo_costs.py` |
 | Ruff lint | `ruff check scripts/ hooks/` |
 | Fetch a page | `python3 scripts/fetch_page.py <url>` |
 | Parse HTML | `python3 scripts/parse_html.py <file> --url <base-url> --json` |
 | Visual analysis | `python3 scripts/analyze_visual.py <url> --json` |
 | Screenshot capture | `python3 scripts/capture_screenshot.py <url> --output screenshots` |
+| DataForSEO cost init | `python3 scripts/dataforseo_costs.py init` |
+| DataForSEO cost check | `python3 scripts/dataforseo_costs.py check --command <cmd>` |
+| DataForSEO cost summary | `python3 scripts/dataforseo_costs.py summary` |
 
 See `CONTRIBUTING.md` for full code style guidelines and PR process.
 
@@ -241,9 +246,44 @@ Not all modules are available on every DataForSEO plan:
 AI Overview data is available through the standard SERP module (returned as an
 `ai_overview` item type alongside organic results).
 
+### Cost Configuration
+
+Claude SEO includes a cost estimation and approval system for DataForSEO API calls.
+Config is stored at `~/.claude-seo/dataforseo-cost-config.json`.
+
+```bash
+# Initialize default config (first use)
+python3 scripts/dataforseo_costs.py init
+
+# Show current config
+python3 scripts/dataforseo_costs.py config
+
+# Set approval mode: always | threshold | none
+python3 scripts/dataforseo_costs.py config --set approval_mode=always
+python3 scripts/dataforseo_costs.py config --set approval_mode=threshold threshold_usd=3.00
+
+# Estimate cost for a command
+python3 scripts/dataforseo_costs.py estimate --command backlinks --limit 100
+
+# Check if approval is needed
+python3 scripts/dataforseo_costs.py check --command ai-mentions
+
+# Log actual spend
+python3 scripts/dataforseo_costs.py log --command serp --cost 0.002
+
+# View spending
+python3 scripts/dataforseo_costs.py summary
+python3 scripts/dataforseo_costs.py today
+```
+
+**Default behavior:** `threshold` mode at `$0.50`. Cheap calls proceed automatically;
+expensive operations require user confirmation. BACKLINKS and AI_OPTIMIZATION modules
+always require confirmation. Conservative limits (standard queue, reduced depth/rows)
+cut costs by ~60-80%.
+
 ### Other notes
 
-- DataForSEO charges per API call; prefer bulk endpoints and default `limit=100`
+- DataForSEO charges per API call; prefer bulk endpoints and conservative limits
 - Default parameters: `location_code=2840` (US), `language_code=en`
 - The `field-config.json` in the extension reduces API response sizes by ~75%
 
