@@ -170,6 +170,65 @@ but no `tests/` directory exists.
   text, title length, missing alt text, deprecated schema). Can be wired as a standard
   git pre-commit hook.
 
+## DataForSEO Extension
+
+The DataForSEO extension adds live SEO data (SERP, keyword volume, backlinks, on-page
+analysis, AI visibility) via the DataForSEO API. In Claude Code, this runs as an MCP server
+(`dataforseo-mcp-server` npm package). In Cursor / Cursor Cloud, the same API can be called
+directly via Python using the `requests` library.
+
+### Using DataForSEO in Cursor / Cursor Cloud
+
+Set `DATAFORSEO_USERNAME` and `DATAFORSEO_PASSWORD` as environment variables (or Cursor Cloud
+secrets), then call the REST API directly:
+
+```python
+import requests, os
+
+username = os.environ['DATAFORSEO_USERNAME']
+password = os.environ['DATAFORSEO_PASSWORD']
+
+# Example: SERP organic search
+resp = requests.post(
+    'https://api.dataforseo.com/v3/serp/google/organic/live/advanced',
+    json=[{'keyword': 'seo tools', 'location_code': 2840, 'language_code': 'en', 'depth': 10}],
+    auth=(username, password)
+)
+data = resp.json()
+```
+
+### Available API modules
+
+See `extensions/dataforseo/README.md` and `extensions/dataforseo/skills/seo-dataforseo/SKILL.md`
+for the full command reference. Key endpoints:
+
+| Module | Endpoint prefix | Purpose |
+|--------|----------------|---------|
+| SERP | `serp/google/organic/live/advanced` | Live Google search results |
+| Keywords | `keywords_data/google_ads/search_volume/live` | Search volume, CPC |
+| Labs | `dataforseo_labs/google/...` | Keyword difficulty, intent, competitors |
+| Backlinks | `backlinks/summary/live` | Backlink profiles |
+| On-Page | `on_page/instant_pages` | Lighthouse + content parsing |
+| Content | `content_analysis/search/live` | Content quality analysis |
+| AI Optimization | `ai_optimization/chat_gpt_scraper/live` | GEO / AI visibility |
+
+### How DataForSEO enhances core analysis
+
+When DataForSEO is available, the core analysis scripts gain real-time data:
+
+1. **Core script** (`parse_html.py`) finds missing meta description → DataForSEO's on-page
+   analysis adds page timing, Lighthouse scores, and 15+ SEO checks
+2. **SERP API** shows actual search positions for the target domain's keywords
+3. **Keyword volume** data replaces guesswork with real search demand numbers
+4. **Backlinks summary** provides domain authority, spam scores, referring domain counts
+
+### Notes
+
+- DataForSEO charges per API call; prefer bulk endpoints and default `limit=100`
+- Default parameters: `location_code=2840` (US), `language_code=en`
+- The `field-config.json` in the extension reduces API response sizes by ~75%
+- Some modules (Labs, Backlinks) may require a paid plan beyond the free trial
+
 ## Cursor Cloud specific instructions
 
 ### Gotchas
