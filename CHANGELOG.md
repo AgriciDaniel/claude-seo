@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **DataForSEO cost configuration**: configurable approval workflow for API spending (`scripts/dataforseo_costs.py`) with three modes: `always` (every call asks), `threshold` (ask above configurable dollar amount, default $0.50), and `none`
+- **Cost estimation script**: `scripts/dataforseo_costs.py` with `init`, `config`, `estimate`, `check`, `log`, `summary`, `today`, and `reset` commands. Full pricing table for all 9 DataForSEO API modules
+- **Cost config reference**: `skills/seo-dataforseo/references/cost-config.md` with pricing lookup table, command cost estimates, and conservative defaults documentation
+- **Conservative defaults**: standard queue preference, reduced limits (SERP depth 10, keyword limit 20, backlink rows 50, grid 5×5) cutting costs ~60-80%
+- **Session budget**: optional per-session spending cap with automatic approval triggers when budget would be exceeded
+- **Warn modules**: BACKLINKS and AI_OPTIMIZATION always require user confirmation regardless of approval mode
+- **Cursor / Cursor Cloud compatibility**: `AGENTS.md` now provides full project instructions for Cursor and Cursor Cloud agents, mirroring the project context from `CLAUDE.md` (architecture, commands, development rules, key principles, ecosystem)
+- **DataForSEO extension docs for Cursor**: `AGENTS.md` documents how to call the DataForSEO REST API directly from Cursor environments (without MCP), with Python examples, module reference table, and verified subscription availability
+- **README Cursor section**: Added "Cursor / Cursor Cloud" section with setup instructions, script usage examples, and guidance on using skills/agents as `@context`
+- **Cursor Compatible badge**: Added to README alongside existing Claude Code badge
+
+### Changed
+- **seo-dataforseo skill**: replaced "API Credit Awareness" section with "Cost Configuration & Approval Workflow" requiring pre-call cost checks and configurable approval
+- **seo-dataforseo agent**: now runs cost checks before every API call, logs spend, and includes cost line in output
+- **seo-audit skill**: DataForSEO integration section now documents expected audit cost range ($0.50–$1.50) and references cost config
+- **CI pipeline**: added `py_compile` check for `scripts/dataforseo_costs.py`
+
 ## [1.7.0] - 2026-03-28
 
 ### Added

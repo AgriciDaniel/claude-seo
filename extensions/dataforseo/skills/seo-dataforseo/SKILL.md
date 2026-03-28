@@ -39,13 +39,57 @@ is connected by checking if `serp_organic_live_advanced` or any DataForSEO tool
 is available. If tools are not available, inform the user the extension is not
 installed and provide install instructions.
 
-## API Credit Awareness
+## Cost Configuration & Approval Workflow
 
-DataForSEO charges per API call. Be efficient:
+DataForSEO charges per API call. This skill enforces a cost-aware workflow
+controlled by `~/.claude-seo/dataforseo-cost-config.json`.
+
+**Reference:** Load `references/cost-config.md` for full pricing table, command
+cost estimates, and configuration schema.
+
+### Before Every DataForSEO Call
+
+1. Run `python3 scripts/dataforseo_costs.py check --command <CMD> [--keywords N] [--limit N]`
+2. If `needs_approval` is `true`: display the cost estimate to the user and **wait
+   for explicit confirmation** before proceeding
+3. If `needs_approval` is `false`: proceed and note the estimated cost in output
+4. After calls complete: `python3 scripts/dataforseo_costs.py log --command <CMD> --cost <AMOUNT>`
+
+### Approval Modes
+
+| Mode | Behavior | Config command |
+|------|----------|---------------|
+| `always` | Every call shows cost + asks approval | `scripts/dataforseo_costs.py config --set approval_mode=always` |
+| `threshold` | Asks approval if cost >= threshold | `scripts/dataforseo_costs.py config --set approval_mode=threshold threshold_usd=3.00` |
+| `none` | No approval needed (not recommended) | `scripts/dataforseo_costs.py config --set approval_mode=none` |
+
+**Default:** `threshold` at `$0.50`. Cheap lookups proceed automatically; expensive
+operations require confirmation.
+
+### Conservative Defaults
+
+The config uses conservative parameter limits to reduce costs by ~60-80%:
+- Prefer standard queue over live when available (70% cheaper)
+- SERP depth: 10 (not 100)
+- Keyword limit: 20 (not 50-100)
+- Backlink rows: 50 (not 100)
+- Grid size: 5x5 (not 7x7)
+
+Users can adjust: `scripts/dataforseo_costs.py config --set default_limits.keyword_limit=50`
+
+### Cost Tracking
+
+```bash
+scripts/dataforseo_costs.py summary    # Total spending + last 7 days
+scripts/dataforseo_costs.py today      # Today's spending vs budget
+```
+
+### General Efficiency Rules
+
 - Prefer bulk endpoints over multiple single calls
 - Use default parameters (US, English) unless user specifies otherwise
-- Cache results mentally within a session; don't re-fetch the same data
-- Warn user before running expensive operations (full backlink crawls, large keyword lists)
+- Cache results within a session; don't re-fetch the same data
+- BACKLINKS and AI_OPTIMIZATION modules always require confirmation regardless of mode
 
 ## Quick Reference
 

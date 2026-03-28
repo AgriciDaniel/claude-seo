@@ -101,6 +101,9 @@ Load these on-demand as needed (do NOT load all at startup):
 Maps-specific references (loaded by seo-maps skill, not at startup):
 - `references/maps-geo-grid.md`, `references/maps-gbp-checklist.md`, `references/maps-api-endpoints.md`, `references/maps-free-apis.md`
 
+DataForSEO cost references (loaded by seo-dataforseo skill, not at startup):
+- `seo-dataforseo/references/cost-config.md`: Pricing table, approval modes, conservative defaults
+
 ## Scoring Methodology
 
 ### SEO Health Score (0-100)
