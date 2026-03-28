@@ -2,20 +2,22 @@
 
 ![Claude SEO](screenshots/cover-image.jpeg)
 
-# Claude SEO - SEO Audit Skill for Claude Code
+# Claude SEO - SEO Audit Skill for Claude Code, Cursor & Cursor Cloud
 
-Comprehensive SEO analysis skill for Claude Code. Covers technical SEO, on-page analysis, content quality (E-E-A-T), schema markup, image optimization, sitemap architecture, AI search optimization (GEO), and strategic planning.
+Comprehensive SEO analysis skill for Claude Code — also compatible with Cursor and Cursor Cloud. Covers technical SEO, on-page analysis, content quality (E-E-A-T), schema markup, image optimization, sitemap architecture, AI search optimization (GEO), and strategic planning.
 
 ![SEO Command Demo](screenshots/seo-command-demo.gif)
 
 [![CI](https://github.com/AgriciDaniel/claude-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/AgriciDaniel/claude-seo/actions/workflows/ci.yml)
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
+[![Cursor Compatible](https://img.shields.io/badge/Cursor-Compatible-purple)](https://cursor.sh)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/AgriciDaniel/claude-seo)](https://github.com/AgriciDaniel/claude-seo/releases)
 
 ## Table of Contents
 
 - [Installation](#installation)
+- [Cursor / Cursor Cloud](#cursor--cursor-cloud)
 - [Quick Start](#quick-start)
 - [Commands](#commands)
 - [Features](#features)
@@ -68,6 +70,45 @@ powershell -ExecutionPolicy Bypass -File claude-seo\install.ps1
 ```
 
 > **Why git clone instead of `irm | iex`?** Claude Code's own security guardrails flag `irm ... | iex` as a supply chain risk (downloading and executing remote code with no verification). The git clone approach lets you inspect the script at `claude-seo\install.ps1` before running it.
+
+## Cursor / Cursor Cloud
+
+This repository is fully compatible with **Cursor** and **Cursor Cloud** in addition to Claude Code.
+
+### How it works
+
+| Environment | Instructions File | How skills are loaded |
+|-------------|-------------------|----------------------|
+| **Claude Code** | `CLAUDE.md` | Skills and agents auto-discovered from `~/.claude/skills/` and `~/.claude/agents/` after running `install.sh` |
+| **Cursor / Cursor Cloud** | `AGENTS.md` | Agent reads `AGENTS.md` for project context; Python scripts run directly from the repo |
+
+### Development setup (Cursor / Cursor Cloud)
+
+No `install.sh` needed — work directly from the cloned repo:
+
+```bash
+pip install -r requirements.txt
+python3 -m playwright install --with-deps chromium   # optional, for visual analysis
+```
+
+### Using the Python scripts
+
+The core analysis scripts can be invoked directly:
+
+```bash
+python3 scripts/fetch_page.py https://example.com --output page.html
+python3 scripts/parse_html.py page.html --url https://example.com --json
+python3 scripts/capture_screenshot.py https://example.com --output screenshots
+python3 scripts/analyze_visual.py https://example.com --json
+```
+
+### Using skills and agents as context
+
+The `skills/` and `agents/` directories contain rich SEO knowledge in Markdown. In Cursor,
+reference these files as context (e.g. `@skills/seo/SKILL.md`) to give the agent access to
+the same routing logic, quality gates, and SEO expertise that Claude Code uses natively.
+
+See `AGENTS.md` for the full project overview, commands, development rules, and environment-specific gotchas.
 
 ## Quick Start
 
@@ -217,7 +258,7 @@ See `schema/templates.json` for ready-to-use JSON-LD snippets.
 ## Requirements
 
 - Python 3.10+
-- Claude Code CLI
+- Claude Code CLI, Cursor, or Cursor Cloud
 - Optional: Playwright for screenshots
 
 ## Uninstall
@@ -318,4 +359,4 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before sub
 
 ---
 
-Built for Claude Code by [@AgriciDaniel](https://github.com/AgriciDaniel)
+Built for Claude Code, Cursor & Cursor Cloud by [@AgriciDaniel](https://github.com/AgriciDaniel)
