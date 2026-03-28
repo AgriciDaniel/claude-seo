@@ -242,7 +242,7 @@ See `schema/templates.json` for ready-to-use JSON-LD snippets.
 
 ## Requirements
 
-- Python 3.11+
+- [uv](https://docs.astral.sh/uv/) for running scripts (installs Python 3.10+ automatically if needed)
 - Claude Code CLI
 - Optional: Playwright for screenshots
 - Optional: Google API credentials for enriched data (see `/seo google setup`)
