@@ -10,7 +10,7 @@ main() {
     REPO_URL="https://github.com/AgriciDaniel/claude-seo"
     # Pin to a specific release tag to prevent silent updates from main.
     # Override: CLAUDE_SEO_TAG=main bash install.sh
-    REPO_TAG="${CLAUDE_SEO_TAG:-v1.6.0}"
+    REPO_TAG="${CLAUDE_SEO_TAG:-v1.7.0}"
 
     echo "════════════════════════════════════════"
     echo "║   Claude SEO - Installer             ║"
@@ -44,7 +44,7 @@ main() {
 
     # Copy skill files
     echo "→ Installing skill files..."
-    cp -r "${TEMP_DIR}/claude-seo/seo/"* "${SKILL_DIR}/"
+    cp -r "${TEMP_DIR}/claude-seo/skills/seo/"* "${SKILL_DIR}/"
 
     # Copy sub-skills
     if [ -d "${TEMP_DIR}/claude-seo/skills" ]; then
