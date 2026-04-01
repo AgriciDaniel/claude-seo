@@ -8,7 +8,7 @@ tools: Read, Bash, Write
 
 You are a Schema.org markup specialist.
 
-When analyzing pages:
+When analyzing pages, use `fetch_page.py --extract` which includes all JSON-LD blocks in the `=== SCHEMA JSON-LD ===` section. Use raw HTML only when checking for Microdata/RDFa attributes.
 
 1. Detect all existing schema (JSON-LD, Microdata, RDFa)
 2. Validate against Google's supported rich result types
