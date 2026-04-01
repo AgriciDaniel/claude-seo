@@ -25,7 +25,8 @@ metadata:
 
 **Invocation:** `/seo $1 $2` where `$1` is the command and `$2` is the URL or argument.
 
-**Scripts:** Located at the plugin root `scripts/` directory.
+**Scripts:** `${CLAUDE_SKILL_DIR}/scripts/`
+**Python:** `${CLAUDE_SKILL_DIR}/.venv/bin/python`
 
 Comprehensive SEO analysis across all industries (SaaS, local services,
 e-commerce, publishers, agencies). Orchestrates 15 specialized sub-skills and 10 subagents
@@ -60,7 +61,7 @@ e-commerce, publishers, agencies). Orchestrates 15 specialized sub-skills and 10
 When the user invokes `/seo audit`, delegate to subagents in parallel:
 1. Detect business type (SaaS, local, ecommerce, publisher, agency, other)
 2. Spawn subagents: seo-technical, seo-content, seo-schema, seo-sitemap, seo-performance, seo-visual, seo-geo
-3. If Google API credentials detected (`python scripts/google_auth.py --check`), also spawn seo-google agent
+3. If Google API credentials detected (`${CLAUDE_SKILL_DIR}/.venv/bin/python ${CLAUDE_SKILL_DIR}/scripts/google_auth.py --check`), also spawn seo-google agent
 4. If local business detected, also spawn seo-local agent
 5. If local business detected AND DataForSEO MCP available, also spawn seo-maps agent
 6. If Firecrawl MCP available, use `firecrawl_map` to discover all site URLs before analysis
@@ -69,7 +70,7 @@ When the user invokes `/seo audit`, delegate to subagents in parallel:
 8. **Offer PDF report**: "Generate a professional PDF report? Use `/seo google report full`"
 
 For individual commands, load the relevant sub-skill directly.
-After any analysis command completes, offer to generate a PDF report via `scripts/google_report.py`.
+After any analysis command completes, offer to generate a PDF report via `${CLAUDE_SKILL_DIR}/scripts/google_report.py`.
 
 ## Industry Detection
 
