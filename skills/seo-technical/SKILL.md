@@ -161,7 +161,7 @@ If DataForSEO MCP tools are available, use `on_page_instant_pages` for real page
 
 ## Google API Integration (Optional)
 
-If Google API credentials are configured, use `python scripts/pagespeed_check.py <url> --json` for real PSI + CrUX field data (replaces lab-only CWV estimates), `python scripts/crux_history.py <url> --json` for 25-week CWV trends, and `python scripts/gsc_inspect.py <url> --json` for real indexation status per URL.
+If Google API credentials are configured, use `${CLAUDE_SKILL_DIR}/../seo/.venv/bin/python ${CLAUDE_SKILL_DIR}/../seo/scripts/pagespeed_check.py <url> --json` for real PSI + CrUX field data (replaces lab-only CWV estimates), `${CLAUDE_SKILL_DIR}/../seo/.venv/bin/python ${CLAUDE_SKILL_DIR}/../seo/scripts/crux_history.py <url> --json` for 25-week CWV trends, and `${CLAUDE_SKILL_DIR}/../seo/.venv/bin/python ${CLAUDE_SKILL_DIR}/../seo/scripts/gsc_inspect.py <url> --json` for real indexation status per URL.
 
 ## Error Handling
 

@@ -25,7 +25,7 @@ Google evaluates the **75th percentile** of page visits, 75% of visits must meet
 ## When Analyzing Performance
 
 1. Use PageSpeed Insights API if available
-2. Otherwise, analyze HTML source for common issues
+2. Otherwise, analyze HTML source for common issues (use raw `fetch_page.py` without `--extract` for performance analysis — you need full markup to detect render-blocking resources, script loading patterns, and image optimization)
 3. Provide specific, actionable optimization recommendations
 4. Prioritize by expected impact
 
@@ -75,8 +75,8 @@ npx lighthouse URL --output json
 
 If Google API credentials are configured, prefer CrUX field data over Lighthouse lab data for CWV assessment:
 ```bash
-python scripts/pagespeed_check.py URL --json
-python scripts/crux_history.py URL --json
+~/.claude/skills/seo/.venv/bin/python ~/.claude/skills/seo/scripts/pagespeed_check.py URL --json
+~/.claude/skills/seo/.venv/bin/python ~/.claude/skills/seo/scripts/crux_history.py URL --json
 ```
 Field data (28-day Chrome user average) is more representative than lab data (single Lighthouse run). Use lab data as fallback when CrUX returns 404 (insufficient traffic).
 
