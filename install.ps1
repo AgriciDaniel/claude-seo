@@ -210,17 +210,22 @@ try {
         Copy-Item -Force $reqFile $installedReqFile
     }
 
-    # Install Python dependencies
+    # Install Python dependencies (venv required)
     Write-Host "=> Installing Python dependencies..." -ForegroundColor Yellow
+    $VenvDir = Join-Path $SkillDir '.venv'
+    $VenvPython = Join-Path $VenvDir 'Scripts\python.exe'
+    $venvCreated = $false
     if (Test-Path $reqFile) {
-        try {
-            $pip = Invoke-External -Exe $python.Exe -Args @($python.Args + @('-m','pip','install','-q','-r',$reqFile)) -Quiet
-            if ($pip.ExitCode -ne 0) {
-                throw ($pip.Output -join "`n")
-            }
-        } catch {
-            Write-Host "  [!]  Could not auto-install Python packages." -ForegroundColor Yellow
-            Write-Host "  Try: $($python.Exe) $($python.Args -join ' ') -m pip install -r `"$installedReqFile`"" -ForegroundColor Yellow
+        $venv = Invoke-External -Exe $python.Exe -Args @($python.Args + @('-m','venv',$VenvDir)) -Quiet
+        if ($venv.ExitCode -ne 0 -or -not (Test-Path $VenvPython)) {
+            throw "Failed to create venv at $VenvDir. Ensure the venv module is available."
+        }
+        $venvCreated = $true
+        $pip = Invoke-External -Exe $VenvPython -Args @('-m','pip','install','-q','-r',$reqFile) -Quiet
+        if ($pip.ExitCode -eq 0) {
+            Write-Host "  [+] Installed in venv at $VenvDir" -ForegroundColor Green
+        } else {
+            Write-Host "  [!]  Venv pip install failed. Run: $VenvPython -m pip install -r `"$installedReqFile`"" -ForegroundColor Yellow
         }
     } else {
         Write-Host "  [!]  No requirements.txt found; skipping Python dependency install." -ForegroundColor Yellow
@@ -228,8 +233,10 @@ try {
 
     # Optional: Install Playwright browsers
     Write-Host "=> Installing Playwright browsers (optional, for visual analysis)..." -ForegroundColor Yellow
+    $pwExe = $VenvPython
+    $pwArgs = @('-m','playwright','install','chromium')
     try {
-        $pw = Invoke-External -Exe $python.Exe -Args @($python.Args + @('-m','playwright','install','chromium')) -Quiet
+        $pw = Invoke-External -Exe $pwExe -Args $pwArgs -Quiet
         if ($pw.ExitCode -ne 0) {
             throw ($pw.Output -join "`n")
         }
