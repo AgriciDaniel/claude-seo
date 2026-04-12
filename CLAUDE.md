@@ -4,12 +4,14 @@
 
 This repository contains **Claude SEO**, a Tier 4 Claude Code skill for comprehensive
 SEO analysis across all industries. It follows the Agent Skills open standard and the
-3-layer architecture (directive, orchestration, execution). 17 core sub-skills (+ 3
+3-layer architecture (directive, orchestration, execution). 18 core sub-skills (+ 3
 extensions), 11 core subagents (+ 2 extension agents, 13 total), and an extensible reference
 system cover technical SEO, content quality,
 schema markup, image optimization, sitemap architecture, AI search optimization,
-local SEO (GBP, citations, reviews, map pack), and maps intelligence (geo-grid
-rank tracking, GBP auditing, review intelligence, competitor radius mapping).
+local SEO (GBP, citations, reviews, map pack), maps intelligence (geo-grid
+rank tracking, GBP auditing, review intelligence, competitor radius mapping), and
+NotebookLM-powered research automation (bulk source import, study guides, mind maps,
+audio overviews) for content briefs and topic authority analysis.
 
 ## Architecture
 
@@ -19,7 +21,7 @@ claude-seo/
   .claude-plugin/
     plugin.json                    # Plugin manifest (v1.8.1)
     marketplace.json               # Marketplace catalog for distribution
-  skills/                            # 19 skills (auto-discovered)
+  skills/                            # 20 skills (auto-discovered)
     seo/                           # Main orchestrator skill
       SKILL.md                     # Entry point, routing table, core rules
       references/                  # On-demand knowledge files (12 files)
@@ -45,6 +47,7 @@ claude-seo/
     seo-image-gen/              # AI image generation for SEO assets (extension mirror)
       SKILL.md
       references/                # Image gen reference files (7 files)
+    seo-notebooklm/SKILL.md     # NotebookLM research automation (notebooklm-py)
   agents/                          # 13 subagents (auto-discovered)
     seo-technical.md             # Crawlability, indexability, security
     seo-content.md               # E-E-A-T, readability, thin content
@@ -61,8 +64,9 @@ claude-seo/
     seo-image-gen.md             # SEO image audit analyst
   hooks/                           # Quality gate hooks
     hooks.json                   # PostToolUse schema validation
-  scripts/                         # Python execution scripts (20 tracked + 2 dev-only)
+  scripts/                         # Python execution scripts (21 tracked + 2 dev-only)
     google_auth.py               # Credential management (OAuth, SA, API key, 4-tier detection)
+    notebooklm_client.py         # NotebookLM research automation (notebooklm-py wrapper)
     backlinks_auth.py            # Backlink API credential management (Moz, Bing)
     moz_api.py                   # Moz Link Explorer API (DA/PA, spam, domains, anchors)
     bing_webmaster.py            # Bing Webmaster Tools API (links, competitor comparison)
@@ -116,6 +120,7 @@ claude-seo/
 | `/seo firecrawl [command] <url>` | Full-site crawling and site mapping (extension) |
 | `/seo dataforseo [command]` | Live SEO data via DataForSEO MCP (extension) |
 | `/seo image-gen [use-case] <desc>` | AI image generation for SEO assets (extension) |
+| `/seo notebooklm [command] [args]` | NotebookLM research: bulk-import URLs, generate study guides, mind maps, podcasts, quizzes |
 
 ## Development Rules
 

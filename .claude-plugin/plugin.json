@@ -32,6 +32,9 @@
     "moz",
     "bing-webmaster",
     "common-crawl",
-    "backlink-verification"
+    "backlink-verification",
+    "notebooklm",
+    "research-automation",
+    "content-briefs"
   ]
 }
