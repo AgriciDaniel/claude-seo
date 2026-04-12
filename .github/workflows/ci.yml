@@ -41,4 +41,5 @@ jobs:
           python3 -m py_compile scripts/commoncrawl_graph.py
           python3 -m py_compile scripts/verify_backlinks.py
           python3 -m py_compile scripts/validate_backlink_report.py
-          echo "All 21 scripts passed syntax check"
+          python3 -m py_compile scripts/notebooklm_client.py
+          echo "All 22 scripts passed syntax check"
