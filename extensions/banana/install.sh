@@ -146,9 +146,9 @@ print('  ✓ nanobanana-mcp configured in settings.json')
     cp "${SOURCE_DIR}/scripts/"*.py "${SKILL_DIR}/scripts/"
     cp "${SOURCE_DIR}/references/"*.md "${SKILL_DIR}/references/"
 
-    # Pre-warm npx package
+    # Pre-warm npm package without starting the MCP server binary.
     echo "→ Pre-downloading nanobanana-mcp..."
-    npx -y @ycse/nanobanana-mcp@latest --help >/dev/null 2>&1 || true
+    npx --yes --package=@ycse/nanobanana-mcp@latest -- node -e "" >/dev/null 2>&1 || true
 
     echo ""
     echo "✓ Banana Image Generation extension installed successfully!"

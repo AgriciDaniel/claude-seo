@@ -1,4 +1,4 @@
-<!-- Updated: 2026-03-28 -->
+<!-- Updated: 2026-04-10 -->
 
 ![Claude SEO](screenshots/cover-image.jpeg)
 
@@ -130,6 +130,10 @@ claude
 | `/seo hreflang <url>` | Hreflang/i18n SEO audit and generation |
 | `/seo google [command] [url]` | Google SEO APIs (GSC, PageSpeed, CrUX, Indexing, GA4) |
 | `/seo google report [type]` | Generate PDF/HTML report with charts (cwv-audit, gsc-performance, full) |
+| `/seo backlinks <url>` | Backlink profile analysis (free: Moz, Bing, Common Crawl) |
+| `/seo firecrawl [command] <url>` | Full-site crawling and site mapping (extension) |
+| `/seo dataforseo [command]` | Live SEO data via DataForSEO (extension) |
+| `/seo image-gen [use-case] <desc>` | AI image generation for SEO assets (extension) |
 
 ### `/seo programmatic [url|plan]`
 **Programmatic SEO Analysis & Planning**
@@ -231,8 +235,8 @@ Direct integration with Google's SEO data:
 
 ```
 ~/.claude/skills/seo/         # Main orchestrator skill
-~/.claude/skills/seo-*/       # Sub-skills (15 + 2 extensions)
-~/.claude/agents/seo-*.md     # Subagents (10 + 2 extensions)
+~/.claude/skills/seo-*/       # Sub-skills (16 + 3 extensions)
+~/.claude/agents/seo-*.md     # Subagents (11 + 2 extensions)
 ```
 
 ### Video & Live Schema (New)
@@ -323,6 +327,23 @@ Generate SEO images (OG previews, blog heroes, product photos, infographics) usi
 See [Banana Extension](extensions/banana/README.md) for full documentation.
 Already using standalone Claude Banana? The extension reuses your existing nanobanana-mcp setup.
 
+### Firecrawl (Site Crawling)
+
+Full-site crawling and URL discovery using the [Firecrawl](https://www.firecrawl.dev/) MCP server.
+
+```bash
+# Install extension
+./extensions/firecrawl/install.sh
+```
+
+```bash
+# Example commands
+/seo firecrawl crawl https://example.com
+/seo firecrawl map https://example.com
+```
+
+See [Firecrawl Extension](extensions/firecrawl/README.md) for full documentation.
+
 ## Ecosystem
 
 Claude SEO is part of a family of Claude Code skills that work together:
@@ -360,3 +381,20 @@ Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before sub
 ---
 
 Built for Claude Code by [@AgriciDaniel](https://github.com/AgriciDaniel)
+
+---
+
+## Publishing Pipeline
+
+For a full GUI-based publishing workflow from SEO research to published content, see [Rankenstein](https://rankenstein.pro) - the AI content engine built on the same SEO principles.
+
+---
+
+## Author
+
+Built by [Agrici Daniel](https://agricidaniel.com/about) - AI Workflow Architect.
+
+- [Blog](https://agricidaniel.com/blog) - Deep dives on AI marketing automation
+- [AI Marketing Hub](https://www.skool.com/ai-marketing-hub) - Free community, 2,800+ members
+- [YouTube](https://www.youtube.com/@AgriciDaniel) - Tutorials and demos
+- [All open-source tools](https://github.com/AgriciDaniel)

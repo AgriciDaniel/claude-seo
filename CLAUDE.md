@@ -5,6 +5,7 @@
 This repository contains **Claude SEO**, a Tier 4 Claude Code skill for comprehensive
 SEO analysis across all industries. It follows the Agent Skills open standard and the
 3-layer architecture (directive, orchestration, execution). 18 core sub-skills (+ 3
+3-layer architecture (directive, orchestration, execution). 16 core sub-skills (+ 3
 extensions), 11 core subagents (+ 2 extension agents, 13 total), and an extensible reference
 system cover technical SEO, content quality,
 schema markup, image optimization, sitemap architecture, AI search optimization,

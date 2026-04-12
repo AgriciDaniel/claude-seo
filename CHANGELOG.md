@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2026-04-10
+
+### Added
+- **Ukrainian localization**: first i18n — README, CONTRIBUTING, PRIVACY, SECURITY, INSTALLATION, TROUBLESHOOTING translated (PR #50)
+- **Firecrawl extension section** in README with install and example commands
+- **Backlink API privacy disclosures** in PRIVACY.md (Moz, Bing Webmaster, Common Crawl, verify crawler)
+- 4 missing commands added to README table: `/seo backlinks`, `/seo firecrawl`, `/seo dataforseo`, `/seo image-gen`
+- 6 missing scripts added to CI syntax check (backlinks_auth, moz_api, bing_webmaster, commoncrawl_graph, verify_backlinks, validate_backlink_report)
+- 6 missing skill directories added to INSTALLATION.md manual uninstall list
+
+### Fixed
+- **Install scripts pinned to stale version**: REPO_TAG bumped from v1.7.2 to v1.8.2 in install.sh and install.ps1 — new curl-based installs now get the current release
+- **Supply chain risk in docs**: removed deprecated `irm | iex` pattern from docs/INSTALLATION.md, replaced with safe `git clone` + `powershell -File` method
+- **Version sync**: pyproject.toml (1.7.2→1.8.2), CITATION.cff (1.7.2→1.8.2, date 2026-04-10), all 19 SKILL.md files
+- **Python requirement**: pyproject.toml corrected from `>=3.11` to `>=3.10` (matches README and install scripts)
+- **README architecture counts**: sub-skills "15+2" → "16+3", agents "10+2" → "11+2"
+- **Orchestrator SKILL.md**: stale count "15+2" → "16+3" at line 119
+- **CLAUDE.md**: sub-skill count 17→16 core, script count "20+2" → "21+2"
+- **Extension install hang**: merged PR #43 — npx pre-warm no longer starts MCP server binary
+
+### Community
+- Merged PR #43 (fix stuck extension install) by @olivierroy
+- Merged PR #45 (correct sub-skills count) by @MalteBerlin
+- Merged PR #50 (Ukrainian localization) by @edocltd
+- Closed issue #42 (marketplace discovery — resolved)
+- Reviewed PRs #47, #46, #30, #36 with detailed feedback
+
 ## [1.8.1] - 2026-04-06
 
 ### Added

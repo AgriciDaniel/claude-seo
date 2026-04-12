@@ -20,7 +20,9 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/instal
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/install.ps1 | iex
+git clone --depth 1 https://github.com/AgriciDaniel/claude-seo.git
+cd claude-seo
+powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
 ## Manual Installation
@@ -96,11 +98,17 @@ Or manually:
 ```bash
 rm -rf ~/.claude/skills/seo
 rm -rf ~/.claude/skills/seo-audit
+rm -rf ~/.claude/skills/seo-backlinks
 rm -rf ~/.claude/skills/seo-competitor-pages
 rm -rf ~/.claude/skills/seo-content
+rm -rf ~/.claude/skills/seo-dataforseo
 rm -rf ~/.claude/skills/seo-geo
+rm -rf ~/.claude/skills/seo-google
 rm -rf ~/.claude/skills/seo-hreflang
+rm -rf ~/.claude/skills/seo-image-gen
 rm -rf ~/.claude/skills/seo-images
+rm -rf ~/.claude/skills/seo-local
+rm -rf ~/.claude/skills/seo-maps
 rm -rf ~/.claude/skills/seo-page
 rm -rf ~/.claude/skills/seo-plan
 rm -rf ~/.claude/skills/seo-programmatic

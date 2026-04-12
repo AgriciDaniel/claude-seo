@@ -6,7 +6,7 @@ argument-hint: "[command] [url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "1.8.1"
+  version: "1.8.2"
   category: seo
 ---
 
@@ -116,7 +116,7 @@ Weighted aggregate of all categories:
 
 ## Sub-Skills
 
-This skill orchestrates 15 specialized sub-skills (+ 2 extensions):
+This skill orchestrates 16 specialized sub-skills (+ 3 extensions):
 
 1. **seo-audit** -- Full website audit with parallel delegation
 2. **seo-page** -- Deep single-page analysis

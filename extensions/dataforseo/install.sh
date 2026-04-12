@@ -139,9 +139,9 @@ print('  ✓ MCP server configured in settings.json')
         echo "  See: extensions/dataforseo/docs/DATAFORSEO-SETUP.md"
     }
 
-    # Pre-warm npx package
+    # Pre-warm npm package without starting the MCP server binary.
     echo "→ Pre-downloading dataforseo-mcp-server..."
-    npx -y dataforseo-mcp-server --help >/dev/null 2>&1 || true
+    npx --yes --package=dataforseo-mcp-server -- node -e "" >/dev/null 2>&1 || true
 
     echo ""
     echo "✓ DataForSEO extension installed successfully!"

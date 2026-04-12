@@ -119,9 +119,9 @@ print('  v MCP server configured in settings.json')
         echo "  See: extensions/firecrawl/docs/FIRECRAWL-SETUP.md"
     }
 
-    # Pre-warm npx package
+    # Pre-warm npm package without starting the MCP server binary.
     echo "-> Pre-downloading firecrawl-mcp..."
-    npx -y firecrawl-mcp --help >/dev/null 2>&1 || true
+    npx --yes --package=firecrawl-mcp -- node -e "" >/dev/null 2>&1 || true
 
     echo ""
     echo "v Firecrawl extension installed successfully!"

@@ -21,6 +21,17 @@ Optional extensions make API calls to third-party services when you invoke their
 | **Firecrawl** | api.firecrawl.dev | URLs you crawl or scrape | [Firecrawl Privacy](https://www.firecrawl.dev/privacy) |
 | **Banana (Gemini)** | generativelanguage.googleapis.com | Image generation prompts | [Google AI Privacy](https://ai.google.dev/terms) |
 
+## Backlink APIs
+
+When configured with backlink API credentials, these scripts transmit data to third-party services:
+
+| Script | Service | Data Sent | Privacy Policy |
+|--------|---------|-----------|---------------|
+| `moz_api.py` | Moz Link Explorer API | Domains you analyze | [Moz Privacy](https://moz.com/privacy-policy) |
+| `bing_webmaster.py` | Bing Webmaster Tools API | Domains you analyze | [Microsoft Privacy](https://privacy.microsoft.com/) |
+| `commoncrawl_graph.py` | Common Crawl | Domains (public dataset query) | [Common Crawl Terms](https://commoncrawl.org/terms-of-use) |
+| `verify_backlinks.py` | Target URLs directly | URLs to verify backlink existence | N/A (direct HTTP requests) |
+
 ## Google SEO APIs
 
 When configured with Google API credentials, these scripts transmit data to Google:
