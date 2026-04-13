@@ -21,3 +21,9 @@ google-auth>=2.20.0,<3.0.0                  # No known CVEs
 google-auth-oauthlib>=1.0.0,<2.0.0          # No known CVEs
 google-auth-httplib2>=0.2.0,<1.0.0           # No known CVEs
 google-analytics-data>=0.18.0,<1.0.0         # No known CVEs
+
+# NotebookLM research automation (for seo-notebooklm skill)
+# Unofficial Google NotebookLM Python API. Optional: install with
+#   pip install "notebooklm-py[browser]" && playwright install chromium
+# to enable the browser-based login flow used by `notebooklm login`.
+notebooklm-py>=0.1.0,<1.0.0                   # Unofficial; upstream API may break
