@@ -13,8 +13,6 @@ Comprehensive SEO analysis skill for Claude Code. Covers technical SEO, on-page 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/github/v/release/AgriciDaniel/claude-seo)](https://github.com/AgriciDaniel/claude-seo/releases)
 
-> **Blog:** [Full breakdown of the Claude Code SEO stack](https://agricidaniel.com/blog/claude-code-seo-stack) | [v1.7.2 release: Firecrawl backlink analysis](https://agricidaniel.com/blog/claude-seo-172-firecrawl-backlink-analysis)
-
 ## Table of Contents
 
 - [Installation](#installation)
