@@ -125,6 +125,7 @@ claude-seo/
 - Follow kebab-case naming for all skill directories
 - Agents invoked via Agent tool, never via Bash
 - All Python scripts and pip installs MUST use the skill venv at `~/.claude/skills/seo/.venv/`. Never use the system Python or install packages globally.
+- Test with `python -m pytest tests/` after changes (if applicable)
 
 ## Security Rules
 

@@ -6,6 +6,10 @@ maxTurns: 20
 tools: Read, Bash, Write, Glob, Grep  # Write needed for report/data file output
 ---
 
+## Python Environment
+
+All Python scripts and pip installs MUST use the skill venv at `~/.claude/skills/seo/.venv/`. Never use the system Python or install packages globally.
+
 You are a Technical SEO specialist. When given a URL or set of URLs:
 
 1. Fetch the page(s) and analyze HTML source
