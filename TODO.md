@@ -33,6 +33,38 @@
   Claude Code has native browser automation. Evaluate replacing Playwright with built-in tools
   to eliminate the ~200MB Chromium dependency.
 
+## Deferred from v1.4 CEO Review (2026-04-16)
+
+These items were scoped out of v1.4 (Priority Scoring + Fix Generation) during the
+CEO/adversarial review. See design doc: `~/.gstack/projects/AgriciDaniel-claude-seo/kalki-main-design-20260416-114529.md`
+
+- [ ] **Audit delta / history tracking** (Priority: P1, target: v1.5)
+  Commit structured audit JSON to `seo-history/` branch after each `/seo audit` run.
+  Diff against previous run to show: net new P1 issues, resolved issues, regression count.
+  Blocked on: JSON schema definition + storage location decision (repo root vs. user dir).
+  Requires separate design doc before starting.
+
+- [ ] **Confidence scoring on generated fixes** (Priority: P2, target: v1.4.1)
+  Add `confidence: int` (0–100) to `FixResult` dataclass. Show warning when < 60%.
+  Calibration: meta_tags = 95 (deterministic), alt_text = 70 (Claude-generated),
+  schema = 55–80 (context-dependent). Ship after core fix generation proves out in v1.4.
+
+- [ ] **Two-phase alt-text resumability** (Priority: P3, target: v1.4.1)
+  Serialize `alt_suggestions` dict to `/tmp/seo-alt-state-{url-hash}.json` after each batch.
+  On next run: check if file exists and resume from it. Prevents re-running Claude for
+  already-processed images if orchestrator is interrupted mid-batch. ~20 lines of Python.
+
+- [ ] **File-write locking for concurrent /seo fix calls** (Priority: P3, target: v1.5)
+  Use `fcntl.flock()` lockfile per source path to prevent two concurrent `/seo fix`
+  calls on the same repo from generating overlapping diffs that corrupt the file.
+  Edge case (CLI tool, unlikely concurrent use), but relevant for multi-agent setups.
+
+- [ ] **fix_schema on .tsx/.jsx source files** (Priority: P2, target: v1.5)
+  v1.4 `fix_schema` targets HTML only. JSX/TSX requires syntax-aware insertion of
+  JSON-LD `<script>` tags without corrupting JSX output. Requires design spike on
+  AST manipulation strategy (ts-morph vs. layout-pattern injection).
+  Blocked on: safe insertion strategy when JSON-LD contains template literals.
+
 ## Deferred from February 2026 Research Report
 
 - [ ] **Fake freshness detection** (Priority: Medium)
@@ -51,4 +83,4 @@
 
 ---
 
-*Last updated: February 19, 2026*
+*Last updated: April 16, 2026*
