@@ -36,7 +36,7 @@
 ## Deferred from v1.4 CEO Review (2026-04-16)
 
 These items were scoped out of v1.4 (Priority Scoring + Fix Generation) during the
-CEO/adversarial review. See design doc: `~/.gstack/projects/AgriciDaniel-claude-seo/kalki-main-design-20260416-114529.md`
+CEO/adversarial review. Full design doc available in gstack project artifacts (local only, not in repo).
 
 - [ ] **Audit delta / history tracking** (Priority: P1, target: v1.5)
   Commit structured audit JSON to `seo-history/` branch after each `/seo audit` run.
@@ -55,7 +55,8 @@ CEO/adversarial review. See design doc: `~/.gstack/projects/AgriciDaniel-claude-
   already-processed images if orchestrator is interrupted mid-batch. ~20 lines of Python.
 
 - [ ] **File-write locking for concurrent /seo fix calls** (Priority: P3, target: v1.5)
-  Use `fcntl.flock()` lockfile per source path to prevent two concurrent `/seo fix`
+  Use a cross-platform file lock (e.g., `filelock` library or `fcntl.flock()` on POSIX /
+  `msvcrt.locking()` on Windows) per source path to prevent two concurrent `/seo fix`
   calls on the same repo from generating overlapping diffs that corrupt the file.
   Edge case (CLI tool, unlikely concurrent use), but relevant for multi-agent setups.
 
