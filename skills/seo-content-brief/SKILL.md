@@ -11,8 +11,8 @@ user-invokable: true
 argument-hint: "[url-or-keyword] [page-type]"
 license: MIT
 metadata:
-  author: pjawale
-  original_author: pjawale
+  author: puneetindersingh
+  original_author: puneetindersingh
   version: "1.0.0"
   category: seo
 ---
