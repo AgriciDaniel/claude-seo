@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.1] - 2026-04-16
+
+### Added
+- **TODO.md**: Project-level TODO tracker with deferred items from v1.4 CEO/eng review (priority scoring, fix generation, audit delta, confidence scoring, platform-safe locking) and prior community feedback.
+- **CLAUDE.md skill routing**: Added gstack skill routing rules so Claude invokes specialized workflows (/ship, /qa, /investigate, etc.) instead of answering ad-hoc.
+
 ## [1.9.0] - 2026-04-14
 
 ### Added
