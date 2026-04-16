@@ -1,6 +1,6 @@
 # DataForSEO Extension for Claude SEO
 
-Live SEO data via the [DataForSEO MCP server](https://github.com/dataforseo/mcp-server-typescript). Adds 22 commands across 9 API modules — SERP analysis, keyword research, backlinks, on-page analysis, competitor analysis, content analysis, business listings, AI visibility checking, and LLM mention tracking.
+Live SEO data via the [DataForSEO MCP server](https://github.com/dataforseo/mcp-server-typescript). Adds 22 commands across 9 API modules: SERP analysis, keyword research, backlinks, on-page analysis, competitor analysis, content analysis, business listings, AI visibility checking, and LLM mention tracking.
 
 ## Prerequisites
 
@@ -122,11 +122,11 @@ The extension includes a custom `field-config.json` that reduces API response si
 
 When installed, other Claude SEO skills automatically detect DataForSEO availability and use live data:
 
-- **`/seo audit`** — Uses real SERP, backlink, and on-page data
-- **`/seo technical`** — Uses on-page analysis for real technical data
-- **`/seo content`** — Uses keyword volume, difficulty, and intent data
-- **`/seo geo`** — Uses ChatGPT scraper and LLM mentions for GEO signals
-- **`/seo plan`** — Uses competitor and keyword data for strategy
+- **`/seo audit`**:Uses real SERP, backlink, and on-page data
+- **`/seo technical`**:Uses on-page analysis for real technical data
+- **`/seo content`**:Uses keyword volume, difficulty, and intent data
+- **`/seo geo`**:Uses ChatGPT scraper and LLM mentions for GEO signals
+- **`/seo plan`**:Uses competitor and keyword data for strategy
 
 ## Troubleshooting
 

@@ -11,13 +11,28 @@ import ipaddress
 import json
 import socket
 import sys
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 try:
     from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 except ImportError:
     print("Error: playwright required. Install with: pip install playwright && playwright install chromium")
     sys.exit(1)
+
+
+def normalize_url(url: str) -> tuple[str, ParseResult]:
+    """Normalize URL and return (url, parsed_url)."""
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        url = f"https://{url}"
+        parsed = urlparse(url)
+
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Invalid URL scheme: {parsed.scheme}")
+    if not parsed.hostname:
+        raise ValueError("Invalid URL: missing hostname")
+
+    return url, parsed
 
 
 def analyze_visual(url: str, timeout: int = 30000) -> dict:
@@ -54,15 +69,21 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
         "error": None,
     }
 
+    try:
+        url, parsed = normalize_url(url)
+        result["url"] = url
+    except ValueError as e:
+        result["error"] = str(e)
+        return result
+
     # SSRF prevention: block private/internal IPs
     try:
-        parsed = urlparse(url)
         resolved_ip = socket.gethostbyname(parsed.hostname)
         ip = ipaddress.ip_address(resolved_ip)
         if ip.is_private or ip.is_loopback or ip.is_reserved:
             result["error"] = f"Blocked: URL resolves to private/internal IP ({resolved_ip})"
             return result
-    except (socket.gaierror, ValueError):
+    except socket.gaierror:
         pass
 
     try:

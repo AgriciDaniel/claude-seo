@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Script — Claude SEO v1.7.2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--coral:#E07850;--orange:#FF6B35;--bg:#0A0A0A;--surface:#111111;--surface2:#1A1A1A;--text:#F5F5F0;--text-gray:#999;--text-muted:#666;--border:#2D2D2D;--green:#4ADE80;--blue:#60A5FA;--amber:#F0A830;--grotesk:'Space Grotesk',system-ui,sans-serif;--mono:'IBM Plex Mono','JetBrains Mono',monospace}
+html{scroll-behavior:smooth}
+body{font-family:var(--mono);background:var(--bg);color:var(--text);padding:0;margin:0}
+::selection{background:rgba(224,120,80,.3)}
+.wrap{max-width:800px;margin:0 auto;padding:40px 24px 120px}
+header{text-align:center;padding:60px 0 40px;border-bottom:1px solid var(--border)}
+header h1{font-family:var(--grotesk);font-size:32px;font-weight:700;letter-spacing:-1px}
+header h1 .accent{color:var(--coral)}
+header p{font-size:12px;color:var(--text-muted);margin-top:8px;letter-spacing:1px}
+.meta{display:flex;gap:24px;justify-content:center;margin-top:20px;flex-wrap:wrap}
+.meta-item{font-size:11px;color:var(--text-gray);display:flex;align-items:center;gap:6px}
+.meta-dot{width:6px;height:6px;background:var(--coral);flex-shrink:0}
+.section{margin-top:48px;padding-top:48px;border-top:1px solid var(--border)}
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+.section-time{font-size:10px;letter-spacing:2px;color:var(--coral);text-transform:uppercase;padding:4px 10px;border:1px solid var(--coral);white-space:nowrap}
+.section-title{font-family:var(--grotesk);font-size:22px;font-weight:700;letter-spacing:-.5px}
+.script{font-size:14px;color:var(--text-gray);line-height:2;margin-bottom:16px}
+.script strong{color:var(--text);font-weight:700}
+.direction{background:var(--surface);border-left:3px solid var(--coral);padding:10px 16px;margin:16px 0;font-size:12px;color:var(--coral);font-style:italic}
+.cmd{background:var(--surface);border:1px solid var(--border);padding:12px 16px;margin:12px 0;font-size:13px;overflow-x:auto}
+.cmd .prompt{color:var(--text-muted)}
+.cmd .command{color:var(--coral)}
+.points{list-style:none;margin:16px 0}
+.points li{padding:8px 0 8px 20px;font-size:13px;color:var(--text-gray);line-height:1.7;position:relative;border-bottom:1px solid rgba(45,45,45,.5)}
+.points li::before{content:'';position:absolute;left:0;top:14px;width:8px;height:8px;border:1.5px solid var(--coral)}
+.desc-box{background:var(--surface);border:1px solid var(--border);padding:24px;margin-top:32px}
+.desc-box h3{font-family:var(--grotesk);font-size:16px;margin-bottom:16px;color:var(--coral)}
+.desc-box pre{font-size:12px;color:var(--text-gray);line-height:1.8;white-space:pre-wrap;word-wrap:break-word}
+.thumbs{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+.thumb{padding:10px 20px;border:1px solid var(--border);font-size:12px;color:var(--text);background:var(--surface2)}
+@media print{body{background:#fff;color:#111}.section{border-top-color:#ddd}.direction{background:#f5f5f5;border-left-color:#E07850}.cmd{background:#f5f5f5;border-color:#ddd}.cmd .command{color:#c0440a}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Claude <span class="accent">SEO</span> v1.7.2</h1>
+  <p>Video Script</p>
+  <div class="meta">
+    <div class="meta-item"><div class="meta-dot"></div>~5 minutes</div>
+    <div class="meta-item"><div class="meta-dot"></div>Screen recording + face cam</div>
+    <div class="meta-item"><div class="meta-dot"></div>Natural, conversational</div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<!-- INTRO -->
+<div class="section" style="border-top:none;margin-top:0;padding-top:0">
+  <div class="section-header">
+    <div class="section-time">0:00 - 0:35</div>
+    <div class="section-title">Intro</div>
+  </div>
+
+  <p class="script">Hey everyone. About a month ago I released Claude SEO &mdash; the first version, kind of a proof of concept. Since then, the project has completely transformed. We went from the initial release to <strong>v1.7.2</strong>, from <strong>12 skills to 19</strong>, from zero extensions to <strong>three</strong>, and from about 2,000 stars to over <strong>3,500</strong>. Which is insane. Thank you.</p>
+
+  <p class="script">In this video I'm going to walk you through the three biggest things that changed: <strong>Google API integration</strong> with live data and PDF reports, <strong>DataForSEO</strong> for live SERP and keyword data, and the <strong>extension system</strong> that makes it all plug and play.</p>
+
+  <p class="script">Let's get into it.</p>
+</div>
+
+<!-- SECTION 1: GOOGLE APIs -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-time">0:35 - 2:15</div>
+    <div class="section-title">Google SEO APIs</div>
+  </div>
+
+  <div class="direction">Screen: Show terminal with Claude Code open</div>
+
+  <p class="script">The biggest addition is direct Google API integration. The first version of Claude SEO was smart but blind &mdash; it could analyze your HTML, but it couldn't see what Google actually sees. Now it can.</p>
+
+  <p class="script">Claude SEO pulls live data from <strong>six Google APIs</strong> &mdash; Search Console, PageSpeed Insights, CrUX, GA4, the Indexing API, and YouTube Data.</p>
+
+  <div class="cmd"><span class="prompt">$</span> <span class="command">/seo google psi https://example.com</span></div>
+
+  <p class="script">So here I'm running a PageSpeed check. This isn't just lab data &mdash; it pulls <strong>real Chrome User Experience data</strong>, the actual Core Web Vitals that Google uses for ranking. LCP, INP, CLS &mdash; all from real users.</p>
+
+  <p class="script">The credential system has <strong>four tiers</strong>. You can start completely free:</p>
+
+  <ul class="points">
+    <li><strong>Tier 0</strong> &mdash; free API key &mdash; gives you PageSpeed, CrUX, CrUX History, YouTube, and NLP</li>
+    <li><strong>Tier 1</strong> &mdash; add OAuth &mdash; unlocks Search Console, URL Inspection, and the Indexing API</li>
+    <li><strong>Tier 2</strong> &mdash; add GA4 &mdash; organic traffic reports, top landing pages, device breakdown</li>
+    <li><strong>Tier 3</strong> &mdash; add Google Ads &mdash; Keyword Planner data</li>
+  </ul>
+
+  <p class="script">One API key, five minutes of setup, and you already have live performance data. No paid tools needed.</p>
+
+  <div class="cmd"><span class="prompt">$</span> <span class="command">/seo google report full</span></div>
+
+  <p class="script">And all of this feeds into <strong>professional PDF reports</strong>. A4 format, charts, color-coded scores, table of contents &mdash; something you can actually hand to a client or a boss.</p>
+
+  <div class="direction">Show generated PDF &mdash; flip through a few pages, pause on charts</div>
+
+  <p class="script">New in v1.7.2 &mdash; <strong>Excel export</strong>.</p>
+
+  <div class="cmd"><span class="prompt">$</span> <span class="command">/seo google report full --format all</span></div>
+
+  <p class="script">That gives you PDF, HTML, and an Excel workbook all at once. The spreadsheet has separate sheets for queries, pages, indexation &mdash; with filters, frozen headers, auto-width columns. Clients love data they can sort.</p>
+</div>
+
+<!-- SECTION 2: DataForSEO -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-time">2:15 - 3:30</div>
+    <div class="section-title">DataForSEO &mdash; Live SEO Data</div>
+  </div>
+
+  <div class="direction">Screen: Terminal</div>
+
+  <p class="script">The second big feature is the DataForSEO extension. This gives Claude SEO access to <strong>live SERP data, keyword research, backlink profiles</strong>, and a lot more.</p>
+
+  <div class="cmd"><span class="prompt">$</span> <span class="command">/seo dataforseo serp best coffee shops new york</span></div>
+
+  <p class="script">So here I'm pulling a live Google SERP. Not cached, not estimated &mdash; this is what's actually ranking right now. You see positions, URLs, featured snippets, People Also Ask, local pack results &mdash; everything.</p>
+
+  <div class="cmd"><span class="prompt">$</span> <span class="command">/seo dataforseo keywords seo audit tool</span></div>
+
+  <p class="script">Keyword research &mdash; search volume, difficulty score, CPC, competition level. This is the same data you'd get from paid tools like Ahrefs or SEMrush, but you're running it from your terminal inside Claude Code.</p>
+
+  <div class="cmd"><span class="prompt">$</span> <span class="command">/seo dataforseo backlinks example.com</span></div>
+
+  <p class="script">And backlink analysis. Referring domains, anchor text distribution, domain rating. We also added a dedicated <strong>/seo backlinks</strong> command in v1.7.2 that wraps this data with a 7-section analysis framework &mdash; toxic link detection with 30 spam patterns, competitor gap analysis, and a health score from 0 to 100.</p>
+
+  <p class="script">DataForSEO has <strong>22 commands across 9 API modules</strong>. SERP, keywords, backlinks, on-page analysis, domain analytics, business data, content analysis, and AI optimization. It's a lot.</p>
+
+  <p class="script">And installing it is one script:</p>
+
+  <div class="cmd"><span class="prompt">$</span> <span class="command">./extensions/dataforseo/install.sh</span></div>
+
+  <p class="script">It asks for your API credentials, configures the MCP server, and you're done. Which brings me to the third thing I want to show you.</p>
+</div>
+
+<!-- SECTION 3: Extension System -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-time">3:30 - 4:15</div>
+    <div class="section-title">The Extension System</div>
+  </div>
+
+  <div class="direction">Screen: Show the extensions/ folder in editor, then the before/after slide</div>
+
+  <p class="script">This is the part I'm most proud of because it's how Claude SEO scales without getting bloated.</p>
+
+  <p class="script">The core skill &mdash; <strong>17 sub-skills, 12 subagents</strong> &mdash; works with <strong>zero API keys</strong>. You install it, run <strong>/seo audit</strong>, and 12 AI agents analyze your site in parallel. Technical SEO, content quality, schema, GEO, local SEO &mdash; all of that runs on Claude's own intelligence, no external APIs.</p>
+
+  <p class="script">But when you want deeper data, you plug in an extension. Right now there are three:</p>
+
+  <ul class="points">
+    <li><strong>DataForSEO</strong> &mdash; 22 commands: live SERPs, keyword volume, backlinks, content analysis</li>
+    <li><strong>Firecrawl</strong> &mdash; full-site crawling with JavaScript rendering, 500 free credits/month</li>
+    <li><strong>Banana</strong> &mdash; AI image generation via Google Gemini for OG images, hero graphics, product shots</li>
+  </ul>
+
+  <p class="script">Each extension is self-contained. One install script, one uninstall script. It copies the skill files, configures the MCP server, done. And the <strong>audit orchestrator detects what's installed</strong> &mdash; if you have DataForSEO, it automatically spawns the DataForSEO agent during audits. If you have Firecrawl, it maps your site first. The more you plug in, the deeper your audits get.</p>
+
+  <p class="script">And building new extensions is easy. Same pattern, same structure. If you want to add Ahrefs, SEMrush, or any MCP server &mdash; you follow the template.</p>
+</div>
+
+<!-- SECTION 4: Marketplace -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-time">4:15 - 4:50</div>
+    <div class="section-title">Marketplace &amp; Community</div>
+  </div>
+
+  <div class="direction">Screen: GitHub repo, then show validation passing</div>
+
+  <p class="script">Last thing. We did a full compliance audit against <strong>Anthropic's official documentation</strong>. Every skill now has its own LICENSE file. We added a PRIVACY.md. Cleaned up all the frontmatter. And the plugin now <strong>passes validation</strong> with zero errors, zero warnings.</p>
+
+  <div class="direction">Show: claude plugin validate . passing</div>
+
+  <p class="script">We're submitting to the official Claude Code plugin marketplace. And we got listed on the <strong>awesome-claude-skills repo</strong> &mdash; the one with 49,000 stars.</p>
+
+  <p class="script">The project is now at <strong>19 sub-skills, 12 subagents, 3 extensions, 3,500+ stars, 560 forks</strong>. Community PRs keep coming in &mdash; we've reviewed and responded to every single one.</p>
+</div>
+
+<!-- OUTRO -->
+<div class="section">
+  <div class="section-header">
+    <div class="section-time">4:50 - 5:10</div>
+    <div class="section-title">Outro</div>
+  </div>
+
+  <p class="script">If you're using Claude Code for anything SEO-related, give Claude SEO a try. Install is one command &mdash; link in the description. Star the repo if you find it useful, and drop a comment if there's a feature you want to see next.</p>
+
+  <p class="script">I'm thinking v1.8 might be the <strong>content strategy skill</strong> &mdash; turning audit findings into actual content plans and topic clusters. Let me know what you think.</p>
+
+  <p class="script">See you in the next one.</p>
+</div>
+
+<!-- YOUTUBE DESCRIPTION -->
+<div class="desc-box" style="margin-top:64px">
+  <h3>YouTube Description</h3>
+  <pre>Claude SEO v1.7.2 -- Universal SEO Skill for Claude Code
+
+From the first release to v1.7.2: 19 sub-skills, 12 subagents, 3 extensions.
+
+What's new:
+- Google SEO APIs (Search Console, PageSpeed, CrUX, GA4, Indexing API)
+- PDF & Excel reports (A4 with charts, multi-sheet .xlsx)
+- DataForSEO extension (22 commands: live SERP, keywords, backlinks, on-page)
+- Backlink analysis skill (7-section profile + health score + disavow)
+- Firecrawl extension (full-site crawling with JS rendering)
+- Banana extension (AI image generation via Gemini)
+- Extension system (plug in what you need, core works without any API keys)
+- Official marketplace compliance (passes claude plugin validate)
+
+Timestamps:
+0:00 Intro
+0:35 Google SEO APIs (live data, PDF/Excel reports)
+2:15 DataForSEO (SERP, keywords, backlinks)
+3:30 Extension System (how it works)
+4:15 Marketplace & Community
+4:50 Outro
+
+Install:
+curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/install.sh | bash
+
+GitHub: https://github.com/AgriciDaniel/claude-seo
+Skool: https://www.skool.com/ai-marketing-hub-pro
+
+Previous video: https://www.youtube.com/watch?v=COMnNlUakQk
+
+19 sub-skills | 12 subagents | 3 extensions | 3,500+ stars | MIT licensed | $0 forever
+
+#ClaudeCode #SEO #AI #ClaudeSEO #DataForSEO #GoogleAPIs</pre>
+</div>
+
+<!-- THUMBNAIL IDEAS -->
+<div class="desc-box">
+  <h3>Thumbnail Text Ideas</h3>
+  <div class="thumbs">
+    <div class="thumb">Claude SEO v1.7.2</div>
+    <div class="thumb">Google APIs + Live SEO Data</div>
+    <div class="thumb">19 Skills | 3 Extensions</div>
+    <div class="thumb">From v1.0 to v1.7.2</div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

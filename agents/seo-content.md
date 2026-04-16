@@ -1,6 +1,8 @@
 ---
 name: seo-content
 description: Content quality reviewer. Evaluates E-E-A-T signals, readability, content depth, AI citation readiness, and thin content detection.
+model: sonnet
+maxTurns: 15
 tools: Read, Bash, Write, Grep
 ---
 

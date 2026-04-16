@@ -1,0 +1,11 @@
+[project]
+name = "claude-seo"
+version = "1.9.0"
+description = "Comprehensive SEO analysis skill for Claude Code"
+requires-python = ">=3.10"
+license = "MIT"
+readme = "README.md"
+
+[project.urls]
+Homepage = "https://github.com/AgriciDaniel/claude-seo"
+Repository = "https://github.com/AgriciDaniel/claude-seo"

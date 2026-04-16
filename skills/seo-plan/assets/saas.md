@@ -98,24 +98,24 @@
 Comparison pages are among the highest-converting content types for SaaS, with conversion rates of **4-7%** vs. 0.5-1.8% for standard blog content (35.8% of marketers report comparison content performs "better than ever" per Intergrowth November 2025 survey).
 
 **Recommended page types:**
-- `/{product}-vs-{competitor}` — Direct 1:1 comparison
-- `/{competitor}-alternative` — Targeting competitor brand searches
-- `/compare/{category}` — Category comparison hub
-- `/best-{category}-tools` — Roundup-style pages
+- `/{product}-vs-{competitor}`: Direct 1:1 comparison
+- `/{competitor}-alternative`: Targeting competitor brand searches
+- `/compare/{category}`: Category comparison hub
+- `/best-{category}-tools`: Roundup-style pages
 
 **Best practices:**
 - Include structured comparison tables with pricing, features, pros/cons
-- Be factually accurate about competitors — verify claims regularly
+- Be factually accurate about competitors: verify claims regularly
 - Include customer testimonials from users who switched
 - Add FAQ schema for common comparison questions (valuable for AI search)
-- Update regularly — stale comparison data damages credibility
+- Update regularly: stale comparison data damages credibility
 - Cross-reference the `seo-competitor-pages` skill for detailed frameworks
 
 **Legal considerations:**
 - Nominative fair use generally permits competitor brand mentions for comparison purposes
 - Do NOT imply endorsement or affiliation
 - Do NOT make false or unverifiable claims about competitor products
-- Different jurisdictions have different trademark laws — consult legal counsel
+- Different jurisdictions have different trademark laws: consult legal counsel
 
 ## Competitive Considerations
 

@@ -208,6 +208,67 @@
           }
         }
       }
+    },
+    {
+      "type": "Product (Full E-commerce)",
+      "description": "Complete e-commerce product page with pricing, availability, reviews, brand, and offers. Enables product rich results in Google Search. Added in v1.9.0 for seo-ecommerce.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": "[Product Name]",
+        "description": "[Product Description]",
+        "image": "[Product Image URL]",
+        "sku": "[SKU]",
+        "brand": {
+          "@type": "Brand",
+          "name": "[Brand Name]"
+        },
+        "offers": {
+          "@type": "Offer",
+          "price": "[Price]",
+          "priceCurrency": "[Currency Code, e.g. USD]",
+          "availability": "https://schema.org/InStock",
+          "url": "[Product Page URL]",
+          "priceValidUntil": "[YYYY-MM-DD]",
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+            "merchantReturnDays": 30
+          },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "[Shipping Cost]",
+              "currency": "[Currency Code]"
+            }
+          }
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "[Average Rating]",
+          "reviewCount": "[Number of Reviews]"
+        }
+      }
+    },
+    {
+      "type": "ItemList",
+      "description": "Hub/pillar pages listing related content items. Used for content cluster landing pages, resource directories, and top-N lists. Added in v1.9.0 for seo-cluster.",
+      "template": {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "[Hub Page Title]",
+        "description": "[Hub Page Description]",
+        "numberOfItems": "[Count]",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "url": "[Spoke Page URL]",
+            "name": "[Spoke Page Title]"
+          }
+        ]
+      }
     }
   ]
 }

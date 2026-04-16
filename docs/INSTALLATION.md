@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- **Python 3.8+** with pip
+- **Python 3.10+** with pip
 - **Git** for cloning the repository
 - **Claude Code CLI** installed and configured
 
@@ -20,7 +20,9 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/instal
 ### Windows (PowerShell)
 
 ```powershell
-irm https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/install.ps1 | iex
+git clone --depth 1 https://github.com/AgriciDaniel/claude-seo.git
+cd claude-seo
+powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
 ## Manual Installation
@@ -57,7 +59,7 @@ pip install playwright
 playwright install chromium
 ```
 
-Playwright is optional — without it, visual analysis uses WebFetch as a fallback.
+Playwright is optional. Without it, visual analysis uses WebFetch as a fallback.
 
 ## Installation Paths
 
@@ -96,11 +98,17 @@ Or manually:
 ```bash
 rm -rf ~/.claude/skills/seo
 rm -rf ~/.claude/skills/seo-audit
+rm -rf ~/.claude/skills/seo-backlinks
 rm -rf ~/.claude/skills/seo-competitor-pages
 rm -rf ~/.claude/skills/seo-content
+rm -rf ~/.claude/skills/seo-dataforseo
 rm -rf ~/.claude/skills/seo-geo
+rm -rf ~/.claude/skills/seo-google
 rm -rf ~/.claude/skills/seo-hreflang
+rm -rf ~/.claude/skills/seo-image-gen
 rm -rf ~/.claude/skills/seo-images
+rm -rf ~/.claude/skills/seo-local
+rm -rf ~/.claude/skills/seo-maps
 rm -rf ~/.claude/skills/seo-page
 rm -rf ~/.claude/skills/seo-plan
 rm -rf ~/.claude/skills/seo-programmatic
@@ -156,6 +164,4 @@ Make sure scripts are executable:
 
 ```bash
 chmod +x ~/.claude/skills/seo/scripts/*.py
-chmod +x ~/.claude/skills/seo/hooks/*.py
-chmod +x ~/.claude/skills/seo/hooks/*.sh
 ```

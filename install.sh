@@ -8,6 +8,9 @@ main() {
     SKILL_DIR="${HOME}/.claude/skills/seo"
     AGENT_DIR="${HOME}/.claude/agents"
     REPO_URL="https://github.com/AgriciDaniel/claude-seo"
+    # Pin to a specific release tag to prevent silent updates from main.
+    # Override: CLAUDE_SEO_TAG=main bash install.sh
+    REPO_TAG="${CLAUDE_SEO_TAG:-v1.9.0}"
 
     echo "════════════════════════════════════════"
     echo "║   Claude SEO - Installer             ║"
@@ -36,12 +39,12 @@ main() {
     TEMP_DIR=$(mktemp -d)
     trap "rm -rf ${TEMP_DIR}" EXIT
 
-    echo "↓ Downloading Claude SEO..."
-    git clone --depth 1 "${REPO_URL}" "${TEMP_DIR}/claude-seo" 2>/dev/null
+    echo "↓ Downloading Claude SEO (${REPO_TAG})..."
+    git clone --depth 1 --branch "${REPO_TAG}" "${REPO_URL}" "${TEMP_DIR}/claude-seo" 2>/dev/null
 
     # Copy skill files
     echo "→ Installing skill files..."
-    cp -r "${TEMP_DIR}/claude-seo/seo/"* "${SKILL_DIR}/"
+    cp -r "${TEMP_DIR}/claude-seo/skills/seo/"* "${SKILL_DIR}/"
 
     # Copy sub-skills
     if [ -d "${TEMP_DIR}/claude-seo/skills" ]; then
@@ -81,6 +84,39 @@ main() {
         cp -r "${TEMP_DIR}/claude-seo/hooks/"* "${SKILL_DIR}/hooks/"
         chmod +x "${SKILL_DIR}/hooks/"*.sh 2>/dev/null || true
         chmod +x "${SKILL_DIR}/hooks/"*.py 2>/dev/null || true
+    fi
+
+    # Copy extensions (optional add-ons: dataforseo, banana)
+    if [ -d "${TEMP_DIR}/claude-seo/extensions" ]; then
+        echo "=> Installing extensions..."
+        for ext_dir in "${TEMP_DIR}/claude-seo/extensions"/*/; do
+            [ -d "${ext_dir}" ] || continue
+            ext_name=$(basename "${ext_dir}")
+            # Extension skills
+            if [ -d "${ext_dir}skills" ]; then
+                for ext_skill in "${ext_dir}skills"/*/; do
+                    [ -d "${ext_skill}" ] || continue
+                    ext_skill_name=$(basename "${ext_skill}")
+                    target="${HOME}/.claude/skills/${ext_skill_name}"
+                    mkdir -p "${target}"
+                    cp -r "${ext_skill}"* "${target}/"
+                done
+            fi
+            # Extension agents
+            if [ -d "${ext_dir}agents" ]; then
+                cp -r "${ext_dir}agents/"*.md "${AGENT_DIR}/" 2>/dev/null || true
+            fi
+            # Extension references
+            if [ -d "${ext_dir}references" ]; then
+                mkdir -p "${SKILL_DIR}/extensions/${ext_name}/references"
+                cp -r "${ext_dir}references/"* "${SKILL_DIR}/extensions/${ext_name}/references/"
+            fi
+            # Extension scripts
+            if [ -d "${ext_dir}scripts" ]; then
+                mkdir -p "${SKILL_DIR}/extensions/${ext_name}/scripts"
+                cp -r "${ext_dir}scripts/"* "${SKILL_DIR}/extensions/${ext_name}/scripts/"
+            fi
+        done
     fi
 
     # Copy requirements.txt to skill dir so users can retry later

@@ -1,0 +1,45 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Claude SEO
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug! Please fill in as much detail as possible.
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: e.g. macOS 14, Ubuntu 24.04, Windows 11
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: Run `python3 --version`
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command that failed
+      description: e.g. `/seo audit https://example.com`
+    validations:
+      required: true
+  - type: textarea
+    id: error-output
+    attributes:
+      label: Full error output
+      description: Copy the complete terminal output
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true

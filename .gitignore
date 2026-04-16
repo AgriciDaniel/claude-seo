@@ -31,6 +31,16 @@ venv/
 env/
 .env/
 
+# Secrets and credentials (NEVER commit these)
+.env
+.env.*
+*.env
+**/.env
+**/client_secret*.json
+**/service_account*.json
+**/oauth-token.json
+**/.google-token.json
+
 # Node (if any)
 node_modules/
 
@@ -47,3 +57,84 @@ screenshots/
 # Temporary analysis files
 *-AUDIT-REPORT.md
 *-ACTION-PLAN.md
+FULL-AUDIT-REPORT.md
+ACTION-PLAN.md
+GEO-ANALYSIS.md
+SCHEMA-REPORT.md
+SITEMAP-REPORT*.md
+VALIDATION-REPORT.md
+
+# Generated artifacts from audits
+charts/
+*.pdf
+report.html
+generated-schema.json
+rankenstein-schema-audit.md
+capture_closeups.py
+capture_desktop.py
+generate_charts.py
+generate_pdf.py
+
+# Debug logs
+firebase-debug.log
+firebase-debug.*.log
+
+# Generated / site-specific scripts (not part of the generic tool)
+scripts/mobile_analysis.py
+
+# Audit reports with alternate naming conventions
+sitemap-validation-report.md
+*-validation-report.md
+
+# Temporary download directories
+claude-ads-main/
+claude-seo-main/
+
+# Root-level duplicate media files (originals live in screenshots/)
+Cover Image.jpeg
+seo audit demo.gif
+seo command demo.gif
+.github-audit/
+
+# Generated Google SEO reports
+Google-SEO-Report-*.html
+Google-SEO-Report-*.pdf
+
+# Claude Code local config (project-specific permissions, not for repo)
+.claude/
+.superpowers/
+
+# Site-specific analysis outputs
+LOCAL-SEO-ANALYSIS-*.md
+LOCAL-SEO-ANALYSIS-*.html
+GEO-ANALYSIS-*.md
+MAPS-ANALYSIS-*.md
+RELEASE-*.md
+dirigo-seo-images-review.html
+
+# Site-specific scripts
+indexnow-submit.sh
+
+# SEO Drift Monitor (SQLite baselines)
+*.db
+
+# Generated cluster maps
+cluster-map.html
+CLUSTER-REPORT*.md
+
+# Generated SXO reports
+SXO-ANALYSIS*.md
+
+# Generated drift reports
+DRIFT-REPORT*.md
+DRIFT-COMPARISON*.html
+
+# Generated e-commerce reports
+ECOMMERCE-ANALYSIS*.md
+
+# Generated setup guides
+Google-API-Setup-Guide-*.html
+scripts/generate_setup_guide.py
+
+# Generated site builds
+site/

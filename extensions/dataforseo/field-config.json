@@ -26,6 +26,18 @@
         "channel_name": true,
         "views_count": true,
         "timestamp": true
+      },
+      "images": {
+        "type": true,
+        "rank_group": true,
+        "rank_absolute": true,
+        "title": true,
+        "alt": true,
+        "url": true,
+        "source_url": true,
+        "image_url": true,
+        "domain": true,
+        "encoded_url": true
       }
     }
   },

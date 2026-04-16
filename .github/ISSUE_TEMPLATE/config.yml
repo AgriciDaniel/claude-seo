@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/AgriciDaniel/claude-seo/discussions
+    about: Ask questions and discuss ideas in GitHub Discussions

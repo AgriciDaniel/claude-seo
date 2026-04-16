@@ -3,8 +3,16 @@ name: seo-plan
 description: >
   Strategic SEO planning for new or existing websites. Industry-specific
   templates, competitive analysis, content strategy, and implementation
-  roadmap. Use when user says "SEO plan", "SEO strategy", "content strategy",
+  roadmap. Use when user says "SEO plan", "SEO strategy", "SEO planning",
+  "content strategy", "keyword strategy", "content calendar",
   "site architecture", or "SEO roadmap".
+user-invokable: true
+argument-hint: "[business-type]"
+license: MIT
+metadata:
+  author: AgriciDaniel
+  version: "1.9.0"
+  category: seo
 ---
 
 # Strategic SEO Planning
@@ -47,25 +55,25 @@ description: >
 
 ### 6. Implementation Roadmap (4 phases)
 
-#### Phase 1 — Foundation (weeks 1-4)
+#### Phase 1: Foundation (weeks 1-4)
 - Technical setup and infrastructure
 - Core pages (home, about, contact, main services)
 - Essential schema implementation
 - Analytics and tracking setup
 
-#### Phase 2 — Expansion (weeks 5-12)
+#### Phase 2: Expansion (weeks 5-12)
 - Content creation for primary pages
 - Blog launch with initial posts
 - Internal linking structure
 - Local SEO setup (if applicable)
 
-#### Phase 3 — Scale (weeks 13-24)
+#### Phase 3: Scale (weeks 13-24)
 - Advanced content development
 - Link building and outreach
 - GEO optimization
 - Performance optimization
 
-#### Phase 4 — Authority (months 7-12)
+#### Phase 4: Authority (months 7-12)
 - Thought leadership content
 - PR and media mentions
 - Advanced schema implementation
@@ -74,21 +82,21 @@ description: >
 ## Industry Templates
 
 Load from `assets/` directory:
-- `saas.md` — SaaS/software companies
-- `local-service.md` — Local service businesses
-- `ecommerce.md` — E-commerce stores
-- `publisher.md` — Content publishers/media
-- `agency.md` — Agencies and consultancies
-- `generic.md` — General business template
+- `saas.md`: SaaS/software companies
+- `local-service.md`: Local service businesses
+- `ecommerce.md`: E-commerce stores
+- `publisher.md`: Content publishers/media
+- `agency.md`: Agencies and consultancies
+- `generic.md`: General business template
 
 ## Output
 
 ### Deliverables
-- `SEO-STRATEGY.md` — Complete strategic plan
-- `COMPETITOR-ANALYSIS.md` — Competitive insights
-- `CONTENT-CALENDAR.md` — Content roadmap
-- `IMPLEMENTATION-ROADMAP.md` — Phased action plan
-- `SITE-STRUCTURE.md` — URL hierarchy and architecture
+- `SEO-STRATEGY.md`: Complete strategic plan
+- `COMPETITOR-ANALYSIS.md`: Competitive insights
+- `CONTENT-CALENDAR.md`: Content roadmap
+- `IMPLEMENTATION-ROADMAP.md`: Phased action plan
+- `SITE-STRUCTURE.md`: URL hierarchy and architecture
 
 ### KPI Targets
 | Metric | Baseline | 3 Month | 6 Month | 12 Month |
@@ -108,3 +116,11 @@ Load from `assets/` directory:
 ## DataForSEO Integration (Optional)
 
 If DataForSEO MCP tools are available, use `dataforseo_labs_google_competitors_domain` and `dataforseo_labs_google_domain_intersection` for real competitive intelligence, `dataforseo_labs_bulk_traffic_estimation` for traffic estimates, `kw_data_google_ads_search_volume` and `dataforseo_labs_bulk_keyword_difficulty` for keyword research, and `business_data_business_listings_search` for local business data.
+
+## Error Handling
+
+| Scenario | Action |
+|----------|--------|
+| Unrecognized business type | Fall back to `generic.md` template. Inform user that no industry-specific template was found and proceed with the general business template. |
+| No website URL provided | Proceed with new-site planning mode. Skip current site assessment and competitive gap analysis that require a live URL. |
+| Industry template not found | Check `assets/` directory for available templates. If the requested template file is missing, use `generic.md` and note the missing template in output. |

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude SEO v1.7.2 — What's New</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--coral:#E07850;--orange:#FF6B35;--bg:#0A0A0A;--surface:#111111;--surface2:#1A1A1A;--text:#F5F5F0;--text-gray:#888888;--text-muted:#6a6a6a;--border:#2D2D2D;--border-subtle:#1D1D1D;--green:#4ADE80;--blue:#60A5FA;--rose:#F43F5E;--amber:#F0A830;--grotesk:'Space Grotesk',system-ui,sans-serif;--mono:'IBM Plex Mono','JetBrains Mono',monospace}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{font-family:var(--mono);background:var(--bg);color:var(--text);overflow-x:hidden}
+::selection{background:rgba(224,120,80,.3)}
+.slide{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:60px 40px;scroll-snap-align:start;position:relative;overflow:hidden}
+.slide-inner{max-width:1000px;width:100%;position:relative;z-index:2}
+.slide-num{position:absolute;top:30px;right:40px;font-size:11px;color:var(--text-muted);letter-spacing:3px;font-family:var(--mono)}
+.slide-tag{display:inline-flex;align-items:center;gap:8px;padding:4px 14px;background:var(--surface2);border:1px solid var(--border);font-size:10px;letter-spacing:2px;color:var(--coral);text-transform:uppercase;margin-bottom:24px}
+h1{font-family:var(--grotesk);font-size:clamp(36px,6vw,72px);font-weight:700;color:var(--text);letter-spacing:-2px;line-height:1}
+h1 .accent{color:var(--coral)}
+h2{font-family:var(--grotesk);font-size:clamp(28px,4vw,48px);font-weight:700;letter-spacing:-1px;line-height:1.1;margin-bottom:32px}
+h2 .accent{color:var(--coral)}
+h3{font-family:var(--grotesk);font-size:20px;font-weight:700;margin-bottom:12px;color:var(--text)}
+p{font-size:14px;color:var(--text-gray);line-height:1.8;max-width:600px}
+.subtitle{font-size:16px;color:var(--text-gray);margin-top:16px;line-height:1.7}
+.stats{display:flex;gap:40px;margin-top:40px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:4px}
+.stat-num{font-family:var(--grotesk);font-size:36px;font-weight:700;color:var(--coral)}
+.stat-label{font-size:10px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:32px}
+.card{background:var(--surface);border:1px solid var(--border);padding:28px;transition:border-color .3s}
+.card:hover{border-color:var(--coral)}
+.card-icon{font-size:24px;margin-bottom:12px}
+.card h3{font-size:15px;margin-bottom:8px}
+.card p{font-size:12px;line-height:1.7}
+.flow{margin-top:32px;background:var(--surface);border:1px solid var(--border);padding:32px;overflow-x:auto}
+.flow-row{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;min-width:max-content;padding:8px 0}
+.flow-box{padding:10px 18px;border:1.5px solid var(--border);font-size:11px;letter-spacing:.5px;white-space:nowrap;background:var(--surface2)}
+.flow-box.active{border-color:var(--coral);color:var(--coral)}
+.flow-box.green{border-color:var(--green);color:var(--green)}
+.flow-box.blue{border-color:var(--blue);color:var(--blue)}
+.flow-box.amber{border-color:var(--amber);color:var(--amber)}
+.flow-arrow{color:var(--text-muted);font-size:18px;flex-shrink:0}
+.tier-table{width:100%;border-collapse:collapse;margin-top:24px;font-size:12px}
+.tier-table th{text-align:left;padding:12px 16px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--coral);border-bottom:1px solid var(--border);background:var(--surface)}
+.tier-table td{padding:12px 16px;border-bottom:1px solid var(--border-subtle);color:var(--text-gray);vertical-align:top}
+.tier-table tr:hover td{background:var(--surface2)}
+.tier-label{color:var(--text);font-weight:700}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
+.compare-col{background:var(--surface);border:1px solid var(--border);padding:24px}
+.compare-col h3{font-size:13px;margin-bottom:16px;letter-spacing:1px}
+.compare-col.before h3{color:var(--text-muted)}
+.compare-col.after h3{color:var(--coral)}
+.compare-item{font-size:12px;color:var(--text-gray);padding:6px 0;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between}
+.compare-item .val{color:var(--text);font-weight:700}
+.cmd{background:var(--surface);border:1px solid var(--border);padding:16px 20px;font-family:var(--mono);font-size:13px;margin-top:16px;overflow-x:auto}
+.cmd .prompt{color:var(--text-muted)}
+.cmd .command{color:var(--coral)}
+.arch{margin-top:24px;display:flex;flex-direction:column;gap:12px}
+.arch-layer{display:flex;align-items:stretch;gap:12px}
+.arch-label{width:100px;flex-shrink:0;display:flex;align-items:center;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted)}
+.arch-boxes{display:flex;gap:8px;flex-wrap:wrap;flex:1}
+.arch-box{padding:8px 14px;border:1px solid var(--border);font-size:11px;background:var(--surface);white-space:nowrap}
+.arch-box.core{border-color:var(--coral);color:var(--coral)}
+.arch-box.ext{border-color:var(--amber);color:var(--amber)}
+.arch-box.api{border-color:var(--green);color:var(--green)}
+.slide-nav{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:100;background:rgba(10,10,10,.9);padding:8px 16px;border:1px solid var(--border)}
+.slide-nav a{width:10px;height:10px;background:var(--border);display:block;transition:background .2s}
+.slide-nav a:hover,.slide-nav a.active{background:var(--coral)}
+@media(max-width:768px){.slide{padding:40px 20px}.stats{gap:24px}.stat-num{font-size:28px}.compare{grid-template-columns:1fr}.arch-label{width:70px;font-size:9px}}
+</style>
+</head>
+<body>
+
+<nav class="slide-nav" id="nav">
+  <a href="#title"></a><a href="#growth"></a><a href="#google"></a><a href="#tiers"></a>
+  <a href="#dataforseo"></a><a href="#extensions"></a><a href="#agents"></a>
+  <a href="#marketplace"></a><a href="#next"></a>
+</nav>
+
+<!-- SLIDE 1: TITLE -->
+<section class="slide" id="title">
+  <div class="slide-inner" style="text-align:center">
+    <div class="slide-tag">v1.7.2 update</div>
+    <h1>Claude <span class="accent">SEO</span></h1>
+    <p class="subtitle" style="margin:20px auto 0">From the first release to v1.7.2 — the project has completely transformed</p>
+    <div class="stats" style="justify-content:center;margin-top:48px">
+      <div class="stat"><span class="stat-num">19</span><span class="stat-label">Sub-skills</span></div>
+      <div class="stat"><span class="stat-num">12</span><span class="stat-label">Subagents</span></div>
+      <div class="stat"><span class="stat-num">3</span><span class="stat-label">Extensions</span></div>
+      <div class="stat"><span class="stat-num">3,500+</span><span class="stat-label">Stars</span></div>
+    </div>
+  </div>
+  <span class="slide-num">01 / 09</span>
+</section>
+
+<!-- SLIDE 2: BEFORE / AFTER -->
+<section class="slide" id="growth">
+  <div class="slide-inner">
+    <div class="slide-tag">evolution</div>
+    <h2>From v1.0 to <span class="accent">v1.7.2</span></h2>
+    <div class="compare">
+      <div class="compare-col before">
+        <h3>v1.0 (first release)</h3>
+        <div class="compare-item"><span>Sub-skills</span><span class="val">12</span></div>
+        <div class="compare-item"><span>Subagents</span><span class="val">7</span></div>
+        <div class="compare-item"><span>Extensions</span><span class="val">0</span></div>
+        <div class="compare-item"><span>Google APIs</span><span class="val">None</span></div>
+        <div class="compare-item"><span>Live SERP data</span><span class="val">No</span></div>
+        <div class="compare-item"><span>Backlink analysis</span><span class="val">No</span></div>
+        <div class="compare-item"><span>Full-site crawl</span><span class="val">No</span></div>
+        <div class="compare-item"><span>AI image gen</span><span class="val">No</span></div>
+        <div class="compare-item"><span>PDF / Excel reports</span><span class="val">No</span></div>
+        <div class="compare-item"><span>Stars</span><span class="val">~500</span></div>
+      </div>
+      <div class="compare-col after">
+        <h3>v1.7.2 (today)</h3>
+        <div class="compare-item"><span>Sub-skills</span><span class="val">19</span></div>
+        <div class="compare-item"><span>Subagents</span><span class="val">12</span></div>
+        <div class="compare-item"><span>Extensions</span><span class="val">3</span></div>
+        <div class="compare-item"><span>Google APIs</span><span class="val">6 APIs, 21 commands</span></div>
+        <div class="compare-item"><span>Live SERP data</span><span class="val">DataForSEO MCP</span></div>
+        <div class="compare-item"><span>Backlink analysis</span><span class="val">7-section + scoring</span></div>
+        <div class="compare-item"><span>Full-site crawl</span><span class="val">Firecrawl MCP</span></div>
+        <div class="compare-item"><span>AI image gen</span><span class="val">Banana / Gemini</span></div>
+        <div class="compare-item"><span>PDF / Excel reports</span><span class="val">A4 PDF + .xlsx</span></div>
+        <div class="compare-item"><span>Stars</span><span class="val" style="color:var(--coral)">3,500+</span></div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">02 / 09</span>
+</section>
+
+<!-- SLIDE 3: GOOGLE APIs -->
+<section class="slide" id="google">
+  <div class="slide-inner">
+    <div class="slide-tag">feature 1</div>
+    <h2>Google <span class="accent">SEO APIs</span></h2>
+    <p>Direct integration with 6 Google APIs. Live data, not estimates.</p>
+    <div class="cards">
+      <div class="card"><div class="card-icon">&#9889;</div><h3>PageSpeed + CrUX</h3><p>Lab + field Core Web Vitals. The actual data Google uses for ranking.</p></div>
+      <div class="card"><div class="card-icon">&#128270;</div><h3>Search Console</h3><p>Top queries, URL inspection, sitemap status, indexation coverage.</p></div>
+      <div class="card"><div class="card-icon">&#128202;</div><h3>GA4 Analytics</h3><p>Organic traffic trends, top landing pages, device and country breakdown.</p></div>
+      <div class="card"><div class="card-icon">&#128221;</div><h3>Indexing API</h3><p>Notify Google of new/updated/removed URLs. Instant indexing requests.</p></div>
+      <div class="card"><div class="card-icon">&#127909;</div><h3>YouTube Data</h3><p>Video and channel SEO research. Titles, descriptions, tags, engagement.</p></div>
+      <div class="card"><div class="card-icon">&#128196;</div><h3>PDF + Excel Reports</h3><p>A4 reports with charts. Excel workbooks with filters and frozen headers.</p></div>
+    </div>
+  </div>
+  <span class="slide-num">03 / 09</span>
+</section>
+
+<!-- SLIDE 4: CREDENTIAL TIERS -->
+<section class="slide" id="tiers">
+  <div class="slide-inner">
+    <div class="slide-tag">credential system</div>
+    <h2>4-Tier <span class="accent">Auth</span></h2>
+    <p>Start free. Unlock more APIs as you add credentials.</p>
+    <table class="tier-table">
+      <thead><tr><th>Tier</th><th>Auth</th><th>APIs Unlocked</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tier-label" style="color:var(--green)">Tier 0</span></td><td>API Key</td><td>PageSpeed, CrUX, CrUX History, YouTube, NLP</td><td>Free</td></tr>
+        <tr><td><span class="tier-label" style="color:var(--blue)">Tier 1</span></td><td>+ OAuth / SA</td><td>Search Console, URL Inspection, Indexing API</td><td>Free</td></tr>
+        <tr><td><span class="tier-label" style="color:var(--amber)">Tier 2</span></td><td>+ GA4 Auth</td><td>GA4 Organic Traffic Reports</td><td>Free</td></tr>
+        <tr><td><span class="tier-label" style="color:var(--coral)">Tier 3</span></td><td>+ Ads Account</td><td>Google Ads Keyword Planner</td><td>Ads spend</td></tr>
+      </tbody>
+    </table>
+    <div class="cmd" style="margin-top:24px">
+      <span class="prompt">$</span> <span class="command">/seo google report full --format all</span>
+    </div>
+  </div>
+  <span class="slide-num">04 / 09</span>
+</section>
+
+<!-- SLIDE 5: DATAFORSEO -->
+<section class="slide" id="dataforseo">
+  <div class="slide-inner">
+    <div class="slide-tag">feature 2</div>
+    <h2>DataFor<span class="accent">SEO</span></h2>
+    <p>Live SERP data, keyword research, backlinks, and 9 API modules. 22 commands.</p>
+    <div class="cards" style="grid-template-columns:repeat(3,1fr)">
+      <div class="card"><h3>SERP Analysis</h3><p>Live Google results. Positions, featured snippets, People Also Ask, local pack.</p></div>
+      <div class="card"><h3>Keyword Research</h3><p>Search volume, difficulty, CPC, competition. Same data as paid SEO tools.</p></div>
+      <div class="card"><h3>Backlink Profiles</h3><p>Referring domains, anchor text, domain rating. 7-section analysis + health score.</p></div>
+      <div class="card"><h3>On-Page Analysis</h3><p>Content scores, readability, keyword density, page structure.</p></div>
+      <div class="card"><h3>Domain Analytics</h3><p>Competitor research, traffic estimates, technology detection.</p></div>
+      <div class="card"><h3>AI Optimization</h3><p>AI search visibility, brand mentions, citation signals.</p></div>
+    </div>
+    <div class="cmd" style="margin-top:20px">
+      <span class="prompt">$</span> <span class="command">/seo dataforseo serp best coffee shops new york</span>
+    </div>
+  </div>
+  <span class="slide-num">05 / 09</span>
+</section>
+
+<!-- SLIDE 6: EXTENSION SYSTEM -->
+<section class="slide" id="extensions">
+  <div class="slide-inner">
+    <div class="slide-tag">architecture</div>
+    <h2>Extension <span class="accent">System</span></h2>
+    <p>Core works with zero API keys. Plug in extensions for deeper data.</p>
+    <div class="flow">
+      <div class="flow-row">
+        <div class="flow-box active">Core (17 skills)</div>
+        <span class="flow-arrow">+</span>
+        <div class="flow-box amber">DataForSEO</div>
+        <span class="flow-arrow">+</span>
+        <div class="flow-box blue">Firecrawl</div>
+        <span class="flow-arrow">+</span>
+        <div class="flow-box green">Banana</div>
+        <span class="flow-arrow">=</span>
+        <div class="flow-box active" style="border-width:2px">Full Power</div>
+      </div>
+    </div>
+    <div class="cards" style="margin-top:24px;grid-template-columns:repeat(3,1fr)">
+      <div class="card" style="border-color:var(--amber)"><h3 style="color:var(--amber)">DataForSEO</h3><p>22 commands. Live SERPs, keywords, backlinks, content analysis, AI visibility. 9 API modules.</p></div>
+      <div class="card" style="border-color:var(--blue)"><h3 style="color:var(--blue)">Firecrawl</h3><p>Full-site crawl with JS rendering. Site mapping, broken link detection. 500 free credits/month.</p></div>
+      <div class="card" style="border-color:var(--green)"><h3 style="color:var(--green)">Banana</h3><p>AI image generation via Gemini. OG images, hero graphics, product shots. ~$0.02 per image.</p></div>
+    </div>
+    <div class="cmd" style="margin-top:20px">
+      <span class="prompt">$</span> <span class="command">./extensions/dataforseo/install.sh</span>
+      <span style="color:var(--text-muted);margin-left:16px"># one script, done</span>
+    </div>
+  </div>
+  <span class="slide-num">06 / 09</span>
+</section>
+
+<!-- SLIDE 7: AGENT ARCHITECTURE -->
+<section class="slide" id="agents">
+  <div class="slide-inner">
+    <div class="slide-tag">how it works</div>
+    <h2>Audit <span class="accent">Pipeline</span></h2>
+    <p>12 AI agents run in parallel. Extensions auto-detected and spawned.</p>
+    <div class="flow">
+      <div class="flow-row">
+        <div class="flow-box active">/seo audit url</div>
+        <span class="flow-arrow">&#10132;</span>
+        <div class="flow-box">Detect business type</div>
+        <span class="flow-arrow">&#10132;</span>
+        <div class="flow-box blue">Detect extensions</div>
+        <span class="flow-arrow">&#10132;</span>
+        <div class="flow-box green">Spawn agents</div>
+        <span class="flow-arrow">&#10132;</span>
+        <div class="flow-box active">Score 0-100</div>
+      </div>
+    </div>
+    <div class="arch" style="margin-top:28px">
+      <div class="arch-layer">
+        <div class="arch-label">Core</div>
+        <div class="arch-boxes">
+          <div class="arch-box core">technical</div>
+          <div class="arch-box core">content</div>
+          <div class="arch-box core">schema</div>
+          <div class="arch-box core">sitemap</div>
+          <div class="arch-box core">performance</div>
+          <div class="arch-box core">visual</div>
+          <div class="arch-box core">geo</div>
+          <div class="arch-box core">local</div>
+        </div>
+      </div>
+      <div class="arch-layer">
+        <div class="arch-label">Conditional</div>
+        <div class="arch-boxes">
+          <div class="arch-box api">google</div>
+          <div class="arch-box ext">maps</div>
+          <div class="arch-box ext">dataforseo</div>
+          <div class="arch-box ext">image-gen</div>
+        </div>
+      </div>
+    </div>
+    <p style="margin-top:20px;font-size:12px;color:var(--text-muted)">Core agents always run. Conditional agents spawn when credentials or extensions are detected.</p>
+  </div>
+  <span class="slide-num">07 / 09</span>
+</section>
+
+<!-- SLIDE 8: MARKETPLACE -->
+<section class="slide" id="marketplace">
+  <div class="slide-inner">
+    <div class="slide-tag">compliance</div>
+    <h2>Marketplace <span class="accent">Ready</span></h2>
+    <p>Passes <code style="color:var(--coral)">claude plugin validate</code> with 0 errors, 0 warnings.</p>
+    <div class="cards" style="margin-top:24px;grid-template-columns:repeat(3,1fr)">
+      <div class="card" style="text-align:center"><div class="card-icon" style="color:var(--green)">&#10003;</div><h3>Anthropic Best Practices</h3><p>Per-skill LICENSE.txt, PRIVACY.md, clean frontmatter, lean root files</p></div>
+      <div class="card" style="text-align:center"><div class="card-icon" style="color:var(--green)">&#10003;</div><h3>Plugin Validation</h3><p>marketplace.json + plugin.json validated by CLI. 0 errors, 0 warnings.</p></div>
+      <div class="card" style="text-align:center"><div class="card-icon" style="color:var(--green)">&#10003;</div><h3>awesome-claude-skills</h3><p>PR submitted to 49K-star curated list. Listed on VoltAgent awesome-list.</p></div>
+    </div>
+    <div class="cmd" style="margin-top:24px">
+      <span class="prompt">$</span> <span class="command">claude plugin install claude-seo@claude-seo-marketplace</span>
+    </div>
+  </div>
+  <span class="slide-num">08 / 09</span>
+</section>
+
+<!-- SLIDE 9: WHAT'S NEXT -->
+<section class="slide" id="next">
+  <div class="slide-inner" style="text-align:center">
+    <div class="slide-tag">what's next</div>
+    <h2>v1.8 <span class="accent">Roadmap</span></h2>
+    <div class="cards" style="max-width:700px;margin:32px auto 0;grid-template-columns:1fr 1fr">
+      <div class="card"><h3>Content Strategy Skill</h3><p>Turn audit findings into topic clusters, content calendars, and brief docs.</p></div>
+      <div class="card"><h3>Deeper Crawl Integration</h3><p>Wire Firecrawl into every subagent. Broken links at scale, orphan detection.</p></div>
+    </div>
+    <div style="margin-top:48px">
+      <h1 style="font-size:clamp(28px,5vw,56px)">github.com/AgriciDaniel/<span class="accent">claude-seo</span></h1>
+      <p style="margin:20px auto 0;text-align:center">Star the repo. Drop a comment. See you in v1.8.</p>
+    </div>
+  </div>
+  <span class="slide-num">09 / 09</span>
+</section>
+
+<script>
+const slides=document.querySelectorAll('.slide'),dots=document.querySelectorAll('.slide-nav a');
+new IntersectionObserver(e=>e.forEach(e=>{if(e.isIntersecting){const i=[...slides].indexOf(e.target);dots.forEach(d=>d.classList.remove('active'));if(dots[i])dots[i].classList.add('active')}}),{threshold:.5}).observe&&slides.forEach(s=>new IntersectionObserver(e=>e.forEach(e=>{if(e.isIntersecting){const i=[...slides].indexOf(e.target);dots.forEach(d=>d.classList.remove('active'));if(dots[i])dots[i].classList.add('active')}}),{threshold:.5}).observe(s));
+document.addEventListener('keydown',e=>{const c=[...slides].findIndex(s=>{const r=s.getBoundingClientRect();return r.top>=-100&&r.top<innerHeight/2});if(['ArrowDown',' ','ArrowRight'].includes(e.key)){e.preventDefault();if(c<slides.length-1)slides[c+1].scrollIntoView({behavior:'smooth'})}if(['ArrowUp','ArrowLeft'].includes(e.key)){e.preventDefault();if(c>0)slides[c-1].scrollIntoView({behavior:'smooth'})}});
+</script>
+</body>
+</html>

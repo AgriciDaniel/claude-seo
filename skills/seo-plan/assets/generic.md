@@ -140,5 +140,5 @@ Adjust this template based on:
 - [ ] Provide original data, research, or unique perspectives AI cannot find elsewhere
 - [ ] Maintain consistent entity information (brand, people, products) across the web
 - [ ] Structure content with clear headings, definitions, and step-by-step formats
-- [ ] Consider adding an `llms.txt` file at site root (emerging convention for AI crawlers — Google treats it as a regular text file)
+- [ ] Consider adding an `llms.txt` file at site root (emerging convention for AI crawlers: Google treats it as a regular text file)
 - [ ] Monitor AI citation across Google AI Overviews, ChatGPT, Perplexity, and Bing Copilot

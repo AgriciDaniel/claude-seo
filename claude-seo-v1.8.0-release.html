@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+@page {
+    size: A4;
+    margin: 20mm 18mm 20mm 18mm;
+}
+@page :first {
+    margin: 0;
+}
+
+body {
+    font-family: 'Times New Roman', Times, Georgia, serif;
+    font-size: 11pt;
+    line-height: 1.55;
+    color: #2d2d2d;
+}
+
+/* Title page */
+.title-page {
+    page-break-after: always;
+    height: 297mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    padding: 40mm 30mm;
+    background: #ffffff;
+    position: relative;
+}
+.title-page::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 8mm;
+    background: #1e3a5f;
+}
+.title-page::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3mm;
+    background: #b8860b;
+}
+.title-page h1 {
+    font-size: 32pt;
+    color: #1e3a5f;
+    margin: 0 0 8mm 0;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+.title-page .subtitle {
+    font-size: 16pt;
+    color: #555;
+    margin: 0 0 12mm 0;
+}
+.title-page .version {
+    font-size: 22pt;
+    color: #b8860b;
+    font-weight: 600;
+    margin: 0 0 8mm 0;
+}
+.title-page .date {
+    font-size: 12pt;
+    color: #777;
+    margin: 4mm 0;
+}
+.title-page .author {
+    font-size: 11pt;
+    color: #999;
+    margin: 2mm 0;
+}
+.title-page .url {
+    font-size: 10pt;
+    color: #1e3a5f;
+    margin: 8mm 0 0 0;
+}
+
+/* Section headings */
+h2 {
+    font-size: 17pt;
+    color: #1e3a5f;
+    border-bottom: 2px solid #b8860b;
+    padding-bottom: 3mm;
+    margin-top: 10mm;
+    margin-bottom: 5mm;
+    page-break-after: avoid;
+}
+h3 {
+    font-size: 13pt;
+    color: #1e3a5f;
+    margin-top: 7mm;
+    margin-bottom: 3mm;
+    page-break-after: avoid;
+}
+h4 {
+    font-size: 11pt;
+    color: #b8860b;
+    margin-top: 5mm;
+    margin-bottom: 2mm;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 4mm 0;
+    font-size: 9.5pt;
+}
+th {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 2.5mm 3mm;
+    text-align: left;
+    font-weight: 600;
+}
+td {
+    padding: 2mm 3mm;
+    border-bottom: 0.5px solid #ddd;
+    vertical-align: top;
+}
+tr:nth-child(even) td {
+    background: #faf9f7;
+}
+
+/* Code blocks */
+code {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 9pt;
+    background: #f0f0f0;
+    padding: 0.5mm 1.5mm;
+    border-radius: 1mm;
+}
+pre {
+    background: #1e2a3a;
+    color: #e0e8f0;
+    padding: 4mm;
+    border-radius: 2mm;
+    font-size: 8.5pt;
+    line-height: 1.5;
+    overflow: hidden;
+    white-space: pre-wrap;
+    margin: 3mm 0;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 1mm 3mm;
+    border-radius: 1mm;
+    font-size: 8pt;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 1mm;
+}
+.badge-pass { background: #2d6a4f; }
+.badge-warn { background: #d4740e; }
+.badge-fail { background: #c53030; }
+.badge-info { background: #1e3a5f; }
+.badge-new { background: #b8860b; }
+
+/* Callout boxes */
+.callout {
+    border-left: 4px solid #b8860b;
+    background: #faf9f7;
+    padding: 3mm 4mm;
+    margin: 4mm 0;
+    border-radius: 0 2mm 2mm 0;
+}
+.callout-blue {
+    border-left-color: #1e3a5f;
+}
+
+/* Architecture diagram */
+.arch-box {
+    background: #1e2a3a;
+    color: #e0e8f0;
+    padding: 5mm;
+    border-radius: 2mm;
+    font-family: 'Courier New', monospace;
+    font-size: 9pt;
+    line-height: 1.6;
+    margin: 4mm 0;
+}
+
+/* Footer */
+.footer {
+    font-size: 8pt;
+    color: #999;
+    text-align: center;
+    margin-top: 10mm;
+    padding-top: 3mm;
+    border-top: 0.5px solid #ddd;
+}
+
+/* Tier diagram */
+.tier-box {
+    border: 1.5px solid #1e3a5f;
+    border-radius: 3mm;
+    padding: 4mm;
+    margin: 3mm 0;
+    background: #faf9f7;
+}
+.tier-box .tier-label {
+    font-weight: 700;
+    color: #1e3a5f;
+    font-size: 11pt;
+}
+.tier-box .tier-desc {
+    color: #555;
+    font-size: 9.5pt;
+    margin-top: 1mm;
+}
+
+ul { margin: 2mm 0; padding-left: 6mm; }
+li { margin: 1mm 0; }
+</style>
+</head>
+<body>
+
+<!-- TITLE PAGE -->
+<div class="title-page">
+    <h1>Claude SEO</h1>
+    <div class="subtitle">Free Backlink Data Integration</div>
+    <div class="version">v1.8.0 Release Notes</div>
+    <div class="date">March 31, 2026</div>
+    <div class="author">by AgriciDaniel</div>
+    <div class="url">github.com/AgriciDaniel/claude-seo</div>
+</div>
+
+<!-- EXECUTIVE SUMMARY -->
+<h2>Executive Summary</h2>
+
+<p>Version 1.8.0 transforms the <code>/seo backlinks</code> command from a paid-only feature into a <strong>multi-tier free-to-premium</strong> backlink analysis system. Users can now get actionable backlink intelligence with zero cost and zero configuration, with progressively richer data as they add free API keys.</p>
+
+<div class="callout">
+<strong>Key achievement:</strong> Free sources combined can capture <strong>60–70% of actionable backlink intelligence</strong> — the highest-authority links most likely appear in free tool samples. For sites with fewer than 500 backlinks, free sources capture 50%+ of the meaningful profile.
+</div>
+
+<h3>What Changed</h3>
+<table>
+    <tr><th>Before (v1.7.2)</th><th>After (v1.8.0)</th></tr>
+    <tr><td>Required DataForSEO extension (paid)</td><td>Works with zero config — Common Crawl + verification always available</td></tr>
+    <tr><td>Single data source</td><td>5 data sources with confidence-weighted merging</td></tr>
+    <tr><td>No fallback — just "install extension"</td><td>3-tier cascade: free → free-signup → paid</td></tr>
+    <tr><td>No backlink verification</td><td>Built-in crawler verifies if known links still exist</td></tr>
+    <tr><td>No data validation</td><td>Automated pre-delivery report validator catches false findings</td></tr>
+</table>
+
+<!-- ARCHITECTURE -->
+<h2>Architecture</h2>
+
+<h3>3-Tier Cascade</h3>
+
+<div class="tier-box">
+    <div class="tier-label">Tier 0 — Always Available <span class="badge badge-pass">ZERO CONFIG</span></div>
+    <div class="tier-desc">
+        <strong>Common Crawl Web Graph:</strong> Domain-level PageRank, harmonic centrality from the latest quarterly release (134M+ domains). Streams data via incremental decompression — no full download needed.<br>
+        <strong>Verification Crawler:</strong> Fetches source pages, parses HTML, confirms if backlinks exist. Detects JS-rendered pages. Polite crawling (1 req/sec per domain).
+    </div>
+</div>
+
+<div class="tier-box">
+    <div class="tier-label">Tier 1–2 — Free Signup <span class="badge badge-new">FREE</span></div>
+    <div class="tier-desc">
+        <strong>Moz API:</strong> Domain Authority, Page Authority, Spam Score, referring domains, anchor text. 2,500 rows/month, 1 req/10 sec. JSON-RPC 2.0 at api.moz.com.<br>
+        <strong>Bing Webmaster Tools:</strong> Inbound links with anchor text + unique competitor comparison feature. Free for verified sites.
+    </div>
+</div>
+
+<div class="tier-box">
+    <div class="tier-label">Tier 3 — Premium <span class="badge badge-info">PAID</span></div>
+    <div class="tier-desc">
+        <strong>DataForSEO:</strong> 35+ trillion links, real-time updates, toxic scoring, competitor gap analysis. Existing integration completely untouched — all v1.7.2 DataForSEO workflows still work identically.
+    </div>
+</div>
+
+<h3>Confidence Weighting</h3>
+<p>When merging data from multiple sources, each metric is weighted by source reliability:</p>
+<table>
+    <tr><th>Source</th><th>Confidence</th><th>Coverage vs Commercial</th><th>Update Frequency</th></tr>
+    <tr><td>DataForSEO</td><td>1.00</td><td>~90%+</td><td>Real-time</td></tr>
+    <tr><td>Verification Crawler</td><td>0.95</td><td>N/A (binary check)</td><td>On-demand</td></tr>
+    <tr><td>Moz API</td><td>0.85</td><td>~70% for DA/PA</td><td>~3 days</td></tr>
+    <tr><td>Bing Webmaster</td><td>0.70</td><td>~15% (Bing index)</td><td>Near real-time</td></tr>
+    <tr><td>Common Crawl</td><td>0.50</td><td>~25–40% domains</td><td>Quarterly</td></tr>
+</table>
+
+<div class="callout callout-blue">
+<strong>Data sufficiency gate:</strong> If fewer than 4 of 7 scoring factors have data, the system reports "INSUFFICIENT DATA" instead of a misleading numeric score. A score of 25/100 with 1 data source would imply "bad site" when the reality is "not enough data."
+</div>
+
+<!-- NEW FILES -->
+<h2>New Components</h2>
+
+<h3>Python Scripts (6 new)</h3>
+<table>
+    <tr><th>Script</th><th>Purpose</th><th>Auth</th></tr>
+    <tr><td><code>backlinks_auth.py</code></td><td>Credential management, tier detection, <code>--setup</code> guided wizard</td><td>—</td></tr>
+    <tr><td><code>moz_api.py</code></td><td>Moz Link Explorer: DA/PA, spam, domains, anchors, top pages</td><td>API key (free)</td></tr>
+    <tr><td><code>bing_webmaster.py</code></td><td>Bing Webmaster: links, counts, competitor comparison</td><td>API key (free)</td></tr>
+    <tr><td><code>commoncrawl_graph.py</code></td><td>CC Web Graph: PageRank, harmonic centrality, crawl detection</td><td>None</td></tr>
+    <tr><td><code>verify_backlinks.py</code></td><td>Link verification: existence, anchor text, rel attributes, JS detection</td><td>None</td></tr>
+    <tr><td><code>validate_backlink_report.py</code></td><td>Pre-delivery validator: catches false findings automatically</td><td>—</td></tr>
+</table>
+
+<h3>Skill, Agent & Reference</h3>
+<table>
+    <tr><th>File</th><th>Purpose</th></tr>
+    <tr><td><code>skills/seo-backlinks/SKILL.md</code></td><td>Rewritten with multi-source analysis, 7 sections, fallback cascade, 11-item pre-delivery checklist</td></tr>
+    <tr><td><code>agents/seo-backlinks.md</code></td><td>New agent — tier-based workflow, confidence scoring, automated + manual review steps</td></tr>
+    <tr><td><code>references/free-backlink-sources.md</code></td><td>Source comparison, confidence methodology, setup guides, data quality reality check</td></tr>
+</table>
+
+<!-- COMMANDS -->
+<h2>Commands</h2>
+
+<table>
+    <tr><th>Command</th><th>What It Does</th></tr>
+    <tr><td><code>/seo backlinks &lt;url&gt;</code></td><td>Full backlink profile analysis using all available sources</td></tr>
+    <tr><td><code>/seo backlinks gap &lt;url1&gt; &lt;url2&gt;</code></td><td>Competitor backlink gap analysis (Bing unique feature)</td></tr>
+    <tr><td><code>/seo backlinks toxic &lt;url&gt;</code></td><td>Toxic link detection (Moz spam score + verification)</td></tr>
+    <tr><td><code>/seo backlinks verify &lt;url&gt;</code></td><td>Verify known backlinks still exist</td></tr>
+    <tr><td><code>/seo backlinks setup</code></td><td>Guided setup for free Moz and Bing API keys</td></tr>
+</table>
+
+<!-- DATA ACCURACY -->
+<h2>Data Accuracy Safeguards</h2>
+
+<p>Three layers of protection ensure reports are accurate before reaching the user:</p>
+
+<h3>Layer 1: Script-Level Detection</h3>
+<table>
+    <tr><th>Protection</th><th>What It Catches</th></tr>
+    <tr><td>JS-rendering detection</td><td>Instagram, Facebook, SPAs reported as <code>unverifiable_js</code> instead of false <code>link_removed</code></td></tr>
+    <tr><td>Suspicious H1 flagging</td><td>Counter/stat numbers (e.g., "67") flagged in <code>h1_suspicious</code>, not reported as headings</td></tr>
+    <tr><td><code>@graph</code> schema flattening</td><td>Valid JSON-LD using <code>@graph</code> wrapper correctly parsed as individual <code>@type</code> entries</td></tr>
+    <tr><td>CC <code>in_crawl</code> vs <code>in_rankings</code></td><td>Distinguishes "not crawled" from "crawled but below ranking threshold"</td></tr>
+    <tr><td>Subdomain matching</td><td><code>shop.example.com</code> correctly matches target <code>example.com</code></td></tr>
+</table>
+
+<h3>Layer 2: Automated Validator</h3>
+<p><code>validate_backlink_report.py</code> runs 6 programmatic checks on collected data:</p>
+<table>
+    <tr><th>Check</th><th>Catches</th></tr>
+    <tr><td>Schema claims</td><td>Unflattened <code>@graph</code>, missing <code>@type</code>, deprecated types</td></tr>
+    <tr><td>Verification results</td><td>Social media pages falsely marked <code>link_removed</code>, summary/detail mismatches</td></tr>
+    <tr><td>H1 claims</td><td>All H1s suspicious (no real heading)</td></tr>
+    <tr><td>CC interpretation</td><td>"Not crawled" misinterpreted as "low authority"</td></tr>
+    <tr><td>Reciprocal links</td><td>Bidirectional link patterns (A→B and B→A)</td></tr>
+    <tr><td>Health score</td><td>Numeric score with insufficient data (&lt;4/7 factors)</td></tr>
+</table>
+
+<h3>Layer 3: Agent Instruction Checklist</h3>
+<p>The skill and agent include a mandatory pre-delivery review with 11 checks covering source labels, inference vs fact, platform detection, and cross-check consistency.</p>
+
+<!-- SECURITY -->
+<h2>Security</h2>
+
+<table>
+    <tr><th>Protection</th><th>Implementation</th></tr>
+    <tr><td>SSRF protection</td><td>All user-supplied URLs validated via <code>validate_url()</code> — blocks private IPs, loopback, metadata endpoints</td></tr>
+    <tr><td>Credential isolation</td><td>Config at <code>~/.config/claude-seo/backlinks-api.json</code> (outside repo, never committed)</td></tr>
+    <tr><td>Rate limiting</td><td>Moz: 10s delay persisted via lockfile. Bing: 1s polite delay. Verify: 1s per domain.</td></tr>
+    <tr><td>Memory safety</td><td>CC downloads capped at 500 MiB, incremental decompression, explicit buffer cleanup</td></tr>
+    <tr><td>No hardcoded paths</td><td>All scripts use <code>os.path.dirname(os.path.abspath(__file__))</code></td></tr>
+</table>
+
+<!-- TESTING -->
+<h2>Testing Results</h2>
+
+<h3>Real-World Domain Tests</h3>
+<table>
+    <tr><th>Domain</th><th>CC Result</th><th>Verification</th></tr>
+    <tr><td>google.com</td><td>PageRank #1, HC #3, 41,269 hosts</td><td>—</td></tr>
+    <tr><td>github.com</td><td>PageRank #24, HC #32, 6,038 hosts</td><td>—</td></tr>
+    <tr><td>21collagen.com</td><td>in_crawl: true, in_rankings: false</td><td>3 verified, 2 unverifiable_js</td></tr>
+    <tr><td>collagenwise.ro</td><td>in_crawl: false (not yet crawled)</td><td>3 verified, 1 lost (LinkedIn 404), 1 unverifiable_js</td></tr>
+</table>
+
+<h3>Validator Test</h3>
+<p>Simulated a report with all known bug classes — validator caught all 5 issues:</p>
+<table>
+    <tr><th>Issue</th><th>Severity</th><th>Detected?</th></tr>
+    <tr><td>Unflattened @graph schema</td><td><span class="badge badge-fail">ERROR</span></td><td>Yes</td></tr>
+    <tr><td>Instagram falsely marked link_removed</td><td><span class="badge badge-fail">ERROR</span></td><td>Yes</td></tr>
+    <tr><td>Numeric score with 1/7 factors</td><td><span class="badge badge-fail">ERROR</span></td><td>Yes</td></tr>
+    <tr><td>Reciprocal link not flagged</td><td><span class="badge badge-warn">WARNING</span></td><td>Yes</td></tr>
+    <tr><td>CC absence misinterpreted</td><td><span class="badge badge-info">INFO</span></td><td>Yes</td></tr>
+</table>
+
+<!-- GETTING STARTED -->
+<h2>Getting Started</h2>
+
+<h3>Zero-Config (Immediate)</h3>
+<pre>/seo backlinks https://your-domain.com</pre>
+<p>Works immediately with Common Crawl + verification crawler. No API keys needed.</p>
+
+<h3>Add Free APIs (5 minutes)</h3>
+<pre>/seo backlinks setup</pre>
+<p>Follow the guided wizard to add Moz API key (free, 2,500 rows/month) and Bing Webmaster API key (free, verified sites).</p>
+
+<h3>Premium Data</h3>
+<pre>./extensions/dataforseo/install.sh</pre>
+<p>Install the DataForSEO extension for commercial-grade backlink data (35T+ links, real-time).</p>
+
+<!-- STATS -->
+<h2>Release Statistics</h2>
+
+<table>
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>New Python scripts</td><td>6</td></tr>
+    <tr><td>New skill/agent/reference files</td><td>3</td></tr>
+    <tr><td>Modified existing files</td><td>7</td></tr>
+    <tr><td>Total lines of new Python code</td><td>~2,800</td></tr>
+    <tr><td>Bugs found and fixed</td><td>18</td></tr>
+    <tr><td>Audit rounds completed</td><td>4</td></tr>
+    <tr><td>Security checks passed</td><td>All (SSRF, credentials, memory, rate limiting)</td></tr>
+    <tr><td>CLAUDE.md rule compliance</td><td>48/48 checks passed</td></tr>
+    <tr><td>Anthropic skill standard compliance</td><td>Full</td></tr>
+</table>
+
+<div class="footer">
+    Claude SEO v1.8.0 — Free Backlink Data Integration<br>
+    Generated March 31, 2026 | github.com/AgriciDaniel/claude-seo | MIT License
+</div>
+
+</body>
+</html>

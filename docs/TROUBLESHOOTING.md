@@ -106,47 +106,9 @@ python -m playwright install chromium
 **Solution:**
 ```bash
 chmod +x ~/.claude/skills/seo/scripts/*.py
-chmod +x ~/.claude/skills/seo/hooks/*.py
-chmod +x ~/.claude/skills/seo/hooks/*.sh
 ```
 
 ---
-
-### Hook Not Triggering
-
-**Symptom:** Schema validation hook not running
-
-**Check:**
-
-1. Verify hook is in settings:
-```bash
-cat ~/.claude/settings.json
-```
-
-2. Ensure correct path:
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Edit|Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 ~/.claude/skills/seo/hooks/validate-schema.py \"$FILE_PATH\"",
-            "exitCodes": { "2": "block" }
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-3. Test hook directly:
-```bash
-python3 ~/.claude/skills/seo/hooks/validate-schema.py test.html
-```
 
 ---
 
@@ -179,7 +141,7 @@ cp /path/to/claude-seo/agents/*.md ~/.claude/agents/
 
 **Solutions:**
 
-1. The target site may be slow — try again
+1. The target site may be slow: try again
 2. Increase timeout in script calls
 3. Check your network connection
 4. Some sites block automated requests
@@ -205,7 +167,7 @@ cp /path/to/claude-seo/agents/*.md ~/.claude/agents/
 
 **Solutions:**
 
-1. Audit crawls up to 500 pages — large sites take time
+1. Audit crawls up to 500 pages: large sites take time
 2. Subagents run in parallel to speed up analysis
 3. For faster checks, use `/seo page` on specific URLs
 4. Check if site has slow response times

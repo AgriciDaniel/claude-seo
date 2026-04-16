@@ -105,6 +105,17 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
             text = heading.get_text(strip=True)
             if text:
                 result[tag].append(text)
+                # Flag suspiciously short or purely numeric headings (likely counters/stats)
+                stripped = text.strip()
+                is_suspicious = (
+                    len(stripped) <= 3
+                    or stripped.replace(",", "").replace(".", "").replace("+", "").replace("-", "").replace("%", "").replace(" ", "").isdigit()
+                )
+                if is_suspicious:
+                    key = f"{tag}_suspicious"
+                    if key not in result:
+                        result[key] = []
+                    result[key].append(text)
 
     # Images
     for img in soup.find_all("img"):
@@ -147,7 +158,17 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     for script in soup.find_all("script", type="application/ld+json"):
         try:
             schema_data = json.loads(script.string)
-            result["schema"].append(schema_data)
+            # Flatten @graph containers so each @type is a separate entry
+            if isinstance(schema_data, dict) and "@graph" in schema_data:
+                for item in schema_data["@graph"]:
+                    if isinstance(item, dict):
+                        result["schema"].append(item)
+            elif isinstance(schema_data, list):
+                for item in schema_data:
+                    if isinstance(item, dict):
+                        result["schema"].append(item)
+            else:
+                result["schema"].append(schema_data)
         except (json.JSONDecodeError, TypeError):
             pass
 

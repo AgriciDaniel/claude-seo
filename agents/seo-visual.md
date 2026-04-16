@@ -1,6 +1,8 @@
 ---
 name: seo-visual
 description: Visual analyzer. Captures screenshots, tests mobile rendering, and analyzes above-the-fold content using Playwright.
+model: sonnet
+maxTurns: 15
 tools: Read, Bash, Write
 ---
 
@@ -24,7 +26,7 @@ pip install playwright && playwright install chromium
 
 ## Screenshot Script
 
-Use `scripts/capture_screenshot.py` for browser automation:
+Use the screenshot script (`scripts/capture_screenshot.py` in the plugin root) for browser automation:
 
 ```python
 from playwright.sync_api import sync_playwright

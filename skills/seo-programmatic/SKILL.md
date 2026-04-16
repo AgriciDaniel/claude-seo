@@ -6,6 +6,13 @@ description: >
   thin content safeguards, and index bloat prevention. Use when user says
   "programmatic SEO", "pages at scale", "dynamic pages", "template pages",
   "generated pages", or "data-driven SEO".
+user-invokable: true
+argument-hint: "[url or plan]"
+license: MIT
+metadata:
+  author: AgriciDaniel
+  version: "1.9.0"
+  category: seo
 ---
 
 # Programmatic SEO Analysis & Planning
@@ -22,7 +29,7 @@ Evaluate the data powering programmatic pages:
 - Data quality checks:
   - Each record must have enough unique attributes to generate distinct content
   - Flag duplicate or near-duplicate records (>80% field overlap)
-  - Verify data freshness — stale data produces stale pages
+  - Verify data freshness; stale data produces stale pages
 
 ## Template Engine Planning
 
@@ -39,16 +46,16 @@ Design templates that produce unique, valuable pages:
 ## URL Pattern Strategy
 
 ### Common Patterns
-- `/tools/[tool-name]` — Tool/product directory pages
-- `/[city]/[service]` — Location + service pages
-- `/integrations/[platform]` — Integration landing pages
-- `/glossary/[term]` — Definition/reference pages
-- `/templates/[template-name]` — Downloadable template pages
+- `/tools/[tool-name]`: Tool/product directory pages
+- `/[city]/[service]`: Location + service pages
+- `/integrations/[platform]`: Integration landing pages
+- `/glossary/[term]`: Definition/reference pages
+- `/templates/[template-name]`: Downloadable template pages
 
 ### URL Rules
 - Lowercase, hyphenated slugs derived from data
 - Logical hierarchy reflecting site architecture
-- No duplicate slugs — enforce uniqueness at generation time
+- No duplicate slugs; enforce uniqueness at generation time
 - Keep URLs under 100 characters
 - No query parameters for primary content URLs
 - Consistent trailing slash usage (match existing site pattern)
@@ -59,7 +66,7 @@ Design templates that produce unique, valuable pages:
 - **Related items**: Auto-link to 3-5 related pages based on data attributes
 - **Breadcrumbs**: Generate BreadcrumbList schema from URL hierarchy
 - **Cross-linking**: Link between programmatic pages sharing attributes (same category, same city, same feature)
-- **Anchor text**: Use descriptive, varied anchor text — avoid exact-match keyword repetition
+- **Anchor text**: Use descriptive, varied anchor text. Avoid exact-match keyword repetition
 - Link density: 3-5 internal links per 1000 words (match seo-content guidelines)
 
 ## Thin Content Safeguards
@@ -68,12 +75,12 @@ Design templates that produce unique, valuable pages:
 
 | Metric | Threshold | Action |
 |--------|-----------|--------|
-| Pages without content review | 100+ | ⚠️ WARNING — require content audit before publishing |
-| Pages without justification | 500+ | 🛑 HARD STOP — require explicit user approval and thin content audit |
-| Unique content per page | <40% | ❌ Flag as thin content — likely penalty risk |
-| Word count per page | <300 | ⚠️ Flag for review — may lack sufficient value |
+| Pages without content review | 100+ | ⚠️ WARNING: require content audit before publishing |
+| Pages without justification | 500+ | 🛑 HARD STOP: require explicit user approval and thin content audit |
+| Unique content per page | <40% | ❌ Flag as thin content (likely penalty risk) |
+| Word count per page | <300 | ⚠️ Flag for review (may lack sufficient value) |
 
-### Scaled Content Abuse — Enforcement Context (2025-2026)
+### Scaled Content Abuse: Enforcement Context (2025-2026)
 
 Google's Scaled Content Abuse policy (introduced March 2024) saw major enforcement escalation in 2025:
 
@@ -160,3 +167,12 @@ Measure against all other pages in the programmatic set. Shared headers, footers
 - Template modifications
 - URL pattern adjustments
 - Quality gate compliance actions
+
+## Error Handling
+
+| Scenario | Action |
+|----------|--------|
+| URL unreachable | Report connection error with status code. Suggest verifying URL accessibility and checking for authentication requirements. |
+| No programmatic pages detected | Inform user that no template-generated or data-driven page patterns were found. Suggest checking if pages use client-side rendering or if the URL points to the correct section. |
+| Thin content threshold exceeded | Trigger quality gate warning. Report the unique content percentage and flag pages below 40% uniqueness. Require user acknowledgment before proceeding. |
+| Quality gate violation | Halt analysis at the HARD STOP threshold (500+ pages without justification or <30% unique content). Present findings and require explicit user approval to continue. |

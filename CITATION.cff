@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+title: Claude SEO
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+type: software
+authors:
+  - alias: AgriciDaniel
+repository-code: 'https://github.com/AgriciDaniel/claude-seo'
+url: 'https://github.com/AgriciDaniel/claude-seo'
+license: MIT
+version: 1.8.2
+date-released: '2026-04-10'
+keywords:
+  - seo
+  - claude-code
+  - ai-tools
+  - schema-markup
+  - e-e-a-t
+  - geo

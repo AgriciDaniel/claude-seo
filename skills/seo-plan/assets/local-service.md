@@ -100,11 +100,11 @@
 
 ### Google Business Profile Updates (2025-2026)
 
-- **Video verification** is now standard — postcard verification has been largely phased out. Prepare for a short video verification process showing the business location or service area.
+- **Video verification** is now standard: postcard verification has been largely phased out. Prepare for a short video verification process showing the business location or service area.
 - **WhatsApp integration** replaced Google Business Chat (deprecated). Businesses can connect WhatsApp as their primary messaging channel.
-- **Q&A removed from Maps** — replaced by AI-generated answers. Ensure your GBP description, services, and website FAQ are comprehensive, as Google AI uses them to answer queries.
-- **Business hours are a top-5 ranking factor** — "Business is open at time of search" ranked as a top individual factor for the first time (Whitespark 2026 Local Search Ranking Factors Report). Keep hours accurate; consider extended hours if feasible.
-- **Review "Stories" format** — Google Maps now shows review snippets in a swipeable Stories format on mobile. Encourage detailed, descriptive reviews with photos.
+- **Q&A removed from Maps**: replaced by AI-generated answers. Ensure your GBP description, services, and website FAQ are comprehensive, as Google AI uses them to answer queries.
+- **Business hours are a top-5 ranking factor**: "Business is open at time of search" ranked as a top individual factor for the first time (Whitespark 2026 Local Search Ranking Factors Report). Keep hours accurate; consider extended hours if feasible.
+- **Review "Stories" format**: Google Maps now shows review snippets in a swipeable Stories format on mobile. Encourage detailed, descriptive reviews with photos.
 
 ### Service Area Business (SAB) Update (June 2025)
 
@@ -112,7 +112,7 @@ Google updated SAB guidelines to **disallow entire states or countries** as serv
 
 ### AI Visibility for Local Businesses
 
-AI Overviews appear for only ~0.14% of local keywords (March 2025 data) — local SEO faces significantly less AI disruption than other verticals. However, ChatGPT and Perplexity are increasingly used for local recommendations.
+AI Overviews appear for only ~0.14% of local keywords (March 2025 data), local SEO faces significantly less AI disruption than other verticals. However, ChatGPT and Perplexity are increasingly used for local recommendations.
 
 To optimize for AI local visibility:
 - Ensure presence on expert-curated "best of" lists (ranked #1 AI visibility factor in Whitespark 2026 report)

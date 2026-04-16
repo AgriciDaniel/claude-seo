@@ -39,7 +39,7 @@ function Main {
     # Remove agents
     $agents = @(
         "seo-technical", "seo-content", "seo-schema",
-        "seo-sitemap", "seo-performance", "seo-visual"
+        "seo-sitemap", "seo-performance", "seo-visual", "seo-geo"
     )
     foreach ($agent in $agents) {
         $agentPath = Join-Path $AgentDir "$agent.md"

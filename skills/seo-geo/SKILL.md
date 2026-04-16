@@ -8,6 +8,13 @@ description: >
   platform-specific optimization. Use when user says "AI Overviews", "SGE",
   "GEO", "AI search", "LLM optimization", "Perplexity", "AI citations",
   "ChatGPT search", or "AI visibility".
+user-invokable: true
+argument-hint: "[url]"
+license: MIT
+metadata:
+  author: AgriciDaniel
+  version: "1.9.0"
+  category: seo
 ---
 
 # AI Search / GEO Optimization (February 2026)
@@ -24,7 +31,7 @@ description: >
 
 ## Critical Insight: Brand Mentions > Backlinks
 
-**Brand mentions correlate 3× more strongly with AI visibility than backlinks.**
+**Brand mentions correlate 3x more strongly with AI visibility than backlinks.**
 (Ahrefs December 2025 study of 75,000 brands)
 
 | Signal | Correlation with AI Citations |
@@ -35,7 +42,7 @@ description: >
 | LinkedIn presence | Moderate |
 | Domain Rating (backlinks) | ~0.266 (weak) |
 
-**Only 11% of domains** are cited by both ChatGPT and Google AI Overviews for the same query — platform-specific optimization is essential.
+**Only 11% of domains** are cited by both ChatGPT and Google AI Overviews for the same query, so platform-specific optimization is essential.
 
 ---
 
@@ -61,10 +68,10 @@ description: >
 
 ### 2. Structural Readability (20%)
 
-**92% of AI Overview citations come from top-10 ranking pages**, but 47% come from pages ranking below position 5 — demonstrating different selection logic.
+**92% of AI Overview citations come from top-10 ranking pages**, but 47% come from pages ranking below position 5, demonstrating different selection logic.
 
 **Strong signals:**
-- Clean H1→H2→H3 heading hierarchy
+- Clean H1->H2->H3 heading hierarchy
 - Question-based headings (matches query patterns)
 - Short paragraphs (2-4 sentences)
 - Tables for comparative data
@@ -107,7 +114,7 @@ Content with multi-modal elements sees **156% higher selection rates**.
 
 ### 5. Technical Accessibility (20%)
 
-**AI crawlers do NOT execute JavaScript** — server-side rendering is critical.
+**AI crawlers do NOT execute JavaScript.** Server-side rendering is critical.
 
 **Check for:**
 - Server-side rendering (SSR) vs client-only content
@@ -233,3 +240,12 @@ Generate `GEO-ANALYSIS.md` with:
 ## DataForSEO Integration (Optional)
 
 If DataForSEO MCP tools are available, use `ai_optimization_chat_gpt_scraper` to check what ChatGPT web search returns for target queries (real GEO visibility check) and `ai_opt_llm_ment_search` with `ai_opt_llm_ment_top_domains` for LLM mention tracking across AI platforms.
+
+## Error Handling
+
+| Scenario | Action |
+|----------|--------|
+| URL unreachable (DNS failure, connection refused) | Report the error clearly. Do not guess site content. Suggest the user verify the URL and try again. |
+| AI crawlers blocked by robots.txt | Report exactly which crawlers are blocked and which are allowed. Provide specific robots.txt directives to add for enabling AI search visibility. |
+| No llms.txt found | Note the absence and provide a ready-to-use llms.txt template based on the site's content structure. |
+| No structured data detected | Report the gap and provide specific schema recommendations (Article, Organization, Person) for improving AI discoverability. |

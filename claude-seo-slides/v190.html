@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude SEO v1.9.0 — The Community Release</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&family=IBM+Plex+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --coral:#E07850;
+  --bg:#0A0A0A;
+  --surface:#111111;
+  --surface2:#1A1A1A;
+  --text:#F5F5F0;
+  --text-gray:#888888;
+  --text-muted:#6a6a6a;
+  --border:#2D2D2D;
+  --border-subtle:#1D1D1D;
+  --green:#4ADE80;
+  --blue:#60A5FA;
+  --rose:#F43F5E;
+  --amber:#F0A830;
+  --grotesk:'Space Grotesk',system-ui,sans-serif;
+  --mono:'IBM Plex Mono','JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+body{font-family:var(--mono);background:var(--bg);color:var(--text);overflow-x:hidden}
+::selection{background:rgba(224,120,80,.3)}
+
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--coral);width:0%;transition:width .4s ease;z-index:200}
+
+.slide{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:56px 40px;scroll-snap-align:start;position:relative;overflow:hidden}
+.slide-inner{max-width:1100px;width:100%;position:relative;z-index:2}
+.slide-num{position:absolute;top:28px;right:40px;font-size:11px;color:var(--text-muted);letter-spacing:3px;font-family:var(--mono)}
+
+.slide-tag{display:inline-flex;align-items:center;gap:8px;padding:4px 14px;background:var(--surface2);border:1px solid var(--border);font-size:10px;letter-spacing:2px;color:var(--coral);text-transform:uppercase;margin-bottom:20px;font-family:var(--mono)}
+
+h1{font-family:var(--grotesk);font-size:clamp(34px,5.5vw,68px);font-weight:700;color:var(--text);letter-spacing:-2px;line-height:1}
+h1 .accent{color:var(--coral)}
+h2{font-family:var(--grotesk);font-size:clamp(24px,3.5vw,42px);font-weight:700;letter-spacing:-1px;line-height:1.1;margin-bottom:20px}
+h2 .accent{color:var(--coral)}
+h3{font-family:var(--grotesk);font-size:16px;font-weight:700;margin-bottom:9px;color:var(--text)}
+p{font-size:13px;color:var(--text-gray);line-height:1.8;max-width:680px}
+.subtitle{font-size:15px;color:var(--text-gray);margin-top:14px;line-height:1.7;max-width:700px}
+
+/* Stats */
+.stats{display:flex;gap:36px;margin-top:36px;flex-wrap:wrap}
+.stat-num{font-family:var(--grotesk);font-size:38px;font-weight:700;color:var(--coral)}
+.stat-label{font-size:10px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
+
+/* Metric cards (exec summary) */
+.metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px}
+.mc{background:var(--surface);border:1px solid var(--border);padding:16px 12px;text-align:center}
+.mc-val{font-family:var(--grotesk);font-size:28px;font-weight:700;color:var(--coral);line-height:1}
+.mc-delta{font-size:10px;color:var(--green);margin-top:3px}
+.mc-label{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-top:3px}
+
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:22px}
+.card{background:var(--surface);border:1px solid var(--border);padding:22px;transition:border-color .3s}
+.card:hover{border-color:var(--coral)}
+.card-icon{font-size:20px;margin-bottom:9px}
+.card h3{font-size:13px;margin-bottom:7px}
+.card p{font-size:11px;line-height:1.7;max-width:none}
+
+/* Two-column layouts */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px;align-items:start}
+.two-col-3{display:grid;grid-template-columns:3fr 2fr;gap:24px;margin-top:20px;align-items:start}
+.two-col-2{display:grid;grid-template-columns:2fr 3fr;gap:24px;margin-top:20px;align-items:start}
+
+/* Tables */
+.data-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:14px}
+.data-table th{text-align:left;padding:9px 12px;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--coral);border-bottom:1px solid var(--border);background:var(--surface)}
+.data-table td{padding:8px 12px;border-bottom:1px solid var(--border-subtle);color:var(--text-gray);vertical-align:top;line-height:1.5}
+.data-table tr:hover td{background:var(--surface2)}
+.td-name{color:var(--text);font-weight:700;font-size:12px}
+.sev-high{color:var(--rose);font-weight:700}
+.sev-med{color:var(--amber)}
+.sev-low{color:var(--text-muted)}
+.status-fixed{color:var(--green);font-weight:700}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 9px;font-size:9px;letter-spacing:1px;text-transform:uppercase;font-weight:700;font-family:var(--mono)}
+.badge-new{background:rgba(74,222,128,.1);color:var(--green);border:1px solid rgba(74,222,128,.3)}
+.badge-enhanced{background:rgba(224,120,80,.1);color:var(--coral);border:1px solid rgba(224,120,80,.3)}
+.badge-deferred{background:rgba(106,106,106,.1);color:var(--text-muted);border:1px solid rgba(106,106,106,.2)}
+.badge-winner{background:rgba(240,168,48,.1);color:var(--amber);border:1px solid rgba(240,168,48,.3)}
+
+/* Compare */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.compare-col{background:var(--surface);border:1px solid var(--border);padding:18px}
+.compare-col h3{font-size:11px;margin-bottom:12px;letter-spacing:1px;text-transform:uppercase}
+.compare-col.before h3{color:var(--text-muted)}
+.compare-col.after h3{color:var(--coral)}
+.compare-item{font-size:11px;color:var(--text-gray);padding:5px 0;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;gap:8px}
+.compare-item .val{color:var(--text);font-weight:700;text-align:right;flex-shrink:0}
+
+/* Command block */
+.cmd{background:var(--surface);border:1px solid var(--border);padding:11px 16px;font-family:var(--mono);font-size:11px;margin-top:12px;overflow-x:auto}
+.cmd .prompt{color:var(--text-muted)}
+.cmd .command{color:var(--coral)}
+
+/* Code block */
+.code-block{background:var(--surface);border:1px solid var(--border);padding:16px 18px;font-family:var(--mono);font-size:11px;line-height:1.7;color:var(--text-gray);overflow-x:auto;margin-top:12px;white-space:pre}
+.code-block .cc{color:var(--text-muted);font-style:italic}
+.code-block .ck{color:var(--coral)}
+.code-block .cs{color:var(--green)}
+
+/* Feature list */
+.feat-list{display:flex;flex-direction:column;gap:8px}
+.feat-item{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--text-gray);line-height:1.5}
+.feat-item::before{content:"→";color:var(--coral);flex-shrink:0;font-size:11px;margin-top:1px}
+
+/* Flow */
+.flow{margin-top:20px;background:var(--surface);border:1px solid var(--border);padding:20px;overflow-x:auto}
+.flow-row{display:flex;align-items:center;gap:9px;flex-wrap:nowrap;min-width:max-content}
+.flow-box{padding:8px 14px;border:1.5px solid var(--border);font-size:10px;letter-spacing:.5px;white-space:nowrap;background:var(--surface2)}
+.flow-box.active{border-color:var(--coral);color:var(--coral)}
+.flow-box.green{border-color:var(--green);color:var(--green)}
+.flow-box.blue{border-color:var(--blue);color:var(--blue)}
+.flow-box.amber{border-color:var(--amber);color:var(--amber)}
+.flow-arrow{color:var(--text-muted);font-size:14px;flex-shrink:0}
+
+/* Score timeline */
+.score-timeline{display:flex;align-items:flex-start;justify-content:center;gap:0;margin-top:24px}
+.score-node{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:130px}
+.score-val{font-family:var(--grotesk);font-size:48px;font-weight:700;line-height:1}
+.score-sub{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-top:2px}
+.score-desc{font-size:10px;color:var(--text-gray);text-align:center;line-height:1.5}
+.score-connector{width:44px;flex-shrink:0;height:2px;background:var(--border);margin-top:24px}
+
+/* Screenshots */
+.ss-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+.ss-item{display:flex;flex-direction:column;align-items:center;gap:8px}
+.ss-item img{max-width:100%;max-height:62vh;object-fit:contain;border:1px solid var(--border);background:var(--surface)}
+.ss-item .ss-cap{font-size:10px;color:var(--text-muted);text-align:center;letter-spacing:.5px}
+.ss-notice{background:var(--surface2);border:1px solid var(--border);padding:8px 14px;font-size:10px;color:var(--text-muted);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.contributor-img{max-width:100%;max-height:52vh;object-fit:contain;border:1px solid var(--border);background:var(--surface)}
+
+/* Integration notes */
+.int-note{background:var(--surface2);border-left:2px solid var(--text-muted);padding:8px 12px;margin-top:10px;font-size:11px;color:var(--text-muted)}
+.int-note strong{color:var(--text);font-weight:600}
+
+/* Roadmap items */
+.ritem{background:var(--surface);border:1px solid var(--border);border-left:3px solid;padding:14px 16px;margin-bottom:10px}
+.ritem.high{border-left-color:var(--rose);background:rgba(244,63,94,.04)}
+.ritem.med{border-left-color:var(--amber);background:rgba(240,168,48,.04)}
+.ritem h3{font-size:13px;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.ritem p{font-size:11px;max-width:none;margin-top:0}
+
+/* Success / info boxes */
+.success-box{background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.25);padding:16px 18px;margin-top:12px}
+.info-box{background:rgba(96,165,250,.05);border:1px solid rgba(96,165,250,.25);padding:16px 18px;margin-top:12px}
+
+/* Big keyword */
+.big-word{font-family:var(--grotesk);font-size:clamp(56px,11vw,120px);font-weight:700;color:var(--coral);letter-spacing:-5px;line-height:.9;display:block}
+
+/* Info row */
+.info-row{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-top:16px}
+.info-item{font-size:12px;color:var(--text-gray)}
+.info-item strong{color:var(--coral)}
+
+/* Nav */
+.slide-nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:100;background:rgba(10,10,10,.92);padding:7px 14px;border:1px solid var(--border)}
+.slide-nav a{width:8px;height:8px;background:var(--border);display:block;transition:background .2s;cursor:pointer}
+.slide-nav a:hover,.slide-nav a.active{background:var(--coral)}
+.key-hint{position:fixed;bottom:25px;right:28px;font-size:9px;color:var(--text-muted);letter-spacing:1px;font-family:var(--mono)}
+
+@media(max-width:768px){
+  .slide{padding:36px 18px}
+  .stats{gap:20px}
+  .stat-num{font-size:28px}
+  .compare,.two-col,.two-col-3,.two-col-2,.metric-row,.ss-pair{grid-template-columns:1fr}
+  .score-timeline{flex-wrap:wrap;gap:16px}
+  .score-connector{display:none}
+  .cards{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+
+<nav class="slide-nav" id="nav">
+  <a href="#s1"></a><a href="#s2"></a><a href="#s3"></a><a href="#s4"></a><a href="#s5"></a>
+  <a href="#s6"></a><a href="#s7"></a><a href="#s8"></a><a href="#s9"></a><a href="#s10"></a>
+  <a href="#s11"></a><a href="#s12"></a><a href="#s13"></a><a href="#s14"></a><a href="#s15"></a>
+</nav>
+<div class="key-hint">&#8592; &#8594; arrows / scroll</div>
+
+<!-- ===== 01: TITLE ===== -->
+<section class="slide" id="s1">
+  <div class="slide-inner" style="text-align:center">
+    <div class="slide-tag">v1.9.0 — april 2026</div>
+    <h1>Claude <span class="accent">SEO</span></h1>
+    <p class="subtitle" style="margin:16px auto 0;text-align:center">
+      The Community Release. Built by the AI Marketing Hub. Together.
+    </p>
+    <div class="stats" style="justify-content:center;margin-top:48px">
+      <div class="stat"><div class="stat-num">23</div><div class="stat-label">Total Skills</div></div>
+      <div class="stat"><div class="stat-num">5</div><div class="stat-label">Contributors</div></div>
+      <div class="stat"><div class="stat-num">4</div><div class="stat-label">New Skills</div></div>
+      <div class="stat"><div class="stat-num">30</div><div class="stat-label">Scripts</div></div>
+    </div>
+  </div>
+  <span class="slide-num">01 / 15</span>
+</section>
+
+<!-- ===== 02: EXECUTIVE SUMMARY ===== -->
+<section class="slide" id="s2">
+  <div class="slide-inner">
+    <div class="slide-tag">executive summary</div>
+    <h2>v1.9.0 by the <span class="accent">Numbers</span></h2>
+    <p>First community-driven release. Six members submitted for the inaugural Pro Hub Challenge. Five shipped. Four are entirely new Tier-4 skills.</p>
+
+    <div class="metric-row" style="margin-top:20px">
+      <div class="mc"><div class="mc-val">23</div><div class="mc-delta">+4 new</div><div class="mc-label">Total Skills</div></div>
+      <div class="mc"><div class="mc-val">17</div><div class="mc-delta">+4 new</div><div class="mc-label">Subagents</div></div>
+      <div class="mc"><div class="mc-val">30</div><div class="mc-delta">+7 new</div><div class="mc-label">Scripts</div></div>
+      <div class="mc"><div class="mc-val">61</div><div class="mc-delta">31 mod, 30 new</div><div class="mc-label">Files Changed</div></div>
+    </div>
+    <div class="metric-row">
+      <div class="mc"><div class="mc-val">6</div><div class="mc-delta">Pro Hub Challenge</div><div class="mc-label">Submissions</div></div>
+      <div class="mc"><div class="mc-val">5</div><div class="mc-delta">4 new, 1 enhanced</div><div class="mc-label">Integrated</div></div>
+      <div class="mc"><div class="mc-val">85</div><div class="mc-delta">4 fixes applied</div><div class="mc-label">Security / 100</div></div>
+      <div class="mc"><div class="mc-val">4</div><div class="mc-delta">Peak: 97/100</div><div class="mc-label">Review Rounds</div></div>
+    </div>
+
+    <div class="two-col" style="margin-top:16px">
+      <div class="success-box">
+        <h3 style="color:var(--green);margin-bottom:8px">Community Wins</h3>
+        <div class="feat-list">
+          <div class="feat-item">First Pro Hub Challenge, $600 Claude Credits prize pool</div>
+          <div class="feat-item">5 of 6 submissions integrated into the official release</div>
+          <div class="feat-item">4 new skills added — cluster, sxo, drift, ecommerce</div>
+          <div class="feat-item">All contributors credited in CONTRIBUTORS.md and skill frontmatter</div>
+        </div>
+      </div>
+      <div class="info-box">
+        <h3 style="color:var(--blue);margin-bottom:8px">Technical Wins</h3>
+        <div class="feat-list">
+          <div class="feat-item">XSS in cluster-map.html fixed with escapeHtml() wrapping</div>
+          <div class="feat-item">DataForSEO cost guardrail bypass chain discovered and closed</div>
+          <div class="feat-item">fcntl file locking for concurrent agent safety</div>
+          <div class="feat-item">CI expanded from 21 to 28 tracked scripts</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">02 / 15</span>
+</section>
+
+<!-- ===== 03: THE CHALLENGE ===== -->
+<section class="slide" id="s3">
+  <div class="slide-inner">
+    <div class="slide-tag">origin story</div>
+    <h2>Pro Hub <span class="accent">Challenge</span></h2>
+    <div class="two-col" style="margin-top:0">
+      <div>
+        <p style="margin-bottom:16px">We opened claude-seo to the AI Marketing Hub community. Build an extension, win Claude Credits. One month to ship something real.</p>
+        <div class="cards" style="margin-top:0;grid-template-columns:1fr;gap:10px">
+          <div class="card" style="padding:16px">
+            <div class="card-icon">&#127942;</div>
+            <h3>$600 in Claude Credits</h3>
+            <p>$400 first place. $200 second. No entry fee, no team-size restrictions.</p>
+          </div>
+          <div class="card" style="padding:16px">
+            <div class="card-icon">&#128295;</div>
+            <h3>Rigorous Integration</h3>
+            <p>Every submission: code review, security audit, de-branding, line-limit check. No rubber-stamping.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--coral);margin-bottom:10px">Full Timeline</div>
+        <table class="data-table" style="margin-top:0">
+          <thead><tr><th>Stage</th><th>Outcome</th></tr></thead>
+          <tbody>
+            <tr><td>Challenge announced</td><td>$600 prize pool declared</td></tr>
+            <tr><td>Submissions closed</td><td>6 entries received</td></tr>
+            <tr><td>Round 1: code review</td><td style="color:var(--amber)">87 / 100</td></tr>
+            <tr><td>Round 2: re-review</td><td style="color:var(--amber)">93 / 100</td></tr>
+            <tr><td>Round 3: max-effort plan</td><td style="color:var(--green)">97 / 100</td></tr>
+            <tr><td>Round 4: cybersecurity audit</td><td style="color:var(--coral)">85 / 100</td></tr>
+            <tr><td>Security fixes applied</td><td>4 vulnerabilities resolved</td></tr>
+            <tr><td>v1.9.0 shipped</td><td style="color:var(--green)">5 of 6 integrated</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">03 / 15</span>
+</section>
+
+<!-- ===== 04: COMMUNITY POSTS ===== -->
+<section class="slide" id="s4">
+  <div class="slide-inner">
+    <div class="slide-tag">community moments</div>
+    <h2>The <span class="accent">Posts</span></h2>
+    <div class="ss-notice">
+      &#9432;&nbsp; Images load in Firefox. In Chrome: right-click this file &rarr; Open with Firefox, or run <code style="color:var(--coral)">python3 -m http.server 8080</code> and open localhost:8080
+    </div>
+    <div class="ss-pair">
+      <div class="ss-item">
+        <img
+          src="file:///home/agricidaniel/Downloads/pro-hub-challenge-march-screenshots/Pro%20hub%20challenge%20post.png"
+          alt="Challenge Announcement Post"
+          onerror="this.parentElement.innerHTML='<div style=&quot;border:1px solid var(--border);padding:40px;text-align:center;color:var(--text-muted);font-size:11px&quot;>Challenge Announcement Post<br><span style=&quot;font-size:9px;margin-top:8px;display:block&quot;>Open in Firefox to view</span></div>'">
+        <div class="ss-cap">Challenge Announcement — AI Marketing Hub Pro</div>
+      </div>
+      <div class="ss-item">
+        <img
+          src="file:///home/agricidaniel/Downloads/pro-hub-challenge-march-screenshots/Pro%20hub%20challenge%20post%20winner.png"
+          alt="Winner Announcement Post"
+          onerror="this.parentElement.innerHTML='<div style=&quot;border:1px solid var(--border);padding:40px;text-align:center;color:var(--text-muted);font-size:11px&quot;>Winner Announcement Post<br><span style=&quot;font-size:9px;margin-top:8px;display:block&quot;>Open in Firefox to view</span></div>'">
+        <div class="ss-cap">Winner Announcement — Lutfiya Miller wins</div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">04 / 15</span>
+</section>
+
+<!-- ===== 05: CONTRIBUTORS ===== -->
+<section class="slide" id="s5">
+  <div class="slide-inner">
+    <div class="slide-tag">community</div>
+    <h2>Meet the <span class="accent">Contributors</span></h2>
+    <table class="data-table">
+      <thead>
+        <tr><th>Contributor</th><th>Submission</th><th>Integrated As</th><th>Result</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="td-name">Lutfiya Miller</span></td>
+          <td>Semantic Cluster Engine</td>
+          <td><code style="color:var(--coral);font-size:10px">/seo cluster</code></td>
+          <td><span class="badge badge-winner">Winner</span></td>
+        </tr>
+        <tr>
+          <td><span class="td-name">Florian Schmitz</span></td>
+          <td>SXO Skill</td>
+          <td><code style="color:var(--coral);font-size:10px">/seo sxo</code></td>
+          <td><span class="badge badge-new">New Skill</span></td>
+        </tr>
+        <tr>
+          <td><span class="td-name">Dan Colta</span></td>
+          <td>SEO Drift Monitor</td>
+          <td><code style="color:var(--coral);font-size:10px">/seo drift</code></td>
+          <td><span class="badge badge-new">New Skill</span></td>
+        </tr>
+        <tr>
+          <td><span class="td-name">Matej Marjanovic</span></td>
+          <td>E-commerce + Cost Config</td>
+          <td><code style="color:var(--coral);font-size:10px">/seo ecommerce</code></td>
+          <td><span class="badge badge-new">New Skill</span></td>
+        </tr>
+        <tr>
+          <td><span class="td-name">Chris Muller</span></td>
+          <td>Multi-lingual Blog</td>
+          <td><code style="color:var(--coral);font-size:10px">/seo hreflang</code> (enhanced)</td>
+          <td><span class="badge badge-enhanced">Enhancement</span></td>
+        </tr>
+        <tr>
+          <td><span class="td-name">Benjamin Samar</span></td>
+          <td>SEO Dungeon</td>
+          <td>claude-blog scope — deferred</td>
+          <td><span class="badge badge-deferred">Reviewed</span></td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:16px;font-size:11px;color:var(--text-muted)">Attribution: original_author in each SKILL.md frontmatter + CONTRIBUTORS.md. Security fixes applied to 3 submissions during integration. SKILL.md 500-line limit and reference file 200-line limit enforced on all.</p>
+  </div>
+  <span class="slide-num">05 / 15</span>
+</section>
+
+<!-- ===== 06: SEO-CLUSTER (Lutfiya) ===== -->
+<section class="slide" id="s6">
+  <div class="slide-inner">
+    <div class="slide-tag">new skill 1 of 4</div>
+    <h2>Semantic Topic <span class="accent">Clustering</span></h2>
+    <div class="two-col-2">
+      <div>
+        <p style="margin-bottom:14px">By <strong style="color:var(--amber)">Lutfiya Miller</strong> (Challenge Winner). SERP overlap grouping without paid keyword tools.</p>
+        <div class="feat-list">
+          <div class="feat-item">7-10 shared SERP results: same post. 4-6: hub cluster. 2-3: interlink candidates</div>
+          <div class="feat-item">Hub-spoke architecture: pillar + cluster pages + cross-link map ready to implement</div>
+          <div class="feat-item">Outputs cluster-map.html — interactive SVG with hover, click-through, color-coded clusters</div>
+          <div class="feat-item">No paid API required; replaces $99/month clustering tools</div>
+        </div>
+        <div class="cmd" style="margin-top:14px"><span class="prompt">$ </span><span class="command">/seo cluster "coffee shops new york"</span></div>
+        <div class="int-note">
+          <strong>Integration Notes:</strong> XSS in SVG rendering fixed during integration (escapeHtml wrapping on all truncate() output). De-branded from original submission.
+        </div>
+      </div>
+      <div class="ss-item" style="align-items:flex-start">
+        <img
+          src="file:///home/agricidaniel/Downloads/pro-hub-challenge-march-screenshots/Lutfiya.png"
+          class="contributor-img"
+          alt="Lutfiya Miller's submission post"
+          onerror="this.style.display='none'">
+        <div class="ss-cap" style="margin-top:6px">Lutfiya Miller — submission post</div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">06 / 15</span>
+</section>
+
+<!-- ===== 07: SEO-SXO (Florian) ===== -->
+<section class="slide" id="s7">
+  <div class="slide-inner">
+    <div class="slide-tag">new skill 2 of 4</div>
+    <h2>Search Experience <span class="accent">Optimization</span></h2>
+    <div class="two-col-2">
+      <div>
+        <p style="margin-bottom:14px">By <strong style="color:var(--text)">Florian Schmitz</strong>. Read SERPs backwards. Find page-type mismatches before Google penalizes them.</p>
+        <div class="feat-list">
+          <div class="feat-item">Page-type taxonomy: informational, transactional, navigational, commercial</div>
+          <div class="feat-item">Persona scoring: visitor intent vs. page intent alignment</div>
+          <div class="feat-item">Detects mismatch (e.g., product page ranking for comparison query) and recommends fixes</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);padding:16px;margin-top:14px">
+          <div style="font-size:9px;letter-spacing:1.5px;color:var(--coral);text-transform:uppercase;margin-bottom:10px">Example Detection</div>
+          <div style="font-size:11px;color:var(--text-gray);line-height:2">
+            Query: <span style="color:var(--text)">"best crm software"</span> — SERP: <span style="color:var(--amber)">Comparison List</span><br>
+            Your page: <span style="color:var(--rose)">Product Landing Page</span> — Mismatch: <span style="color:var(--rose)">HIGH</span><br>
+            Fix: <span style="color:var(--green)">add comparison table, pricing tiers, feature matrix</span>
+          </div>
+        </div>
+        <div class="cmd"><span class="prompt">$ </span><span class="command">/seo sxo https://yoursite.com/page</span></div>
+        <div class="int-note"><strong>Integration Notes:</strong> Consolidated from four original SKILL.md files that each exceeded the 500-line limit.</div>
+      </div>
+      <div class="ss-item" style="align-items:flex-start">
+        <img
+          src="file:///home/agricidaniel/Downloads/pro-hub-challenge-march-screenshots/florian.png"
+          class="contributor-img"
+          alt="Florian Schmitz's submission post"
+          onerror="this.style.display='none'">
+        <div class="ss-cap" style="margin-top:6px">Florian Schmitz — submission post</div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">07 / 15</span>
+</section>
+
+<!-- ===== 08: SEO-DRIFT (Dan) ===== -->
+<section class="slide" id="s8">
+  <div class="slide-inner">
+    <div class="slide-tag">new skill 3 of 4</div>
+    <h2>SEO Drift <span class="accent">Monitoring</span></h2>
+    <div class="two-col-2">
+      <div>
+        <p style="margin-bottom:14px">By <strong style="color:var(--text)">Dan Colta</strong>. Git for SEO. Baseline your pages. Catch regressions before rankings drop.</p>
+        <div class="flow">
+          <div class="flow-row">
+            <div class="flow-box active">baseline</div>
+            <span class="flow-arrow">&#10132;</span>
+            <div class="flow-box">SQLite</div>
+            <span class="flow-arrow">&#10132;</span>
+            <div class="flow-box amber">17 rules</div>
+            <span class="flow-arrow">&#10132;</span>
+            <div class="flow-box green">drift score</div>
+            <span class="flow-arrow">&#10132;</span>
+            <div class="flow-box blue">HTML report</div>
+          </div>
+        </div>
+        <div class="feat-list" style="margin-top:14px">
+          <div class="feat-item">17 rules: title, meta, headings, canonical, schema, internal links, status codes, response time</div>
+          <div class="feat-item">3 severity levels: CRITICAL, WARNING, INFO. Weighted drift score 0–100</div>
+          <div class="feat-item">SQLite at <code style="color:var(--coral);font-size:10px">~/.cache/claude-seo/drift/baselines.db</code></div>
+          <div class="feat-item">Parameterized SQL throughout. html.escape() on all report output</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <div class="cmd" style="flex:1;margin-top:0"><span class="prompt">$ </span><span class="command">/seo drift baseline url</span></div>
+          <div class="cmd" style="flex:1;margin-top:0"><span class="prompt">$ </span><span class="command">/seo drift compare url</span></div>
+        </div>
+        <div class="int-note"><strong>Integration Notes:</strong> Parameterized SQL and html.escape() already present in submission — minimal security changes needed.</div>
+      </div>
+      <div class="ss-item" style="align-items:flex-start">
+        <img
+          src="file:///home/agricidaniel/Downloads/pro-hub-challenge-march-screenshots/dan.png"
+          class="contributor-img"
+          alt="Dan Colta's submission post"
+          onerror="this.style.display='none'">
+        <div class="ss-cap" style="margin-top:6px">Dan Colta — submission post</div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">08 / 15</span>
+</section>
+
+<!-- ===== 09: SEO-ECOMMERCE (Matej) ===== -->
+<section class="slide" id="s9">
+  <div class="slide-inner">
+    <div class="slide-tag">new skill 4 of 4</div>
+    <h2>E-commerce <span class="accent">SEO</span></h2>
+    <div class="two-col-2">
+      <div>
+        <p style="margin-bottom:14px">By <strong style="color:var(--text)">Matej Marjanovic</strong>. Product schema, marketplace intelligence, and cost-aware DataForSEO.</p>
+        <div class="feat-list">
+          <div class="feat-item">Product and ItemList schema templates added to schema/templates.json</div>
+          <div class="feat-item">DataForSEO Merchant API: live Google Shopping prices + Amazon competitor data</div>
+          <div class="feat-item">Category hierarchy and breadcrumb analysis for large catalogs</div>
+          <div class="feat-item">Auto-detects WooCommerce, Shopify, and custom store implementations</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid rgba(74,222,128,.25);padding:14px;margin-top:14px">
+          <div style="font-size:9px;letter-spacing:1.5px;color:var(--green);text-transform:uppercase;margin-bottom:8px">Matej's Cost Guardrail Contribution</div>
+          <div style="font-size:11px;color:var(--text-gray);line-height:1.9">
+            Unknown endpoint: <code style="color:var(--coral)">needs_approval</code> (was: $0.05 default)<br>
+            Budget reset: requires <code style="color:var(--coral)">--confirm</code> + audit trail<br>
+            Result: no surprise DataForSEO bills
+          </div>
+        </div>
+        <div class="cmd"><span class="prompt">$ </span><span class="command">/seo ecommerce https://shop.com/product</span></div>
+        <div class="int-note"><strong>Integration Notes:</strong> Cost guardrail logic extracted and applied globally across all DataForSEO calls, not just ecommerce.</div>
+      </div>
+      <div class="ss-item" style="align-items:flex-start">
+        <img
+          src="file:///home/agricidaniel/Downloads/pro-hub-challenge-march-screenshots/Matej.png"
+          class="contributor-img"
+          alt="Matej Marjanovic's submission post"
+          onerror="this.style.display='none'">
+        <div class="ss-cap" style="margin-top:6px">Matej Marjanovic — submission post</div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">09 / 15</span>
+</section>
+
+<!-- ===== 10: SEO-HREFLANG (Chris) ===== -->
+<section class="slide" id="s10">
+  <div class="slide-inner">
+    <div class="slide-tag">enhancement</div>
+    <h2>International SEO <span class="accent">Enhanced</span></h2>
+    <div class="two-col-2">
+      <div>
+        <p style="margin-bottom:14px">By <strong style="color:var(--text)">Chris Muller</strong>. 4 cultural adaptation profiles added to seo-hreflang. Not just tags. Real localization signals.</p>
+        <table class="data-table" style="margin-top:0">
+          <thead><tr><th>Market</th><th>Locales</th><th>Key Signals</th></tr></thead>
+          <tbody>
+            <tr><td style="color:var(--text)">DACH</td><td>de-AT/CH/DE</td><td>Formal Sie, Swiss CHF, legal disclaimers</td></tr>
+            <tr><td style="color:var(--text)">France</td><td>fr-FR</td><td>LCEN compliance, CNIL privacy, formal register</td></tr>
+            <tr><td style="color:var(--text)">Spain</td><td>es-ES/MX</td><td>Regional nuance, EU GDPR, Basque/Catalan</td></tr>
+            <tr><td style="color:var(--text)">Japan</td><td>ja-JP</td><td>Keigo formality, Yahoo/Rakuten signals</td></tr>
+          </tbody>
+        </table>
+        <div class="feat-list" style="margin-top:14px">
+          <div class="feat-item">Validates hreflang syntax and x-default coverage (BCP 47)</div>
+          <div class="feat-item">Content parity scoring across locale pairs</div>
+          <div class="feat-item">3 new reference files in skills/seo-hreflang/references/</div>
+        </div>
+        <div class="cmd"><span class="prompt">$ </span><span class="command">/seo hreflang https://site.com</span></div>
+        <div class="int-note"><strong>Integration Notes:</strong> Blog-specific content extracted for claude-blog; only SEO hreflang parts integrated here.</div>
+      </div>
+      <div class="ss-item" style="align-items:flex-start">
+        <img
+          src="file:///home/agricidaniel/Downloads/pro-hub-challenge-march-screenshots/chris.png"
+          class="contributor-img"
+          alt="Chris Muller's submission post"
+          onerror="this.style.display='none'">
+        <div class="ss-cap" style="margin-top:6px">Chris Muller — submission post</div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">10 / 15</span>
+</section>
+
+<!-- ===== 11: ARCHITECTURE EVOLUTION ===== -->
+<section class="slide" id="s11">
+  <div class="slide-inner">
+    <div class="slide-tag">architecture</div>
+    <h2>v1.8 <span class="accent">&#8594;</span> v1.9.0</h2>
+    <div class="two-col" style="margin-top:0">
+      <div>
+        <div class="compare" style="margin-top:0">
+          <div class="compare-col before">
+            <h3>v1.8.x</h3>
+            <div class="compare-item"><span>Skills</span><span class="val">19</span></div>
+            <div class="compare-item"><span>Subagents</span><span class="val">13</span></div>
+            <div class="compare-item"><span>Scripts</span><span class="val">23</span></div>
+            <div class="compare-item"><span>Reference files</span><span class="val">~25</span></div>
+            <div class="compare-item"><span>Schema templates</span><span class="val">8</span></div>
+            <div class="compare-item"><span>Routing commands</span><span class="val">18</span></div>
+          </div>
+          <div class="compare-col after">
+            <h3>v1.9.0</h3>
+            <div class="compare-item"><span>Skills</span><span class="val" style="color:var(--coral)">23 (+4)</span></div>
+            <div class="compare-item"><span>Subagents</span><span class="val" style="color:var(--coral)">17 (+4)</span></div>
+            <div class="compare-item"><span>Scripts</span><span class="val" style="color:var(--coral)">30 (+7)</span></div>
+            <div class="compare-item"><span>Reference files</span><span class="val" style="color:var(--coral)">~38 (+13)</span></div>
+            <div class="compare-item"><span>Schema templates</span><span class="val" style="color:var(--coral)">10 (+2)</span></div>
+            <div class="compare-item"><span>Routing commands</span><span class="val" style="color:var(--coral)">23 (+5)</span></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--coral);margin-bottom:10px">7 New Python Scripts</div>
+        <div class="feat-list">
+          <div class="feat-item"><code style="color:var(--coral);font-size:10px">dataforseo_costs.py</code> — cost estimation, approval workflow, fcntl budget locking</div>
+          <div class="feat-item"><code style="color:var(--coral);font-size:10px">dataforseo_merchant.py</code> — Google Shopping + Amazon via Merchant API</div>
+          <div class="feat-item"><code style="color:var(--coral);font-size:10px">dataforseo_normalize.py</code> — shared response normalization utility</div>
+          <div class="feat-item"><code style="color:var(--coral);font-size:10px">drift_baseline.py</code> — SQLite baseline capture, SSRF-protected</div>
+          <div class="feat-item"><code style="color:var(--coral);font-size:10px">drift_compare.py</code> — 17-rule comparison engine, parameterized SQL</div>
+          <div class="feat-item"><code style="color:var(--coral);font-size:10px">drift_report.py</code> — HTML reporting with html.escape() throughout</div>
+          <div class="feat-item"><code style="color:var(--coral);font-size:10px">drift_history.py</code> — read-only timeline query</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">11 / 15</span>
+</section>
+
+<!-- ===== 12: REVIEW PROCESS ===== -->
+<section class="slide" id="s12">
+  <div class="slide-inner">
+    <div class="slide-tag">quality assurance</div>
+    <h2>4 Rounds of <span class="accent">Review</span></h2>
+    <div class="score-timeline">
+      <div class="score-node">
+        <div class="score-val" style="color:var(--amber)">87</div>
+        <div class="score-sub">Round 1</div>
+        <div class="score-desc">Code Review</div>
+      </div>
+      <div class="score-connector"></div>
+      <div class="score-node">
+        <div class="score-val" style="color:var(--amber)">93</div>
+        <div class="score-sub">Round 2</div>
+        <div class="score-desc">Re-Review</div>
+      </div>
+      <div class="score-connector"></div>
+      <div class="score-node">
+        <div class="score-val" style="color:var(--green)">97</div>
+        <div class="score-sub">Round 3</div>
+        <div class="score-desc">Max-Effort</div>
+      </div>
+      <div class="score-connector"></div>
+      <div class="score-node">
+        <div class="score-val" style="color:var(--coral)">85</div>
+        <div class="score-sub">Round 4</div>
+        <div class="score-desc">Security Audit</div>
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead><tr><th>Round</th><th>Score</th><th>Key Findings</th></tr></thead>
+      <tbody>
+        <tr>
+          <td style="color:var(--text)">1: Code Review</td>
+          <td style="color:var(--amber);font-weight:700">87/100</td>
+          <td>Step numbering collision in orchestrator routing. Agent count wrong in seo-audit skill.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text)">2: Re-Review</td>
+          <td style="color:var(--amber);font-weight:700">93/100</td>
+          <td>install.ps1 version not bumped. AGENTS.md count off by one. Dead import in dataforseo_merchant.py.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text)">3: Max-Effort Plan</td>
+          <td style="color:var(--green);font-weight:700">97/100</td>
+          <td>CONTRIBUTING.md insertion at line 25 would have orphaned subsections. New commands in wrong README location.</td>
+        </tr>
+        <tr>
+          <td style="color:var(--text)">4: Security Audit</td>
+          <td style="color:var(--coral);font-weight:700">85/100</td>
+          <td>XSS in SVG rendering. Cost guardrail bypass chain. CI coverage gap. Concurrent write race condition in cost ledger.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <span class="slide-num">12 / 15</span>
+</section>
+
+<!-- ===== 13: SECURITY AUDIT ===== -->
+<section class="slide" id="s13">
+  <div class="slide-inner">
+    <div class="slide-tag">security audit — 8 specialist agents</div>
+    <h2>Security <span class="accent">Audit</span></h2>
+    <div class="two-col-3" style="margin-top:8px">
+      <div>
+        <p style="margin-bottom:14px">OWASP Top 10:2025, STRIDE, MITRE ATT&amp;CK. 15 findings across 3 severity tiers. 10 of 11 deferred findings were already present in v1.8.x — this audit formally documented them for the first time.</p>
+        <table class="data-table" style="margin-top:0">
+          <thead><tr><th>Finding</th><th>Sev</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>XSS in cluster-map.html: truncate() output inserted raw into SVG DOM</td>
+              <td class="sev-high">HIGH</td>
+              <td class="status-fixed">Fixed: escapeHtml() at render points</td>
+            </tr>
+            <tr>
+              <td>Cost guardrail bypass: unknown endpoint defaulted to $0.05, reset cleared spend without confirmation</td>
+              <td class="sev-high">HIGH</td>
+              <td class="status-fixed">Fixed: needs_approval + --confirm reset</td>
+            </tr>
+            <tr>
+              <td>CI coverage gap: 7 new scripts absent from compile check</td>
+              <td class="sev-med">MED</td>
+              <td class="status-fixed">Fixed: ci.yml 21 → 28 scripts</td>
+            </tr>
+            <tr>
+              <td>Concurrent write race condition in cost ledger</td>
+              <td class="sev-med">MED</td>
+              <td class="status-fixed">Fixed: fcntl shared/exclusive locks</td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="margin-top:10px;font-size:11px;color:var(--text-muted)">11 findings deferred to v1.9.1. All documented. None CRITICAL.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;justify-content:center">
+        <div style="text-align:center">
+          <div style="font-family:var(--grotesk);font-size:90px;font-weight:700;color:var(--coral);line-height:1">85</div>
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-top:3px">Security Score / 100</div>
+        </div>
+        <div style="width:100%;display:flex;flex-direction:column;gap:7px">
+          <div style="background:var(--surface);border:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--text-gray)">CRITICAL</span>
+            <span style="font-family:var(--grotesk);font-size:20px;font-weight:700;color:var(--green)">0</span>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--text-gray)">HIGH</span>
+            <span style="font-family:var(--grotesk);font-size:20px;font-weight:700;color:var(--rose)">4</span>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--text-gray)">MEDIUM</span>
+            <span style="font-family:var(--grotesk);font-size:20px;font-weight:700;color:var(--amber)">6</span>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:11px;color:var(--text-gray)">LOW</span>
+            <span style="font-family:var(--grotesk);font-size:20px;font-weight:700;color:var(--text-muted)">5</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">13 / 15</span>
+</section>
+
+<!-- ===== 14: DATAFORSEO COST GUARDRAILS ===== -->
+<section class="slide" id="s14">
+  <div class="slide-inner">
+    <div class="slide-tag">technical deep-dive</div>
+    <h2>DataForSEO Cost <span class="accent">Guardrails</span></h2>
+    <p>DataForSEO calls accumulate cost fast when multiple subagents run in parallel. v1.9.0 adds a cost estimation and approval workflow in <code style="color:var(--coral)">scripts/dataforseo_costs.py</code>.</p>
+    <div class="two-col" style="margin-top:16px">
+      <div>
+        <div style="font-size:9px;letter-spacing:1.5px;color:var(--rose);text-transform:uppercase;margin-bottom:8px">The Bypass Chain (Closed)</div>
+        <div class="feat-list" style="margin-bottom:14px">
+          <div class="feat-item">Unknown endpoints defaulted to <strong style="color:var(--text)">$0.05 per call</strong>, bypassing the approval gate by using an undocumented endpoint name</div>
+          <div class="feat-item">The reset command cleared cumulative spend with <strong style="color:var(--text)">no confirmation</strong>, letting a misconfigured agent wipe the budget ledger and restart a spending cycle</div>
+        </div>
+        <div class="code-block"><span class="cc"># Before (bypass possible)</span>
+unit_cost = COST_TABLE.get(endpoint, <span class="cs">0.05</span>)
+
+<span class="cc"># After (fixed)</span>
+unit_cost = COST_TABLE.get(endpoint)
+<span class="ck">if</span> unit_cost <span class="ck">is</span> None:
+    <span class="ck">return</span> {<span class="cs">"status"</span>: <span class="cs">"needs_approval"</span>,
+            <span class="cs">"approval_reason"</span>: <span class="cs">"unknown_endpoint"</span>}
+
+<span class="cc"># Reset: now requires --confirm</span>
+<span class="ck">def</span> cmd_reset(args):
+    <span class="ck">if not</span> args.confirm:
+        <span class="ck">return</span> {<span class="cs">"status"</span>: <span class="cs">"blocked"</span>,
+                <span class="cs">"message"</span>: <span class="cs">"Reset requires --confirm flag."</span>}</div>
+      </div>
+      <div>
+        <div style="font-size:9px;letter-spacing:1.5px;color:var(--green);text-transform:uppercase;margin-bottom:8px">Concurrent Safety (fcntl)</div>
+        <p style="font-size:12px;margin-bottom:14px">The cost ledger is a JSON file read and written by multiple parallel subagents. v1.9.0 adds <code style="color:var(--coral)">fcntl.flock()</code>: shared lock for reads, exclusive lock for writes. Windows falls back gracefully.</p>
+        <div style="background:var(--surface);border:1px solid var(--border);padding:16px">
+          <div style="font-size:9px;letter-spacing:1.5px;color:var(--amber);text-transform:uppercase;margin-bottom:10px">Approval Workflow</div>
+          <div style="font-size:11px;color:var(--text-gray);line-height:2.1">
+            Endpoint: <code style="color:var(--text)">merchant_competitors</code><br>
+            Estimated: <span style="color:var(--amber)">$0.18</span> &nbsp;|&nbsp; Budget: $5.00<br>
+            <span style="color:var(--text)">Proceed? [y/N]</span> <span style="color:var(--green)">← new prompt</span>
+          </div>
+        </div>
+        <div class="int-note" style="margin-top:12px"><strong>Attribution:</strong> Cost guardrail concept from Matej Marjanovic. Applied globally across all DataForSEO calls during integration.</div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">14 / 15</span>
+</section>
+
+<!-- ===== 15: WHAT'S NEXT ===== -->
+<section class="slide" id="s15">
+  <div class="slide-inner">
+    <div class="slide-tag">what's next</div>
+    <h2>v1.9.1 <span class="accent">+</span> Challenge v2</h2>
+    <div class="two-col" style="margin-top:0">
+      <div>
+        <div style="font-size:9px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:12px">v1.9.1 Security Priorities</div>
+        <div class="ritem high">
+          <h3>H1: DNS Rebinding Gap <span style="font-size:10px;color:var(--rose);font-weight:400">HIGH</span></h3>
+          <p>validate_url() checks IPs at parse time but not at request time. Fix: re-validate resolved IPs at the socket layer.</p>
+        </div>
+        <div class="ritem high">
+          <h3>H2: Install Script Injection <span style="font-size:10px;color:var(--rose);font-weight:400">HIGH</span></h3>
+          <p>install.sh and install.ps1 use unquoted variables. A path with spaces could inject commands. Fix: quote all variable expansions.</p>
+        </div>
+        <div class="ritem med">
+          <h3>M1: OAuth File Permissions <span style="font-size:10px;color:var(--amber);font-weight:400">MEDIUM</span></h3>
+          <p>OAuth token files written world-readable on permissive umask systems. Fix: chmod 600 immediately after writing.</p>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="text-align:center;margin-bottom:4px">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">One Word</div>
+          <span class="big-word" style="font-size:clamp(44px,7vw,80px)">LEADS</span>
+        </div>
+        <div style="background:var(--surface);border:1px solid rgba(74,222,128,.25);padding:18px">
+          <div style="font-size:9px;letter-spacing:1.5px;color:var(--green);text-transform:uppercase;margin-bottom:10px">Challenge v2 — Now Open</div>
+          <div class="feat-list">
+            <div class="feat-item">Build anything touching lead gen: skills, n8n workflows, MCP servers, scrapers</div>
+            <div class="feat-item"><strong style="color:var(--amber)">$400</strong> first place + <strong style="color:var(--text-gray)">$200</strong> second place in Claude Credits</div>
+            <div class="feat-item">GitHub repo or .zip + 1-2 min demo video. Solo or team.</div>
+            <div class="feat-item">Deadline: <strong style="color:var(--text)">April 28, 2026</strong></div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:4px">
+          <div style="font-family:var(--grotesk);font-size:clamp(14px,2vw,18px);font-weight:700">AI Marketing Hub <span style="color:var(--coral)">Pro</span></div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px">skool.com/ai-marketing-hub-pro</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="slide-num">15 / 15</span>
+</section>
+
+<script>
+const slides = document.querySelectorAll('.slide');
+const dots   = document.querySelectorAll('.slide-nav a');
+const bar    = document.getElementById('progress');
+
+function currentIndex() {
+  return [...slides].findIndex(s => {
+    const r = s.getBoundingClientRect();
+    return r.top >= -100 && r.top < innerHeight / 2;
+  });
+}
+
+function updateUI() {
+  const i = Math.max(0, currentIndex());
+  dots.forEach(d => d.classList.remove('active'));
+  if (dots[i]) dots[i].classList.add('active');
+  bar.style.width = (i / (slides.length - 1) * 100) + '%';
+}
+
+slides.forEach(s => {
+  new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) updateUI(); });
+  }, { threshold: 0.5 }).observe(s);
+});
+
+document.addEventListener('keydown', e => {
+  const i = currentIndex();
+  if (['ArrowDown', ' ', 'ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+    if (i < slides.length - 1) slides[i + 1].scrollIntoView({ behavior: 'smooth' });
+  }
+  if (['ArrowUp', 'ArrowLeft'].includes(e.key)) {
+    e.preventDefault();
+    if (i > 0) slides[i - 1].scrollIntoView({ behavior: 'smooth' });
+  }
+});
+
+updateUI();
+</script>
+</body>
+</html>

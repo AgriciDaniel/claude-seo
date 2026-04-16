@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Python Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.10"
+
+      - name: Check Python syntax
+        run: |
+          python3 -m py_compile scripts/fetch_page.py
+          python3 -m py_compile scripts/parse_html.py
+          python3 -m py_compile scripts/analyze_visual.py
+          python3 -m py_compile scripts/capture_screenshot.py
+          python3 -m py_compile scripts/google_auth.py
+          python3 -m py_compile scripts/pagespeed_check.py
+          python3 -m py_compile scripts/crux_history.py
+          python3 -m py_compile scripts/gsc_query.py
+          python3 -m py_compile scripts/gsc_inspect.py
+          python3 -m py_compile scripts/indexing_notify.py
+          python3 -m py_compile scripts/ga4_report.py
+          python3 -m py_compile scripts/google_report.py
+          python3 -m py_compile scripts/youtube_search.py
+          python3 -m py_compile scripts/nlp_analyze.py
+          python3 -m py_compile scripts/keyword_planner.py
+          python3 -m py_compile scripts/backlinks_auth.py
+          python3 -m py_compile scripts/moz_api.py
+          python3 -m py_compile scripts/bing_webmaster.py
+          python3 -m py_compile scripts/commoncrawl_graph.py
+          python3 -m py_compile scripts/verify_backlinks.py
+          python3 -m py_compile scripts/validate_backlink_report.py
+          python3 -m py_compile scripts/dataforseo_costs.py
+          python3 -m py_compile scripts/dataforseo_merchant.py
+          python3 -m py_compile scripts/dataforseo_normalize.py
+          python3 -m py_compile scripts/drift_baseline.py
+          python3 -m py_compile scripts/drift_compare.py
+          python3 -m py_compile scripts/drift_report.py
+          python3 -m py_compile scripts/drift_history.py
+          echo "All 28 scripts passed syntax check"

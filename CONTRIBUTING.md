@@ -39,3 +39,21 @@ bash install.sh
 - Reference files should be focused and under 200 lines
 - Follow kebab-case naming for all directories and files
 - Keep dependencies minimal
+
+### Code Style
+
+- Python: Follow PEP 8 conventions. Use `ruff check` or `flake8` for linting before submitting
+- Shell: Use `set -euo pipefail` and quote all variables
+- Markdown: Keep lines under 120 characters where practical
+
+## Community Extensions (Pro Hub Challenge)
+
+Claude SEO accepts community-built extensions through challenges and PRs.
+v1.9.0 integrated 5 community submissions — see [CONTRIBUTORS.md](CONTRIBUTORS.md).
+
+To submit a community extension:
+1. Build your skill/agent/script following the patterns in this repo
+2. Keep SKILL.md under 500 lines, references under 200 lines
+3. All scripts must import `validate_url()` from `google_auth.py` for SSRF protection
+4. Include `original_author` in your SKILL.md frontmatter metadata
+5. Submit a PR or post in the [AI Marketing Hub](https://www.skool.com/ai-marketing-hub)

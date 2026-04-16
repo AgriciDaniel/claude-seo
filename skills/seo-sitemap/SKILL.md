@@ -4,6 +4,13 @@ description: >
   Analyze existing XML sitemaps or generate new ones with industry templates.
   Validates format, URLs, and structure. Use when user says "sitemap",
   "generate sitemap", "sitemap issues", or "XML sitemap".
+user-invokable: true
+argument-hint: "[url or generate]"
+license: MIT
+metadata:
+  author: AgriciDaniel
+  version: "1.9.0"
+  category: seo
 ---
 
 # Sitemap Analysis & Generation
@@ -17,7 +24,7 @@ description: >
 - `<lastmod>` dates are accurate (not all identical)
 - No deprecated tags: `<priority>` and `<changefreq>` are ignored by Google
 - Sitemap referenced in robots.txt
-- Compare crawled pages vs sitemap — flag missing pages
+- Compare crawled pages vs sitemap; flag missing pages
 
 ### Quality Signals
 - Sitemap index file if >50k URLs
@@ -41,7 +48,7 @@ description: >
 
 ### Process
 1. Ask for business type (or auto-detect from existing site)
-2. Load industry template from `assets/` directory
+2. Load industry template from `../seo-plan/assets/` directory
 3. Interactive structure planning with user
 4. Apply quality gates:
    - ⚠️ WARNING at 30+ location pages (require 60%+ unique content)
@@ -91,14 +98,21 @@ description: >
 </sitemapindex>
 ```
 
+## Error Handling
+
+- **URL unreachable**: Report the HTTP status code and suggest checking if the site is live
+- **No sitemap found**: Check common locations (/sitemap.xml, /sitemap_index.xml, robots.txt reference) before reporting "not found"
+- **Invalid XML format**: Report specific parsing errors with line numbers
+- **Rate limiting detected**: Back off and report partial results with a note about retry timing
+
 ## Output
 
 ### For Analysis
-- `VALIDATION-REPORT.md` — analysis results
+- `VALIDATION-REPORT.md`: analysis results
 - Issues list with severity
 - Recommendations
 
 ### For Generation
 - `sitemap.xml` (or split files with index)
-- `STRUCTURE.md` — site architecture documentation
+- `STRUCTURE.md`: site architecture documentation
 - URL count and organization summary

@@ -13,7 +13,7 @@ main() {
     done
 
     # Remove agents
-    for agent in seo-technical seo-content seo-schema seo-sitemap seo-performance seo-visual; do
+    for agent in seo-technical seo-content seo-schema seo-sitemap seo-performance seo-visual seo-geo; do
         rm -f "${HOME}/.claude/agents/${agent}.md"
     done
 

@@ -2,7 +2,7 @@
 # Google SEO Quick Reference (February 2026)
 
 Concise reference guide for subagents. Summarizes key Google Search concepts,
-requirements, and best practices. Not a reproduction of Google's documentation —
+requirements, and best practices. Not a reproduction of Google's documentation;
 see Official Documentation Links at the bottom for full details.
 
 ---
@@ -79,7 +79,7 @@ Measured at the 75th percentile of real user data (field data).
 
 **Measurement tools:**
 - Google PageSpeed Insights (field + lab data)
-- Chrome User Experience Report (CrUX) — field data
+- Chrome User Experience Report (CrUX): field data
 - Lighthouse (lab data only)
 - Google Search Console Core Web Vitals report
 
@@ -95,7 +95,7 @@ Measured at the 75th percentile of real user data (field data).
 - Only mark up content that is visible on the page
 - Use Google's Rich Results Test to validate before deployment
 - Do not mark up content that is misleading or hidden from users
-- Keep schema current — update when page content changes
+- Keep schema current: update when page content changes
 
 ### Deprecated/Restricted Types (as of Feb 2026)
 - **HowTo**: Rich results removed (September 2023)
@@ -118,8 +118,8 @@ Google Search Console notifications for violations. Common causes:
 - **Structured data issues**: Fix misleading or spam markup
 
 ### Algorithmic Demotions
-No manual notification — detected through ranking drops. Common causes:
-- **Helpful Content System**: Merged into Google's core ranking in March 2024 — no longer a standalone system. Helpfulness signals are now evaluated within every core update. Low-value, AI-generated, or unhelpful content at scale still triggers demotions via core updates.
+No manual notification, detected through ranking drops. Common causes:
+- **Helpful Content System**: Merged into Google's core ranking in March 2024: no longer a standalone system. Helpfulness signals are now evaluated within every core update. Low-value, AI-generated, or unhelpful content at scale still triggers demotions via core updates.
 - **Core Updates**: Broad quality reassessment across all signals
 - **Spam Updates**: Automated detection of spam patterns
 - **Link Spam Updates**: Devaluation of manipulative link patterns

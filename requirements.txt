@@ -9,3 +9,15 @@ playwright>=1.56.0,<2.0.0         # CVE-2025-59288 fix (macOS)
 Pillow>=12.1.0,<13.0.0            # CVE-2025-48379 fix
 urllib3>=2.6.3,<3.0.0             # CRITICAL: CVE-2026-21441 (CVSS 8.9), CVE-2025-66418
 validators>=0.22.0,<1.0.0         # No known CVEs
+
+# Report generation (for seo-google PDF/Excel reports)
+matplotlib>=3.8.0,<4.0.0              # No known CVEs
+weasyprint>=61.0,<70.0                # No known CVEs
+openpyxl>=3.1.0,<4.0.0                # No known CVEs (Excel export)
+
+# Google API dependencies (for seo-google skill)
+google-api-python-client>=2.100.0,<3.0.0   # No known CVEs
+google-auth>=2.20.0,<3.0.0                  # No known CVEs
+google-auth-oauthlib>=1.0.0,<2.0.0          # No known CVEs
+google-auth-httplib2>=0.2.0,<1.0.0           # No known CVEs
+google-analytics-data>=0.18.0,<1.0.0         # No known CVEs
