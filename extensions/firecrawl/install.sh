@@ -101,7 +101,7 @@ if 'mcpServers' not in settings:
 # Add Firecrawl server config
 settings['mcpServers']['firecrawl-mcp'] = {
     'command': 'npx',
-    'args': ['-y', 'firecrawl-mcp'],
+    'args': ['-y', 'firecrawl-mcp@3.11.0'],
     'env': {
         'FIRECRAWL_API_KEY': api_key
     }
@@ -121,7 +121,7 @@ print('  v MCP server configured in settings.json')
 
     # Pre-warm npm package without starting the MCP server binary.
     echo "-> Pre-downloading firecrawl-mcp..."
-    npx --yes --package=firecrawl-mcp -- node -e "" >/dev/null 2>&1 || true
+    npx --yes --package=firecrawl-mcp@3.11.0 -- node -e "" >/dev/null 2>&1 || true
 
     echo ""
     echo "v Firecrawl extension installed successfully!"

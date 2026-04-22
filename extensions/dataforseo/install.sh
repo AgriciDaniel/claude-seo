@@ -118,7 +118,7 @@ if 'mcpServers' not in settings:
 # Add DataForSEO server config
 settings['mcpServers']['dataforseo'] = {
     'command': 'npx',
-    'args': ['-y', 'dataforseo-mcp-server'],
+    'args': ['-y', 'dataforseo-mcp-server@2.8.10'],
     'env': {
         'DATAFORSEO_USERNAME': username,
         'DATAFORSEO_PASSWORD': password,
@@ -141,7 +141,7 @@ print('  ✓ MCP server configured in settings.json')
 
     # Pre-warm npm package without starting the MCP server binary.
     echo "→ Pre-downloading dataforseo-mcp-server..."
-    npx --yes --package=dataforseo-mcp-server -- node -e "" >/dev/null 2>&1 || true
+    npx --yes --package=dataforseo-mcp-server@2.8.10 -- node -e "" >/dev/null 2>&1 || true
 
     echo ""
     echo "✓ DataForSEO extension installed successfully!"
