@@ -1,6 +1,6 @@
 {
   "name": "claude-seo",
-  "version": "1.9.0",
+  "version": "1.9.5",
   "description": "Comprehensive SEO analysis skill for Claude Code. 20 core sub-skills covering technical SEO, content quality (E-E-A-T), schema markup, image optimization, sitemap architecture, AI search optimization (GEO), local SEO, maps intelligence, semantic topic clustering, search experience optimization (SXO), SEO drift monitoring, e-commerce SEO, international SEO with cultural profiles, and strategic planning across all industries.",
   "author": {
     "name": "AgriciDaniel",
