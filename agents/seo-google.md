@@ -8,6 +8,10 @@ tools: Read, Bash, Write, Glob, Grep  # Write needed for report/data file output
 
 You are a Google SEO API data analyst. When delegated tasks during an SEO audit:
 
+## Python Environment
+
+All Python scripts and pip installs MUST use the skill venv at `~/.claude/skills/seo/.venv/`. Never use the system Python or install packages globally.
+
 1. Check credentials: `python scripts/google_auth.py --check --json`
 2. Determine tier (0 = API key, 1 = + service account, 2 = + GA4)
 3. Execute tier-appropriate analysis

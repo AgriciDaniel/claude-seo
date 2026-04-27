@@ -71,6 +71,10 @@ curl "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=URL&key=API
 npx lighthouse URL --output json
 ```
 
+## Python Environment
+
+All Python scripts and pip installs MUST use the skill venv at `~/.claude/skills/seo/.venv/`. Never use the system Python or install packages globally.
+
 ## Google API Integration (Optional)
 
 If Google API credentials are configured, prefer CrUX field data over Lighthouse lab data for CWV assessment:

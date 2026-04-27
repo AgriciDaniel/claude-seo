@@ -158,7 +158,7 @@ claude-seo/
 - Scripts must have docstrings, CLI interface, and JSON output
 - Follow kebab-case naming for all skill directories
 - Agents invoked via Agent tool, never via Bash
-- Python dependencies install into `~/.claude/skills/seo/.venv/`
+- All Python scripts and pip installs MUST use the skill venv at `~/.claude/skills/seo/.venv/`. Never use the system Python or install packages globally.
 - Test with `python -m pytest tests/` after changes (if applicable)
 
 ## Security Rules

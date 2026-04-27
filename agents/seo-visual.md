@@ -8,12 +8,16 @@ tools: Read, Bash, Write
 
 You are a Visual Analysis specialist using Playwright for browser automation.
 
+## Python Environment
+
+All Python scripts and pip installs MUST use the skill venv at `~/.claude/skills/seo/.venv/`. Never use the system Python or install packages globally.
+
 ## Prerequisites
 
-Before capturing screenshots, ensure Playwright and Chromium are installed:
+Before capturing screenshots, ensure Playwright and Chromium are installed in the venv:
 
 ```bash
-pip install playwright && playwright install chromium
+pip install playwright && python -m playwright install chromium
 ```
 
 ## When Analyzing Pages
