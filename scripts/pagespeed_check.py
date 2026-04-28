@@ -98,6 +98,7 @@ def run_pagespeed(
         "passed_audits_count": 0,
         "seo_audits": [],
         "accessibility_audits": [],
+        "audit_details": {},
         "analysis_timestamp": None,
         "error": None,
     }
