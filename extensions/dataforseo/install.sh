@@ -16,6 +16,19 @@ main() {
     echo "════════════════════════════════════════"
     echo ""
 
+    # Support both traditional (curl|bash → ~/.claude/skills/seo) and marketplace
+    # (plugin install → ~/.claude/plugins/cache/.../skills/seo) installations.
+    # Resolve early using BASH_SOURCE so it works even when run from the plugin cache.
+    _EARLY_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    _PLUGIN_SEO_DIR="$(cd "${_EARLY_SCRIPT_DIR}/../.." 2>/dev/null && pwd)/skills/seo"
+    if [ ! -d "${SEO_SKILL_DIR}" ] && [ -d "${_PLUGIN_SEO_DIR}" ]; then
+        SEO_SKILL_DIR="${_PLUGIN_SEO_DIR}"
+    fi
+    if [ ! -d "${SEO_SKILL_DIR}" ]; then
+        _GLOB_MATCH=$(ls -d "${HOME}/.claude/plugins/cache/agricidaniel-seo/claude-seo/"*/skills/seo 2>/dev/null | tail -n1 || true)
+        [ -n "${_GLOB_MATCH}" ] && [ -d "${_GLOB_MATCH}" ] && SEO_SKILL_DIR="${_GLOB_MATCH}"
+    fi
+
     # Check prerequisites
     if [ ! -d "${SEO_SKILL_DIR}" ]; then
         echo "✗ Claude SEO is not installed."
