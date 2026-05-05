@@ -1,0 +1,4 @@
+MIT License - see repository root LICENSE file for complete terms.
+
+Copyright (c) 2026 puneetindersingh
+https://github.com/AgriciDaniel/claude-seo
