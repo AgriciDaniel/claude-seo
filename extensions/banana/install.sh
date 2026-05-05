@@ -110,7 +110,7 @@ if 'mcpServers' not in settings:
 # Add nanobanana-mcp server config
 settings['mcpServers']['nanobanana-mcp'] = {
     'command': 'npx',
-    'args': ['-y', '@ycse/nanobanana-mcp@latest'],
+    'args': ['-y', '@ycse/nanobanana-mcp@1.1.1'],
     'env': {
         'GOOGLE_AI_API_KEY': '''${GOOGLE_AI_API_KEY}'''
     }
@@ -148,7 +148,7 @@ print('  ✓ nanobanana-mcp configured in settings.json')
 
     # Pre-warm npm package without starting the MCP server binary.
     echo "→ Pre-downloading nanobanana-mcp..."
-    npx --yes --package=@ycse/nanobanana-mcp@latest -- node -e "" >/dev/null 2>&1 || true
+    npx --yes --package=@ycse/nanobanana-mcp@1.1.1 -- node -e "" >/dev/null 2>&1 || true
 
     echo ""
     echo "✓ Banana Image Generation extension installed successfully!"
