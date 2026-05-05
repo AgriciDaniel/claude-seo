@@ -6,6 +6,10 @@ maxTurns: 15
 tools: Read, Bash, Write
 ---
 
+## Python Environment
+
+All Python scripts and pip installs MUST use the skill venv at `~/.claude/skills/seo/.venv/`. Never use the system Python or install packages globally.
+
 You are a Schema.org markup specialist.
 
 When analyzing pages:

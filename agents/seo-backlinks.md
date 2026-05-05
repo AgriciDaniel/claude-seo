@@ -8,6 +8,10 @@ tools: Read, Bash, Write, Glob, Grep
 
 You are a backlink profile analyst. When delegated tasks during an SEO audit:
 
+## Python Environment
+
+All Python scripts and pip installs MUST use the skill venv at `~/.claude/skills/seo/.venv/`. Never use the system Python or install packages globally.
+
 1. Check credentials: `python scripts/backlinks_auth.py --check --json`
 2. Determine tier (0 = CC+verify, 1 = +Moz, 2 = +Bing, 3 = +DataForSEO)
 3. Run all available sources for the target domain

@@ -125,24 +125,17 @@ main() {
     # Install Python dependencies (venv preferred, --user fallback)
     echo "→ Installing Python dependencies..."
     VENV_DIR="${SKILL_DIR}/.venv"
-    if python3 -m venv "${VENV_DIR}" 2>/dev/null; then
-        "${VENV_DIR}/bin/pip" install --quiet -r "${TEMP_DIR}/claude-seo/requirements.txt" 2>/dev/null && \
-            echo "  ✓ Installed in venv at ${VENV_DIR}" || \
-            echo "  ⚠  Venv pip install failed. Run: ${VENV_DIR}/bin/pip install -r ${SKILL_DIR}/requirements.txt"
-    else
-        pip install --quiet --user -r "${TEMP_DIR}/claude-seo/requirements.txt" 2>/dev/null || \
-        echo "  ⚠  Could not auto-install. Run: pip install --user -r ${SKILL_DIR}/requirements.txt"
+    if ! python3 -m venv "${VENV_DIR}" 2>/dev/null; then
+        echo "✗ Failed to create venv at ${VENV_DIR}. Ensure python3-venv is installed."
+        exit 1
     fi
+    "${VENV_DIR}/bin/pip" install --quiet -r "${TEMP_DIR}/claude-seo/requirements.txt"
+    echo "  ✓ Installed in venv at ${VENV_DIR}"
 
     # Optional: Install Playwright browsers (for screenshot analysis)
     echo "→ Installing Playwright browsers (optional, for visual analysis)..."
-    if [ -f "${VENV_DIR}/bin/playwright" ]; then
-        "${VENV_DIR}/bin/python" -m playwright install chromium 2>/dev/null || \
+    "${VENV_DIR}/bin/python" -m playwright install chromium 2>/dev/null || \
         echo "  ⚠  Playwright install failed. Visual analysis will use WebFetch fallback."
-    else
-        python3 -m playwright install chromium 2>/dev/null || \
-        echo "  ⚠  Playwright install failed. Visual analysis will use WebFetch fallback."
-    fi
 
     echo ""
     echo "✓ Claude SEO installed successfully!"
