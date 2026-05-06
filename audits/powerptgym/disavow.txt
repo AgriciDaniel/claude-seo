@@ -1,0 +1,75 @@
+# Disavow file for powerptgym.co.uk
+# Generated: 2026-05-06
+# Source: DataForSEO Backlinks (referring_domains + anchors endpoints)
+#
+# Rationale: domain-level spam score is 43/100. Anchor profile contains
+# Telegram-channel injections, SEO-reseller spam, and PBN/expired-domain
+# patterns. None of these links are likely to have been built by Power PT.
+#
+# Upload via: https://search.google.com/search-console/disavow-links
+# (Select the powerptgym.co.uk property, then upload this file.)
+#
+# Format: domain:<root-domain> ignores all links from that domain and
+# any subdomain. This is the recommended format per Google's guidelines.
+
+# --- Telegram link injection campaigns (high spam confidence) ---
+domain:read.org.in
+domain:seomuda.id
+domain:globalcocolk.com
+domain:sisgroup.lk
+domain:passiogolf.vn
+domain:productionfunctionusa.com
+domain:cocoqatar.com
+domain:astrologlar.com
+domain:gaister.com
+domain:ezeller.com
+domain:xedulichdaklak.com
+
+# --- SEO reseller / PBN domains with explicit anchor spam ---
+domain:seobacklinks.agency
+domain:rankgrow.agency
+domain:great-choice-for-pbn-domains.co.uk
+domain:thebestbacklinksavailable.click
+domain:all-aged-domains.com
+domain:browseallexpireddomains.us
+
+# --- Generic web "directories" (low quality, high spam score) ---
+domain:simplewebdirectory.com
+domain:websiterace.com
+domain:pagesearch.net
+domain:australianwebdirectory.pro
+domain:australianwebdirectory.shop
+domain:wallpapers.pro
+domain:agmermer.pro
+domain:ready.pro
+domain:tunca.org
+domain:musweb.org
+domain:booksreadr.org
+domain:globalecommerce.org
+domain:ycm.info
+domain:alljobs.info
+domain:mundotecnologia.info
+domain:sergechel.info
+domain:kompromat100.info
+domain:runningwebsites.net
+domain:shortenurls.eu
+domain:way2check.cv
+
+# --- "Website worth / wallpapers / shorteners" link-bait scrapers ---
+domain:getwebsiteworth.com
+domain:wheretobuybest.link
+domain:bye.fyi
+domain:quero.party
+domain:what-happens-next.xyz
+domain:screenshots.wiki
+domain:ododuorpremium.com
+domain:gleauty.com
+
+# --- Notes on what is NOT disavowed (legitimate, keep) ---
+# bing.com                — Bing search (legitimate)
+# pitchero.com            — UK sports clubs platform (legitimate)
+# alltrainers.co.uk       — UK trainer directory (low quality but real)
+# askgympal.co.uk         — UK gym aggregator (real)
+# bio4me.co.za            — actual blog citing the consistency quote (legit)
+
+# End of disavow file
