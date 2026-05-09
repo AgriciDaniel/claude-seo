@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.8] - 2026-05-09
+
+### Fixed
+- **Skill-count drift returned via PR #56.** When the `seo-content-brief` skill
+  was merged into v1.9.7 it added a 21st core skill, but the manifest
+  reconciliation in v1.9.7 had locked the canonical phrasing at "20 core" and
+  was not re-run after Phase C. Result: plugin.json, marketplace.json,
+  README.md, CLAUDE.md, AGENTS.md, and docs/ARCHITECTURE.md all under-claimed
+  by one. Reconciled to "25 sub-skills (21 core + 1 orchestrator + 1 framework
+  integration + 2 extension mirrors)".
+
+### Added
+- **`tests/test_manifest_consistency.py`**: pytest suite that asserts
+  plugin.json + marketplace.json claimed counts match the actual on-disk
+  count of `skills/*/SKILL.md` and `agents/seo-*.md`, that plugin.json and
+  marketplace.json descriptions agree on the canonical math, that user-visible
+  docs (README, CLAUDE.md, AGENTS.md) reference the same skill count, and that
+  plugin.json `version` and CITATION.cff `version` triangulate. Closes the
+  systemic gap that allowed two skill-count drift incidents in v1.9.7.
+- **`pytest tests/` job in `.github/workflows/ci.yml`**: runs the new manifest
+  consistency suite on every push to main and every pull request, gating
+  future skill additions behind matching documentation updates.
+
+### Changed
+- This release rolls forward two commits that landed on main after the v1.9.7
+  tag was cut:
+  - `8514999`: marketplace metadata polish (added `category: "marketing"`,
+    `author.email`, `homepage: https://claude-seo.md`, and a 14-keyword array
+    to the marketplace.json plugin entry)
+  - `66a7485`: em-dash sweep on user-visible AGENTS.md and CHANGELOG.md
+  Both were intentionally scoped at v1.9.7 but landed post-tag. v1.9.8 captures
+  them properly.
+
 ## [1.9.7] - 2026-05-09
 
 ### Fixed

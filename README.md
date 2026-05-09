@@ -2,7 +2,7 @@
 
 # Claude SEO - SEO Audit Skill for Claude Code
 
-SEO analysis plugin for Claude Code. 24 sub-skills (20 core, 1 orchestrator, 1 framework integration, 2 extension mirrors) and 18 sub-agents (15 core, 1 framework integration, 2 extension mirrors) covering technical SEO, on-page analysis, content quality (E-E-A-T), schema markup, image optimization, sitemap architecture, AI search optimization (GEO), local SEO, maps intelligence, semantic topic clustering, search experience optimization (SXO), SEO drift monitoring, e-commerce SEO, international SEO with cultural profiles, FLOW framework integration, Google SEO APIs (Search Console, PageSpeed, CrUX, GA4), PDF report generation, and strategic planning.
+SEO analysis plugin for Claude Code. 25 sub-skills (21 core + 1 orchestrator + 1 framework integration + 2 extension mirrors) and 18 sub-agents (15 core + 1 framework integration + 2 extension mirrors) covering technical SEO, on-page analysis, content quality (E-E-A-T), content briefs, schema markup, image optimization, sitemap architecture, AI search optimization (GEO), local SEO, maps intelligence, semantic topic clustering, search experience optimization (SXO), SEO drift monitoring, e-commerce SEO, international SEO with cultural profiles, FLOW framework integration, Google SEO APIs (Search Console, PageSpeed, CrUX, GA4), PDF report generation, and strategic planning.
 
 ![SEO Command Demo](screenshots/seo-command-demo.gif)
 
@@ -230,7 +230,7 @@ Direct integration with Google's SEO data:
 
 ```
 ~/.claude/plugins/.../skills/seo/      # Main orchestrator
-~/.claude/plugins/.../skills/seo-*/    # 24 sub-skills (auto-discovered)
+~/.claude/plugins/.../skills/seo-*/    # 25 sub-skills (auto-discovered)
 ~/.claude/plugins/.../agents/seo-*.md  # 18 sub-agents (auto-discovered)
 ```
 
