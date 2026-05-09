@@ -37,6 +37,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Patch release driven by repository hygiene + marketplace-readiness preparation.
   No skill behavior changes, no breaking changes, no script changes.
 
+### Removed
+- **`translations/uk/`**: the Ukrainian localization (originally contributed by
+  @edocltd in PR #50, shipped in v1.9.0) has been retired. The translation drifted
+  across v1.9.0 to v1.9.7 with no maintenance signal, and a partially translated set
+  is worse than no translation at all when readers cannot tell what is current.
+  @edocltd's contribution remains credited in `CONTRIBUTORS.md`. If a maintained
+  translation is desired in the future, it should land via a contributor who can
+  commit to keeping it in sync release over release.
+
 ## [1.9.6] - 2026-04-26
 
 ### Security
