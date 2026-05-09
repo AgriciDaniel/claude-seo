@@ -1,4 +1,4 @@
-# Claude SEO — Multi-Platform Agent Instructions
+# Claude SEO: Multi-Platform Agent Instructions
 
 > For **Cursor**, **Cursor Cloud Agents**, **Google Antigravity**, and **Gemini CLI**.
 > Claude Code users: see `CLAUDE.md` instead.
@@ -66,9 +66,9 @@ DATAFORSEO_USERNAME=user DATAFORSEO_PASSWORD=pass python scripts/dataforseo_merc
 ```
 
 **Cursor Cloud gotchas:**
-- SSL certificates may not resolve for some domains — investigate the certificate issue rather than disabling verification
-- PATH may not include Python venv — use full path: `~/.claude/skills/seo/.venv/bin/python`
-- Screenshots save to `/tmp/` not CWD — check absolute paths
+- SSL certificates may not resolve for some domains. Investigate the certificate issue rather than disabling verification.
+- PATH may not include Python venv. Use full path: `~/.claude/skills/seo/.venv/bin/python`
+- Screenshots save to `/tmp/` not CWD. Check absolute paths.
 
 ## Using with Google Antigravity
 

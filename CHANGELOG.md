@@ -8,29 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.9.7] - 2026-05-09
 
 ### Fixed
-- **Skill-count drift across 5 manifests** — `plugin.json` ("20 core sub-skills"),
+- **Skill-count drift across 5 manifests**: `plugin.json` ("20 core sub-skills"),
   `marketplace.json` ("21 core sub-skills"), `CLAUDE.md` line 7 ("21 core sub-skills"),
   `AGENTS.md` line 8 ("20 core sub-skills") + line 84 ("23 skills"), and `README.md`
   line 7 ("21 core sub-skills") all contradicted each other. Reconciled to canonical
   phrasing: "24 sub-skills (20 core + 1 orchestrator + 1 framework integration +
   2 extension mirrors)".
-- **Sub-agent count drift** — `CLAUDE.md` claimed "16 core subagents (+ 2 extension
+- **Sub-agent count drift**: `CLAUDE.md` claimed "16 core subagents (+ 2 extension
   agents, 18 total)" while `AGENTS.md` claimed "15 core subagents (+ 2 extension
   agents, 17 total)". Reconciled to: "18 sub-agents (15 core + 1 framework integration +
   2 extension mirrors)".
-- **`CLAUDE.md` self-contradiction** — line 23 stated `plugin.json (v1.9.0)`; updated
+- **`CLAUDE.md` self-contradiction**: line 23 stated `plugin.json (v1.9.0)`; updated
   to current `v1.9.7`.
-- **`marketplace.json` description fields** — both `metadata.description` (top-level)
+- **`marketplace.json` description fields**: both `metadata.description` (top-level)
   and `plugins[0].description` now use canonical phrasing.
-- **`CITATION.cff` version drift** — was stuck at `1.8.2` (six minor versions behind);
+- **`CITATION.cff` version drift**: was stuck at `1.8.2` (six minor versions behind);
   bumped to match `plugin.json` at `1.9.7` with current release date.
 
 ### Added
-- **`.github/dependabot.yml`** — weekly Dependabot updates for pip and GitHub Actions
+- **`.github/dependabot.yml`**: weekly Dependabot updates for pip and GitHub Actions
   ecosystems (closes supply-chain hygiene gap).
-- **`CODE_OF_CONDUCT.md`** — Contributor Covenant 2.1, closing GitHub Community
+- **`CODE_OF_CONDUCT.md`**: Contributor Covenant 2.1, closing GitHub Community
   Standards gap.
-- **`.github/workflows/ci.yml` `permissions:` block** — restricts `GITHUB_TOKEN` to
+- **`.github/workflows/ci.yml` `permissions:` block**: restricts `GITHUB_TOKEN` to
   `contents: read` at workflow root (least-privilege; was previously default scope).
 
 ### Changed
@@ -49,24 +49,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.9.6] - 2026-04-26
 
 ### Security
-- **VULN-A01 (HIGH):** Removed `Bash` from `seo-flow` agent tool grant — agent no
+- **VULN-A01 (HIGH):** Removed `Bash` from `seo-flow` agent tool grant, agent no
   longer has shell access, eliminating prompt-injection-to-shell attack surface
 - **VULN-A02/A07 (MEDIUM/LOW):** Switched `sync_flow.py` to anonymous-first GitHub API
-  requests; PAT only used as 403-triggered fallback — eliminates token-on-redirect leak
-- **VULN-A03 (MEDIUM):** Added `Path.resolve()` containment check in `record_write()` —
+  requests; PAT only used as 403-triggered fallback, eliminates token-on-redirect leak
+- **VULN-A03 (MEDIUM):** Added `Path.resolve()` containment check in `record_write()`,
   blocks path-traversal writes outside the skill reference directory
 - **VULN-A04 (MEDIUM):** Introduced `flow-prompts.lock` SHA-256 baseline file; sync now
   diffs against baseline and reports upstream drift before writing
 - **VULN-A05 (MEDIUM):** Added explicit "WebFetch is untrusted" security rule to agent
-  body — agent warned not to execute or relay fetched content verbatim
+  body, agent warned not to execute or relay fetched content verbatim
 - **VULN-A06 (LOW):** `gh` CLI absence now degrades to anonymous API rather than
-  hard-exiting — sync works without gh CLI on public repos
-- **VULN-A08 (LOW):** All file writes are now atomic (tempfile + shutil.move) —
+  hard-exiting, sync works without gh CLI on public repos
+- **VULN-A08 (LOW):** All file writes are now atomic (tempfile + shutil.move),
   eliminates partial-write corruption on interrupt
-- **VULN-A09 (LOW):** GitHub API responses capped at 5 MB with 15s timeout —
+- **VULN-A09 (LOW):** GitHub API responses capped at 5 MB with 15s timeout,
   prevents memory exhaustion from malformed or oversized API payloads
 - **VULN-A10 (LOW):** URL allowlist validates every request targets `api.github.com`
-  over HTTPS — blocks SSRF if `API_ROOT` constant is modified
+  over HTTPS, blocks SSRF if `API_ROOT` constant is modified
 - **INFO-A14:** Added CC BY 4.0 attribution header to `references/prompts/README.md`
 
 ### Tests
@@ -76,22 +76,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.9.5] - 2026-04-26
 
 ### Added
-- **seo-flow**: FLOW framework integration — Find → Leverage → Optimize → Win. 41 evidence-led AI prompts (CC BY 4.0) bundled as `skills/seo-flow/references/prompts/` (find:5, leverage:1, optimize:21, win:3, local:11). Commands: `/seo flow [find|leverage|optimize|win|local|prompts|sync]`.
-- **Context-matching orchestration**: `/seo flow optimize` selects 2-3 most relevant prompts from 21 based on URL industry signals and prior skill output — not a full dump.
-- **`scripts/sync_flow.py`**: GitHub API sync script — pulls latest FLOW prompts, framework doc, and bibliography from AgriciDaniel/flow. Supports `--dry-run` and `--ref <sha>` pinning. Outputs JSON summary.
-- **`agents/seo-flow.md`**: FLOW subagent — applies stage prompts to target URLs, returns structured evidence-tagged findings.
+- **seo-flow**: FLOW framework integration, Find → Leverage → Optimize → Win. 41 evidence-led AI prompts (CC BY 4.0) bundled as `skills/seo-flow/references/prompts/` (find:5, leverage:1, optimize:21, win:3, local:11). Commands: `/seo flow [find|leverage|optimize|win|local|prompts|sync]`.
+- **Context-matching orchestration**: `/seo flow optimize` selects 2-3 most relevant prompts from 21 based on URL industry signals and prior skill output, not a full dump.
+- **`scripts/sync_flow.py`**: GitHub API sync script, pulls latest FLOW prompts, framework doc, and bibliography from AgriciDaniel/flow. Supports `--dry-run` and `--ref <sha>` pinning. Outputs JSON summary.
+- **`agents/seo-flow.md`**: FLOW subagent, applies stage prompts to target URLs, returns structured evidence-tagged findings.
 - **FLOW cross-references**: Integration notes added to seo-geo, seo-local, seo-content, and seo-cluster skills.
 
 ### License
-- FLOW content bundled under CC BY 4.0. Attribution header on every prompt file (automated by `sync_flow.py`). Claude SEO's MIT license unchanged — applies to skill code only.
+- FLOW content bundled under CC BY 4.0. Attribution header on every prompt file (automated by `sync_flow.py`). Claude SEO's MIT license unchanged, applies to skill code only.
 
 ## [1.9.0] - 2026-04-14
 
 ### Added
 - **seo-cluster**: SERP-based semantic topic clustering for content architecture (skill + 3 references + interactive cluster-map.html visualization + agent). Contributed by Lutfiya Miller (Pro Hub Challenge Winner).
-- **seo-sxo**: Search Experience Optimization — reads SERPs backwards to detect page-type mismatches, derives user stories, scores pages from persona perspectives (skill + 4 references + agent). Contributed by Florian Schmitz.
-- **seo-drift**: SEO drift monitoring — baseline, diff, and track changes to on-page SEO with 17 comparison rules across 3 severity levels. SQLite persistence (skill + 1 reference + agent + 4 Python scripts). Contributed by Dan Colta. Security-hardened: all curl usage eliminated, SSRF protection enforced.
-- **seo-ecommerce**: E-commerce SEO — Google Shopping intelligence, Amazon marketplace analysis, product schema validation (skill + 1 reference + agent + 2 Python scripts). Contributed by Matej Marjanovic.
+- **seo-sxo**: Search Experience Optimization, reads SERPs backwards to detect page-type mismatches, derives user stories, scores pages from persona perspectives (skill + 4 references + agent). Contributed by Florian Schmitz.
+- **seo-drift**: SEO drift monitoring, baseline, diff, and track changes to on-page SEO with 17 comparison rules across 3 severity levels. SQLite persistence (skill + 1 reference + agent + 4 Python scripts). Contributed by Dan Colta. Security-hardened: all curl usage eliminated, SSRF protection enforced.
+- **seo-ecommerce**: E-commerce SEO, Google Shopping intelligence, Amazon marketplace analysis, product schema validation (skill + 1 reference + agent + 2 Python scripts). Contributed by Matej Marjanovic.
 - **DataForSEO cost guardrails**: `scripts/dataforseo_costs.py` with threshold-based approval, session budget tracking, daily spend summaries. `references/cost-tiers.md` pricing table. Contributed by Matej Marjanovic.
 - **seo-hreflang cultural profiles**: 4 cultural adaptation profiles (DACH, Francophone, Hispanic, Japanese) with locale format tables, content parity audit, and freshness tracking. 3 new reference files. Contributed by Chris Muller.
 - **CONTRIBUTORS.md**: Community credits file for Pro Hub Challenge and PR contributors
@@ -115,7 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.8.2] - 2026-04-10
 
 ### Added
-- **Ukrainian localization**: first i18n — README, CONTRIBUTING, PRIVACY, SECURITY, INSTALLATION, TROUBLESHOOTING translated (PR #50)
+- **Ukrainian localization**: first i18n, README, CONTRIBUTING, PRIVACY, SECURITY, INSTALLATION, TROUBLESHOOTING translated (PR #50)
 - **Firecrawl extension section** in README with install and example commands
 - **Backlink API privacy disclosures** in PRIVACY.md (Moz, Bing Webmaster, Common Crawl, verify crawler)
 - 4 missing commands added to README table: `/seo backlinks`, `/seo firecrawl`, `/seo dataforseo`, `/seo image-gen`
@@ -123,20 +123,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 6 missing skill directories added to INSTALLATION.md manual uninstall list
 
 ### Fixed
-- **Install scripts pinned to stale version**: REPO_TAG bumped from v1.7.2 to v1.8.2 in install.sh and install.ps1 — new curl-based installs now get the current release
+- **Install scripts pinned to stale version**: REPO_TAG bumped from v1.7.2 to v1.8.2 in install.sh and install.ps1, new curl-based installs now get the current release
 - **Supply chain risk in docs**: removed deprecated `irm | iex` pattern from docs/INSTALLATION.md, replaced with safe `git clone` + `powershell -File` method
 - **Version sync**: pyproject.toml (1.7.2→1.8.2), CITATION.cff (1.7.2→1.8.2, date 2026-04-10), all 19 SKILL.md files
 - **Python requirement**: pyproject.toml corrected from `>=3.11` to `>=3.10` (matches README and install scripts)
 - **README architecture counts**: sub-skills "15+2" → "16+3", agents "10+2" → "11+2"
 - **Orchestrator SKILL.md**: stale count "15+2" → "16+3" at line 119
 - **CLAUDE.md**: sub-skill count 17→16 core, script count "20+2" → "21+2"
-- **Extension install hang**: merged PR #43 — npx pre-warm no longer starts MCP server binary
+- **Extension install hang**: merged PR #43, npx pre-warm no longer starts MCP server binary
 
 ### Community
 - Merged PR #43 (fix stuck extension install) by @olivierroy
 - Merged PR #45 (correct sub-skills count) by @MalteBerlin
 - Merged PR #50 (Ukrainian localization) by @edocltd
-- Closed issue #42 (marketplace discovery — resolved)
+- Closed issue #42 (marketplace discovery, resolved)
 - Reviewed PRs #47, #46, #30, #36 with detailed feedback
 
 ## [1.8.1] - 2026-04-06
