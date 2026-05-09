@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **`install.sh` and `install.ps1` default tag pinned to `v1.9.0`**, four
+  releases stale (v1.9.5/.6/.7/.8 all missed the bump). Anyone running
+  `curl -fsSL .../install.sh | bash` got the April 14 release, missing the
+  FLOW framework integration, the security audit pass, the doc reconciliation,
+  and the manifest CI guard plus all v1.9.8 Phase B bug fixes (Windows hook,
+  OAuth refresh, missing imports, None guards). Bumped both to `v1.9.8`.
+  Plugin-install users (`/plugin install claude-seo@agricidaniel-seo`) were
+  unaffected because that path reads plugin.json directly.
+- **`pyproject.toml` version stuck at `1.9.6`** while plugin.json and
+  CITATION.cff shipped at 1.9.8. The v1.9.8 manifest CI guard's
+  `test_version_triangulation` only covered plugin.json ↔ CITATION.cff;
+  pyproject.toml was outside scope so the drift slipped through. Bumped to
+  1.9.8 and extended the CI guard to cover it.
+
+### Added
+- **`tests/test_manifest_consistency.py`** gains two new assertions:
+  - `test_pyproject_version_matches_plugin_json`: pyproject.toml version
+    must equal plugin.json version on every release.
+  - `test_install_scripts_default_tag_matches_plugin_version`: install.sh
+    `REPO_TAG` and install.ps1 `$RepoTag` defaults must equal
+    `v{plugin.json version}` on every release.
+  - Both tests verified with negative-case smoke tests (revert the value,
+    confirm the assertion fires with a clear actionable error message).
+  - Total assertions in the manifest consistency suite: 7 → 9.
+
+### Changed
+- Inline comments in `install.sh:13` and `install.ps1:90` now state that the
+  default tag MUST be bumped on every release and reference the CI guard that
+  enforces it. This makes the release-checklist requirement obvious to anyone
+  reading the file.
+
 ## [1.9.8] - 2026-05-09
 
 ### Fixed

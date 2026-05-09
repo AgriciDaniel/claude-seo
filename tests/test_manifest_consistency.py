@@ -128,6 +128,61 @@ def test_version_triangulation():
     )
 
 
+def test_pyproject_version_matches_plugin_json():
+    """pyproject.toml version must equal plugin.json version.
+
+    Background: pyproject.toml drifted to 1.9.6 while plugin.json was at
+    1.9.8. The original triangulation test only covered CITATION.cff,
+    so pyproject.toml drift slipped past CI. This guard closes that gap.
+    """
+    plugin = json.loads(PLUGIN_JSON.read_text())
+    pyproject_text = (REPO_ROOT / "pyproject.toml").read_text()
+    pyproject_match = re.search(
+        r'^version\s*=\s*"([^"]+)"', pyproject_text, re.MULTILINE
+    )
+    assert pyproject_match, "pyproject.toml has no 'version = \"...\"' line"
+    plugin_version = plugin["version"]
+    pyproject_version = pyproject_match.group(1)
+    assert plugin_version == pyproject_version, (
+        f"plugin.json version is {plugin_version} but pyproject.toml has "
+        f"{pyproject_version}. Bump pyproject.toml on every release."
+    )
+
+
+def test_install_scripts_default_tag_matches_plugin_version():
+    """install.sh and install.ps1 default REPO_TAG must equal v{plugin version}.
+
+    Background: install.sh and install.ps1 default tag was v1.9.0 while
+    plugin.json shipped at 1.9.8 (4 missed bumps across v1.9.5/.6/.7/.8).
+    Manual-install users via curl | bash got 8 versions stale. This guard
+    forces the default tag to track plugin.json on every release.
+    """
+    plugin = json.loads(PLUGIN_JSON.read_text())
+    expected_tag = f"v{plugin['version']}"
+
+    sh_text = (REPO_ROOT / "install.sh").read_text()
+    sh_match = re.search(
+        r'REPO_TAG="\$\{CLAUDE_SEO_TAG:-([^}]+)\}"', sh_text
+    )
+    assert sh_match, "install.sh has no recognizable REPO_TAG default"
+    sh_tag = sh_match.group(1)
+    assert sh_tag == expected_tag, (
+        f"install.sh default tag is {sh_tag} but plugin.json is at "
+        f"version {plugin['version']} (expected {expected_tag}). "
+        f"Bump install.sh's CLAUDE_SEO_TAG default on every release."
+    )
+
+    ps_text = (REPO_ROOT / "install.ps1").read_text()
+    ps_match = re.search(r"else\s*\{\s*'([^']+)'\s*\}", ps_text)
+    assert ps_match, "install.ps1 has no recognizable RepoTag default"
+    ps_tag = ps_match.group(1)
+    assert ps_tag == expected_tag, (
+        f"install.ps1 default tag is {ps_tag} but plugin.json is at "
+        f"version {plugin['version']} (expected {expected_tag}). "
+        f"Bump install.ps1's RepoTag default on every release."
+    )
+
+
 def test_canonical_math_adds_up():
     """The canonical phrasing's parenthetical breakdown must sum to the headline count."""
     plugin = json.loads(PLUGIN_JSON.read_text())
