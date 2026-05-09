@@ -29,6 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   future skill additions behind matching documentation updates.
 
 ### Changed
+- **`uninstall.sh` and `uninstall.ps1` now use glob enumeration** rather than a
+  hardcoded skill list. The previous scripts had been frozen at v1.4.0-era
+  state and missed 12 sub-skills and 11 sub-agents added between v1.5 and
+  v1.9.8 (`seo-backlinks`, `seo-cluster`, `seo-content-brief`, `seo-dataforseo`,
+  `seo-drift`, `seo-ecommerce`, `seo-flow`, `seo-google`, `seo-image-gen`,
+  `seo-local`, `seo-maps`, `seo-sxo` and the corresponding agents). Anyone who
+  ran the old uninstaller got half a cleanup. Glob enumeration auto-tracks
+  future skill additions without requiring uninstaller maintenance. Sandbox
+  test confirms the new scripts remove every `seo` and `seo-*` skill plus
+  every `seo-*.md` agent while leaving sibling skills (e.g. `blog-writer`,
+  `security`) untouched.
 - This release rolls forward two commits that landed on main after the v1.9.7
   tag was cut:
   - `8514999`: marketplace metadata polish (added `category: "marketing"`,
