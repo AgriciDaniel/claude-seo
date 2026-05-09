@@ -1,4 +1,3 @@
-<!-- Updated: 2026-02-07 -->
 # MCP Integration
 
 ## Overview

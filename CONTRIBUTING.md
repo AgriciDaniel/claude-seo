@@ -49,7 +49,9 @@ bash install.sh
 ## Community Extensions (Pro Hub Challenge)
 
 Claude SEO accepts community-built extensions through challenges and PRs.
-v1.9.0 integrated 5 community submissions — see [CONTRIBUTORS.md](CONTRIBUTORS.md).
+v1.9.0 integrated 5 challenge submissions and v1.9.7 added 9 community pull
+requests from 7 contributors. See [CONTRIBUTORS.md](CONTRIBUTORS.md) for the
+full credits.
 
 To submit a community extension:
 1. Build your skill/agent/script following the patterns in this repo

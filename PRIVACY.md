@@ -44,6 +44,9 @@ When configured with Google API credentials, these scripts transmit data to Goog
 | `indexing_notify.py` | Indexing API | URLs to submit for indexing |
 | `ga4_report.py` | Analytics Data | Authenticated query for your GA4 properties |
 | `crux_history.py` | CrUX History | URL or origin to query |
+| `nlp_analyze.py` | Cloud Natural Language | Text content for entity / sentiment / category analysis |
+| `keyword_planner.py` | Google Ads (Keyword Planner) | Seed keywords for volume, CPC, and competition lookups |
+| `youtube_search.py` | YouTube Data API v3 | Search queries for YouTube SEO research |
 
 Google API usage is governed by [Google's Privacy Policy](https://policies.google.com/privacy) and the [Google API Terms of Service](https://developers.google.com/terms).
 
