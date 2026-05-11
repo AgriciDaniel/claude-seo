@@ -77,8 +77,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - This release rolls forward two commits that landed on main after the v1.9.7
   tag was cut:
   - `8514999`: marketplace metadata polish (added `category: "marketing"`,
-    `author.email`, `homepage: https://claude-seo.md`, and a 14-keyword array
-    to the marketplace.json plugin entry)
+    `homepage: https://claude-seo.md`, and a 14-keyword array to the
+    marketplace.json plugin entry). The `author` object for the plugin entry
+    was intentionally scoped here too but did not land in this commit; it
+    lands in v1.9.9 (issue #92).
   - `66a7485`: em-dash sweep on user-visible AGENTS.md and CHANGELOG.md
   Both were intentionally scoped at v1.9.7 but landed post-tag. v1.9.8 captures
   them properly.

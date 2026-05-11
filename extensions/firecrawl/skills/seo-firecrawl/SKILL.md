@@ -11,7 +11,7 @@ license: MIT
 compatibility: "Requires Firecrawl MCP server"
 metadata:
   author: AgriciDaniel
-  version: "1.7.2"
+  version: "1.9.8"
   category: seo
 ---
 

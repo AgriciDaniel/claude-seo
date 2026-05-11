@@ -5,13 +5,18 @@
     "name": "AgriciDaniel"
   },
   "metadata": {
-    "description": "Comprehensive SEO analysis plugin for Claude Code. 25 sub-skills covering technical SEO, E-E-A-T, content briefs, schema markup, GEO, local SEO, semantic clustering, e-commerce SEO, international SEO, and PDF reporting."
+    "description": "Comprehensive SEO analysis plugin for Claude Code. 25 sub-skills and 18 sub-agents covering technical SEO, E-E-A-T, content briefs, schema markup, GEO, local SEO, semantic clustering, e-commerce SEO, international SEO, and PDF reporting."
   },
   "plugins": [
     {
       "name": "claude-seo",
       "source": "./",
       "description": "Comprehensive SEO analysis plugin for Claude Code. 25 sub-skills (21 core + 1 orchestrator + 1 framework integration + 2 extension mirrors) and 18 sub-agents (15 core + 1 framework integration + 2 extension mirrors) covering technical SEO, content quality (E-E-A-T), content briefs, schema markup, image optimization, GEO/AEO, backlinks, local SEO, maps intelligence, semantic topic clustering, SXO, SEO drift monitoring, e-commerce SEO, international SEO with cultural profiles, FLOW framework integration, Google API integration, and PDF reporting.",
+      "author": {
+        "name": "AgriciDaniel",
+        "email": "agricidaniel@gmail.com",
+        "url": "https://github.com/AgriciDaniel"
+      },
       "category": "marketing",
       "homepage": "https://claude-seo.md",
       "keywords": [
