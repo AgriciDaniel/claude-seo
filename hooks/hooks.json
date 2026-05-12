@@ -6,7 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PLUGIN_ROOT}/hooks/validate-schema.py\" \"$FILE_PATH\""
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/validate-schema.py\" \"$FILE_PATH\"",
+            "exitCodes": { "2": "block" }
           }
         ]
       }
