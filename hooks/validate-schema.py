@@ -2,19 +2,25 @@
 """Post-edit schema validation hook for Claude Code.
 
 Validates JSON-LD schema after file edits. Returns exit code 2 to block
-if critical validation errors found.
+if critical validation errors found (exit 2 is blocking by default for
+PostToolUse — no `exitCodes` mapping is required).
 
-Hook configuration in ~/.claude/settings.json:
+Canonical plugin hook configuration (hooks/hooks.json):
 {
+  "description": "JSON-LD schema validation after file edits",
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 ~/.claude/skills/seo/hooks/validate-schema.py \"$FILE_PATH\"",
-            "exitCodes": { "2": "block" }
+            "command": "python3",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/hooks/validate-schema.py",
+              "${tool_input.file_path}"
+            ],
+            "timeout": 30
           }
         ]
       }
@@ -22,8 +28,9 @@ Hook configuration in ~/.claude/settings.json:
   }
 }
 
-Note: matcher filters by tool name only (Edit, Write). The script itself
-checks if the file contains schema markup before validating.
+Note: matcher filters by tool name (Edit, Write). The script itself checks
+if the file contains schema markup before validating, and exits 0 silently
+for any file that does not.
 """
 
 import json
