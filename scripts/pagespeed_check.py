@@ -341,7 +341,8 @@ def query_crux(
 
     try:
         resp = requests.post(
-            f"{CRUX_ENDPOINT}?key={api_key}",
+            CRUX_ENDPOINT,
+            headers={"X-Goog-Api-Key": api_key},
             json=body,
             timeout=30,
         )

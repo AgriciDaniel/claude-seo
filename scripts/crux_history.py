@@ -84,7 +84,8 @@ def query_history(
 
     try:
         resp = requests.post(
-            f"{CRUX_HISTORY_ENDPOINT}?key={api_key}",
+            CRUX_HISTORY_ENDPOINT,
+            headers={"X-Goog-Api-Key": api_key},
             json=body,
             timeout=30,
         )

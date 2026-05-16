@@ -97,7 +97,8 @@ def analyze_text(
 
     try:
         resp = requests.post(
-            f"{NLP_ENDPOINT}?key={key}",
+            NLP_ENDPOINT,
+            headers={"X-Goog-Api-Key": key},
             json=body,
             timeout=30,
         )
