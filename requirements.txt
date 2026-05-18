@@ -11,7 +11,7 @@ urllib3>=2.6.3,<3.0.0             # CRITICAL: CVE-2026-21441 (CVSS 8.9), CVE-202
 validators>=0.22.0,<1.0.0         # No known CVEs
 
 # Report generation (for seo-google PDF/Excel reports)
-matplotlib>=3.8.0,<4.0.0              # No known CVEs
+matplotlib>=3.10.9,<4.0.0              # No known CVEs
 weasyprint>=68.1,<70.0                # No known CVEs
 openpyxl>=3.1.5,<4.0.0                # No known CVEs (Excel export)
 
