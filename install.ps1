@@ -10,14 +10,20 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 function Resolve-Python {
-    $pythonCmd = Get-Command -Name python -ErrorAction SilentlyContinue
-    if ($null -ne $pythonCmd) {
-        return @{ Exe = 'python'; Args = @() }
-    }
-
     $pyCmd = Get-Command -Name py -ErrorAction SilentlyContinue
     if ($null -ne $pyCmd) {
-        return @{ Exe = 'py'; Args = @('-3') }
+        try {
+            $ver = & py -3 --version 2>&1
+            if ($LASTEXITCODE -eq 0) { return @{ Exe = 'py'; Args = @('-3') } }
+        } catch {}
+    }
+
+    $pythonCmd = Get-Command -Name python -ErrorAction SilentlyContinue
+    if ($null -ne $pythonCmd) {
+        try {
+            $ver = & python --version 2>&1
+            if ($LASTEXITCODE -eq 0) { return @{ Exe = 'python'; Args = @() } }
+        } catch {}
     }
 
     return $null
