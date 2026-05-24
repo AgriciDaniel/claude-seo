@@ -237,7 +237,15 @@ def list_sitemaps(site_url: str) -> dict:
                 "type": sm.get("type"),
                 "warnings": sm.get("warnings", 0),
                 "errors": sm.get("errors", 0),
-                "contents": sm.get("contents", []),
+                # The Sitemaps API "indexed" field inside contents[] is
+                # deprecated and always returns "0" for every property. Strip
+                # it so downstream consumers cannot misread it as a real
+                # indexation count. For actual indexation status use the URL
+                # Inspection API (gsc_inspect.py): coverage_state / verdict.
+                "contents": [
+                    {"type": c.get("type"), "submitted": c.get("submitted")}
+                    for c in sm.get("contents", [])
+                ],
             })
     except Exception as e:
         result["error"] = f"Error listing sitemaps: {e}"

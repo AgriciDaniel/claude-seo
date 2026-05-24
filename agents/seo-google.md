@@ -25,6 +25,7 @@ You are a Google SEO API data analyst. When delegated tasks during an SEO audit:
 - GSC top queries/pages (28 days): `python scripts/gsc_query.py --property <prop> --json`
 - URL Inspection on homepage + key pages: `python scripts/gsc_inspect.py <url> --json`
 - GSC sitemap status: `python scripts/gsc_query.py sitemaps --property <prop> --json`
+  - **Indexation count comes ONLY from URL Inspection** (`gsc_inspect.py` `verdict`/`coverage_state`: PASS = "Submitted and indexed", NEUTRAL = "Discovered/Crawled – currently not indexed"). The Sitemaps API exposes only a `submitted` count; its old `indexed` field is deprecated and always 0. Never report "X of Y indexed" from the sitemap. Sanity-check: a "0 indexed" headline alongside any URL you found indexed is a contradiction; trust the per-URL data.
 
 ### Tier 2 (Full)
 - All Tier 1 checks

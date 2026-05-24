@@ -135,6 +135,8 @@
 | `errors` | Error count |
 | `contents[]` | Array with `type` (web, image, video, news) and `submitted` count |
 
+> **Note:** `contents[].indexed` is deprecated and always returns `0` for every property — it is intentionally not listed above. Do not use it as an indexation count. Get real indexation status from the URL Inspection API (`indexStatusResult.verdict` / `coverageState`).
+
 ---
 
 ## Sites API
