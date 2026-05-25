@@ -20,6 +20,7 @@ import re
 import sqlite3
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlparse, urlunparse, urlencode
 
@@ -149,39 +150,62 @@ def fetch_page_data(url: str) -> dict:
     """
     result = {"status_code": None, "html": None, "parsed": None, "error": None}
 
-    # Step 1: Fetch the page via fetch_page.py
+    # Step 1: Fetch the page via fetch_page.py.
+    # Use a NamedTemporaryFile for the HTML payload instead of /dev/stdout,
+    # which is a POSIX-only file abstraction. On Windows Python, opening
+    # "/dev/stdout" raises FileNotFoundError inside fetch_page.py and the
+    # whole baseline fails before any HTML is captured.
     fetch_script = os.path.join(SCRIPTS_DIR, "fetch_page.py")
+    tmp_fd, tmp_path = tempfile.mkstemp(suffix=".html")
+    os.close(tmp_fd)
     try:
-        proc = subprocess.run(
-            [sys.executable, fetch_script, url, "--output", "/dev/stdout"],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-    except subprocess.TimeoutExpired:
-        result["error"] = "Page fetch timed out after 60 seconds"
-        return result
+        try:
+            proc = subprocess.run(
+                [sys.executable, fetch_script, url, "--output", tmp_path],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except subprocess.TimeoutExpired:
+            result["error"] = "Page fetch timed out after 60 seconds"
+            return result
 
-    if proc.returncode != 0:
-        error_msg = proc.stderr.strip() if proc.stderr else "Unknown fetch error"
-        result["error"] = f"Fetch failed: {error_msg}"
-        return result
+        if proc.returncode != 0:
+            error_msg = proc.stderr.strip() if proc.stderr else "Unknown fetch error"
+            result["error"] = f"Fetch failed: {error_msg}"
+            return result
 
-    html_content = proc.stdout
+        with open(tmp_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
     # Extract status code from stderr output (fetch_page.py prints "Status: NNN")
     status_match = re.search(r"Status:\s*(\d+)", proc.stderr or "")
     result["status_code"] = int(status_match.group(1)) if status_match else 200
     result["html"] = html_content
 
-    # Step 2: Parse the HTML via parse_html.py
+    # Step 2: Parse the HTML via parse_html.py.
+    # Force utf-8 on the subprocess pipes so that html_content containing
+    # non-Latin-1 characters (Czech, German, Polish, etc. diacritics) does
+    # not raise UnicodeEncodeError when subprocess writes input= using
+    # Windows' default cp1252 codec. PYTHONIOENCODING is propagated to the
+    # child so its sys.stdin.read() decodes the bytes as utf-8 as well;
+    # without that the child silently mojibakes utf-8 as cp1252 (the title
+    # separator · becomes Â· in captured baselines).
     parse_script = os.path.join(SCRIPTS_DIR, "parse_html.py")
+    parse_env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
     try:
         proc = subprocess.run(
             [sys.executable, parse_script, "--url", url, "--json"],
             input=html_content,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            env=parse_env,
             timeout=30,
         )
     except subprocess.TimeoutExpired:

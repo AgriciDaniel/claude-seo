@@ -225,6 +225,17 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
 
 
 def main():
+    # Force utf-8 on stdin/stdout. On Windows these default to cp1252 and
+    # any HTML piped in containing non-Latin-1 characters (Czech, German,
+    # Polish, etc. diacritics) is silently mis-decoded, corrupting parsed
+    # titles, headings, and word counts. Belt-and-braces with the
+    # PYTHONIOENCODING env var that drift_baseline.py sets on the
+    # subprocess, so this script is safe when invoked directly too.
+    if hasattr(sys.stdin, "reconfigure"):
+        sys.stdin.reconfigure(encoding="utf-8")
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser(description="Parse HTML for SEO analysis")
     parser.add_argument("file", nargs="?", help="HTML file to parse")
     parser.add_argument("--url", "-u", help="Base URL for resolving links")
