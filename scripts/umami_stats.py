@@ -10,8 +10,8 @@ Usage:
     python umami_stats.py check
     python umami_stats.py stats           --website-id <uuid> [--days 28]
     python umami_stats.py pageviews       --website-id <uuid> [--days 28] [--unit day] [--timezone Europe/London]
-    python umami_stats.py metrics         --website-id <uuid> --type url    [--days 28] [--limit 100]
-    python umami_stats.py metrics-expanded --website-id <uuid> [--type url] [--days 28] [--limit 100]
+    python umami_stats.py metrics         --website-id <uuid> --type path   [--days 28] [--limit 100]
+    python umami_stats.py metrics-expanded --website-id <uuid> [--type path] [--days 28] [--limit 100]
     python umami_stats.py active          --website-id <uuid>
 
 Auth:
@@ -298,9 +298,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timezone", default=DEFAULT_TIMEZONE)
     p.set_defaults(func=cmd_pageviews)
 
-    p = sub.add_parser("metrics", help="Top values by type (url, referrer, browser, device, country, event...).")
+    p = sub.add_parser("metrics", help="Top values by type (path, referrer, browser, device, country, event...).")
     _add_window_args(p)
-    p.add_argument("--type", required=True, help="url | referrer | browser | os | device | country | event ...")
+    p.add_argument("--type", required=True, help="path | referrer | browser | os | device | country | event ...")
     p.add_argument("--limit", type=int, default=100)
     p.set_defaults(func=cmd_metrics)
 
@@ -309,7 +309,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Per-value engagement: pageviews, visitors, visits, bounces, totaltime. The SXO/content layer.",
     )
     _add_window_args(p)
-    p.add_argument("--type", default="url")
+    p.add_argument("--type", default="path", help="Default 'path' returns per-URL engagement (the SXO/content layer).")
     p.add_argument("--limit", type=int, default=100)
     p.set_defaults(func=cmd_metrics_expanded)
 

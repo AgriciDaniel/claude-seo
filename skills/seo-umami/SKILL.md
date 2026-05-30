@@ -69,7 +69,7 @@ All commands wrap `scripts/umami_stats.py`. JSON output by default.
 | `stats <id>` | `python scripts/umami_stats.py stats --website-id <id>` |
 | `pageviews <id>` | `python scripts/umami_stats.py pageviews --website-id <id>` |
 | `referrers <id>` | `python scripts/umami_stats.py metrics --website-id <id> --type referrer` |
-| `pages <id>` | `python scripts/umami_stats.py metrics-expanded --website-id <id> --type url` |
+| `pages <id>` | `python scripts/umami_stats.py metrics-expanded --website-id <id> --type path` |
 | `events <id>` | `python scripts/umami_stats.py metrics --website-id <id> --type event` |
 | `active <id>` | `python scripts/umami_stats.py active --website-id <id>` |
 
@@ -134,8 +134,6 @@ When invoked:
   CRUD, user management).
 - **Per-event property breakdowns** (`event_data`) are not yet wrapped;
   use the script's `metrics --type event` for event names only.
-- **`metrics-expanded` may 400 on older self-hosted Umami.** The
-  endpoint is documented but not present on all deployments. When it
-  fails, fall back to top URLs via `metrics --type url` and (planned
-  follow-up) per-URL `stats` with a `filters` parameter for engagement
-  breakdown.
+- **Metric type names use Umami's vocabulary.** Pass `path` (not `url`)
+  for the URL dimension. Other supported types: `referrer`, `browser`,
+  `os`, `device`, `country`, `event`.
