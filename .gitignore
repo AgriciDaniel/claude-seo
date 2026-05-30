@@ -36,6 +36,9 @@ env/
 .env.*
 *.env
 **/.env
+# Allow templates (no secrets, safe to commit)
+!.env.example
+!**/.env.example
 **/client_secret*.json
 **/service_account*.json
 **/oauth-token.json
