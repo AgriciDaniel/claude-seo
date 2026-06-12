@@ -207,3 +207,60 @@ After cutting a new release (git tag + `gh release create`), run:
 ```
 
 This generates a blog post on https://claude-seo.md/blog/, handles cover image generation, SEO metadata, FAQ schema, internal linking, sitemap/llms.txt updates, Vercel deployment, and Google indexing.
+
+---
+
+## Collaboration
+
+This repo is co-developed asynchronously across ~16 time zones.
+
+| Role | GitHub | Timezone |
+|------|--------|----------|
+| Repo owner | AgriciDaniel | Canada (UTC-7 to UTC-5) |
+| Collaborator | kota-takai | Japan (UTC+9) |
+
+### Branch & PR Rules
+
+- `main` is always in a working state — never push directly
+- All changes go through PRs: `feat/issue-{num}-{description}` or `fix/issue-{num}-{description}`
+- PRs are reviewed and merged by the **other** person (no self-merge)
+- Merge only when CI ✅ + Approve ✅
+
+### Session Start Protocol
+
+Before starting any work, run:
+
+```bash
+gh issue list --assignee @me --state open
+gh pr list --state open
+# For your assigned issues, check the latest handoff:
+gh issue view {number} --comments | grep -A 30 '\[HANDOFF\]' | tail -30
+```
+
+### Session End — Handoff Comment
+
+When ending a session, post a comment on the active Issue using this format:
+
+```
+[HANDOFF] YYYY-MM-DD  {Your name}
+
+### Done this session
+- path/to/file: what changed
+
+### In progress
+- Issue #{n}: brief description of where things stand
+  → specific blocker or next decision point (file:line if relevant)
+
+### Next steps
+- [ ] task 1
+- [ ] task 2
+
+### Notes for Claude Code
+- any non-obvious context the next session needs
+```
+
+### Known Patterns
+
+- `validate_url()` from `google_auth.py` must be called before any external HTTP request (SSRF guard)
+- Python scripts must output JSON and expose a CLI (`if __name__ == "__main__"`)
+- SKILL.md ≤ 500 lines; reference files ≤ 200 lines

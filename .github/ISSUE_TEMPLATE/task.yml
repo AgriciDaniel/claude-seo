@@ -1,0 +1,62 @@
+name: Task
+description: Development task for async collaboration
+title: "[Task] "
+labels: []
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What needs to be done and why?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - area:skill
+        - area:script
+        - area:agent
+        - area:docs
+        - area:infra
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - priority:high
+        - priority:med
+        - priority:low
+    validations:
+      required: true
+
+  - type: textarea
+    id: context_for_claude
+    attributes:
+      label: Claude Code Context
+      description: >
+        Background that Claude Code should read before starting work.
+        List relevant files, known patterns, prior decisions, or constraints.
+      placeholder: |
+        - Related files: skills/seo-foo/SKILL.md, scripts/bar.py
+        - Prior decision: ...
+        - Watch out for: validate_url() must be called before any HTTP request
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance Criteria
+      description: How do we know this is done?
+      placeholder: |
+        - [ ] ...
+        - [ ] Tested with a real URL
+        - [ ] CHANGELOG.md updated
+    validations:
+      required: false
