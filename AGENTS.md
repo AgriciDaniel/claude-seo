@@ -64,6 +64,7 @@ integration + 2 extension mirrors), and 50 Python execution scripts.
 | `/seo page <url>` | Deep single-page analysis |
 | `/seo technical <url>` | Technical SEO audit (9 categories) |
 | `/seo content <url>` | E-E-A-T and content quality analysis |
+| `/seo content-brief <topic>` | Detailed content brief: keywords, outline, internal links |
 | `/seo schema <url>` | Schema.org detection, validation, generation |
 | `/seo sitemap <url>` | XML sitemap analysis or generation |
 | `/seo images <url>` | Image SEO: on-page audit, SERP analysis, file optimization |
@@ -87,6 +88,7 @@ integration + 2 extension mirrors), and 50 Python execution scripts.
 | `/seo dataforseo [cmd]` | Live SEO data via DataForSEO (extension) |
 | `/seo image-gen [use-case]` | AI image generation for SEO assets (extension) |
 | `/seo firecrawl [cmd] <url>` | Full-site crawling and site mapping (extension) |
+| `/seo flow [stage]` | FLOW framework prompts (CC BY 4.0, evidence-led) |
 
 ## Using with Cursor / Cursor Cloud
 
