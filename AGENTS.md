@@ -119,27 +119,26 @@ DATAFORSEO_USERNAME=user DATAFORSEO_PASSWORD=pass python3 scripts/dataforseo_mer
 
 ## Using with Grok Build
 
-Grok Build discovers this repo as a plugin via `.grok-plugin/plugin.json`
-(a mirror of `.claude-plugin/plugin.json`). It loads `skills/`, `agents/`,
+Grok Build discovers this repo as a plugin via the existing
+`.claude-plugin/plugin.json` manifest. It loads `skills/`, `agents/`,
 and `hooks/hooks.json` natively, and substitutes `${CLAUDE_PLUGIN_ROOT}`
 in hook commands.
 
-Register the plugin one of three ways:
+Install the plugin:
 
 ```bash
-# Per-session
-grok --plugin-dir /path/to/claude-seo
-
-# Persistent: add to ~/.grok/config.toml
-# [plugins]
-# paths = ["/path/to/claude-seo"]
-
-# Or in the TUI: Ctrl+L -> Plugins tab -> i (install from path)
+grok plugin install AgriciDaniel/claude-seo --trust
 ```
 
+Or from within the Grok Build CLI: run `/plugins`, press `a`, enter
+`AgriciDaniel/claude-seo`, and submit.
+
+For local development of a checkout, `grok --plugin-dir /path/to/claude-seo`
+loads it for a single session.
+
 Verify with `grok inspect` — skills and agents appear tagged
-`[plugin: claude-seo]`. Hooks and MCP servers only execute after the plugin
-is trusted (`/plugins trust <path>` or press `e` in the Plugins tab).
+`[plugin: claude-seo]`. Hooks and MCP servers only execute once the plugin
+is trusted (`--trust` at install time, or enable it in the `/plugins` modal).
 
 Python scripts expect dependencies in `~/.claude/skills/seo/.venv/`
 (create it with `python3 -m venv` + `pip install -r requirements.txt`),
