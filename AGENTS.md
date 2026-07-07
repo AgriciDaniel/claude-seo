@@ -117,6 +117,34 @@ DATAFORSEO_USERNAME=user DATAFORSEO_PASSWORD=pass python3 scripts/dataforseo_mer
 - PATH may not include Python venv. Use full path: `~/.claude/skills/seo/.venv/bin/python`
 - Screenshots save to `/tmp/` not CWD. Check absolute paths.
 
+## Using with Grok Build
+
+Grok Build discovers this repo as a plugin via `.grok-plugin/plugin.json`
+(a mirror of `.claude-plugin/plugin.json`). It loads `skills/`, `agents/`,
+and `hooks/hooks.json` natively, and substitutes `${CLAUDE_PLUGIN_ROOT}`
+in hook commands.
+
+Register the plugin one of three ways:
+
+```bash
+# Per-session
+grok --plugin-dir /path/to/claude-seo
+
+# Persistent: add to ~/.grok/config.toml
+# [plugins]
+# paths = ["/path/to/claude-seo"]
+
+# Or in the TUI: Ctrl+L -> Plugins tab -> i (install from path)
+```
+
+Verify with `grok inspect` — skills and agents appear tagged
+`[plugin: claude-seo]`. Hooks and MCP servers only execute after the plugin
+is trusted (`/plugins trust <path>` or press `e` in the Plugins tab).
+
+Python scripts expect dependencies in `~/.claude/skills/seo/.venv/`
+(create it with `python3 -m venv` + `pip install -r requirements.txt`),
+or any interpreter pointed to by `CLAUDE_SEO_PYTHON`.
+
 ## Using with Google Antigravity
 
 Antigravity discovers this project via `.claude-plugin/plugin.json`.
