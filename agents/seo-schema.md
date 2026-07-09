@@ -66,9 +66,11 @@ Provide:
 - Missing opportunities
 - Generated JSON-LD for implementation
 
-## Fetching pages (v2.0.0)
+## Fetching pages (v2.1.0)
 
-Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes summary fields including `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate); use `--output` or import `render_page.render_page()` when full raw/rendered HTML is required. SSRF and DNS-rebinding protection live in `scripts/url_safety.py` — never call `requests.get` directly on user-supplied URLs.
+Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes summary fields including `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in `scripts/url_safety.py` — never call `requests.get` directly on user-supplied URLs.
+
+**`structured_data_blocks` is your primary source for detection.** It is extracted from the full, untruncated HTML before the `content`/`raw_content` fields get character-capped, so it always contains every JSON-LD block on the page — you do not need `--output` or a full-HTML re-fetch just to rule out a block hidden past the truncation cutoff. Each entry is `{"valid": true, "data": {...parsed JSON-LD...}}` or, for malformed markup, `{"valid": false, "raw": "...", "error": "..."}` — treat invalid entries as validation findings, not missing data. Only fall back to `--output` / `render_page.render_page()` for full raw/rendered HTML when you specifically need to compare `raw_content` vs `content` for SPA client-side-injection detection (see below), not for routine JSON-LD presence checks.
 
 ## Persistence Contract
 

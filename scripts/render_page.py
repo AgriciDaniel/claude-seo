@@ -133,6 +133,36 @@ _TAG_STRIP = re.compile(r"<[^>]+>")
 _WHITESPACE = re.compile(r"\s+")
 
 
+_JSON_LD_BLOCK = re.compile(
+    r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _extract_json_ld(html: Optional[str]) -> list[dict]:
+    """Pull every JSON-LD script block out of full HTML, in full.
+
+    Runs on the untruncated content so the --json summary's character
+    limit (see _cli) can never silently hide a structured-data block from
+    a schema-focused agent. Malformed blocks are still reported (as raw
+    text) rather than dropped, so a schema agent can flag invalid JSON-LD
+    instead of missing it entirely.
+    """
+    if not html:
+        return []
+    blocks: list[dict] = []
+    for raw in _JSON_LD_BLOCK.findall(html):
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            parsed = json.loads(raw)
+            blocks.append({"valid": True, "data": parsed})
+        except json.JSONDecodeError as exc:
+            blocks.append({"valid": False, "raw": raw, "error": str(exc)})
+    return blocks
+
+
 def _is_spa(raw_html: Optional[str]) -> bool:
     """Heuristic SPA detector. Conservative: any positive signal flips True."""
     if not raw_html:
@@ -377,6 +407,12 @@ def _cli() -> None:
 
     if args.json:
         summary = dict(res)
+        # Structured-data blocks (JSON-LD) are extracted from the full,
+        # untruncated content BEFORE truncation below, so a schema check
+        # never has to re-fetch full HTML just to rule out a block that
+        # got cut off by the character limit. See _extract_json_ld().
+        full_content = summary.get("content") or summary.get("raw_content") or ""
+        summary["structured_data_blocks"] = _extract_json_ld(full_content)
         # JSON-safe truncation so the CLI is usable from agents without
         # piping megabytes of HTML across stdio.
         for field, limit in (
