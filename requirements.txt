@@ -10,7 +10,7 @@ playwright>=1.62.0,<2.0.0         # CVE-2025-59288 fix (macOS)
 urllib3>=2.7.0,<3.0.0             # High-severity urllib3 advisories GHSA-mf9v-mfxr-j63j, GHSA-qccp-gfcp-xxvc
 
 # v2.0.0 Phase A: headless rendering across all agents
-trafilatura>=2.0.0,<3.0.0         # Boilerplate-free content extraction (SPA-safe)
+trafilatura>=2.1.0,<3.0.0         # Boilerplate-free content extraction (SPA-safe)
 htmldate>=1.9.0,<2.0.0            # Publication-date extraction for freshness signals
 courlan>=1.4.0,<2.0.0             # trafilatura URL helper; explicit pin avoids transitive drift
 
