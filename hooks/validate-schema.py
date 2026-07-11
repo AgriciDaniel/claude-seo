@@ -122,6 +122,15 @@ def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
 
 
 def main():
+    # Windows consoles default to cp1252, which cannot encode the status emoji
+    # (U+1F6D1 / U+26A0) printed below -> UnicodeEncodeError crashes the hook the
+    # moment it actually finds a schema issue. Force UTF-8 so it reports cleanly.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
     if len(sys.argv) < 2:
         sys.exit(0)
 
