@@ -203,6 +203,14 @@ PDF reports are generated via [WeasyPrint](https://weasyprint.org/) (A4 layout) 
 
 Three layers. **Google Business Profile signals**: categories, hours, photos, posts, products, attributes. **NAP consistency** across citations: name, address, phone matched against major directories with deviation flagging. **Review intelligence**: rating trends, sentiment, response coverage. For multi-location businesses, Claude SEO enforces a 30-page warning threshold and a 50-page hard stop to prevent doorway-page violations (configurable). The `/seo maps` workflow adds geo-grid rank tracking, GBP profile auditing, and competitor radius mapping. Local schema generation covers `LocalBusiness` with all required and recommended properties (geo coordinates, opening hours, areaServed). Phase F (v2) added a GBP deprecation linter that detects retired chat-field references and `.business.site` URLs.
 
+## Bring your own knowledge (optional)
+
+Teams that maintain their own cited SEO knowledge (house playbooks, or API cost and rate-limit facts that move faster than a plugin release) can feed it to the orchestrator without forking the plugin.
+
+Set `CLAUDE_SEO_KNOWLEDGE_DIR` to a directory, or use the zero-config default `~/.claude/skill-knowledge/seo/wiki/`. The orchestrator reads its `index.md` and `hot.md`, reasons over the relevant notes alongside the built-in references, and (during `/seo audit`) passes the relevant facts into each subagent's Task prompt. It is opt-in and a no-op when the directory is absent.
+
+Guardrails: the read is read-only, nothing from the directory is executed, external notes are treated as operator-supplied context rather than authority over Google or primary-source facts, and notes are expected to carry a dated `## Sources` block.
+
 ## Compared to manual / agency / commercial tools
 
 | | Manual audit | Agency engagement | Commercial SEO audit tool | **Claude SEO** |

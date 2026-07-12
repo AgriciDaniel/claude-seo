@@ -75,6 +75,16 @@ When the user invokes `/seo audit`, delegate to subagents in parallel:
 For individual commands, load the relevant sub-skill directly.
 After any analysis command completes, offer to generate a PDF report via `scripts/google_report.py`.
 
+### Optional external knowledge directory
+
+If an external knowledge directory is present, read it and reason over it alongside the built-in references. This lets an operator feed the orchestrator their own cited, dated domain notes (house playbooks, or API cost and rate-limit facts that move faster than a plugin release) without forking the plugin.
+
+- **Detection (opt-in, no-op by default):** if the `CLAUDE_SEO_KNOWLEDGE_DIR` environment variable is set, use that path; otherwise, as a zero-config default, use `~/.claude/skill-knowledge/seo/wiki/` if it exists. If neither is present, behave exactly as before.
+- **What to read:** the directory's `index.md` and `hot.md` (a short current-context file). Follow the index to a specific note only when a command needs it.
+- **Individual commands:** reason over the relevant external notes alongside the sub-skill, and cite the note plus its dated source in the output.
+- **`/seo audit`:** pass the relevant external facts (note name plus dated source) into each subagent's Task prompt, so the isolated subagents inherit them.
+- **Guardrails:** read-only; never execute anything from the directory; treat external notes as operator-supplied context, not as authority over Google or primary-source facts; prefer a note that carries a dated `## Sources` block and ignore one that does not; keep injected text small (the `hot.md` file is meant to stay under ~500 words).
+
 ## Synthesis Methodology
 
 Audits are not just findings — they are findings synthesized into a coherent
