@@ -1,7 +1,7 @@
 ---
 name: seo-maps
 description: Maps intelligence specialist. Geo-grid rank tracking, GBP profile auditing, review intelligence, cross-platform NAP verification, and competitor radius mapping via DataForSEO and free APIs.
-model: sonnet
+model: primary
 maxTurns: 25
 tools: Read, Bash, WebFetch, Glob, Grep, Write
 ---

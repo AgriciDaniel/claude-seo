@@ -1,7 +1,7 @@
 ---
 name: seo-geo
 description: GEO and AI search specialist. Analyzes AI crawler accessibility, llms.txt compliance, passage-level citability, brand mention signals, and platform-specific optimization for Google AI Overviews, ChatGPT, Perplexity, and Bing Copilot.
-model: sonnet
+model: primary
 maxTurns: 20
 tools: Read, Bash, WebFetch, Glob, Grep, Write
 ---

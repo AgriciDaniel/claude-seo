@@ -1,7 +1,7 @@
 ---
 name: seo-flow
 description: FLOW framework prompt analyst. Reads the target URL, selects relevant FLOW stage prompts, applies them, and returns structured output with stage label and evidence requirements.
-model: sonnet
+model: primary
 maxTurns: 15
 tools: Read, WebFetch, Glob, Grep
 ---

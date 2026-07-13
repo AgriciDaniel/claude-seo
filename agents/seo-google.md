@@ -1,7 +1,7 @@
 ---
 name: seo-google
 description: Google SEO API analyst. Fetches CWV field data via CrUX, indexation status via GSC, and organic traffic via GA4 for enriched audit data.
-model: sonnet
+model: primary
 maxTurns: 15
 tools: Read, Bash, Write, Glob, Grep  # Write needed for report/data file output
 ---

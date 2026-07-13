@@ -4,7 +4,7 @@ description: >
   Semantic topic clustering analysis using SERP overlap methodology. Expands seed
   keywords, performs pairwise SERP comparison, classifies intent, designs
   hub-and-spoke content architecture, and generates internal link matrices.
-model: sonnet
+model: primary
 maxTurns: 20
 tools: WebSearch, WebFetch, Read, Write, Bash, Glob, Grep
 ---
