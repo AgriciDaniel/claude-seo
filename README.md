@@ -17,6 +17,7 @@
 
 ### Why Claude SEO
 
+- **Codex-compatible manifest included.** This repository now ships a local Codex manifest at `.codex-plugin/plugin.json` for plugin recognition and validation, while keeping the existing Claude-first packaging intact.
 - **AI-search first.** Aligned with [Google's AI Optimization Guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide). Question-based citability scoring, primary-source evidence on llms.txt, IPTC `TrainedAlgorithmicMedia` for AI-generated product images, agent-friendly page checks per [web.dev](https://web.dev/).
 - **Parallel execution.** Full site audits spawn up to 15 specialist agents simultaneously. Site-level audits complete in minutes rather than hours.
 - **Falsifiable, not promotional.** Every recommendation carries the first-principle observation it rests on, its dependency relationships, an explicit "how would we know this failed?" check, and a leading indicator. See [Methodology](#methodology).
@@ -83,6 +84,28 @@ The fastest path. One-time marketplace add, then plugin install:
 /plugin marketplace add AgriciDaniel/claude-seo
 /plugin install claude-seo@agricidaniel-claude-seo
 ```
+
+### Codex local compatibility
+
+This repository includes a Codex-compatible local manifest at:
+
+```text
+.codex-plugin/plugin.json
+```
+
+Current scope:
+
+- local Codex plugin recognition
+- Codex manifest validation
+- reuse of the existing `skills/` directory
+
+Current non-goals:
+
+- Codex marketplace distribution metadata for this repository
+- a separate Codex-specific runtime layout
+
+If you want the dedicated Codex-first port, use
+[Codex SEO](https://github.com/AgriciDaniel/codex-seo).
 
 ### Manual Install (Unix / macOS / Linux)
 
@@ -422,6 +445,7 @@ Claude SEO is part of a family of Claude Code skills that interoperate cleanly:
 ## Documentation
 
 - [Installation Guide](docs/INSTALLATION.md)
+- [Codex Plugin Manifest](docs/CODEX-PLUGIN.md): Codex compatibility scope, validation, and contribution notes
 - [Commands Reference](docs/COMMANDS.md): every `/seo` command in depth
 - [Architecture](docs/ARCHITECTURE.md): 3-layer design, auto-discovery, parallel dispatch
 - [Migration v1 → v2](docs/MIGRATION-v1-to-v2.md): breaking changes, six phases of work

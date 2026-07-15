@@ -1,0 +1,55 @@
+{
+  "name": "claude-seo",
+  "version": "2.2.0",
+  "description": "Comprehensive SEO analysis plugin for Codex with 25 sub-skills, 18 sub-agents, and SEO/GEO workflows spanning technical SEO, content, schema, sitemaps, local, backlinks, ecommerce, hreflang, drift monitoring, and Google APIs.",
+  "author": {
+    "name": "AgriciDaniel",
+    "email": "agricidaniel@gmail.com",
+    "url": "https://github.com/AgriciDaniel"
+  },
+  "homepage": "https://claude-seo.md",
+  "repository": "https://github.com/AgriciDaniel/claude-seo",
+  "license": "MIT",
+  "keywords": [
+    "seo",
+    "technical-seo",
+    "schema-markup",
+    "content-quality",
+    "local-seo",
+    "geo",
+    "ai-search",
+    "sitemap",
+    "hreflang",
+    "backlinks",
+    "pagespeed",
+    "google-search-console",
+    "semantic-clustering",
+    "sxo",
+    "ecommerce-seo"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Claude SEO",
+    "shortDescription": "Run deep SEO and GEO audits inside Codex.",
+    "longDescription": "Claude SEO brings a large multi-skill SEO toolkit into Codex for audits, page analysis, schema, sitemap checks, content quality, local SEO, backlinks, ecommerce, hreflang, GEO, drift monitoring, and Google SEO workflows while reusing the repository's existing skill architecture.",
+    "developerName": "AgriciDaniel",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/AgriciDaniel/claude-seo",
+    "privacyPolicyURL": "https://github.com/AgriciDaniel/claude-seo/blob/main/PRIVACY.md",
+    "brandColor": "#2563EB",
+    "defaultPrompt": [
+      "Audit https://example.com and prioritize the biggest SEO fixes.",
+      "Review a page for schema, content quality, and crawlability.",
+      "Build an SEO action plan for a local business or SaaS site."
+    ],
+    "logo": "./assets/cover.svg",
+    "screenshots": [
+      "./assets/growth-3-months.png"
+    ]
+  }
+}
