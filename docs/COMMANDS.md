@@ -2,17 +2,17 @@
 
 ## Overview
 
-All Claude SEO commands start with `/seo` followed by a subcommand.
+All OpenCode SEO commands start with `/seo-` followed by the analysis type.
 
 ## Command List
 
-### `/seo audit <url>`
+### `/seo-audit <url>`
 
 Full website SEO audit with parallel analysis.
 
 **Example:**
 ```
-/seo audit https://example.com
+/seo-audit https://example.com
 ```
 
 **What it does:**
@@ -29,13 +29,13 @@ Full website SEO audit with parallel analysis.
 
 ---
 
-### `/seo page <url>`
+### `/seo-page <url>`
 
 Deep single-page analysis.
 
 **Example:**
 ```
-/seo page https://example.com/about
+/seo-page https://example.com/about
 ```
 
 **What it analyzes:**
@@ -48,13 +48,13 @@ Deep single-page analysis.
 
 ---
 
-### `/seo technical <url>`
+### `/seo-technical <url>`
 
 Technical SEO audit across 9 categories.
 
 **Example:**
 ```
-/seo technical https://example.com
+/seo-technical https://example.com
 ```
 
 **Categories:**
@@ -70,13 +70,13 @@ Technical SEO audit across 9 categories.
 
 ---
 
-### `/seo content <url>`
+### `/seo-content <url>`
 
 E-E-A-T and content quality analysis.
 
 **Example:**
 ```
-/seo content https://example.com/blog/post
+/seo-content https://example.com/blog/post
 ```
 
 **What it evaluates:**
@@ -89,13 +89,13 @@ E-E-A-T and content quality analysis.
 
 ---
 
-### `/seo content-brief <topic or url>`
+### `/seo-content-brief <topic or url>`
 
 Generate a detailed SEO content brief: target keywords, search intent, heading outline, internal link targets, and competitor angle.
 
 **Example:**
 ```
-/seo content-brief "best running shoes for flat feet"
+/seo-content-brief "best running shoes for flat feet"
 ```
 
 **What it produces:**
@@ -107,13 +107,13 @@ Generate a detailed SEO content brief: target keywords, search intent, heading o
 
 ---
 
-### `/seo schema <url>`
+### `/seo-schema <url>`
 
 Schema markup detection, validation, and generation.
 
 **Example:**
 ```
-/seo schema https://example.com
+/seo-schema https://example.com
 ```
 
 **What it does:**
@@ -124,13 +124,13 @@ Schema markup detection, validation, and generation.
 
 ---
 
-### `/seo geo <url>`
+### `/seo-geo <url>`
 
 AI Overviews / Generative Engine Optimization.
 
 **Example:**
 ```
-/seo geo https://example.com/blog/guide
+/seo-geo https://example.com/blog/guide
 ```
 
 **What it analyzes:**
@@ -142,13 +142,13 @@ AI Overviews / Generative Engine Optimization.
 
 ---
 
-### `/seo images <url>`
+### `/seo-images <url>`
 
 Image optimization analysis.
 
 **Example:**
 ```
-/seo images https://example.com
+/seo-images https://example.com
 ```
 
 **What it checks:**
@@ -161,13 +161,13 @@ Image optimization analysis.
 
 ---
 
-### `/seo sitemap <url>`
+### `/seo-sitemap <url>`
 
 Analyze existing XML sitemap.
 
 **Example:**
 ```
-/seo sitemap https://example.com/sitemap.xml
+/seo-sitemap https://example.com/sitemap.xml
 ```
 
 **What it validates:**
@@ -180,13 +180,13 @@ Analyze existing XML sitemap.
 
 ---
 
-### `/seo sitemap generate`
+### `/seo-sitemap generate`
 
 Generate new sitemap with industry templates.
 
 **Example:**
 ```
-/seo sitemap generate
+/seo-sitemap generate
 ```
 
 **Process:**
@@ -198,7 +198,7 @@ Generate new sitemap with industry templates.
 
 ---
 
-### `/seo plan <type>`
+### `/seo-plan <type>`
 
 Strategic SEO planning.
 
@@ -206,7 +206,7 @@ Strategic SEO planning.
 
 **Example:**
 ```
-/seo plan saas
+/seo-plan saas
 ```
 
 **What it creates:**
@@ -218,14 +218,14 @@ Strategic SEO planning.
 
 ---
 
-### `/seo competitor-pages [url|generate]`
+### `/seo-competitor-pages [url|generate]`
 
 Competitor comparison page generation.
 
 **Examples:**
 ```
-/seo competitor-pages https://example.com/vs/competitor
-/seo competitor-pages generate
+/seo-competitor-pages https://example.com/vs/competitor
+/seo-competitor-pages generate
 ```
 
 **Capabilities:**
@@ -238,13 +238,13 @@ Competitor comparison page generation.
 
 ---
 
-### `/seo hreflang [url]`
+### `/seo-hreflang [url]`
 
 Hreflang and international SEO audit and generation.
 
 **Example:**
 ```
-/seo hreflang https://example.com
+/seo-hreflang https://example.com
 ```
 
 **Capabilities:**
@@ -258,14 +258,14 @@ Hreflang and international SEO audit and generation.
 
 ---
 
-### `/seo programmatic [url|plan]`
+### `/seo-programmatic [url|plan]`
 
 Programmatic SEO analysis and planning for pages generated at scale.
 
 **Examples:**
 ```
-/seo programmatic https://example.com/tools/
-/seo programmatic plan
+/seo-programmatic https://example.com/tools/
+/seo-programmatic plan
 ```
 
 **Capabilities:**
@@ -278,13 +278,13 @@ Programmatic SEO analysis and planning for pages generated at scale.
 
 ---
 
-### `/seo local <url>`
+### `/seo-local <url>`
 
 Local SEO analysis covering Google Business Profile, citations, reviews, and the map pack.
 
 **Example:**
 ```
-/seo local https://example.com
+/seo-local https://example.com
 ```
 
 **What it analyzes:**
@@ -297,16 +297,16 @@ Local SEO analysis covering Google Business Profile, citations, reviews, and the
 
 ---
 
-### `/seo maps [command] [args]`
+### `/seo-maps [command] [args]`
 
 Maps intelligence: geo-grid rank tracking, GBP profile audits, review intelligence, cross-platform NAP verification, competitor radius mapping.
 
 **Examples:**
 ```
-/seo maps geogrid "coffee shop austin tx"
-/seo maps audit https://www.google.com/maps/place/...
-/seo maps reviews <place_id>
-/seo maps competitors "auto repair denver" 5mi
+/seo-maps geogrid "coffee shop austin tx"
+/seo-maps audit https://www.google.com/maps/place/...
+/seo-maps reviews <place_id>
+/seo-maps competitors "auto repair denver" 5mi
 ```
 
 **Capabilities:**
@@ -317,15 +317,15 @@ Maps intelligence: geo-grid rank tracking, GBP profile audits, review intelligen
 
 ---
 
-### `/seo backlinks <url>`
+### `/seo-backlinks <url>`
 
 Backlink profile analysis with a 3-tier data cascade: free (Common Crawl + verification), free with signup (Moz, Bing Webmaster Tools), paid (DataForSEO).
 
 **Examples:**
 ```
-/seo backlinks https://example.com
-/seo backlinks setup
-/seo backlinks verify https://example.com
+/seo-backlinks https://example.com
+/seo-backlinks setup
+/seo-backlinks verify https://example.com
 ```
 
 **What it analyzes:**
@@ -338,13 +338,13 @@ Backlink profile analysis with a 3-tier data cascade: free (Common Crawl + verif
 
 ---
 
-### `/seo cluster <seed-keyword>`
+### `/seo-cluster <seed-keyword>`
 
 SERP-based semantic topic clustering for content architecture planning. Built on the Pro Hub Challenge Semantic Cluster Engine.
 
 **Example:**
 ```
-/seo cluster "claude code skills"
+/seo-cluster "claude code skills"
 ```
 
 **What it produces:**
@@ -357,13 +357,13 @@ SERP-based semantic topic clustering for content architecture planning. Built on
 
 ---
 
-### `/seo sxo <url>`
+### `/seo-sxo <url>`
 
 Search Experience Optimization: SERP backwards analysis, page-type mismatch detection, persona scoring.
 
 **Example:**
 ```
-/seo sxo https://example.com/blog/how-to-x
+/seo-sxo https://example.com/blog/how-to-x
 ```
 
 **What it produces:**
@@ -375,15 +375,15 @@ Search Experience Optimization: SERP backwards analysis, page-type mismatch dete
 
 ---
 
-### `/seo drift baseline|compare|history <url>`
+### `/seo-drift baseline|compare|history <url>`
 
 SEO drift monitoring. Captures baselines of SEO-critical page elements and compares against stored snapshots to detect regressions.
 
 **Examples:**
 ```
-/seo drift baseline https://example.com
-/seo drift compare https://example.com
-/seo drift history https://example.com
+/seo-drift baseline https://example.com
+/seo-drift compare https://example.com
+/seo-drift history https://example.com
 ```
 
 **What it tracks:** title, meta description, canonical, hreflang, Open Graph, schema, headings, internal links, robots, sitemap entry, indexability, Core Web Vitals, response status, redirect chain.
@@ -392,13 +392,13 @@ SEO drift monitoring. Captures baselines of SEO-critical page elements and compa
 
 ---
 
-### `/seo ecommerce <url>`
+### `/seo-ecommerce <url>`
 
 E-commerce SEO covering product schema, marketplace intelligence, and pricing gap analysis.
 
 **Example:**
 ```
-/seo ecommerce https://shop.example.com/product/x
+/seo-ecommerce https://shop.example.com/product/x
 ```
 
 **What it analyzes:**
@@ -411,34 +411,34 @@ E-commerce SEO covering product schema, marketplace intelligence, and pricing ga
 
 ---
 
-### `/seo flow [stage] [url|topic]`
+### `/seo-flow [stage] [url|topic]`
 
 FLOW framework integration: evidence-led prompts for the Find, Leverage, Optimize, Win, and Local stages of a content campaign.
 
 **Examples:**
 ```
-/seo flow find "topic"
-/seo flow leverage https://example.com
-/seo flow optimize "target keyword"
+/seo-flow find "topic"
+/seo-flow leverage https://example.com
+/seo-flow optimize "target keyword"
 ```
 
 **41 prompts** sourced from FLOW (CC BY 4.0). Each prompt is grounded in a specific evidence source (SERP data, GSC, GA4, customer interviews) with attribution preserved.
 
 ---
 
-### `/seo google [command] [url]`
+### `/seo-google [command] [url]`
 
 Google SEO APIs. 4-tier credential system covering PageSpeed Insights, CrUX, CrUX History, Search Console, URL Inspection, Indexing API, GA4, and Keyword Planner.
 
 **Examples:**
 ```
-/seo google setup
-/seo google check
-/seo google psi https://example.com
-/seo google gsc-queries https://example.com
-/seo google indexing-notify https://example.com
-/seo google ga4-organic
-/seo google report full
+/seo-google setup
+/seo-google check
+/seo-google psi https://example.com
+/seo-google gsc-queries https://example.com
+/seo-google indexing-notify https://example.com
+/seo-google ga4-organic
+/seo-google report full
 ```
 
 **Tiers:**
@@ -451,7 +451,7 @@ PDF and HTML reports generated via WeasyPrint and matplotlib.
 
 ---
 
-### `/seo image-gen [use-case] <description>`
+### `/seo-image-gen [use-case] <description>`
 
 AI image generation for SEO assets (extension). Powered by Gemini via nanobanana-mcp.
 
@@ -459,12 +459,12 @@ AI image generation for SEO assets (extension). Powered by Gemini via nanobanana
 
 **Use Cases:**
 ```
-/seo image-gen og <description>          # OG/social preview image (16:9, 1K)
-/seo image-gen hero <description>        # Blog hero image (16:9, 2K)
-/seo image-gen product <description>     # Product photography (4:3, 2K)
-/seo image-gen infographic <description> # Infographic visual (2:3, 4K)
-/seo image-gen custom <description>      # Custom with full Creative Director pipeline
-/seo image-gen batch <description> [N]   # Generate N variations (default: 3)
+/seo-image-gen og <description>          # OG/social preview image (16:9, 1K)
+/seo-image-gen hero <description>        # Blog hero image (16:9, 2K)
+/seo-image-gen product <description>     # Product photography (4:3, 2K)
+/seo-image-gen infographic <description> # Infographic visual (2:3, 4K)
+/seo-image-gen custom <description>      # Custom with full Creative Director pipeline
+/seo-image-gen batch <description> [N]   # Generate N variations (default: 3)
 ```
 
 **What it does:**
@@ -475,7 +475,7 @@ AI image generation for SEO assets (extension). Powered by Gemini via nanobanana
 
 ---
 
-### `/seo firecrawl [command] <url>`
+### `/seo-firecrawl [command] <url>`
 
 Full-site crawling and URL discovery via Firecrawl MCP (extension).
 
@@ -483,9 +483,9 @@ Full-site crawling and URL discovery via Firecrawl MCP (extension).
 
 **Examples:**
 ```
-/seo firecrawl crawl https://example.com
-/seo firecrawl map https://example.com
-/seo firecrawl scrape https://example.com/page
+/seo-firecrawl crawl https://example.com
+/seo-firecrawl map https://example.com
+/seo-firecrawl scrape https://example.com/page
 ```
 
 **What it does:**
@@ -495,7 +495,7 @@ Full-site crawling and URL discovery via Firecrawl MCP (extension).
 
 ---
 
-### `/seo dataforseo [command]`
+### `/seo-dataforseo [command]`
 
 Live SEO data via DataForSEO MCP server (extension). 22 commands across 9 API modules.
 
@@ -503,48 +503,48 @@ Live SEO data via DataForSEO MCP server (extension). 22 commands across 9 API mo
 
 **SERP Analysis:**
 ```
-/seo dataforseo serp <keyword>              # Google organic results (also Bing/Yahoo)
-/seo dataforseo serp-youtube <keyword>      # YouTube search results
-/seo dataforseo youtube <video_id>          # YouTube video deep analysis
+/seo-dataforseo serp <keyword>              # Google organic results (also Bing/Yahoo)
+/seo-dataforseo serp-youtube <keyword>      # YouTube search results
+/seo-dataforseo youtube <video_id>          # YouTube video deep analysis
 ```
 
 **Keyword Research:**
 ```
-/seo dataforseo keywords <seed>             # Keyword ideas and suggestions
-/seo dataforseo volume <keywords>           # Search volume metrics
-/seo dataforseo difficulty <keywords>       # Keyword difficulty scores
-/seo dataforseo intent <keywords>           # Search intent classification
-/seo dataforseo trends <keyword>            # Google Trends data
+/seo-dataforseo keywords <seed>             # Keyword ideas and suggestions
+/seo-dataforseo volume <keywords>           # Search volume metrics
+/seo-dataforseo difficulty <keywords>       # Keyword difficulty scores
+/seo-dataforseo intent <keywords>           # Search intent classification
+/seo-dataforseo trends <keyword>            # Google Trends data
 ```
 
 **Domain & Competitors:**
 ```
-/seo dataforseo backlinks <domain>          # Full backlink profile
-/seo dataforseo competitors <domain>        # Competitor analysis
-/seo dataforseo ranked <domain>             # Ranked keywords
-/seo dataforseo intersection <domains>      # Keyword/backlink overlap
-/seo dataforseo traffic <domains>           # Traffic estimation
-/seo dataforseo subdomains <domain>         # Subdomains with ranking data
-/seo dataforseo top-searches <domain>       # Top queries mentioning domain
+/seo-dataforseo backlinks <domain>          # Full backlink profile
+/seo-dataforseo competitors <domain>        # Competitor analysis
+/seo-dataforseo ranked <domain>             # Ranked keywords
+/seo-dataforseo intersection <domains>      # Keyword/backlink overlap
+/seo-dataforseo traffic <domains>           # Traffic estimation
+/seo-dataforseo subdomains <domain>         # Subdomains with ranking data
+/seo-dataforseo top-searches <domain>       # Top queries mentioning domain
 ```
 
 **Technical / On-Page:**
 ```
-/seo dataforseo onpage <url>                # On-page analysis (Lighthouse)
-/seo dataforseo tech <domain>               # Technology detection
-/seo dataforseo whois <domain>              # WHOIS data
+/seo-dataforseo onpage <url>                # On-page analysis (Lighthouse)
+/seo-dataforseo tech <domain>               # Technology detection
+/seo-dataforseo whois <domain>              # WHOIS data
 ```
 
 **Content & Business Data:**
 ```
-/seo dataforseo content <keyword/url>       # Content analysis and trends
-/seo dataforseo listings <keyword>          # Business listings search
+/seo-dataforseo content <keyword/url>       # Content analysis and trends
+/seo-dataforseo listings <keyword>          # Business listings search
 ```
 
 **AI Visibility / GEO:**
 ```
-/seo dataforseo ai-scrape <query>           # ChatGPT web scraper for GEO
-/seo dataforseo ai-mentions <keyword>       # LLM mention tracking
+/seo-dataforseo ai-scrape <query>           # ChatGPT web scraper for GEO
+/seo-dataforseo ai-mentions <keyword>       # LLM mention tracking
 ```
 
 ---
@@ -553,29 +553,29 @@ Live SEO data via DataForSEO MCP server (extension). 22 commands across 9 API mo
 
 | Command | Use Case |
 |---------|----------|
-| `/seo audit <url>` | Full website audit with parallel subagents |
-| `/seo page <url>` | Single page analysis |
-| `/seo technical <url>` | Technical SEO across 9 categories |
-| `/seo content <url>` | E-E-A-T and content quality |
-| `/seo content-brief <topic>` | Detailed content brief: keywords, outline, internal links |
-| `/seo schema <url>` | Schema markup detection, validation, generation |
-| `/seo sitemap <url>` | Sitemap validation |
-| `/seo sitemap generate` | Create new sitemap with industry templates |
-| `/seo images <url>` | Image optimization |
-| `/seo geo <url>` | AI search optimization (GEO) |
-| `/seo local <url>` | Local SEO (GBP, citations, reviews) |
-| `/seo maps [command]` | Maps intelligence (geo-grid, GBP audit, competitors) |
-| `/seo backlinks <url>` | Backlink profile analysis |
-| `/seo cluster <seed>` | SERP-based semantic clustering |
-| `/seo sxo <url>` | Search Experience Optimization |
-| `/seo drift baseline\|compare\|history <url>` | SEO drift monitoring |
-| `/seo ecommerce <url>` | E-commerce SEO |
-| `/seo hreflang [url]` | Hreflang and international SEO |
-| `/seo plan <type>` | Strategic planning by industry |
-| `/seo programmatic [url\|plan]` | Programmatic SEO analysis |
-| `/seo competitor-pages [url\|generate]` | Competitor comparison pages |
-| `/seo flow [stage] [url\|topic]` | FLOW framework prompts |
-| `/seo google [command] [url]` | Google SEO APIs (GSC, PSI, CrUX, GA4) |
-| `/seo dataforseo [command]` | Live SEO data (extension) |
-| `/seo image-gen [use-case] <desc>` | AI image generation (extension) |
-| `/seo firecrawl [command] <url>` | Full-site crawling (extension) |
+| `/seo-audit <url>` | Full website audit with parallel subagents |
+| `/seo-page <url>` | Single page analysis |
+| `/seo-technical <url>` | Technical SEO across 9 categories |
+| `/seo-content <url>` | E-E-A-T and content quality |
+| `/seo-content-brief <topic>` | Detailed content brief: keywords, outline, internal links |
+| `/seo-schema <url>` | Schema markup detection, validation, generation |
+| `/seo-sitemap <url>` | Sitemap validation |
+| `/seo-sitemap generate` | Create new sitemap with industry templates |
+| `/seo-images <url>` | Image optimization |
+| `/seo-geo <url>` | AI search optimization (GEO) |
+| `/seo-local <url>` | Local SEO (GBP, citations, reviews) |
+| `/seo-maps [command]` | Maps intelligence (geo-grid, GBP audit, competitors) |
+| `/seo-backlinks <url>` | Backlink profile analysis |
+| `/seo-cluster <seed>` | SERP-based semantic clustering |
+| `/seo-sxo <url>` | Search Experience Optimization |
+| `/seo-drift baseline\|compare\|history <url>` | SEO drift monitoring |
+| `/seo-ecommerce <url>` | E-commerce SEO |
+| `/seo-hreflang [url]` | Hreflang and international SEO |
+| `/seo-plan <type>` | Strategic planning by industry |
+| `/seo-programmatic [url\|plan]` | Programmatic SEO analysis |
+| `/seo-competitor-pages [url\|generate]` | Competitor comparison pages |
+| `/seo-flow [stage] [url\|topic]` | FLOW framework prompts |
+| `/seo-google [command] [url]` | Google SEO APIs (GSC, PSI, CrUX, GA4) |
+| `/seo-dataforseo [command]` | Live SEO data (extension) |
+| `/seo-image-gen [use-case] <desc>` | AI image generation (extension) |
+| `/seo-firecrawl [command] <url>` | Full-site crawling (extension) |

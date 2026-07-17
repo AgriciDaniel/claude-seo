@@ -1,12 +1,6 @@
 ---
-name: seo-sxo
-description: >
-  Search Experience Optimization analyst. Performs SERP backwards analysis to detect
-  page-type mismatches, derives user stories from intent signals, and scores pages
-  from multiple persona perspectives. Identifies why well-optimized content fails to rank.
-model: sonnet
-maxTurns: 20
-tools: Read, Bash, WebFetch, WebSearch, Glob, Grep, Write
+mode: subagent
+description: Search Experience Optimization analyst. Performs SERP backwards analysis to detect page-type mismatches, derives user stories from intent signals, and scores pages from multiple persona perspectives.
 ---
 
 <!-- Original concept: Florian Schmitz — SXO Skill (Pro Hub Challenge) -->
@@ -28,7 +22,7 @@ then comparing that against the target page.
 
 - Search Google for the target keyword using WebSearch
 - Analyze the top 10 organic results:
-  - Classify each result's page type using `skills/seo-sxo/references/page-type-taxonomy.md`
+  - Classify each result's page type using `~/.config/opencode/seo-skills/seo-sxo/references/page-type-taxonomy.md`
   - Record content format, estimated depth, schema signals, media presence
 - Record SERP features: featured snippets, PAA questions, ads, related searches, AI Overview
 - Calculate SERP consensus: dominant page type and confidence percentage
@@ -42,7 +36,7 @@ then comparing that against the target page.
 
 ### 4. User Story Derivation
 
-- Read `skills/seo-sxo/references/user-story-framework.md`
+- Read `~/.config/opencode/seo-skills/seo-sxo/references/user-story-framework.md`
 - Derive 3-5 user stories from observed SERP signals
 - Every story must cite the specific signal that generated it
 - Cover at least 2 journey stages (awareness, consideration, decision)
@@ -56,14 +50,14 @@ Score the target page across 7 dimensions (100 points total):
 
 ### 6. Persona Scoring
 
-- Read `skills/seo-sxo/references/persona-scoring.md`
+- Read `~/.config/opencode/seo-skills/seo-sxo/references/persona-scoring.md`
 - Derive 4-7 personas from SERP signals
 - Score each persona on: Relevance, Clarity, Trust, Action (25 pts each)
 - Sort recommendations by weakest persona first
 
 ### 7. Wireframe (Only if requested)
 
-- Read `skills/seo-sxo/references/wireframe-templates.md`
+- Read `~/.config/opencode/seo-skills/seo-sxo/references/wireframe-templates.md`
 - Generate IST (current) wireframe from parsed page
 - Generate SOLL (recommended) wireframe matching SERP expectations
 - Use ultra-concrete placeholders with actual section names, CTA text, and link targets

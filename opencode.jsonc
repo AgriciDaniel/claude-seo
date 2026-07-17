@@ -1,0 +1,41 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": ["AGENTS.md"],
+  "skills": {
+    "paths": ["~/.config/opencode/seo-skills"]
+  },
+  "agent": {
+    "seo-technical": { "mode": "subagent", "description": "Technical SEO specialist. Analyzes crawlability, indexability, security, URL structure, mobile optimization, Core Web Vitals, and JavaScript rendering." },
+    "seo-content": { "mode": "subagent", "description": "EEAT content quality analyst. Evaluates experience, expertise, authoritativeness, and trustworthiness signals in page content." },
+    "seo-schema": { "mode": "subagent", "description": "Schema markup expert. Detects, validates, and generates Schema.org structured data in JSON-LD format." },
+    "seo-sitemap": { "mode": "subagent", "description": "XML sitemap analysis and generation specialist. Handles sitemap discovery, validation, IndexNow submission, and structured sitemap generation." },
+    "seo-performance": { "mode": "subagent", "description": "Core Web Vitals and page performance specialist. Analyzes LCP, INP, CLS, TTFB, and FCP using PageSpeed Insights, CrUX API, and Lighthouse." },
+    "seo-visual": { "mode": "subagent", "description": "Visual SEO analyst. Captures and analyzes page screenshots, checks for layout shifts, visual hierarchy, and above-the-fold content.", "permission": { "external_directory": { "/tmp/*": "allow" } } },
+    "seo-geo": { "mode": "subagent", "description": "Generative Engine Optimization analyst. Optimizes content for AI Overviews, ChatGPT, Perplexity, and other AI-powered search experiences." },
+    "seo-local": { "mode": "subagent", "description": "Local SEO specialist. Analyzes Google Business Profile, local citations, review signals, NAP consistency, and map pack visibility." },
+    "seo-maps": { "mode": "subagent", "description": "Maps intelligence analyst. Handles geo-grid rank tracking, GBP audit, local competitor analysis, and review monitoring." },
+    "seo-google": { "mode": "subagent", "description": "Google SEO APIs specialist. Works with Search Console, PageSpeed Insights, CrUX, Indexing API, and Google Analytics 4." },
+    "seo-backlinks": { "mode": "subagent", "description": "Backlink profile analyst. Evaluates backlink quality, anchor text distribution, referring domains, and toxic link detection using Moz, Bing, and Common Crawl." },
+    "seo-cluster": { "mode": "subagent", "description": "Semantic clustering and content architecture specialist. Performs SERP-based topic clustering, pillar page planning, and content gap analysis." },
+    "seo-sxo": { "mode": "subagent", "description": "Search Experience Optimization analyst. Performs SERP backwards analysis to detect page-type mismatches, derives user stories from intent signals, and scores pages from multiple persona perspectives." },
+    "seo-drift": { "mode": "subagent", "description": "SEO drift monitoring specialist. Captures baselines, compares current state, and tracks SEO metric changes over time using the drift SQLite database." },
+    "seo-ecommerce": { "mode": "subagent", "description": "E-commerce SEO specialist. Analyzes product schema, category architecture, faceted navigation, marketplace intelligence, and shopping feed optimization." },
+    "seo-flow": { "mode": "subagent", "description": "FLOW framework specialist. Executes staged Find-Leverage-Optimize-Win prompts with search-and-conversion output for evidence-led SEO strategy." },
+    "seo-dataforseo": { "mode": "subagent", "description": "DataForSEO API specialist. Executes SERP analysis, keyword research, backlink checks, and merchant data queries via the DataForSEO platform." },
+    "seo-image-gen": { "mode": "subagent", "description": "AI image generation specialist for SEO assets. Creates optimized images for blog posts, social sharing, product listings, and schema markup using AI image generation tools." }
+  },
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp"],
+      "enabled": true,
+      "env": { "BROWSER": "chromium" }
+    }
+  },
+  "permission": {
+    "bash": { "git *": "allow", "python3 scripts/*": "allow", "*": "ask" },
+    "external_directory": { "/tmp/*": "allow" },
+    "edit": "ask",
+    "webfetch": "allow"
+  }
+}

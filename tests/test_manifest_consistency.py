@@ -1,27 +1,17 @@
 """
-Tests that ensure the plugin's manifest and user-visible docs claim
-counts that match reality on disk.
+Tests that ensure OpenCode manifest claims match reality on disk.
 
-Background: this guard exists because the v1.9.7 release process suffered
-two distinct skill-count drift incidents in a single release window. The
-first was caught by manual reconciliation (pre-Phase-A); the second slipped
-through when PR #56 merged a 21st core skill but the canonical phrasing
-locked in Phase A was not re-run. v1.9.8 closes the systemic gap.
-
-Tests run via `pytest tests/` and are wired into `.github/workflows/ci.yml`.
+Updated for OpenCode-native rewrite. plugin.json/marketplace.json/CLAUDE.md
+are removed; consistency now checks commands/, agents/, and opencode.jsonc.
 """
 import json
 import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-PLUGIN_JSON = REPO_ROOT / ".claude-plugin" / "plugin.json"
-MARKETPLACE_JSON = REPO_ROOT / ".claude-plugin" / "marketplace.json"
-CITATION_CFF = REPO_ROOT / "CITATION.cff"
 
 
 def _count_skill_dirs() -> int:
-    """Count subdirectories of skills/ that contain a SKILL.md."""
     skills_dir = REPO_ROOT / "skills"
     return sum(
         1 for d in skills_dir.iterdir()
@@ -30,7 +20,6 @@ def _count_skill_dirs() -> int:
 
 
 def _count_agent_files() -> int:
-    """Count agents/seo-*.md files."""
     agents_dir = REPO_ROOT / "agents"
     return sum(
         1 for f in agents_dir.iterdir()
@@ -38,187 +27,149 @@ def _count_agent_files() -> int:
     )
 
 
-def _extract_count(text: str, unit: str) -> int:
-    """Find the first occurrence of 'N <unit>' in text and return N."""
-    match = re.search(rf"(\d+)\s+{re.escape(unit)}", text)
-    if not match:
-        raise AssertionError(f"No '{unit}' count claim found in text")
-    return int(match.group(1))
-
-
-def test_plugin_json_skill_count_matches_disk():
-    """plugin.json description's 'N sub-skills' claim must equal skills/ dir count."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    claimed = _extract_count(plugin["description"], "sub-skills")
-    actual = _count_skill_dirs()
-    assert claimed == actual, (
-        f"plugin.json description claims {claimed} sub-skills "
-        f"but disk has {actual}. "
-        f"Update the description to match the new count."
-    )
-
-
-def test_plugin_json_description_fits_registry_limit():
-    """plugin.json description must stay below the Claude plugin registry limit."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    assert len(plugin["description"]) < 500
-
-
-def test_plugin_json_subagent_count_matches_disk():
-    """plugin.json description's 'N sub-agents' claim must equal agents/ count."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    claimed = _extract_count(plugin["description"], "sub-agents")
-    actual = _count_agent_files()
-    assert claimed == actual, (
-        f"plugin.json description claims {claimed} sub-agents "
-        f"but disk has {actual}. "
-        f"Update the description to match the new count."
-    )
-
-
-def test_marketplace_json_skill_count_matches_plugin_json():
-    """marketplace.json plugin entry must claim the same skill count as plugin.json."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    marketplace = json.loads(MARKETPLACE_JSON.read_text())
-    plugin_count = _extract_count(plugin["description"], "sub-skills")
-    market_count = _extract_count(
-        marketplace["plugins"][0]["description"], "sub-skills"
-    )
-    assert plugin_count == market_count, (
-        f"plugin.json claims {plugin_count} sub-skills, "
-        f"marketplace.json plugin entry claims {market_count}. "
-        f"They must agree."
-    )
-
-
-def test_marketplace_json_subagent_count_matches_plugin_json():
-    """marketplace.json plugin entry must claim the same sub-agent count as plugin.json."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    marketplace = json.loads(MARKETPLACE_JSON.read_text())
-    plugin_count = _extract_count(plugin["description"], "sub-agents")
-    market_count = _extract_count(
-        marketplace["plugins"][0]["description"], "sub-agents"
-    )
-    assert plugin_count == market_count, (
-        f"plugin.json claims {plugin_count} sub-agents, "
-        f"marketplace.json plugin entry claims {market_count}. "
-        f"They must agree."
+def _count_command_files() -> int:
+    commands_dir = REPO_ROOT / "commands"
+    if not commands_dir.exists():
+        return 0
+    return sum(
+        1 for f in commands_dir.iterdir()
+        if f.is_file() and f.suffix == ".md" and f.name.startswith("seo")
     )
 
 
 def test_canonical_phrasing_in_user_visible_docs():
-    """README, CLAUDE.md, AGENTS.md must reference the canonical sub-skills count."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    canonical_count = _extract_count(plugin["description"], "sub-skills")
-    target_phrase = f"{canonical_count} sub-skills"
-    for filename in ["README.md", "CLAUDE.md", "AGENTS.md"]:
+    """README and AGENTS.md must reference the canonical sub-skills count."""
+    skill_count = _count_skill_dirs()
+    target_phrase = f"{skill_count} sub-skills"
+    for filename in ["README.md", "AGENTS.md"]:
         path = REPO_ROOT / filename
         head = "\n".join(path.read_text().splitlines()[:120])
         assert target_phrase in head, (
             f"{filename} does not reference '{target_phrase}' in its first "
-            f"120 lines. Update it to match plugin.json's canonical phrasing."
+            f"120 lines."
         )
 
 
-def test_version_triangulation():
-    """plugin.json version must equal CITATION.cff version."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    citation_text = CITATION_CFF.read_text()
-    citation_match = re.search(r"^version:\s*(\S+)", citation_text, re.MULTILINE)
-    assert citation_match, "CITATION.cff has no 'version:' line"
-    plugin_version = plugin["version"]
-    citation_version = citation_match.group(1)
-    assert plugin_version == citation_version, (
-        f"plugin.json version is {plugin_version} but CITATION.cff has "
-        f"{citation_version}. They must match every release."
+def test_command_count_matches_skill_count():
+    """commands/ count must equal skills/ count (minus orchestrator)."""
+    skill_count = _count_skill_dirs()
+    command_count = _count_command_files()
+    assert command_count == skill_count, (
+        f"commands/ has {command_count} files but skills/ has "
+        f"{skill_count} SKILL.md dirs. Counts must match."
     )
 
 
-def test_pyproject_version_matches_plugin_json():
-    """pyproject.toml version must equal plugin.json version.
-
-    Background: pyproject.toml drifted to 1.9.6 while plugin.json was at
-    1.9.8. The original triangulation test only covered CITATION.cff,
-    so pyproject.toml drift slipped past CI. This guard closes that gap.
-    """
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    pyproject_text = (REPO_ROOT / "pyproject.toml").read_text()
-    pyproject_match = re.search(
-        r'^version\s*=\s*"([^"]+)"', pyproject_text, re.MULTILINE
-    )
-    assert pyproject_match, "pyproject.toml has no 'version = \"...\"' line"
-    plugin_version = plugin["version"]
-    pyproject_version = pyproject_match.group(1)
-    assert plugin_version == pyproject_version, (
-        f"plugin.json version is {plugin_version} but pyproject.toml has "
-        f"{pyproject_version}. Bump pyproject.toml on every release."
-    )
+def test_agent_frontmatter_has_no_claude_fields():
+    """No agent file should contain model:, maxTurns:, tools:, or name: in frontmatter."""
+    agents_dir = REPO_ROOT / "agents"
+    errors = []
+    for agent_file in agents_dir.glob("seo-*.md"):
+        text = agent_file.read_text()
+        m = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
+        if not m:
+            errors.append(f"{agent_file.name}: no frontmatter")
+            continue
+        fm = m.group(1)
+        for banned in ["model:", "maxTurns:", "tools:", "name:"]:
+            if banned in fm:
+                errors.append(f"{agent_file.name}: contains '{banned}' in frontmatter")
+    assert not errors, "Agent frontmatter contains Claude-specific fields:\n  " + "\n  ".join(errors)
 
 
-def test_install_scripts_default_tag_matches_plugin_version():
-    """install.sh and install.ps1 default REPO_TAG must equal v{plugin version}.
+def test_agent_frontmatter_has_mode_subagent():
+    """Every agent file must have mode: subagent in frontmatter."""
+    agents_dir = REPO_ROOT / "agents"
+    errors = []
+    for agent_file in agents_dir.glob("seo-*.md"):
+        text = agent_file.read_text()
+        m = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
+        if not m:
+            errors.append(f"{agent_file.name}: no frontmatter")
+            continue
+        fm = m.group(1)
+        if "mode: subagent" not in fm:
+            errors.append(f"{agent_file.name}: missing 'mode: subagent'")
+    assert not errors, "Agent files missing mode: subagent:\n  " + "\n  ".join(errors)
 
-    Background: install.sh and install.ps1 default tag was v1.9.0 while
-    plugin.json shipped at 1.9.8 (4 missed bumps across v1.9.5/.6/.7/.8).
-    Manual-install users via curl | bash got 8 versions stale. This guard
-    forces the default tag to track plugin.json on every release.
-    """
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    expected_tag = f"v{plugin['version']}"
 
-    sh_text = (REPO_ROOT / "install.sh").read_text()
-    sh_match = re.search(
-        r'REPO_TAG="\$\{CLAUDE_SEO_TAG:-([^}]+)\}"', sh_text
-    )
-    assert sh_match, "install.sh has no recognizable REPO_TAG default"
-    sh_tag = sh_match.group(1)
-    assert sh_tag == expected_tag, (
-        f"install.sh default tag is {sh_tag} but plugin.json is at "
-        f"version {plugin['version']} (expected {expected_tag}). "
-        f"Bump install.sh's CLAUDE_SEO_TAG default on every release."
-    )
+def _strip_jsonc_comments(text: str) -> str:
+    """Strip // and /* */ comments from JSONC, respecting quoted strings."""
+    result = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] == '"':
+            result.append('"')
+            i += 1
+            while i < n:
+                ch = text[i]
+                result.append(ch)
+                if ch == '\\' and i + 1 < n:
+                    i += 1
+                    result.append(text[i])
+                elif ch == '"':
+                    i += 1
+                    break
+                i += 1
+        elif text[i] == '/' and i + 1 < n and text[i+1] == '/':
+            while i < n and text[i] != '\n' and text[i] != '\r':
+                i += 1
+        elif text[i] == '/' and i + 1 < n and text[i+1] == '*':
+            i += 2
+            while i < n:
+                if text[i] == '*' and i + 1 < n and text[i+1] == '/':
+                    i += 2
+                    break
+                i += 1
+        else:
+            result.append(text[i])
+            i += 1
+    return ''.join(result)
 
-    ps_text = (REPO_ROOT / "install.ps1").read_text()
-    ps_match = re.search(r"else\s*\{\s*'([^']+)'\s*\}", ps_text)
-    assert ps_match, "install.ps1 has no recognizable RepoTag default"
-    ps_tag = ps_match.group(1)
-    assert ps_tag == expected_tag, (
-        f"install.ps1 default tag is {ps_tag} but plugin.json is at "
-        f"version {plugin['version']} (expected {expected_tag}). "
-        f"Bump install.ps1's RepoTag default on every release."
-    )
+
+def test_agent_count_matches_opencode_config():
+    """opencode.jsonc agent entries must match agents/ directory count."""
+    agents_dir = REPO_ROOT / "agents"
+    agent_files = list(agents_dir.glob("seo-*.md"))
+
+    opencode_jsonc = REPO_ROOT / "opencode.jsonc"
+    text = opencode_jsonc.read_text()
+    text = _strip_jsonc_comments(text)
+    text = re.sub(r',\s*[\n\r]+\s*(\}|\])', r'\n\1', text)
+    config = json.loads(text)
+
+    config_agents = config.get("agent", {})
+    errors = []
+    for af in agent_files:
+        name = af.stem
+        if name not in config_agents:
+            errors.append(f"{name} is on disk but not in opencode.jsonc agent config")
+    for name in config_agents:
+        if not (agents_dir / f"{name}.md").exists():
+            errors.append(f"{name} is in opencode.jsonc but no agent file on disk")
+    assert not errors, "Agent config/drift:\n  " + "\n  ".join(errors)
 
 
 def _extract_section(text: str, heading: str) -> str:
-    """Return the body of a `## <heading>` section, up to the next H2 heading or EOF."""
     pattern = rf"^## {re.escape(heading)}\b.*?(?=^## |\Z)"
     m = re.search(pattern, text, re.MULTILINE | re.DOTALL)
     return m.group(0) if m else ""
 
 
 def test_orchestrator_sub_skills_list_matches_disk():
-    """skills/seo/SKILL.md Sub-Skills numbered list must equal set(skills/*) minus orchestrator itself.
-
-    Background: v1.9.8 CI guard checks README/CLAUDE/AGENTS but not the orchestrator's
-    own canonical-phrasing source. PR #92 surfaced that the orchestrator had stale "21
-    specialized" claims and the list included seo-firecrawl (extension-only). This
-    guard closes that gap.
-    """
+    """skills/seo/SKILL.md Sub-Skills numbered list must equal set(skills/*) minus orchestrator itself."""
     text = (REPO_ROOT / "skills" / "seo" / "SKILL.md").read_text()
     section = _extract_section(text, "Sub-Skills")
     listed_list = re.findall(r"^\d+\.\s+\*\*(seo-[a-z-]+)\*\*", section, re.MULTILINE)
     assert len(listed_list) == len(set(listed_list)), (
-        f"Duplicate entries in Sub-Skills list: "
-        f"{[n for n in listed_list if listed_list.count(n) > 1]}"
+        f"Duplicate entries in Sub-Skills list"
     )
     listed = set(listed_list)
     on_disk = {
         d.name for d in (REPO_ROOT / "skills").iterdir()
         if d.is_dir() and (d / "SKILL.md").is_file()
     }
-    # The orchestrator (`seo`) does not list itself.
-    # seo-firecrawl is documented separately in an Optional Extensions subsection
-    # because it lives only in extensions/, not in skills/.
     expected = on_disk - {"seo"}
     assert listed == expected, (
         f"Sub-Skills list != skills/ dir. "
@@ -228,18 +179,12 @@ def test_orchestrator_sub_skills_list_matches_disk():
 
 
 def test_orchestrator_subagents_list_matches_disk():
-    """skills/seo/SKILL.md Subagents bullet list must equal set(agents/seo-*.md), no duplicates.
-
-    Background: same drift pattern as Sub-Skills. Codex round 3 review surfaced that
-    the Subagents list was missing seo-flow (file on disk) and included seo-firecrawl
-    (no agent file on disk).
-    """
+    """skills/seo/SKILL.md Subagents bullet list must equal set(agents/seo-*.md)."""
     text = (REPO_ROOT / "skills" / "seo" / "SKILL.md").read_text()
     section = _extract_section(text, "Subagents")
     listed_list = re.findall(r"^- `(seo-[a-z-]+)`", section, re.MULTILINE)
     assert len(listed_list) == len(set(listed_list)), (
-        f"Duplicate entries in Subagents list: "
-        f"{[n for n in listed_list if listed_list.count(n) > 1]}"
+        f"Duplicate entries in Subagents list"
     )
     listed = set(listed_list)
     on_disk = {
@@ -253,174 +198,29 @@ def test_orchestrator_subagents_list_matches_disk():
     )
 
 
-def _extract_frontmatter(text: str) -> str:
-    """Return the YAML frontmatter block (between the first two `---` lines).
-
-    Returns the body between the delimiters (exclusive), or empty string if no
-    frontmatter present. Scoping the regex search to this block prevents a
-    fenced code example or later doc snippet from satisfying a metadata check.
-    """
-    m = re.match(r"^---\s*\n(.*?)\n---\s*\n", text, re.DOTALL)
-    return m.group(1) if m else ""
-
-
-def test_skill_metadata_versions_match_plugin_json():
-    """Every SKILL.md metadata.version must equal plugin.json version (with community allowlist).
-
-    Covers in-tree skills/*/SKILL.md and extension-mirror copies under
-    extensions/*/skills/*/SKILL.md. Community contributions can be allowlisted
-    to keep their own version cadence.
-
-    Implementation note: parses the YAML frontmatter block specifically so that
-    a fenced code example or later doc snippet showing `version: "x"` cannot
-    satisfy the assertion after metadata.version has been removed from frontmatter.
-    """
-    # Community-contributed skills that maintain their own version cadence.
-    # Each entry: skill name -> expected literal version string.
-    COMMUNITY_OVERRIDES = {"seo-content-brief": "1.0.0"}
-
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    expected_default = plugin["version"]
-    errors = []
-
-    candidates = list((REPO_ROOT / "skills").glob("*/SKILL.md")) + list(
-        (REPO_ROOT / "extensions").glob("*/skills/*/SKILL.md")
-    )
-    for skill_md in candidates:
-        skill_name = skill_md.parent.name
-        rel = skill_md.relative_to(REPO_ROOT)
-        text = skill_md.read_text()
-        frontmatter = _extract_frontmatter(text)
-        if not frontmatter:
-            errors.append(f"{rel} has no YAML frontmatter block")
-            continue
-        # metadata.version is nested under `metadata:` and indented by 2 spaces
-        match = re.search(
-            r'^  version:\s*"([^"]+)"', frontmatter, re.MULTILINE
-        )
-        if not match:
-            errors.append(f"{rel} has no metadata.version in frontmatter")
-            continue
-        actual = match.group(1)
-        expected = COMMUNITY_OVERRIDES.get(skill_name, expected_default)
-        if actual != expected:
-            errors.append(f"{rel}: version is {actual}, expected {expected}")
-
-    assert not errors, "Skill metadata.version drift:\n  " + "\n  ".join(errors)
-
-
-def test_marketplace_metadata_and_author_parity():
-    """marketplace.json metadata.description includes both counts; plugin entry author parities plugin.json.
-
-    Background: v1.9.8 release notes claimed `author.email` was added in commit 8514999
-    but verification showed only owner.name existed. v1.9.9 corrects this and adds a
-    guard so marketplace.json metadata.description + plugin entry author stay in sync
-    with plugin.json.
-    """
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    mp = json.loads(MARKETPLACE_JSON.read_text())
-
-    desc = mp["metadata"]["description"]
-    desc_sub_skills = re.search(r"(\d+)\s+sub-skills", desc)
-    desc_sub_agents = re.search(r"(\d+)\s+sub-agents", desc)
-    assert desc_sub_skills, (
-        f"marketplace.json metadata.description missing sub-skills count: {desc!r}"
-    )
-    assert desc_sub_agents, (
-        f"marketplace.json metadata.description missing sub-agents count: {desc!r}"
-    )
-
-    plugin_desc = plugin["description"]
-    plugin_sub_skills_match = re.search(r"(\d+)\s+sub-skills", plugin_desc)
-    plugin_sub_agents_match = re.search(r"(\d+)\s+sub-agents", plugin_desc)
-    assert plugin_sub_skills_match, "plugin.json description has no sub-skills count"
-    assert plugin_sub_agents_match, "plugin.json description has no sub-agents count"
-
-    assert desc_sub_skills.group(1) == plugin_sub_skills_match.group(1), (
-        f"marketplace.json metadata.description claims {desc_sub_skills.group(1)} "
-        f"sub-skills but plugin.json claims {plugin_sub_skills_match.group(1)}"
-    )
-    assert desc_sub_agents.group(1) == plugin_sub_agents_match.group(1), (
-        f"marketplace.json metadata.description claims {desc_sub_agents.group(1)} "
-        f"sub-agents but plugin.json claims {plugin_sub_agents_match.group(1)}"
-    )
-
-    plugin_entry = mp["plugins"][0]
-    assert "author" in plugin_entry, (
-        "marketplace.json plugin entry must have an author object"
-    )
-    p_author = plugin["author"]
-    m_author = plugin_entry["author"]
-    # Exact parity for all 3 fields (name, email, url) — drift in any field
-    # signals a metadata sync miss
-    for field in ("name", "email", "url"):
-        p_val = p_author.get(field)
-        m_val = m_author.get(field)
-        assert p_val, f"plugin.json author.{field} must be non-empty (was: {p_val!r})"
-        assert m_val == p_val, (
-            f"marketplace plugin entry author.{field} {m_val!r} != "
-            f"plugin.json author.{field} {p_val!r}"
-        )
-
-
-def test_canonical_math_adds_up():
-    """The canonical phrasing's parenthetical breakdown must sum to the headline count."""
-    plugin = json.loads(PLUGIN_JSON.read_text())
-    desc = plugin["description"]
-    headline_match = re.search(r"(\d+)\s+sub-skills\s+\(([^)]+)\)", desc)
-    assert headline_match, (
-        "plugin.json description must use the canonical 'N sub-skills (...)' "
-        "phrasing with a parenthetical breakdown"
-    )
-    headline = int(headline_match.group(1))
-    breakdown = headline_match.group(2)
-    parts = [int(n) for n in re.findall(r"(\d+)\s+(?:core|orchestrator|framework|extension)", breakdown)]
-    assert sum(parts) == headline, (
-        f"plugin.json canonical phrasing breakdown {breakdown!r} sums to "
-        f"{sum(parts)} but headline claims {headline}. Math must add up."
-    )
-
-
 def test_reference_files_have_at_least_one_link():
-    """Every skills/*/references/*.md file must be cited somewhere in the repo.
-
-    Guards against orphan reference files — docs on disk that no SKILL.md,
-    agent, top-level doc, or other reference file actually links to. Catches
-    drift like the v2.0.0-era incident where llmstxt-evidence.md landed in
-    references/ but was reachable only through a sibling cross-link, not
-    through its parent SKILL.md.
-
-    Cross-skill references are legitimate (e.g. skills/seo/references/
-    backlink-quality.md is cited from seo-backlinks/SKILL.md) so the search
-    is repo-wide rather than per-parent-skill.
-
-    Searches the full filename (`name.md`) and the Obsidian-style wikilink
-    form (`[[name]]`) across: every SKILL.md, every agent .md, every doc/*.md,
-    top-level README/CHANGELOG/CLAUDE/AGENTS/CONTRIBUTING, and every other
-    reference file. Each reference is excluded from its own search.
-    """
+    """Every skills/*/references/*.md file must be cited somewhere in the repo."""
     ref_files = list((REPO_ROOT / "skills").glob("*/references/*.md"))
     if not ref_files:
-        return  # no references at all — nothing to check
+        return
 
-    search_paths: list[Path] = []
+    search_paths = []
     search_paths += list((REPO_ROOT / "skills").glob("*/SKILL.md"))
     search_paths += list((REPO_ROOT / "agents").glob("*.md"))
+    search_paths += list((REPO_ROOT / "commands").glob("*.md"))
     search_paths += list((REPO_ROOT / "docs").glob("*.md"))
-    for doc in ("README.md", "CHANGELOG.md", "CLAUDE.md",
-                "AGENTS.md", "CONTRIBUTING.md"):
+    for doc in ("README.md", "CHANGELOG.md", "AGENTS.md", "CONTRIBUTING.md"):
         candidate = REPO_ROOT / doc
         if candidate.exists():
             search_paths.append(candidate)
-    # Reference files can cite each other (e.g. via [[wikilink]]).
     search_paths += ref_files
 
     text_by_path = {p: p.read_text() for p in search_paths}
 
     orphans = []
     for ref in ref_files:
-        slug = ref.stem  # 'llmstxt-evidence'
-        filename = ref.name  # 'llmstxt-evidence.md'
+        slug = ref.stem
+        filename = ref.name
         wikilink = f"[[{slug}]]"
         found = False
         for other_path, text in text_by_path.items():
@@ -433,8 +233,24 @@ def test_reference_files_have_at_least_one_link():
             orphans.append(str(ref.relative_to(REPO_ROOT)))
 
     assert not orphans, (
-        "Orphan reference files (on disk, not cited anywhere repo-wide):\n  "
-        + "\n  ".join(orphans)
-        + "\n\nFix: link the file from its parent SKILL.md, a related "
-          "reference doc, or a top-level doc — or delete if obsolete."
+        "Orphan reference files:\n  " + "\n  ".join(orphans)
+    )
+
+
+def test_version_triangulation():
+    """pyproject.toml version must equal CITATION.cff version."""
+    citation_text = (REPO_ROOT / "CITATION.cff").read_text()
+    citation_match = re.search(r"^version:\s*(\S+)", citation_text, re.MULTILINE)
+    assert citation_match, "CITATION.cff has no 'version:' line"
+    citation_version = citation_match.group(1)
+
+    pyproject_text = (REPO_ROOT / "pyproject.toml").read_text()
+    pyproject_match = re.search(
+        r'^version\s*=\s*"([^"]+)"', pyproject_text, re.MULTILINE
+    )
+    assert pyproject_match, "pyproject.toml has no 'version = \"...\"' line"
+    pyproject_version = pyproject_match.group(1)
+    assert citation_version == pyproject_version, (
+        f"CITATION.cff version is {citation_version} but pyproject.toml has "
+        f"{pyproject_version}. They must match every release."
     )

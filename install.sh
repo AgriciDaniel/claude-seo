@@ -1,22 +1,23 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Claude SEO Installer
+# OpenCode SEO Installer
 # Wraps everything in main() to prevent partial execution on network failure
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 main() {
-    SKILL_DIR="${HOME}/.claude/skills/seo"
-    AGENT_DIR="${HOME}/.claude/agents"
-    REPO_URL="https://github.com/AgriciDaniel/claude-seo"
+    SKILL_DIR="${HOME}/.config/opencode/seo-skills"
+    AGENT_DIR="${HOME}/.config/opencode/agents"
+    COMMANDS_DIR="${HOME}/.config/opencode/commands"
+    REPO_URL="https://github.com/DevShaded/claude-seo"
     # Pin to a specific release tag to prevent silent updates from main.
-    # This default MUST be bumped on every release. CI guard
-    # (tests/test_manifest_consistency.py) enforces this matches plugin.json.
-    # Override: CLAUDE_SEO_TAG=main bash install.sh
-    REPO_TAG="${CLAUDE_SEO_TAG:-v2.2.0}"
+    # Override: OPENCODE_SEO_TAG=main bash install.sh
+    REPO_TAG="${OPENCODE_SEO_TAG:-v2.2.0}"
 
     echo "════════════════════════════════════════"
-    echo "║   Claude SEO - Installer             ║"
-    echo "║   Claude Code SEO Skill              ║"
+    echo "║   OpenCode SEO - Installer           ║"
+    echo "║   OpenCode SEO Tool                  ║"
     echo "════════════════════════════════════════"
     echo ""
 
@@ -36,27 +37,30 @@ main() {
     # Create directories
     mkdir -p "${SKILL_DIR}"
     mkdir -p "${AGENT_DIR}"
+    mkdir -p "${COMMANDS_DIR}"
 
     # Clone or update
     TEMP_DIR=$(mktemp -d)
     trap "rm -rf ${TEMP_DIR}" EXIT
 
-    echo "↓ Downloading Claude SEO (${REPO_TAG})..."
+    echo "↓ Downloading OpenCode SEO data (${REPO_TAG})..."
     git clone --depth 1 --branch "${REPO_TAG}" "${REPO_URL}" "${TEMP_DIR}/claude-seo" 2>/dev/null
 
-    # Copy skill files
+    # Copy skill files (all recruited via the loop below; no flat orchestrator copy)
     echo "→ Installing skill files..."
-    cp -r "${TEMP_DIR}/claude-seo/skills/seo/"* "${SKILL_DIR}/"
 
     # Copy sub-skills
     if [ -d "${TEMP_DIR}/claude-seo/skills" ]; then
         for skill_dir in "${TEMP_DIR}/claude-seo/skills"/*/; do
             skill_name=$(basename "${skill_dir}")
-            target="${HOME}/.claude/skills/${skill_name}"
+            target="${HOME}/.config/opencode/seo-skills/${skill_name}"
             mkdir -p "${target}"
             cp -r "${skill_dir}"* "${target}/"
         done
     fi
+
+    # Copy commands
+    cp "${SCRIPT_DIR}/commands/seo"*.md "${COMMANDS_DIR}/"
 
     # Copy schema templates
     if [ -d "${TEMP_DIR}/claude-seo/schema" ]; then
@@ -70,24 +74,14 @@ main() {
         cp -r "${TEMP_DIR}/claude-seo/pdf/"* "${SKILL_DIR}/pdf/"
     fi
 
-    # Copy agents
+    # Copy agents (OpenCode format from local install source)
     echo "→ Installing subagents..."
-    cp -r "${TEMP_DIR}/claude-seo/agents/"*.md "${AGENT_DIR}/" 2>/dev/null || true
+    cp "${SCRIPT_DIR}/agents/seo-"*.md "${AGENT_DIR}/" 2>/dev/null || true
 
     # Copy shared scripts
     if [ -d "${TEMP_DIR}/claude-seo/scripts" ]; then
         mkdir -p "${SKILL_DIR}/scripts"
         cp -r "${TEMP_DIR}/claude-seo/scripts/"* "${SKILL_DIR}/scripts/"
-    fi
-
-    # Copy hooks
-    if [ -d "${TEMP_DIR}/claude-seo/hooks" ]; then
-        mkdir -p "${SKILL_DIR}/hooks"
-        cp -r "${TEMP_DIR}/claude-seo/hooks/"* "${SKILL_DIR}/hooks/"
-        chmod +x "${SKILL_DIR}/hooks/"*.sh 2>/dev/null || true
-        chmod +x "${SKILL_DIR}/hooks/"*.py 2>/dev/null || true
-        # Manual installs copy hook files only; enforcement loads through the plugin manifest.
-        echo "  Note: hook enforcement requires plugin install (/plugin install ${REPO_URL}); manual hook copy is best-effort."
     fi
 
     # Copy extensions (optional add-ons: dataforseo, banana)
@@ -101,7 +95,7 @@ main() {
                 for ext_skill in "${ext_dir}skills"/*/; do
                     [ -d "${ext_skill}" ] || continue
                     ext_skill_name=$(basename "${ext_skill}")
-                    target="${HOME}/.claude/skills/${ext_skill_name}"
+                    target="${HOME}/.config/opencode/seo-skills/${ext_skill_name}"
                     mkdir -p "${target}"
                     cp -r "${ext_skill}"* "${target}/"
                 done
@@ -149,11 +143,11 @@ main() {
     fi
 
     echo ""
-    echo "✓ Claude SEO installed successfully!"
+    echo "✓ OpenCode SEO installed successfully!"
     echo ""
     echo "Usage:"
-    echo "  1. Start Claude Code:  claude"
-    echo "  2. Run commands:       /seo audit https://example.com"
+    echo "  1. Start OpenCode:  opencode"
+    echo "  2. Run commands:    /seo-audit https://example.com"
     echo ""
     echo "Python deps location: ${SKILL_DIR}/requirements.txt"
     echo "Inspect remote scripts before piping them to bash."

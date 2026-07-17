@@ -4,8 +4,8 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "|   Claude SEO - Installer             |" -ForegroundColor Cyan
-Write-Host "|   Claude Code SEO Skill              |" -ForegroundColor Cyan
+Write-Host "|   OpenCode SEO - Installer           |" -ForegroundColor Cyan
+Write-Host "|   OpenCode SEO Tool                  |" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -111,14 +111,15 @@ try {
 }
 
 # Set paths
-$SkillDir = "$env:USERPROFILE\.claude\skills\seo"
-$AgentDir = "$env:USERPROFILE\.claude\agents"
-$RepoUrl = "https://github.com/AgriciDaniel/claude-seo"
+$SkillDir = "$env:USERPROFILE\.config\opencode\seo-skills"
+$AgentDir = "$env:USERPROFILE\.config\opencode\agents"
+$CommandsDir = "$env:USERPROFILE\.config\opencode\commands"
+$RepoUrl = "https://github.com/DevShaded/claude-seo"
 # Pin to a specific release tag to prevent silent updates from main.
 # This default MUST be bumped on every release. CI guard
 # (tests/test_manifest_consistency.py) enforces this matches plugin.json.
-# Override: $env:CLAUDE_SEO_TAG = 'main'; .\install.ps1
-$RepoTag = if ($env:CLAUDE_SEO_TAG) { $env:CLAUDE_SEO_TAG } else { 'v2.2.0' }
+# Override: $env:OPENCODE_SEO_TAG = 'main'; .\install.ps1
+$RepoTag = if ($env:OPENCODE_SEO_TAG) { $env:OPENCODE_SEO_TAG } else { 'v2.2.0' }
 
 # Create directories
 New-Item -ItemType Directory -Force -Path $SkillDir | Out-Null
@@ -151,7 +152,7 @@ try {
     $SkillsPath = "$TempDir\skills"
     if (Test-Path $SkillsPath) {
         Get-ChildItem -Directory $SkillsPath | ForEach-Object {
-            $target = "$env:USERPROFILE\.claude\skills\$($_.Name)"
+            $target = "$env:USERPROFILE\.config\opencode\seo-skills\$($_.Name)"
             New-Item -ItemType Directory -Force -Path $target | Out-Null
             Copy-Item -Recurse -Force "$($_.FullName)\*" $target
         }
@@ -188,14 +189,9 @@ try {
         Copy-Item -Recurse -Force "$ScriptsPath\*" $SkillScripts
     }
 
-    # Copy hooks
-    Write-Host "  Note: hook enforcement requires plugin install; manual hook copy is best-effort." -ForegroundColor Yellow
-    $HooksPath = "$TempDir\hooks"
-    if (Test-Path $HooksPath) {
-        $SkillHooks = "$SkillDir\hooks"
-        New-Item -ItemType Directory -Force -Path $SkillHooks | Out-Null
-        Copy-Item -Recurse -Force "$HooksPath\*" $SkillHooks
-    }
+    # Copy commands
+    New-Item -ItemType Directory -Force -Path $CommandsDir | Out-Null
+    Copy-Item -Force (Join-Path $TempDir "commands\seo*.md") $CommandsDir -ErrorAction SilentlyContinue
 
     # Copy extensions (optional add-ons: dataforseo, banana)
     $ExtensionsPath = Join-Path $TempDir 'extensions'
@@ -208,7 +204,7 @@ try {
             $extSkills = Join-Path $extDir 'skills'
             if (Test-Path $extSkills) {
                 Get-ChildItem -Directory $extSkills | ForEach-Object {
-                    $target = "$env:USERPROFILE\.claude\skills\$($_.Name)"
+                    $target = "$env:USERPROFILE\.config\opencode\seo-skills\$($_.Name)"
                     New-Item -ItemType Directory -Force -Path $target | Out-Null
                     Copy-Item -Recurse -Force "$($_.FullName)\*" $target
                 }

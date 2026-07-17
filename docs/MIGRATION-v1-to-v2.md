@@ -162,7 +162,7 @@ Caution: Prefer downloading, inspecting, then running remote scripts; the pipe-t
 
 ```bash
 # Pull v2.0.0
-curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DevShaded/claude-seo/main/install.sh | bash
 
 # Verify the new requirements pin landed
 pip install -r requirements.txt

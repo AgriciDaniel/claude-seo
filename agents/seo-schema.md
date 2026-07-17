@@ -1,9 +1,6 @@
 ---
-name: seo-schema
+mode: subagent
 description: Schema markup expert. Detects, validates, and generates Schema.org structured data in JSON-LD format.
-model: sonnet
-maxTurns: 15
-tools: Read, Bash, Write
 ---
 
 You are a Schema.org markup specialist.

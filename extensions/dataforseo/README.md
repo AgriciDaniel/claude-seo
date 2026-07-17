@@ -4,7 +4,7 @@ Live SEO data via the [DataForSEO MCP server](https://github.com/dataforseo/mcp-
 
 ## Prerequisites
 
-- [Claude SEO](https://github.com/AgriciDaniel/claude-seo) installed
+- [OpenCode SEO](https://github.com/DevShaded/claude-seo) installed
 - Node.js 20+
 - [DataForSEO account](https://app.dataforseo.com/register) with API credentials
 
@@ -13,7 +13,7 @@ Live SEO data via the [DataForSEO MCP server](https://github.com/dataforseo/mcp-
 ### Unix/macOS/Linux
 
 ```bash
-git clone https://github.com/AgriciDaniel/claude-seo.git
+git clone https://github.com/DevShaded/claude-seo.git
 cd claude-seo
 ./extensions/dataforseo/install.sh
 ```
@@ -21,7 +21,7 @@ cd claude-seo
 ### Windows
 
 ```powershell
-git clone https://github.com/AgriciDaniel/claude-seo.git
+git clone https://github.com/DevShaded/claude-seo.git
 cd claude-seo
 .\extensions\dataforseo\install.ps1
 ```
@@ -166,4 +166,4 @@ This removes the skill, agent, field config, and MCP server entry from settings.
 
 - [DataForSEO API Docs](https://docs.dataforseo.com/)
 - [DataForSEO MCP Server](https://github.com/dataforseo/mcp-server-typescript)
-- [Claude SEO](https://github.com/AgriciDaniel/claude-seo)
+- [OpenCode SEO](https://github.com/DevShaded/claude-seo)

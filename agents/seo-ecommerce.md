@@ -1,12 +1,6 @@
 ---
-name: seo-ecommerce
-description: >
-  E-commerce SEO analyst. Validates product schema, analyzes Google Shopping and
-  Amazon marketplace visibility, identifies pricing gaps, and recommends product
-  page optimizations. Spawned when e-commerce site detected during audits.
-model: sonnet
-maxTurns: 20
-tools: Read, Bash, Write, Glob, Grep
+mode: subagent
+description: E-commerce SEO specialist. Analyzes product schema, category architecture, faceted navigation, marketplace intelligence, and shopping feed optimization.
 ---
 
 <!-- Original concept: Matej Marjanovic -- E-commerce DataForSEO Expansion (Pro Hub Challenge) -->

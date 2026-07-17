@@ -1,12 +1,58 @@
 # Claude SEO: Multi-Platform Agent Instructions
 
-> For **Cursor**, **Cursor Cloud Agents**, **Google Antigravity**, **Gemini CLI**,
-> **OpenAI Codex CLI**, **Cline**, **Aider**, and any other agent harness that
-> reads project-root agent instructions.
+> For **OpenCode**, **Cursor**, **Cursor Cloud Agents**, **Google Antigravity**,
+> **Gemini CLI**, **OpenAI Codex CLI**, **Cline**, **Aider**, and any other agent
+> harness that reads project-root agent instructions.
 >
 > Claude Code users: see `CLAUDE.md` instead.
 
-## Cross-platform portability (v2.0.0)
+## Overview
+
+Claude SEO is a Tier 4 SEO analysis skill with 25 sub-skills (21 core + 1 orchestrator +
+1 framework integration + 2 extension mirrors), 18 sub-agents (15 core + 1 framework
+integration + 2 extension mirrors), and 50 Python execution scripts.
+
+## Working on this repo (dev sessions)
+
+`opencode.jsonc` holds the central project configuration (report styling, security, release flow).
+The traps below are what CI actually enforces:
+
+**Tests** — plain pytest, no pytest.ini/conftest:
+
+```bash
+pip install -r requirements.txt pytest   # tests import scripts/, which need full runtime deps at import time
+pytest tests/ -v                         # full suite
+pytest tests/test_url_safety.py -v       # single file
+```
+
+- `tests/test_sync_flow.py` hits the GitHub API via `gh`; authenticate `gh` (or set
+  `GH_TOKEN`) to avoid anonymous rate-limit failures.
+- CI (`.github/workflows/ci.yml`) = `py_compile` on all tracked `scripts/*.py` +
+  pytest + a secret scan over tracked files. Ruff is configured in `pyproject.toml`
+  (py310, line 100, E/F/W/I) but CI does not run it — run `ruff check scripts/` yourself.
+
+**Manifest consistency is under test** (`tests/test_manifest_consistency.py`).
+Adding/removing a skill, agent, or reference file requires lockstep updates:
+
+- the literal phrase `25 sub-skills` (current count) within the first 120 lines of
+  `README.md` and this file
+- the numbered Sub-Skills list in `skills/seo/SKILL.md` (= `skills/*` minus `seo`;
+  extension-only skills like firecrawl stay out of it)
+- versions triangulate: `plugin.json` == `CITATION.cff` == `pyproject.toml`
+- every `skills/*/references/*.md` must be cited by filename or `[[wikilink]]`
+  somewhere in the repo (orphan check)
+
+**Conventions**: SKILL.md < 500 lines; `references/*.md` < 200 lines; kebab-case dirs;
+scripts need a docstring, CLI interface, and JSON output. Any user-supplied URL must
+pass `validate_url()` — `scripts/url_safety.py` is the canonical module
+(`google_auth.py` carries a legacy copy). Rendering scripts (`render_page.py`,
+`capture_screenshot.py`) additionally need `playwright install chromium`.
+
+**Git**: `origin` is the public, release-only repo — **never push to `origin/main`
+autonomously**. Daily work goes to the private `aimh` remote (absent in fresh public
+clones). Full flow: `docs/WORKFLOW-public-private.md` + "Repository Topology" in `CLAUDE.md`.
+
+## Cross-platform portability
 
 Every skill in `skills/*/SKILL.md` is authored to a portable subset of the
 Claude Code skill spec. Validate compatibility with your harness via:
@@ -31,30 +77,25 @@ descriptive comments) that other harnesses may ignore but do not reject.
 | **OpenAI Codex CLI** | Reads `AGENTS.md` from project root. Bash tools work as documented; some Claude-specific tool names (Read/Write/Edit) are aliased to Codex equivalents transparently. |
 | **Cline** | Loads `AGENTS.md` from project root. Skills appear as system messages; subagent delegation falls back to in-context expansion. |
 | **Aider** | Reads `AGENTS.md` if present; otherwise falls back to README. Aider does not support sub-agent dispatch; the seo-* skills run inline. |
+| **OpenCode** | Install via `bash install.sh` to `~/.config/opencode/`. Commands are invoked as `/seo-audit <url>` etc. Subagents defined via `opencode.jsonc` and `agents/` directory. Skills loaded from `~/.config/opencode/seo-skills/`. |
 
 ### Tool-name compatibility
 
 Where claude-seo skills mention Claude Code tools (`Read`, `Write`, `Edit`,
 `Bash`, `Glob`, `Grep`, `WebFetch`), each harness typically has an equivalent:
 
-| Claude Code | Codex | Cline | Aider | Cursor / Antigravity |
-|---|---|---|---|---|
-| Read       | read_file        | read_file       | (inline)        | read |
-| Write      | write_file       | write_file      | /add then edit  | write |
-| Edit       | apply_diff       | replace_in_file | /edit           | edit |
-| Bash       | bash             | execute_command | /run            | shell |
-| Glob       | glob             | search_files    | (inline)        | find |
-| Grep       | grep             | search_files    | /grep           | grep |
-| WebFetch   | fetch / browse   | (browser tool)  | (n/a)           | fetch |
+| Claude Code | OpenCode | Codex | Cline | Aider | Cursor / Antigravity |
+|---|---|---|---|---|---|---|
+| Read       | read | read_file        | read_file       | (inline)        | read |
+| Write      | write | write_file       | write_file      | /add then edit  | write |
+| Edit       | edit | apply_diff       | replace_in_file | /edit           | edit |
+| Bash       | bash | bash             | execute_command | /run            | shell |
+| Glob       | glob | glob             | search_files    | (inline)        | find |
+| Grep       | grep | grep             | search_files    | /grep           | grep |
+| WebFetch   | webfetch | fetch / browse   | (browser tool)  | (n/a)           | fetch |
 
 These mappings are automatic in most harnesses; we list them for transparency
 in case a recipe needs a specific call.
-
-## Overview
-
-Claude SEO is a Tier 4 SEO analysis skill with 25 sub-skills (21 core + 1 orchestrator +
-1 framework integration + 2 extension mirrors), 18 sub-agents (15 core + 1 framework
-integration + 2 extension mirrors), and 50 Python execution scripts.
 
 ## Quick Reference
 
@@ -64,6 +105,7 @@ integration + 2 extension mirrors), and 50 Python execution scripts.
 | `/seo page <url>` | Deep single-page analysis |
 | `/seo technical <url>` | Technical SEO audit (9 categories) |
 | `/seo content <url>` | E-E-A-T and content quality analysis |
+| `/seo content-brief <topic>` | Detailed SEO content brief: keywords, outline, internal links |
 | `/seo schema <url>` | Schema.org detection, validation, generation |
 | `/seo sitemap <url>` | XML sitemap analysis or generation |
 | `/seo images <url>` | Image SEO: on-page audit, SERP analysis, file optimization |
@@ -85,6 +127,7 @@ integration + 2 extension mirrors), and 50 Python execution scripts.
 | `/seo backlinks setup` | Setup free backlink APIs |
 | `/seo backlinks verify <url>` | Verify known backlinks still exist |
 | `/seo dataforseo [cmd]` | Live SEO data via DataForSEO (extension) |
+| `/seo flow <url>` | FLOW framework: staged prompts + search-and-conversion output |
 | `/seo image-gen [use-case]` | AI image generation for SEO assets (extension) |
 | `/seo firecrawl [cmd] <url>` | Full-site crawling and site mapping (extension) |
 
@@ -117,46 +160,32 @@ DATAFORSEO_USERNAME=user DATAFORSEO_PASSWORD=pass python3 scripts/dataforseo_mer
 - PATH may not include Python venv. Use full path: `~/.claude/skills/seo/.venv/bin/python`
 - Screenshots save to `/tmp/` not CWD. Check absolute paths.
 
-## Using with Google Antigravity
+## Using with OpenCode
 
-Antigravity discovers this project via `.claude-plugin/plugin.json`.
-Place the repo in `~/.gemini/antigravity/plugins/claude-seo/` or install via:
+OpenCode reads `AGENTS.md` automatically from the project root. Install via:
 
 ```bash
 bash install.sh
 ```
 
+Commands are invoked via `/seo-audit <url>`, `/seo-page <url>`, etc. The installer copies commands to `~/.config/opencode/commands/`, agents to `~/.config/opencode/agents/`, and skills to `~/.config/opencode/seo-skills/`.
+
+Python venv path: `~/.config/opencode/seo-skills/.venv/bin/python`
+
 ## Architecture
 
 ```
-skills/                    # 25 sub-skills (auto-discovered)
-  seo/SKILL.md            # Main orchestrator + routing
-  seo-cluster/            # Semantic clustering (v1.9.0)
-  seo-sxo/                # Search Experience Optimization (v1.9.0)
-  seo-drift/              # SEO drift monitoring (v1.9.0)
-  seo-ecommerce/          # E-commerce SEO (v1.9.0)
-  seo-audit/              # Full site audit
-  seo-page/               # Single-page analysis
-  seo-technical/          # Technical SEO
-  seo-content/            # E-E-A-T quality
-  seo-schema/             # Schema.org markup
-  seo-sitemap/            # XML sitemaps
-  seo-images/             # Image optimization
-  seo-geo/                # AI search / GEO
-  seo-local/              # Local SEO
-  seo-maps/               # Maps intelligence
-  seo-plan/               # Strategic planning
-  seo-hreflang/           # International SEO
-  seo-google/             # Google APIs
-  seo-backlinks/          # Backlink analysis
-  seo-programmatic/       # Programmatic SEO
-  seo-competitor-pages/   # Competitor pages
-  seo-dataforseo/         # DataForSEO (extension)
-  seo-image-gen/          # AI images (extension)
-agents/                    # 18 subagents
+commands/                  # 25 user-invocable /seo-* commands
+  seo.md                  # Main orchestrator + routing
+  seo-audit.md            # Full site audit
+  seo-page.md             # Single-page analysis
+  ...
+agents/                    # 18 subagents (OpenCode frontmatter)
 scripts/                   # 50 Python scripts
+skills/                    # Reference content (references/*.md retained)
 schema/                    # JSON-LD templates
-extensions/                # Optional add-ons (DataForSEO, Firecrawl, Banana, ASO)
+extensions/                # Optional add-ons (DataForSEO, Firecrawl, Banana)
+opencode.jsonc            # Central configuration
 ```
 
 ## Key Principles

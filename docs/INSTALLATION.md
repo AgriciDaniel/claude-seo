@@ -4,33 +4,33 @@
 
 - **Python 3.10+** with pip
 - **Git** for cloning the repository
-- **Claude Code CLI** installed and configured
+- **OpenCode CLI** installed and configured
 
 Optional:
 - **Playwright** for screenshot capabilities
 
 ## Quick Install
 
-### Plugin Install (Claude Code 1.0.33+)
+### Bash Installer (Recommended)
 
-The recommended path. Inside Claude Code:
+The recommended path. Inside OpenCode:
 
-```
-/plugin marketplace add AgriciDaniel/claude-seo
-/plugin install claude-seo@agricidaniel-claude-seo
+```bash
+git clone --depth 1 https://github.com/DevShaded/claude-seo.git
+bash claude-seo/install.sh
 ```
 
 ### Manual Install (Unix, macOS, Linux)
 
 ```bash
-git clone --depth 1 https://github.com/AgriciDaniel/claude-seo.git
-bash claude-seo/install.sh
+git clone --depth 1 https://github.com/DevShaded/claude-seo.git
+bash opencode-seo/install.sh
 ```
 
 Review-then-run alternative:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/install.sh > install.sh
+curl -fsSL https://raw.githubusercontent.com/DevShaded/opencode-seo/main/install.sh > install.sh
 cat install.sh        # review
 bash install.sh       # run when satisfied
 rm install.sh
@@ -39,19 +39,19 @@ rm install.sh
 ### Manual Install (Windows, PowerShell)
 
 ```powershell
-git clone --depth 1 https://github.com/AgriciDaniel/claude-seo.git
+git clone --depth 1 https://github.com/DevShaded/claude-seo.git
 powershell -ExecutionPolicy Bypass -File claude-seo\install.ps1
 ```
 
-The Windows path uses `git clone` rather than `irm | iex` because Claude Code's own security guardrails flag piped remote-script execution. Inspect `install.ps1` before running.
+The Windows path uses `git clone` rather than `irm | iex` because OpenCode's own security guardrails flag piped remote-script execution. Inspect `install.ps1` before running.
 
 ## Manual Installation
 
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/AgriciDaniel/claude-seo.git
-cd claude-seo
+git clone https://github.com/DevShaded/claude-seo.git
+cd opencode-seo
 ```
 
 2. **Run the installer**
@@ -62,14 +62,14 @@ cd claude-seo
 
 3. **Install Python dependencies** (if not done automatically)
 
-The installer creates a venv at `~/.claude/skills/seo/.venv/`. If that fails, install manually:
+The installer creates a venv at `~/.config/opencode/seo-skills/.venv/`. If that fails, install manually:
 
 ```bash
 # Option A: Use the venv
-~/.claude/skills/seo/.venv/bin/pip install -r ~/.claude/skills/seo/requirements.txt
+~/.config/opencode/seo-skills/.venv/bin/pip install -r ~/.config/opencode/seo-skills/requirements.txt
 
 # Option B: User-level install
-pip install --user -r ~/.claude/skills/seo/requirements.txt
+pip install --user -r ~/.config/opencode/seo-skills/requirements.txt
 ```
 
 4. **Install Playwright browsers** (optional, for visual analysis)
@@ -86,44 +86,37 @@ Playwright is optional. Without it, visual analysis uses WebFetch as a fallback.
 The installer copies files to:
 
 | Component | Path |
-|-----------|------|
-| Main skill | `~/.claude/skills/seo/` |
-| Sub-skills | `~/.claude/skills/seo-*/` |
-| Subagents | `~/.claude/agents/seo-*.md` |
+|---|---|
+| Skills | `~/.config/opencode/seo-skills/` |
+| Commands | `~/.config/opencode/commands/` |
+| Agents | `~/.config/opencode/agents/seo-*.md` |
 
 ## Verify Installation
 
-1. Start Claude Code:
+1. Start OpenCode:
 
 ```bash
-claude
+opencode
 ```
 
 2. Check that the skill is loaded:
 
 ```
-/seo
+/seo-audit https://example.com
 ```
 
 You should see a help message or prompt for a URL.
 
 ## Uninstallation
 
-If installed as a plugin:
-
-```
-/plugin uninstall claude-seo@agricidaniel-claude-seo
-/plugin marketplace remove AgriciDaniel/claude-seo
-```
-
-If installed manually, run the uninstaller from a fresh clone:
+Run the uninstaller from a fresh clone:
 
 ```bash
-git clone --depth 1 https://github.com/AgriciDaniel/claude-seo.git
-bash claude-seo/uninstall.sh
+git clone --depth 1 https://github.com/DevShaded/claude-seo.git
+bash opencode-seo/uninstall.sh
 ```
 
-`uninstall.sh` removes all installed sub-skills, sub-agents, and the plugin's MCP entries from `~/.claude/settings.json`. Do not maintain a hand-coded `rm` list. The shipped uninstaller is the canonical source.
+`uninstall.sh` removes all installed sub-skills, sub-agents, and the plugin's MCP entries from `~/.opencode/settings.json`. Do not maintain a hand-coded `rm` list. The shipped uninstaller is the canonical source.
 
 ## Upgrading
 
@@ -133,10 +126,10 @@ Caution: Prefer downloading, inspecting, then running remote scripts; the pipe-t
 
 ```bash
 # Uninstall current version
-curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DevShaded/opencode-seo/main/uninstall.sh | bash
 
 # Install new version
-curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DevShaded/opencode-seo/main/install.sh | bash
 ```
 
 ## Troubleshooting
@@ -146,7 +139,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/instal
 Ensure the skill is installed in the correct location:
 
 ```bash
-ls ~/.claude/skills/seo/SKILL.md
+ls ~/.config/opencode/seo-skills/SKILL.md
 ```
 
 If the file doesn't exist, re-run the installer.
@@ -172,5 +165,5 @@ playwright install chromium
 Make sure scripts are executable:
 
 ```bash
-chmod +x ~/.claude/skills/seo/scripts/*.py
+chmod +x ~/.config/opencode/seo-skills/scripts/*.py
 ```

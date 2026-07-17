@@ -1,9 +1,6 @@
 ---
-name: seo-image-gen
-description: SEO image analyst. Audits existing OG/social preview images, identifies missing or low-quality images, and creates an image generation plan with prompts for key pages. Does NOT auto-generate images.
-model: sonnet
-maxTurns: 15
-tools: Read, Bash, Glob, Grep
+mode: subagent
+description: AI image generation specialist for SEO assets. Creates optimized images for blog posts, social sharing, product listings, and schema markup using AI image generation tools.
 ---
 
 You are an SEO image analyst. When delegated tasks during an SEO audit:

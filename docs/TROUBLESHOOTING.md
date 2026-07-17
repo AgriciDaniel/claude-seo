@@ -4,24 +4,24 @@
 
 ### Skill Not Loading
 
-**Symptom:** `/seo` command not recognized
+**Symptom:** `/seo-audit` command not recognized
 
 **Solutions:**
 
 1. Verify installation:
 ```bash
-ls ~/.claude/skills/seo/SKILL.md
+ls ~/.config/opencode/seo-skills/SKILL.md
 ```
 
 2. Check SKILL.md has proper frontmatter:
 ```bash
-head -5 ~/.claude/skills/seo/SKILL.md
+head -5 ~/.config/opencode/seo-skills/SKILL.md
 ```
 Should start with `---` followed by YAML.
 
 3. Restart Claude Code:
 ```bash
-claude
+opencode
 ```
 
 4. Re-run installer:
@@ -29,7 +29,7 @@ claude
 Caution: Prefer downloading, inspecting, then running remote scripts; the pipe-to-shell form below is the less-safe convenience option.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/DevShaded/opencode-seo/main/install.sh | bash
 ```
 
 ---
@@ -44,12 +44,12 @@ As of v1.2.0, dependencies are installed in a venv. Try:
 
 ```bash
 # Use the venv pip
-~/.claude/skills/seo/.venv/bin/pip install -r ~/.claude/skills/seo/requirements.txt
+~/.config/opencode/seo-skills/.venv/bin/pip install -r ~/.config/opencode/seo-skills/requirements.txt
 ```
 
 If the venv doesn't exist, install with `--user`:
 ```bash
-pip install --user -r ~/.claude/skills/seo/requirements.txt
+pip install --user -r ~/.config/opencode/seo-skills/requirements.txt
 ```
 
 Or install individually:
@@ -64,13 +64,13 @@ pip install --user beautifulsoup4 requests lxml playwright Pillow urllib3 valida
 **Solution:** As of v1.2.0, requirements.txt is copied to the skill directory:
 
 ```bash
-ls ~/.claude/skills/seo/requirements.txt
+ls ~/.config/opencode/seo-skills/requirements.txt
 ```
 
 If missing, download it directly:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/requirements.txt \
-  -o ~/.claude/skills/seo/requirements.txt
+curl -fsSL https://raw.githubusercontent.com/DevShaded/opencode-seo/main/requirements.txt \
+  -o ~/.config/opencode/seo-skills/requirements.txt
 ```
 
 ### Windows Python Detection Issues
@@ -108,7 +108,7 @@ python3 -m playwright install chromium
 
 **Solution:**
 ```bash
-chmod +x ~/.claude/skills/seo/scripts/*.py
+chmod +x ~/.config/opencode/seo-skills/scripts/*.py
 ```
 
 ---
@@ -123,17 +123,17 @@ chmod +x ~/.claude/skills/seo/scripts/*.py
 
 1. Verify agent files exist:
 ```bash
-ls ~/.claude/agents/seo-*.md
+ls ~/.config/opencode/agents/seo-*.md
 ```
 
 2. Check agent frontmatter:
 ```bash
-head -5 ~/.claude/agents/seo-technical.md
+head -5 ~/.config/opencode/agents/seo-technical.md
 ```
 
 3. Re-install agents:
 ```bash
-cp /path/to/claude-seo/agents/*.md ~/.claude/agents/
+cp /path/to/opencode-seo/agents/*.md ~/.opencode/agents/
 ```
 
 ---
@@ -191,11 +191,11 @@ To see detailed output, check Claude Code's internal logs or run scripts directl
 
 ```bash
 # Test fetch
-python3 ~/.claude/skills/seo/scripts/fetch_page.py https://example.com
+python3 ~/.config/opencode/seo-skills/scripts/fetch_page.py https://example.com
 
 # Test parse
-python3 ~/.claude/skills/seo/scripts/parse_html.py page.html --json
+python3 ~/.config/opencode/seo-skills/scripts/parse_html.py page.html --json
 
 # Test screenshot
-python3 ~/.claude/skills/seo/scripts/capture_screenshot.py https://example.com
+python3 ~/.config/opencode/seo-skills/scripts/capture_screenshot.py https://example.com
 ```

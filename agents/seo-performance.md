@@ -1,9 +1,6 @@
 ---
-name: seo-performance
-description: Performance analyzer. Measures and evaluates Core Web Vitals and page load performance.
-model: sonnet
-maxTurns: 15
-tools: Read, Bash, Write
+mode: subagent
+description: Core Web Vitals and page performance specialist. Analyzes LCP, INP, CLS, TTFB, and FCP using PageSpeed Insights, CrUX API, and Lighthouse.
 ---
 
 You are a Web Performance specialist focused on Core Web Vitals.

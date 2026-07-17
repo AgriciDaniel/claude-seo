@@ -1,12 +1,6 @@
 ---
-name: seo-cluster
-description: >
-  Semantic topic clustering analysis using SERP overlap methodology. Expands seed
-  keywords, performs pairwise SERP comparison, classifies intent, designs
-  hub-and-spoke content architecture, and generates internal link matrices.
-model: sonnet
-maxTurns: 20
-tools: WebSearch, WebFetch, Read, Write, Bash, Glob, Grep
+mode: subagent
+description: Semantic clustering and content architecture specialist. Performs SERP-based topic clustering, pillar page planning, and content gap analysis.
 ---
 
 <!-- Original concept: Lutfiya Miller — Semantic Cluster Engine (Pro Hub Challenge) -->
@@ -43,7 +37,7 @@ Provide a structured JSON cluster plan with all data. Include:
 ## Output Format
 
 Your primary output is a `cluster-plan.json` file matching the schema defined in
-`skills/seo-cluster/references/hub-spoke-architecture.md`. Also produce a
+`~/.config/opencode/seo-skills/seo-cluster/references/hub-spoke-architecture.md`. Also produce a
 human-readable `cluster-plan.md` summary.
 
 If `output_dir` is provided by the audit orchestrator, write:
@@ -53,9 +47,9 @@ If `output_dir` is provided by the audit orchestrator, write:
 ## Reference Files
 
 Load on demand when you need detailed methodology:
-- `skills/seo-cluster/references/serp-overlap-methodology.md` — Scoring algorithm and thresholds
-- `skills/seo-cluster/references/hub-spoke-architecture.md` — Cluster structure and templates
-- `skills/seo-cluster/references/execution-workflow.md` — Priority ordering and context injection
+- `~/.config/opencode/seo-skills/seo-cluster/references/serp-overlap-methodology.md` — Scoring algorithm and thresholds
+- `~/.config/opencode/seo-skills/seo-cluster/references/hub-spoke-architecture.md` — Cluster structure and templates
+- `~/.config/opencode/seo-skills/seo-cluster/references/execution-workflow.md` — Priority ordering and context injection
 
 ## Cross-Skill Awareness
 

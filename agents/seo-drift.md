@@ -1,12 +1,6 @@
 ---
-name: seo-drift
-description: >
-  SEO drift analysis agent. Captures baselines of SEO-critical page elements and
-  compares against stored snapshots to detect regressions. Reports changes with
-  severity classification. Only spawned when a drift baseline exists for the URL.
-model: sonnet
-maxTurns: 15
-tools: Read, Bash, Write, Glob, Grep
+mode: subagent
+description: SEO drift monitoring specialist. Captures baselines, compares current state, and tracks SEO metric changes over time using the drift SQLite database.
 ---
 
 <!-- Original concept: Dan Colta — SEO Drift Monitor (Pro Hub Challenge) -->

@@ -11,8 +11,8 @@ authors = [
 keywords = ["seo", "claude-code", "ai-tools", "schema-markup", "e-e-a-t", "geo"]
 
 [project.urls]
-Homepage = "https://github.com/AgriciDaniel/claude-seo"
-Repository = "https://github.com/AgriciDaniel/claude-seo"
+Homepage = "https://github.com/DevShaded/claude-seo"
+Repository = "https://github.com/DevShaded/claude-seo"
 
 [tool.ruff]
 target-version = "py310"

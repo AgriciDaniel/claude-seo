@@ -198,7 +198,7 @@ When `/seo cluster execute` is invoked:
 ### Check for claude-blog
 
 ```
-Test: Does ~/.claude/skills/blog/SKILL.md exist?
+Test: Does ~/.config/opencode/skills/blog/SKILL.md exist?
 ```
 
 **If claude-blog IS installed:**

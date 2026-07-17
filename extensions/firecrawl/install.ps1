@@ -14,7 +14,7 @@ $SettingsFile = "$env:USERPROFILE\.claude\settings.json"
 # Check prerequisites
 if (-not (Test-Path $SeoSkillDir)) {
     Write-Host "x Claude SEO is not installed." -ForegroundColor Red
-    Write-Host "  Install it first: irm https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/install.ps1 | iex"
+    Write-Host "  Install it first: irm https://raw.githubusercontent.com/DevShaded/claude-seo/main/install.ps1 | iex"
     exit 1
 }
 Write-Host "v Claude SEO detected" -ForegroundColor Green
