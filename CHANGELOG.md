@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **seo-dataforseo agent couldn't call DataForSEO MCP tools (#148).** `tools:` frontmatter in `agents/seo-dataforseo.md` and `extensions/dataforseo/agents/seo-dataforseo.md` omitted `mcp__dataforseo__*`. Claude Code treats an agent's `tools:` field as an exact allowlist, so the agent always reported the MCP tools unavailable and produced no data, even with the DataForSEO MCP installed and connected. Both files now include `mcp__dataforseo__*`.
+
 ## [2.2.0] - 2026-06-12
 
 Security, cross-platform, and data-accuracy release. Folds the v2.1.0 currency content into the first public ship and closes the full open-issue and PR backlog. No breaking changes.

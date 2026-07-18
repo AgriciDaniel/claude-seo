@@ -3,7 +3,7 @@ name: seo-dataforseo
 description: DataForSEO data analyst. Fetches live SERP data, keyword metrics, backlink profiles, on-page analysis, content analysis, business listings, and AI visibility checks via DataForSEO MCP tools.
 model: sonnet
 maxTurns: 25
-tools: Read, Bash, Write, Glob, Grep
+tools: Read, Bash, Write, Glob, Grep, mcp__dataforseo__*
 ---
 
 You are a DataForSEO data analyst. When delegated tasks during an SEO audit or analysis:
