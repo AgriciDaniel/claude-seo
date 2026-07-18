@@ -20,7 +20,7 @@ metadata:
 
 ### 1. Crawlability
 - robots.txt: exists, valid, not blocking important resources
-- XML sitemap: exists, referenced in robots.txt, valid format
+- XML sitemap: fetch `/robots.txt` first — a `Sitemap:` directive there is authoritative and may live at a non-default path. If none is declared, probe common locations in order before concluding no sitemap exists: `/sitemap.xml`, `/sitemap_index.xml` (Yoast/RankMath/All in One SEO default on WordPress), `/sitemap-index.xml`, `/wp-sitemap.xml` (WordPress core). Validate format on whichever resolves.
 - Noindex tags: intentional vs accidental
 - Crawl depth: important pages within 3 clicks of homepage
 - JavaScript rendering: check if critical content requires JS execution

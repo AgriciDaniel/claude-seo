@@ -17,6 +17,13 @@ metadata:
 
 ## Mode 1: Analyze Existing Sitemap
 
+### Discovery
+
+Before concluding a sitemap doesn't exist:
+1. Fetch `/robots.txt` and check for a `Sitemap:` directive — this is authoritative and may point to a non-default filename or path (multiple `Sitemap:` lines are valid for split sitemaps).
+2. If robots.txt has no `Sitemap:` line, probe common locations in order: `/sitemap.xml`, `/sitemap_index.xml` (Yoast/RankMath/All in One SEO default on WordPress), `/sitemap-index.xml`, `/wp-sitemap.xml` (WordPress core, no SEO plugin).
+3. Only report "no sitemap found" once robots.txt has no directive and every location above returns non-200 or fails to parse as XML.
+
 ### Validation Checks
 - Valid XML format
 - URL count <50,000 per file (protocol limit)
@@ -101,7 +108,7 @@ metadata:
 ## Error Handling
 
 - **URL unreachable**: Report the HTTP status code and suggest checking if the site is live
-- **No sitemap found**: Check common locations (/sitemap.xml, /sitemap_index.xml, robots.txt reference) before reporting "not found"
+- **No sitemap found**: Follow the Discovery steps above (robots.txt directive, then common locations) before reporting "not found"
 - **Invalid XML format**: Report specific parsing errors with line numbers
 - **Rate limiting detected**: Back off and report partial results with a note about retry timing
 

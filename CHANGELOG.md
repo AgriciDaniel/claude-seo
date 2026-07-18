@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Sitemap discovery only checked `/sitemap.xml` (#142).** `seo-audit`/`seo-technical` reported "no sitemap found" for sites whose sitemap lives at a non-default path (e.g. `/sitemap_index.xml`, the Yoast/RankMath/All in One SEO default on WordPress). Crawlability checks and `seo-sitemap` Mode 1 now fetch `/robots.txt` for an authoritative `Sitemap:` directive first, then probe `/sitemap.xml`, `/sitemap_index.xml`, `/sitemap-index.xml`, and `/wp-sitemap.xml` before reporting a sitemap missing.
+
 ## [2.2.0] - 2026-06-12
 
 Security, cross-platform, and data-accuracy release. Folds the v2.1.0 currency content into the first public ship and closes the full open-issue and PR backlog. No breaking changes.
