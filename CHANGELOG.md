@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Sub-skill `scripts/*.py` path resolution (#161).** Skill/agent instructions invoke shared scripts (e.g. `render_page.py`) via the relative path `scripts/<name>.py`, which only resolves when the working directory is the invoked skill's own directory. Sub-skills (`seo-audit`, `seo-technical`, etc.) install to their own directory under `~/.claude/skills/<name>/`, separate from the main `seo` skill directory where the shared scripts actually live, so the relative path failed with `[Errno 2] No such file or directory` whenever a sub-skill ran directly. Both installers (`install.sh`, `install.ps1`) now mirror the shared `scripts/` directory into every sub-skill's install directory.
+
 ## [2.2.0] - 2026-06-12
 
 Security, cross-platform, and data-accuracy release. Folds the v2.1.0 currency content into the first public ship and closes the full open-issue and PR backlog. No breaking changes.

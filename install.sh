@@ -78,6 +78,20 @@ main() {
     if [ -d "${TEMP_DIR}/claude-seo/scripts" ]; then
         mkdir -p "${SKILL_DIR}/scripts"
         cp -r "${TEMP_DIR}/claude-seo/scripts/"* "${SKILL_DIR}/scripts/"
+
+        # Sub-skills (seo-audit, seo-technical, etc.) install to their own
+        # directory, not ${SKILL_DIR}. Skill/agent instructions reference
+        # shared scripts via the relative path `scripts/<name>.py`, which
+        # only resolves if the working directory is the invoked skill's own
+        # directory. Mirror the shared scripts into every sub-skill's
+        # directory so that path resolves no matter which skill is active.
+        for skill_dir in "${TEMP_DIR}/claude-seo/skills"/*/; do
+            skill_name=$(basename "${skill_dir}")
+            [ "${skill_name}" = "seo" ] && continue
+            target="${HOME}/.claude/skills/${skill_name}/scripts"
+            mkdir -p "${target}"
+            cp -r "${TEMP_DIR}/claude-seo/scripts/"* "${target}/"
+        done
     fi
 
     # Copy hooks

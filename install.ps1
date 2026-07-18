@@ -186,6 +186,20 @@ try {
         $SkillScripts = "$SkillDir\scripts"
         New-Item -ItemType Directory -Force -Path $SkillScripts | Out-Null
         Copy-Item -Recurse -Force "$ScriptsPath\*" $SkillScripts
+
+        # Sub-skills (seo-audit, seo-technical, etc.) install to their own
+        # directory, not $SkillDir. Skill/agent instructions reference
+        # shared scripts via the relative path `scripts\<name>.py`, which
+        # only resolves if the working directory is the invoked skill's own
+        # directory. Mirror the shared scripts into every sub-skill's
+        # directory so that path resolves no matter which skill is active.
+        if (Test-Path $SkillsPath) {
+            Get-ChildItem -Directory $SkillsPath | Where-Object { $_.Name -ne 'seo' } | ForEach-Object {
+                $subScripts = "$env:USERPROFILE\.claude\skills\$($_.Name)\scripts"
+                New-Item -ItemType Directory -Force -Path $subScripts | Out-Null
+                Copy-Item -Recurse -Force "$ScriptsPath\*" $subScripts
+            }
+        }
     }
 
     # Copy hooks
