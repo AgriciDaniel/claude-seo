@@ -89,7 +89,7 @@ def rule_01_schema_removed(baseline: dict, current: dict) -> dict:
     return _make_finding(
         "schema_removed", "CRITICAL", triggered,
         f"{len(old_schema)} schema block(s)",
-        "0 schema blocks",
+        f"{len(new_schema)} schema block(s)",
         "All structured data (JSON-LD) has been removed. Rich results will be lost. Restore immediately."
         if triggered else "Schema presence unchanged.",
     )
@@ -279,7 +279,7 @@ def rule_13_og_tags_removed(baseline: dict, current: dict) -> dict:
     return _make_finding(
         "og_tags_removed", "WARNING", triggered,
         list(old_og.keys()),
-        [],
+        list(new_og.keys()),
         "All Open Graph tags have been removed. Social sharing will show generic previews."
         if triggered else "OG tags presence unchanged.",
     )
@@ -314,7 +314,7 @@ def rule_15_schema_added(baseline: dict, current: dict) -> dict:
     triggered = len(old_schema) == 0 and len(new_schema) > 0
     return _make_finding(
         "schema_added", "INFO", triggered,
-        "0 schema blocks",
+        f"{len(old_schema)} schema block(s)",
         f"{len(new_schema)} schema block(s)",
         "New structured data added. Validate with /seo schema."
         if triggered else "No new schema added.",
