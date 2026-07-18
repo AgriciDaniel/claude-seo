@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Skill-invoked `python3` calls failed on Windows without a `python3` on PATH (#138).** The PostToolUse hook resolves the interpreter dynamically (`CLAUDE_SEO_PYTHON` → `py -3` → `python3` → `python`, per `hooks/run-python-hook.js`), but SKILL.md/agent instructions invoke bundled scripts via the literal command `python3 scripts/<name>.py ...`. On Windows, `python3` is frequently absent even when `py -3` or `python` work, so those skill-driven calls failed even though Python was installed. `install.ps1` now probes for a working `python3` and, if none resolves, installs a `python3.bat` shim (forwarding to whichever interpreter it found) under `%USERPROFILE%\.claude\skills\seo\bin` and adds that directory to the current user's PATH, so future sessions resolve `python3` the same way the hook already does.
+
 ## [2.2.0] - 2026-06-12
 
 Security, cross-platform, and data-accuracy release. Folds the v2.1.0 currency content into the first public ship and closes the full open-issue and PR backlog. No breaking changes.

@@ -124,6 +124,39 @@ $RepoTag = if ($env:CLAUDE_SEO_TAG) { $env:CLAUDE_SEO_TAG } else { 'v2.2.0' }
 New-Item -ItemType Directory -Force -Path $SkillDir | Out-Null
 New-Item -ItemType Directory -Force -Path $AgentDir | Out-Null
 
+# Skill/agent instructions invoke bundled scripts via the literal command
+# `python3 scripts/<name>.py ...` (see hooks/run-python-hook.js for why the
+# hook itself resolves the interpreter dynamically instead of hardcoding
+# this). On Windows, `python3` is frequently absent even when `py -3` or
+# `python` work, so those skill-driven calls fail even though Python is
+# installed. If a bare `python3` doesn't already resolve, install a shim
+# that forwards to whichever interpreter Resolve-Python found, and put it
+# on the current user's PATH so future Claude Code sessions pick it up.
+$python3Works = $null -ne (Test-PythonCandidate -Exe 'python3' -Args @())
+if (-not $python3Works) {
+    try {
+        $BinDir = "$SkillDir\bin"
+        New-Item -ItemType Directory -Force -Path $BinDir | Out-Null
+        $shimTarget = "$($python.Exe) $($python.Args -join ' ')".Trim()
+        Set-Content -Path "$BinDir\python3.bat" -Value "@echo off`r`n$shimTarget %*" -Encoding ASCII
+
+        $userPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
+        $pathEntries = @()
+        if ($userPath) { $pathEntries = $userPath -split ';' }
+        if ($pathEntries -notcontains $BinDir) {
+            $newUserPath = if ($userPath) { "$userPath;$BinDir" } else { $BinDir }
+            [Environment]::SetEnvironmentVariable('PATH', $newUserPath, 'User')
+            Write-Host "[+] python3 not found; installed a shim at $BinDir\python3.bat (forwards to '$shimTarget') and added it to your PATH." -ForegroundColor Yellow
+            Write-Host "    Restart Claude Code (or open a new terminal) for skill-invoked scripts/*.py calls to pick it up." -ForegroundColor Yellow
+        } else {
+            Write-Host "[+] python3 shim already present at $BinDir\python3.bat" -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "[!] Could not install a python3 shim automatically: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "    Skill-invoked scripts/*.py calls that hardcode python3 may fail. Workaround: copy your python.exe to a python3.exe on PATH." -ForegroundColor Yellow
+    }
+}
+
 # Clone to temp directory
 $TempDir = Join-Path $env:TEMP "claude-seo-install"
 if (Test-Path $TempDir) {
