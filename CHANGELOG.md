@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **seo-image-gen banana script paths (#163).** `presets.py`, `cost_tracker.py`, and `generate.py` were invoked as `scripts/*.py` or `~/.claude/skills/seo-image-gen/scripts/*.py`, neither of which exists. `install.sh` places the banana extension's scripts under `extensions/banana/scripts/` inside the main `seo` skill directory; call sites now point there.
+
 ## [2.2.0] - 2026-06-12
 
 Security, cross-platform, and data-accuracy release. Folds the v2.1.0 currency content into the first public ship and closes the full open-issue and PR backlog. No breaking changes.
