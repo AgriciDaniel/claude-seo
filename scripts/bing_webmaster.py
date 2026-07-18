@@ -156,52 +156,85 @@ def _normalize_site_url(url: str) -> str:
     return url
 
 
-def get_link_details(site_url: str, api_key: str, page: int = 0) -> dict:
+def get_link_details(site_url: str, api_key: str, page: int = 0, max_pages_to_expand: int = 10) -> dict:
     """
     Get inbound link details for a verified site.
+
+    Bing's Webmaster API has no endpoint that returns site-wide inbound
+    links together with their source URLs (the documented `GetLinkDetails`
+    method does not exist; calling it 404s). This discovers which of the
+    site's pages have inbound links via `GetLinkCounts`, then expands the
+    most-linked pages into individual referring links via `GetUrlLinks`,
+    which requires a specific page URL per call.
 
     Args:
         site_url: Verified site URL.
         api_key: Bing API key.
-        page: Page number for pagination (0-based).
+        page: GetLinkCounts page number for page discovery (0-based).
+        max_pages_to_expand: How many of the site's most-linked pages to
+            fetch individual referring links for (bounds API call count;
+            each expansion is a separate rate-limited request).
 
     Returns:
         Standard response dict with link data.
     """
     normalized = _normalize_site_url(site_url)
-    endpoint = "GetLinkDetails"
-    params = {
-        "siteUrl": normalized,
-        "page": page,
-    }
+    counts_result = _bing_request("GetLinkCounts", api_key, {"siteUrl": normalized, "page": page})
 
-    result = _bing_request(endpoint, api_key, params)
+    if counts_result["status"] != "success":
+        return counts_result
 
-    if result["status"] == "success" and result["data"]:
-        raw_data = result["data"]
-        links = []
-        link_list = raw_data if isinstance(raw_data, list) else raw_data.get("d", raw_data.get("results", []))
-        if isinstance(link_list, list):
-            for item in link_list:
-                links.append({
-                    "source_url": item.get("SourceUrl", item.get("sourceUrl", "")),
-                    "target_url": item.get("TargetUrl", item.get("targetUrl", "")),
-                    "anchor_text": item.get("AnchorText", item.get("anchorText", "")),
-                    "date_discovered": item.get("DateDiscovered", item.get("dateDiscovered", "")),
-                })
-        result["data"] = {
+    raw = counts_result["data"] or {}
+    page_data = raw.get("d", raw) if isinstance(raw, dict) else {}
+    page_counts = page_data.get("Links", []) if isinstance(page_data, dict) else []
+    page_counts = sorted(page_counts, key=lambda item: item.get("Count", 0), reverse=True)
+    top_pages = page_counts[:max_pages_to_expand]
+
+    links = []
+    for entry in top_pages:
+        page_url = entry.get("Url", "")
+        if not page_url:
+            continue
+        detail_result = _bing_request(
+            "GetUrlLinks", api_key, {"siteUrl": normalized, "link": page_url, "page": 0}
+        )
+        if detail_result["status"] != "success" or not detail_result["data"]:
+            continue
+        raw_details = detail_result["data"]
+        detail_data = raw_details.get("d", raw_details) if isinstance(raw_details, dict) else {}
+        detail_list = detail_data.get("Details", []) if isinstance(detail_data, dict) else []
+        for item in detail_list:
+            links.append({
+                "source_url": item.get("Url", ""),
+                "target_url": page_url,
+                "anchor_text": item.get("AnchorText", ""),
+            })
+
+    return {
+        "status": "success",
+        "data": {
             "site_url": site_url,
             "page": page,
+            "pages_with_links_sampled": len(top_pages),
             "total_returned": len(links),
             "links": links,
-        }
-
-    return result
+            "note": (
+                f"Expanded the top {max_pages_to_expand} pages by inbound link count "
+                "(Bing has no site-wide links-with-sources endpoint)."
+            ),
+        },
+        "error": None,
+        "metadata": {
+            "source": "bing_webmaster",
+            "endpoint": "GetLinkCounts+GetUrlLinks",
+            "timestamp": counts_result["metadata"]["timestamp"],
+        },
+    }
 
 
 def get_link_counts(site_url: str, api_key: str) -> dict:
     """
-    Get total backlink and referring domain counts for a site.
+    Get total backlink and referring-page counts for a site.
 
     Args:
         site_url: Site URL to query.
@@ -211,25 +244,20 @@ def get_link_counts(site_url: str, api_key: str) -> dict:
         Standard response dict with count data.
     """
     normalized = _normalize_site_url(site_url)
-    endpoint = "GetUrlTrafficInfo"
-    params = {"siteUrl": normalized}
-
-    result = _bing_request(endpoint, api_key, params)
-
-    # Also get link details page 0 for basic counts
-    links_result = get_link_details(site_url, api_key, page=0)
+    result = _bing_request("GetLinkCounts", api_key, {"siteUrl": normalized, "page": 0})
 
     if result["status"] == "success":
         raw = result["data"] or {}
-        link_count = 0
-        if links_result["status"] == "success" and links_result["data"]:
-            link_count = links_result["data"].get("total_returned", 0)
+        page_data = raw.get("d", raw) if isinstance(raw, dict) else {}
+        page_links = page_data.get("Links", []) if isinstance(page_data, dict) else []
+        sampled_link_count = sum(item.get("Count", 0) for item in page_links)
 
         result["data"] = {
             "site_url": site_url,
-            "total_links_sample": link_count,
-            "traffic_info": raw,
-            "note": "Link counts are sampled from Bing's index. For comprehensive data, use Moz API or DataForSEO.",
+            "pages_with_links_sample": len(page_links),
+            "sampled_inbound_link_count": sampled_link_count,
+            "total_pages": page_data.get("TotalPages", 0) if isinstance(page_data, dict) else 0,
+            "note": "Sampled from page 0 of Bing's GetLinkCounts index. For comprehensive data, use Moz API or DataForSEO.",
         }
 
     return result
@@ -416,7 +444,8 @@ def main():
                     print(f"  {link.get('source_url', '?'):60s} [{anchor}]")
             elif args.command == "counts":
                 print(f"Bing Link Counts for: {data.get('site_url', target)}")
-                print(f"  Sample links found: {data.get('total_links_sample', 'N/A')}")
+                print(f"  Pages with links (sample): {data.get('pages_with_links_sample', 'N/A')}")
+                print(f"  Sampled inbound link count: {data.get('sampled_inbound_link_count', 'N/A')}")
             elif args.command == "compare":
                 print(f"Backlink Gap: {data.get('site_url', '')} vs {data.get('competitor_url', '')}")
                 print(f"  Your linking domains:       {data.get('your_linking_domains', 0)}")

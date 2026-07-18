@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **bing_webmaster.py links/counts/compare all failed (#153).** `get_link_details()` called `GetLinkDetails`, which does not exist in the Bing Webmaster API (confirmed against Microsoft's `IWebmasterApi` reference) and always 404s; `get_link_counts()` called `GetUrlTrafficInfo`, which 400s the way it was used. Both are now built on `GetLinkCounts` (site-wide, page-level inbound link counts) — `get_link_details()` additionally expands the site's most-linked pages into real referring links via `GetUrlLinks` (Bing has no single endpoint that returns site-wide links with source URLs), so `compare_links()`'s domain-gap analysis keeps working against genuine referrer data instead of silently returning empty sets. Added `tests/test_bing_webmaster.py` with mocked responses matching Microsoft's documented JSON shapes.
+
 ## [2.2.0] - 2026-06-12
 
 Security, cross-platform, and data-accuracy release. Folds the v2.1.0 currency content into the first public ship and closes the full open-issue and PR backlog. No breaking changes.
