@@ -52,6 +52,33 @@ extension is also installable (see "Optional Extensions" below).
 | `/seo dataforseo [command]` | Live SEO data via DataForSEO (extension) |
 | `/seo image-gen [use-case] <description>` | AI image generation for SEO assets (extension) |
 | `/seo flow [stage] [url\|topic]` | FLOW framework: evidence-led prompts for Find, Leverage, Optimize, Win, or Local stages |
+| `/seo setup` | Install/verify Python dependencies and Playwright Chromium (required after `/plugin install`; manual installs do this automatically) |
+
+## Setup
+
+Manual installs (`install.sh` / `install.ps1`) run `pip install -r requirements.txt` and
+`playwright install chromium` automatically. **`/plugin install` does not** — it installs
+the skills, agents, and hooks but never provisions Python dependencies or the Chromium
+browser, so every sub-skill that shells out to a script (`render_page.py`,
+`pagespeed_check.py`, `capture_screenshot.py`, and others) fails until this is run once.
+
+`/seo setup` provisions them:
+
+1. Locate `requirements.txt`: prefer `${CLAUDE_PLUGIN_ROOT}/requirements.txt` if that
+   variable is set and the file exists (plugin install); otherwise fall back to
+   `~/.claude/skills/seo/requirements.txt` (manual install). If neither exists, tell the
+   user their install looks incomplete and point them at `install.sh` / `install.ps1`.
+2. Install dependencies: if `~/.claude/skills/seo/.venv` exists, use
+   `~/.claude/skills/seo/.venv/bin/pip install -r <requirements.txt path>` (matches
+   `install.sh`'s convention); otherwise `python3 -m pip install --user -r <requirements.txt path>`.
+3. Install the Chromium browser: `python3 -m playwright install chromium`.
+4. Confirm success: `python3 -c "import playwright, trafilatura, lxml; print('ok')"`.
+5. Report what was installed/upgraded and any failures plainly — don't silently swallow
+   pip or Playwright errors.
+
+Proactively suggest `/seo setup` whenever a `scripts/*.py` call fails with
+`ModuleNotFoundError`, `ImportError`, or a Playwright "Executable doesn't exist" error —
+this is the signature of an unprovisioned `/plugin install`, not a code bug.
 
 ## Orchestration Logic
 
@@ -269,3 +296,4 @@ For parallel analysis during audits:
 | URL unreachable | Report the error and suggest the user verify the URL. Do not attempt to guess site content. |
 | Sub-skill fails during audit | Report partial results from successful sub-skills. Clearly note which sub-skill failed and why. Suggest re-running the failed sub-skill individually. |
 | Ambiguous business type detection | Present the top two detected types with supporting signals. Ask the user to confirm before proceeding with industry-specific recommendations. |
+| Script fails with `ModuleNotFoundError`/`ImportError`, or Playwright reports "Executable doesn't exist" | Dependencies were never provisioned — common after `/plugin install`, which does not run `pip install` or `playwright install`. Run `/seo setup`. |

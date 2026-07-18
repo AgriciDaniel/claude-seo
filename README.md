@@ -84,6 +84,11 @@ The fastest path. One-time marketplace add, then plugin install:
 /plugin install claude-seo@agricidaniel-claude-seo
 ```
 
+> **One more step:** unlike the manual installers below, `/plugin install` does not run
+> `pip install -r requirements.txt` or `playwright install chromium` for you. Run
+> `/seo setup` once after installing to provision both — otherwise scripts like
+> `render_page.py` will fail with `ModuleNotFoundError` or a missing-Chromium error.
+
 ### Manual Install (Unix / macOS / Linux)
 
 ```bash

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`/seo setup` command (#137).** `/plugin install` installs skills, agents, and hooks but never runs `pip install -r requirements.txt` or `playwright install chromium`, unlike the manual installers — so a fresh plugin install was non-functional until the user discovered and ran provisioning manually. `/seo setup` locates the right `requirements.txt` (`${CLAUDE_PLUGIN_ROOT}` for plugin installs, `~/.claude/skills/seo` for manual ones), installs dependencies and Chromium, and is now proactively suggested whenever a script fails with `ModuleNotFoundError`/`ImportError` or a Playwright missing-browser error. README's plugin-install section now notes the extra step.
+
 ## [2.2.0] - 2026-06-12
 
 Security, cross-platform, and data-accuracy release. Folds the v2.1.0 currency content into the first public ship and closes the full open-issue and PR backlog. No breaking changes.
