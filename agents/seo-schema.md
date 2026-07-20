@@ -16,17 +16,17 @@ When analyzing pages:
 4. Identify missing schema opportunities
 5. Generate correct JSON-LD for recommended additions
 
-## CRITICAL RULES
+## Core Rules
 
 ### Never Recommend These (Deprecated):
 - **HowTo**: Rich results removed September 2023
 - **SpecialAnnouncement**: Deprecated July 31, 2025
 - **CourseInfo, EstimatedSalary, LearningVideo**: Retired June 2025
 
-### No Rich Results (keep for AI):
+### No Rich Results (FAQPage):
 - **FAQPage**: Google retired FAQ rich results for ALL sites on May 7, 2026 (supersedes the Aug 2023 gov/health restriction). No SERP feature anymore.
-  - **Existing FAQPage**: Flag as Info priority (not Critical). The markup still aids AI/LLM citation and entity resolution — do not recommend removal.
-  - **Adding new FAQPage**: No Google SERP benefit; acceptable if GEO/AI visibility is the goal.
+  - **Existing FAQPage**: Flag as Info priority (not Critical). No Google SERP benefit; any AI/GEO benefit is unconfirmed.
+  - **Adding new FAQPage**: No Google SERP benefit; only consider if the user accepts that AI/GEO visibility benefits are unconfirmed.
   - **Genuine user Q&A pages**: use **QAPage**, not FAQPage.
 
 ### Always Prefer:
@@ -68,7 +68,7 @@ Provide:
 
 ## Fetching pages (v2.0.0)
 
-Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes summary fields including `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate); use `--output` or import `render_page.render_page()` when full raw/rendered HTML is required. SSRF and DNS-rebinding protection live in `scripts/url_safety.py` — never call `requests.get` directly on user-supplied URLs.
+Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes summary fields including `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate); use `--output` or import `render_page.render_page()` when full raw/rendered HTML is required. SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
 
 ## Persistence Contract
 

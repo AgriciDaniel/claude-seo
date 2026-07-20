@@ -60,7 +60,7 @@ Load `skills/seo/references/local-schema-types.md` for:
 
 ## DataForSEO Integration (Optional)
 
-If DataForSEO MCP tools are available, use `local_business_data` for live GBP data and `google_local_pack_serp` for real-time local pack positions.
+If DataForSEO MCP tools are available, use `business_data_business_listings_search` for live GBP/business-listing data and `serp_organic_live_advanced` for real-time local pack positions.
 
 ## Output Format
 
@@ -79,7 +79,7 @@ Provide a structured report with:
 
 ## Fetching pages (v2.0.0)
 
-Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in `scripts/url_safety.py` — never call `requests.get` directly on user-supplied URLs.
+Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
 
 Map embeds, GBP widgets, and review carousels are commonly injected client-side. When auditing local pages on JS-heavy sites prefer `--mode always` so the audit reflects what users (and Google's crawler) actually see post-render.
 

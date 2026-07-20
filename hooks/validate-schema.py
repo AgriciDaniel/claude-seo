@@ -121,13 +121,31 @@ def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
     return errors
 
 
+def _resolve_filepath():
+    """File path from argv (exec-form template) or the stdin hook-event JSON.
+
+    Claude Code's documented hook contract delivers the event as JSON on stdin;
+    the argv template is kept for harnesses that substitute it. Whichever yields
+    an existing file wins.
+    """
+    if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
+        return sys.argv[1]
+    try:
+        if not sys.stdin.isatty():
+            raw = sys.stdin.read()
+            if raw.strip():
+                event = json.loads(raw)
+                fp = (event.get("tool_input") or {}).get("file_path")
+                if fp and os.path.isfile(fp):
+                    return fp
+    except (OSError, ValueError):
+        pass
+    return None
+
+
 def main():
-    if len(sys.argv) < 2:
-        sys.exit(0)
-
-    filepath = sys.argv[1]
-
-    if not os.path.isfile(filepath):
+    filepath = _resolve_filepath()
+    if not filepath:
         sys.exit(0)
 
     # Only validate HTML-like files

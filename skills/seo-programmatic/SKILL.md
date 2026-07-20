@@ -11,7 +11,7 @@ argument-hint: "[url or plan]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -85,7 +85,7 @@ Design templates that produce unique, valuable pages:
 Google's Scaled Content Abuse policy (introduced March 2024) saw major enforcement escalation in 2025:
 
 - **June 2025:** Wave of manual actions targeting websites with AI-generated content at scale
-- **August 2025:** SpamBrain spam update enhanced pattern detection for AI-generated link schemes and content farms
+- **August 2025:** Third-party/SEO-community reporting described stronger SpamBrain detection for AI-generated link schemes and content farms
 - **Result:** Google reported 45% reduction in low-quality, unoriginal content in search results post-March 2024 enforcement
 
 **Enhanced quality gates for programmatic pages:**
@@ -93,7 +93,7 @@ Google's Scaled Content Abuse policy (introduced March 2024) saw major enforceme
 - **Human review:** Minimum 5-10% sample review of generated pages before publishing
 - **Progressive rollout:** Publish in batches of 50-100 pages. Monitor indexing and rankings for 2-4 weeks before expanding. Never publish 500+ programmatic pages simultaneously without explicit quality review.
 - **Standalone value test:** Each page should pass: "Would this page be worth publishing even if no other similar pages existed?"
-- **Site reputation abuse:** If publishing programmatic content under a high-authority domain (not your own), this may trigger site reputation abuse penalties. Google began enforcing this aggressively in November 2024.
+- **Site reputation abuse:** Google clarified site reputation abuse language on 2024-11-19; treat third-party/hosted programmatic content as a policy risk.
 
 > **Recommendation:** The WARNING gate at `<40% unique content` remains appropriate. Consider a HARD STOP at `<30%` unique content to prevent scaled content abuse risk.
 
@@ -119,15 +119,15 @@ Measure against all other pages in the programmatic set. Shared headers, footers
 ## Canonical Strategy
 
 - Every programmatic page must have a self-referencing canonical tag
-- Parameter variations (sort, filter, pagination) canonical to the base URL
-- Paginated series: canonical to page 1 or use rel=next/prev
+- Parameter variations (sort, filter) canonical to the base URL when duplicate or low-value
+- Paginated series: use self-canonical paginated pages when content differs; keep crawlable links
 - If programmatic pages overlap with manual pages, the manual page is canonical
 - No canonical to a different domain unless intentional cross-domain setup
 
 ## Sitemap Integration
 
 - Auto-generate sitemap entries for all programmatic pages
-- Split at 50,000 URLs per sitemap file (protocol limit)
+- Split at 50,000 URLs or 50MB uncompressed per sitemap file, whichever comes first (protocol limit)
 - Use sitemap index if multiple sitemap files needed
 - `<lastmod>` reflects actual data update timestamp (not generation time)
 - Exclude noindexed programmatic pages from sitemap
@@ -137,8 +137,8 @@ Measure against all other pages in the programmatic set. Shared headers, footers
 ## Index Bloat Prevention
 
 - **Noindex low-value pages**: Pages that don't meet quality gates
-- **Pagination**: Noindex paginated results beyond page 1 (or use rel=next/prev)
-- **Faceted navigation**: Noindex filtered views, canonical to base category
+- **Pagination**: Reserve noindex/canonical consolidation for true duplicates or low-value filtered views
+- **Faceted navigation**: Reserve noindex/canonical to base category for true duplicates or low-value filtered views
 - **Crawl budget**: For sites with >10k programmatic pages, monitor crawl stats in Search Console
 - **Thin page consolidation**: Merge records with insufficient data into aggregated pages
 - **Regular audits**: Monthly review of indexed page count vs intended count

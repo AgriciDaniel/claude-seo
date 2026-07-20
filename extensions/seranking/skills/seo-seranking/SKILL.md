@@ -1,8 +1,8 @@
 ---
 name: seo-seranking
-description: SE Ranking AI visibility analyst (extension). Tracks AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, and AI Mode in a single query. Highest-impact new extension per the v2 gap analysis — no other vendor covers all 5 AI platforms in one API.
+description: SE Ranking AI visibility analyst (extension). Tracks AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, and AI Mode in a single query.
 metadata:
-  version: "2.2.0"
+  version: "2.2.3"
 compatibility: "Requires an SE Ranking API key (set SERANKING_API_KEY by running extensions/seranking/install.sh)."
 ---
 
@@ -13,7 +13,7 @@ Live AI visibility tracking via the SE Ranking REST API.
 ## Prerequisites
 
 - Run `extensions/seranking/install.sh` (or `install.ps1`).
-- An SE Ranking API key (https://seranking.com/api).
+- An SE Ranking API key (https://seranking.com/api.html).
 - Before any call, verify `SERANKING_API_KEY` is present in `~/.claude/settings.json` under `env.`. If absent, tell the user to run the installer.
 
 ## Routing
@@ -22,7 +22,7 @@ Live AI visibility tracking via the SE Ranking REST API.
 |---|---|
 | `/seo seranking ai-visibility <brand>` | Share-of-voice for `brand` across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode |
 | `/seo seranking serp <keyword>` | Top 100 organic positions + SERP features |
-| `/seo seranking backlinks <url>` | Backlink profile (alternative free-tier to Ahrefs / DataForSEO) |
+| `/seo seranking backlinks <url>` | Backlink profile (alternative vendor source to Ahrefs / DataForSEO) |
 | `/seo seranking competitors <url>` | Top 10 organic competitors and shared-keyword gaps |
 
 ## AI Share-of-Voice scoring

@@ -5,7 +5,7 @@ Authoritative reference for every rich result Google retired during the
 `seo-schema` skill must explain that the type is deprecated and either
 redirect to an active alternative or note that no replacement exists.
 
-## Retired June 19, 2025
+## Retired June 12, 2025
 
 Announced at
 [Simplifying our Search rich results](https://developers.google.com/search/blog/2025/06/simplifying-search-results)
@@ -31,8 +31,22 @@ These are listed for completeness so the LLM doesn't suggest them.
 
 | Type | Retired | Notes |
 |---|---|---|
-| **HowTo** (`@type: HowTo`) | September 2023 | Rich result removed from desktop and mobile. The vocabulary remains but produces no SERP feature. Some sites still use HowTo for AI citation legibility — that's a defensible reason to keep it, but flag it as "no SERP effect". |
-| **FAQ** (`@type: FAQPage`) | Aug 2023 (restricted); **May 7, 2026 (fully retired)** | Rich results fully retired for **all** sites on May 7, 2026 — this supersedes the 2023 gov/health restriction. Rich Results Test/report support drops Jun 2026; Search Console API Aug 2026. Flag existing FAQPage as Info (not Critical) because it still helps AI/LLM citation as an entity signal; do **not** recommend removal or new FAQPage for SERP benefit. For genuine single-question pages, use `QAPage`. |
+| **HowTo** (`@type: HowTo`) | September 2023 | Rich result removed from desktop and mobile. The vocabulary remains but produces no Google rich-result effect. Do not recommend HowTo for SERP benefit; any AI citation rationale is unconfirmed. |
+| **FAQ** (`@type: FAQPage`) | Aug 2023 (restricted); **May 7, 2026 (fully retired)** | Rich results fully retired for **all** sites on May 7, 2026, superseding the 2023 gov/health restriction. FAQ docs were removed 2026-06-15; Search Console API timing needs recheck. Flag existing FAQPage as Info (not Critical); any AI/LLM citation benefit is unconfirmed. Do **not** recommend removal or new FAQPage for SERP benefit. For genuine single-question pages, use `QAPage`. |
+
+## Tooling-removal timeline (don't send users to dead validators)
+
+For **CourseInfo, EstimatedSalary, LearningVideo, SpecialAnnouncement, VehicleListing**:
+documentation was removed in **2025** (the type docs went away **2025-09-09**) and these
+types no longer produce rich results. Don't validate them in the Rich Results Test or
+expect Search Console reporting — those surfaces no longer cover them. **Practice
+Problem** is the type Google explicitly ties to the January-2026 sunset: it got a
+deprecation notice **2025-11-05**, with Rich Results Test, Search Console rich-result
+reporting, and appearance-filter support removed starting **January 2026**.
+
+**Dataset** is a separate case: **not discontinued** — Dataset markup is consumed only
+by **Dataset Search** (still live), not by Google Search rich results (clarified
+2025-11-05). Don't advise removal as if it were killed.
 
 ## Replacement decision table
 
@@ -47,13 +61,13 @@ When generating schema, prefer these alternatives:
 | `SpecialAnnouncement` | `Event` if time-bounded; otherwise `Article` or `WebPage`. |
 | `VehicleListing` | `Product` with vehicle-specific properties. |
 | `HowTo` (for SERP) | None — explain the rich result is dead. Suggest article structure with clear `<h2>` step headings if the goal is comprehension; ranking benefit is no longer schema-driven. |
-| `FAQPage` (for SERP) | None — rich results retired May 2026. Keep the markup for AI citation; use `QAPage` for genuine user-submitted Q&A pages. |
+| `FAQPage` (for SERP) | None, rich results retired May 2026. Keep only if accurate for non-SERP consumers; use `QAPage` for genuine user-submitted Q&A pages. |
 
 ## Primary sources
 
 - Google retirement announcement (June 2025): https://developers.google.com/search/blog/2025/06/simplifying-search-results
 - Special Announcement deprecation (July 2025): https://developers.google.com/search/blog
-- HowTo retirement (September 2023): https://developers.google.com/search/blog/2023/09/structured-data-changes
+- HowTo retirement (September 2023): https://developers.google.com/search/blog/2023/08/howto-faq-changes
 - FAQ restriction (August 2023): https://developers.google.com/search/blog/2023/08/howto-faq-changes
 - FAQ rich result retirement (May 7, 2026): https://developers.google.com/search/docs/appearance/structured-data/faqpage
 

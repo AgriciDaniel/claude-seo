@@ -9,7 +9,7 @@ maxTurns: 20
 tools: Read, Bash, WebFetch, WebSearch, Glob, Grep, Write
 ---
 
-<!-- Original concept: Florian Schmitz — SXO Skill (Pro Hub Challenge) -->
+<!-- Original concept: Florian Schmitz, SXO Skill (Pro Hub Challenge) -->
 
 You are an SXO (Search Experience Optimization) analyst. Your job is to determine
 why a page fails to rank by analyzing what Google actually rewards for a keyword,
@@ -20,7 +20,7 @@ then comparing that against the target page.
 ### 1. Fetch and Parse Target Page
 
 - Fetch the target URL using `python3 scripts/render_page.py "<url>" --mode auto --json` (SPA-aware SSRF-protected renderer)
-- Parse with `python3 scripts/parse_html.py "<url>"` to extract SEO elements
+- Parse with `python3 scripts/parse_html.py --url "<url>"` to extract SEO elements
 - Identify: page type, title, H1, meta description, headings, word count, schema, CTAs, media
 - If no keyword was provided, derive primary keyword from title + H1 overlap
 
@@ -95,7 +95,7 @@ Before presenting results, verify:
 
 ## Fetching pages (v2.0.0)
 
-Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in `scripts/url_safety.py` — never call `requests.get` directly on user-supplied URLs.
+Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
 
 Search experience scoring needs the *rendered* DOM because users see what JS produces. Prefer `--mode always` so above-the-fold analysis matches what the persona actually encounters.
 

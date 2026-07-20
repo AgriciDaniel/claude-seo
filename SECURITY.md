@@ -43,11 +43,11 @@ claude-seo is a research and audit toolkit that runs on a user's workstation. It
 
 1. **Malicious audit target.** A site the user points claude-seo at attempts to leak local-network or cloud-metadata data via SSRF chains: private IP literals, decimal/hex/octal IPv4, FQDN trailing dot, 30x redirects to private IPs, DNS rebinding (initial public resolution → later private), IPv4-mapped IPv6, dual-stack hosts with one private record.
 
-   **Mitigation:** `scripts/url_safety.py` is the canonical pre-flight + DNS-pinned fetch layer. Every URL-fetching script in this repository validates through it. See `tests/test_url_safety.py` for the regression suite (52+ cases covering each bypass class).
+   **Mitigation:** `scripts/url_safety.py` is the canonical pre-flight + DNS-pinned fetch layer. Every URL-fetching script in this repository validates through it. See `tests/test_url_safety.py` for the regression suite (91 cases across 31 test functions, covering each bypass class).
 
-2. **Tampered install.** A modified install script delivered via a hijacked GitHub release or a compromised mirror. The default install path is `curl … | bash` so signature verification of the install script and the release tarball is a defence-in-depth concern.
+2. **Tampered install.** A modified plugin install, GitHub release, or manual install script could deliver altered files. Plugin install is the default path; `curl ... | bash` is the legacy/manual path, so signature verification of release artifacts remains a defence-in-depth concern.
 
-   **Mitigation (in progress for v2):** SHA-256 manifests published alongside every release tag; install scripts verify against the manifest before execution. Until that ships, users may install by cloning the tag explicitly and inspecting the diff against the previous release.
+   **Mitigation status:** SHA-256 manifest tooling shipped in v2.0.0; install script verification is tracked for v2.3. Until install scripts verify manifests, users may install by cloning the tag explicitly and inspecting the diff against the previous release.
 
 3. **Local privilege escalation against stored credentials.** The OAuth token at `~/.config/claude-seo/oauth-token.json` is the most sensitive on-disk artifact.
 
@@ -71,7 +71,7 @@ If you are auditing, these are the high-leverage files:
 | `scripts/capture_screenshot.py` | Playwright screenshot capture with safe route handler. |
 | `scripts/google_auth.py` | OAuth token lifecycle, `chmod 0o600` writes. |
 | `scripts/backlinks_auth.py` | Backlink-API credential loading; SSRF guard via `url_safety`. |
-| `tests/test_url_safety.py` | 122-test regression battery covering every bypass class. |
+| `tests/test_url_safety.py` | 91-case regression battery covering every bypass class. |
 
 ## What this policy does **not** cover
 

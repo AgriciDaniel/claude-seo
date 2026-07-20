@@ -29,7 +29,7 @@ DataForSEO uses a credit-based system:
 - Credits are purchased in advance
 - Monitor usage at [app.dataforseo.com/dashboard](https://app.dataforseo.com/dashboard)
 
-**Typical costs per call:**
+**Typical costs per call, verified as of 2026-07-10:**
 
 | Endpoint Type | Approximate Cost |
 |--------------|-----------------|
@@ -38,7 +38,7 @@ DataForSEO uses a credit-based system:
 | Backlink summary | $0.002-0.005 |
 | Backlink list | $0.005-0.01 |
 | On-page crawl (per page) | $0.01-0.05 |
-| AI optimization (per call) | $0.01 |
+| AI optimization (per call) | $0.05 |
 
 ## 4. Manual MCP Configuration
 

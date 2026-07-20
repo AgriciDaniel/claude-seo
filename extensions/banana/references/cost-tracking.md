@@ -2,32 +2,37 @@
 
 > Load this on-demand when the user asks about costs or before batch operations.
 
-## Pricing Table
+## Pricing Source
 
-| Model | Resolution | Cost/Image | Notes |
-|-------|-----------|-----------|-------|
-| 3.1 Flash | 512 | $0.020 | Quick drafts |
-| 3.1 Flash | 1K | $0.039 | Standard (default) |
-| 3.1 Flash | 2K | $0.078 | Quality assets |
-| 3.1 Flash | 4K | $0.156 | Print/hero images |
-| 2.5 Flash | 512 | $0.020 | Draft fallback |
-| 2.5 Flash | 1K | $0.039 | Standard fallback |
-| Batch API | Any | 50% of above | Asynchronous, higher latency |
+Pricing is not hard-coded. Check current Google pricing before estimating:
+https://ai.google.dev/gemini-api/docs/pricing
 
-Pricing is approximate, based on ~1,290 output tokens per image.
-Research suggests actual costs may be ~$0.067/img. Verify at https://ai.google.dev/gemini-api/docs/pricing
+Store dated pricing in `~/.banana/pricing.json` before using cost commands:
+
+```json
+{
+  "source": "https://ai.google.dev/gemini-api/docs/pricing",
+  "checked_date": "YYYY-MM-DD",
+  "models": {
+    "MODEL_ID": {
+      "1K": null
+    }
+  }
+}
+```
+
+Replace `null` with the checked USD cost before running estimates.
+Treat all estimates as approximate.
 
 ## Free Tier Limits
 
-- ~10 requests per minute (RPM)
-- ~500 requests per day (RPD)
-- Per Google Cloud project, resets midnight Pacific
+Verify current limits in Google AI Studio before batch operations.
 
 ## Cost Tracker Commands
 
 ```bash
 # Log a generation
-cost_tracker.py log --model gemini-3.1-flash-image-preview --resolution 1K --prompt "coffee shop hero"
+cost_tracker.py log --model "$NANOBANANA_MODEL" --resolution 1K --prompt "coffee shop hero"
 
 # View summary (total + last 7 days)
 cost_tracker.py summary
@@ -36,7 +41,7 @@ cost_tracker.py summary
 cost_tracker.py today
 
 # Estimate before batch
-cost_tracker.py estimate --model gemini-3.1-flash-image-preview --resolution 1K --count 10
+cost_tracker.py estimate --model "$NANOBANANA_MODEL" --resolution 1K --count 10
 
 # Reset ledger
 cost_tracker.py reset --confirm

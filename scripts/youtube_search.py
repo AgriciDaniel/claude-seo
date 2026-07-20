@@ -2,7 +2,7 @@
 """
 YouTube Data API v3 - Search, video details, and channel data for SEO.
 
-YouTube mentions have the strongest AI visibility correlation (0.737).
+AI visibility correlation metrics are methodology-dependent.
 This script provides authoritative YouTube data directly from Google.
 
 Usage:

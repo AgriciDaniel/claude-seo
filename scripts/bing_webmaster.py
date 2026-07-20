@@ -292,7 +292,7 @@ def compare_links(site_url: str, competitor_url: str, api_key: str) -> dict:
             "gap_count": len(gap_domains),
             "shared_count": len(shared_domains),
             "unique_count": len(unique_domains),
-            "note": "Based on Bing's index sample. Bing indexes ~15% of the web.",
+            "note": "Based on Bing's index sample.",
         },
         "error": None,
         "metadata": {

@@ -8,9 +8,7 @@
 4. Copy the key. You'll need it during installation
 
 **Free tier limits:**
-- ~10 requests per minute (RPM)
-- ~500 requests per day (RPD)
-- Resets at midnight Pacific time
+- Check current limits in Google AI Studio before batch work
 
 ## MCP Server Configuration
 
@@ -22,13 +20,18 @@ add to `~/.claude/settings.json`:
   "mcpServers": {
     "nanobanana-mcp": {
       "command": "npx",
-      "args": ["-y", "@ycse/nanobanana-mcp@latest"],
+      "args": ["-y", "@ycse/nanobanana-mcp@1.1.1"],
       "env": {
-        "GOOGLE_API_KEY": "your-api-key-here"
+        "GOOGLE_AI_API_KEY": "your-api-key-here"
       }
     }
   }
 }
+```
+
+Scripted setup helper:
+```bash
+python3 extensions/banana/scripts/setup_mcp.py --key YOUR_KEY
 ```
 
 ## Verifying Installation
@@ -51,7 +54,7 @@ Or check manually:
 - Check `~/.claude/settings.json` has the nanobanana-mcp entry
 
 ### "Rate limited (429)"
-- Free tier: ~10 requests/minute, ~500/day
+- Check current free-tier limits in Google AI Studio
 - Wait 60 seconds and retry
 - For batch operations, add delays between requests
 
@@ -62,8 +65,8 @@ Or check manually:
 - See `references/prompt-engineering.md` Safety Rephrase section
 
 ### "Node.js version too old"
-- Requires Node.js 18+
-- Update via nvm: `nvm install 18 && nvm use 18`
+- Requires Node.js 20+
+- Update via nvm: `nvm install 20 && nvm use 20`
 - Or download from [nodejs.org](https://nodejs.org/)
 
 ### Generated images not appearing

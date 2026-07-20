@@ -9,7 +9,7 @@ inside Chromium's resolver).
 
 Usage:
     python capture_screenshot.py https://example.com
-    python capture_screenshot.py https://example.com --mobile
+    python capture_screenshot.py https://example.com --viewport mobile
     python capture_screenshot.py https://example.com --output screenshots/
 """
 

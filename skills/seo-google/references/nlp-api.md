@@ -1,6 +1,6 @@
 # Google Cloud Natural Language API Reference
 
-NLP analysis enhances E-E-A-T scoring by measuring entity coverage, content sentiment, and topic classification using Google's own taxonomy.
+Use NLP analysis as an internal diagnostic for entity coverage, content sentiment, and topic classification. Do not present it as Google's E-E-A-T score, a ranking factor, or a proxy for numeric E-E-A-T weights.
 
 ## Endpoint
 

@@ -7,7 +7,7 @@
 - **Claude Code CLI** installed and configured
 
 Optional:
-- **Playwright** for screenshot capabilities
+- **Playwright Chromium** - install.sh attempts this automatically; failure is non-fatal; needed only for SPA rendering and screenshots
 
 ## Quick Install
 
@@ -72,14 +72,16 @@ The installer creates a venv at `~/.claude/skills/seo/.venv/`. If that fails, in
 pip install --user -r ~/.claude/skills/seo/requirements.txt
 ```
 
-4. **Install Playwright browsers** (optional, for visual analysis)
+4. **Install Playwright Chromium** (optional)
+
+install.sh attempts to install it automatically; failure is non-fatal; needed only for SPA rendering and screenshots. To install it manually:
 
 ```bash
 pip install playwright
 playwright install chromium
 ```
 
-Playwright is optional. Without it, visual analysis uses WebFetch as a fallback.
+Without it, visual analysis uses WebFetch as a fallback.
 
 ## Installation Paths
 
@@ -156,7 +158,7 @@ If the file doesn't exist, re-run the installer.
 Install dependencies manually:
 
 ```bash
-pip install beautifulsoup4 requests lxml playwright Pillow urllib3 validators
+pip install --user -r ~/.claude/skills/seo/requirements.txt
 ```
 
 ### Playwright screenshot errors

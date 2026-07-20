@@ -75,6 +75,6 @@ full credits.
 To submit a community extension:
 1. Build your skill/agent/script following the patterns in this repo
 2. Keep SKILL.md under 500 lines, references under 200 lines
-3. All scripts must import `validate_url()` from `google_auth.py` for SSRF protection
+3. All URL-fetching scripts must route through `scripts/url_safety.py` — the canonical SSRF / DNS-rebinding layer (`validate_url()`, `safe_requests_session()`); never fetch a user-supplied URL without it. (`google_auth.py` is OAuth token lifecycle only — not an SSRF guard.)
 4. Include `original_author` in your SKILL.md frontmatter metadata
 5. Submit a PR or post in the [AI Marketing Hub](https://www.skool.com/ai-marketing-hub)

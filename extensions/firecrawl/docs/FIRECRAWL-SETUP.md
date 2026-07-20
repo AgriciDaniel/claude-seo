@@ -2,7 +2,7 @@
 
 ## 1. Get Your API Key
 
-1. Go to [firecrawl.dev/app/sign-up](https://www.firecrawl.dev/app/sign-up)
+1. Go to [firecrawl.dev/app/sign-up](https://www.firecrawl.dev/signup)
 2. Create a free account (500 credits/month included)
 3. Navigate to **API Keys** in the dashboard
 4. Copy your API key (starts with `fc-`)

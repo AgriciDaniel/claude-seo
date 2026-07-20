@@ -2,18 +2,18 @@
 """
 Common Crawl Web Graph parser for Claude SEO.
 
-Downloads and parses Common Crawl's domain-level web graph to extract
-backlink metrics: in-degree, out-degree, PageRank, harmonic centrality,
-and top referring domains. No API key needed (public data).
+Downloads and parses Common Crawl's domain-level web graph ranking data to
+extract PageRank, harmonic centrality, crawl/ranking presence, and host counts.
+No API key needed (public data).
 
 Data source: s3://commoncrawl/projects/hyperlinkgraph/
-Releases: Quarterly (cc-main-YYYY-WW)
+Releases: Quarterly (cc-main-YYYY-mon-mon-mon)
 
 Usage:
     python commoncrawl_graph.py example.com --json
     python commoncrawl_graph.py example.com --update --json
     python commoncrawl_graph.py --info --json
-    python commoncrawl_graph.py example.com --top-referrers 20 --json
+    python commoncrawl_graph.py example.com --release cc-main-2026-jan-feb-mar --json
 """
 
 import argparse
@@ -216,14 +216,14 @@ def get_domain_metrics(domain: str, release: Optional[str] = None,
                        force_update: bool = False, timeout: int = 120,
                        top_referrers: int = 20) -> dict:
     """
-    Get domain-level backlink metrics from Common Crawl web graph.
+    Get domain-level ranking metrics from Common Crawl web graph.
 
     Args:
         domain: Target domain (e.g., 'example.com').
         release: CC release name. Auto-detects latest if None.
         force_update: Force re-download, bypassing cache.
         timeout: Download timeout in seconds.
-        top_referrers: Number of top referring domains to return.
+        top_referrers: Legacy no-op; referring domains are not extracted.
 
     Returns:
         Standard response dict with domain metrics.
@@ -257,6 +257,10 @@ def get_domain_metrics(domain: str, release: Optional[str] = None,
     if not force_update:
         cached = _is_cached(domain, release)
         if cached:
+            data = cached.get("data")
+            if isinstance(data, dict):
+                data.pop("top_referring_domains", None)
+                data.pop("referring_domains_sample", None)
             cached["metadata"]["from_cache"] = True
             return cached
 
@@ -286,10 +290,6 @@ def get_domain_metrics(domain: str, release: Optional[str] = None,
                     break
     except Exception as e:
         rankings_data = {"error": str(e)}
-
-    # Note: The edges file uses numeric vertex IDs (not domain names), so we cannot
-    # directly look up referring domains without building a full vertex-ID mapping table.
-    referring_domains = []
 
     # If not found in rankings, check vertices file to confirm domain was crawled at all
     in_rankings = bool(rankings_data.get("pagerank"))
@@ -323,8 +323,6 @@ def get_domain_metrics(domain: str, release: Optional[str] = None,
             "harmonic_centrality": rankings_data.get("harmonic_centrality"),
             "harmonic_centrality_rank": rankings_data.get("harmonic_centrality_rank"),
             "n_hosts": rankings_data.get("n_hosts"),
-            "top_referring_domains": referring_domains,
-            "referring_domains_sample": len(referring_domains),
             "note": note,
         },
         "error": None,
@@ -395,7 +393,7 @@ def main():
     parser.add_argument(
         "--release",
         default=None,
-        help="Specific CC release to query (e.g., cc-main-2025-18)",
+        help="Specific CC release to query (e.g., cc-main-2026-jan-feb-mar)",
     )
     parser.add_argument(
         "--timeout",
@@ -407,7 +405,7 @@ def main():
         "--top-referrers",
         type=int,
         default=20,
-        help="Number of top referring domains to return (default: 20)",
+        help="Legacy no-op; referring domains are not extracted",
     )
     parser.add_argument(
         "--json",
@@ -454,13 +452,6 @@ def main():
             print(f"  PageRank:                  {data.get('pagerank', 'N/A')} (rank #{data.get('pagerank_rank', 'N/A')})")
             print(f"  Harmonic Centrality:       {data.get('harmonic_centrality', 'N/A')} (rank #{data.get('harmonic_centrality_rank', 'N/A')})")
             print(f"  Number of hosts:           {data.get('n_hosts', 'N/A')}")
-            referrers = data.get("top_referring_domains", [])
-            if referrers:
-                print(f"  Top referring domains ({len(referrers)}):")
-                for d in referrers[:10]:
-                    print(f"    {d}")
-            else:
-                print("  No referring domains found in sample.")
         elif result.get("error"):
             print(f"Error: {result['error']}", file=sys.stderr)
 

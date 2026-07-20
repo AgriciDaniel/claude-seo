@@ -5,10 +5,10 @@ Parse a CSV file of image generation requests and output a structured plan.
 Claude then executes each row via MCP.
 
 Usage:
-    batch.py --csv path/to/file.csv
+    batch.py --csv path/to/file.csv --model MODEL [--unit-cost USD]
 
 CSV columns:
-    prompt (required), ratio, resolution, model, preset (all optional)
+    prompt (required), ratio, resolution, model, preset (all optional except prompt)
 
 Example CSV:
     prompt,ratio,resolution
@@ -23,25 +23,21 @@ import json
 import sys
 from pathlib import Path
 
-# Inline pricing for estimates
-PRICING = {
-    "gemini-3.1-flash-image-preview": {"512": 0.020, "1K": 0.039, "2K": 0.078, "4K": 0.156},
-    "gemini-2.5-flash-image": {"512": 0.020, "1K": 0.039},
-}
-DEFAULT_MODEL = "gemini-3.1-flash-image-preview"
 DEFAULT_RESOLUTION = "1K"
 DEFAULT_RATIO = "1:1"
 
 
-def estimate_cost(model, resolution):
-    """Estimate cost for a single image."""
-    model_pricing = PRICING.get(model, PRICING[DEFAULT_MODEL])
-    return model_pricing.get(resolution, model_pricing.get("1K", 0.039))
+def estimate_cost(unit_cost):
+    """Estimate cost for a single image from a user-verified unit cost."""
+    return unit_cost
 
 
 def main():
     parser = argparse.ArgumentParser(description="Parse CSV batch and output generation plan")
     parser.add_argument("--csv", required=True, help="Path to CSV file")
+    parser.add_argument("--model", required=True, help="Default model ID for rows without a model")
+    parser.add_argument("--unit-cost", type=float, default=None,
+                        help="Optional verified current cost per image in USD")
     args = parser.parse_args()
 
     csv_path = Path(args.csv).resolve()
@@ -69,7 +65,7 @@ def main():
                     "prompt": prompt,
                     "ratio": row.get("ratio", "").strip() or DEFAULT_RATIO,
                     "resolution": row.get("resolution", "").strip() or DEFAULT_RESOLUTION,
-                    "model": row.get("model", "").strip() or DEFAULT_MODEL,
+                    "model": row.get("model", "").strip() or args.model,
                     "preset": row.get("preset", "").strip() or None,
                 })
     except (csv.Error, UnicodeDecodeError) as e:
@@ -85,11 +81,16 @@ def main():
         print()
 
     # Cost estimate
-    total_cost = sum(estimate_cost(r["model"], r["resolution"]) for r in rows)
+    unit_cost = estimate_cost(args.unit_cost)
+    total_cost = round(unit_cost * len(rows), 3) if unit_cost is not None else None
+    pricing_note = ("Approximate estimate from user-provided unit cost"
+                    if unit_cost is not None
+                    else "No estimate; pass --unit-cost after checking current Google pricing")
 
     # Output structured JSON for Claude to consume
     print(json.dumps({"rows": rows, "total_count": len(rows),
-                       "estimated_cost": round(total_cost, 3),
+                       "estimated_cost": total_cost,
+                       "pricing_note": pricing_note,
                        "errors": errors}, indent=2))
 
 

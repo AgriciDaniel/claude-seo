@@ -6,7 +6,7 @@ Full-site crawling, scraping, and site mapping powered by [Firecrawl](https://ww
 
 - [Claude SEO](https://github.com/AgriciDaniel/claude-seo) installed
 - Node.js 20+
-- Firecrawl API key ([sign up](https://www.firecrawl.dev/app/sign-up) -- free tier: 500 credits/month)
+- Firecrawl API key ([sign up](https://www.firecrawl.dev/signup) -- free tier: 500 credits/month)
 
 ## Installation
 

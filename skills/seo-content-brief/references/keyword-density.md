@@ -1,22 +1,22 @@
 <!-- Updated: 2026-04-17 -->
 # Keyword Density and Placement Rules
 
-Based on published research from Semrush, Ahrefs, Yoast, and Google's own guidance on keyword usage.
+Internal readability and stuffing heuristic. This is not a Google percentage rule.
 
 ## Primary Keyword Density
 
-**Safe range:** 0.5% to 2.0% of total word count.
+**Use check:** Confirm the primary keyword appears naturally in important locations and does not read as forced repetition.
 
-| Density | Assessment |
+| Pattern | Assessment |
 |---------|-----------|
-| Below 0.5% | Under-optimised. Likely missing from key locations. |
-| 0.5% - 2.0% | Optimal range. Natural reading, clear topic signal. |
-| 2.0% - 3.0% | Review required. May read unnaturally. |
-| Above 3.0% | Keyword stuffing risk. Likely to trigger penalties. |
+| Missing from key locations | Review placement. The topic may be unclear. |
+| Natural recurring use | Accept if it reads cleanly for users. |
+| Noticeable repetition | Review required. May read unnaturally. |
+| Forced repetition | Keyword stuffing risk. Rewrite for clarity and usefulness. |
 
-**Practical example:** For a 1,000-word article at 1-2%, the primary keyword should appear roughly 10-20 times total. This includes headings, body text, and image alt text.
+**Practical example:** For a 1,000-word article, do not target a quota. Use the primary keyword where it helps users understand the page topic, including headings, body text, and image alt text when relevant.
 
-**Diminishing returns:** The first 1-2 mentions of the primary keyword carry the most SEO weight. After that, each additional mention provides less ranking benefit. Prioritise placement quality over quantity.
+**Diminishing returns:** Early mentions help establish topic context. After that, prioritise placement quality over quantity.
 
 ## Required Placement Locations
 

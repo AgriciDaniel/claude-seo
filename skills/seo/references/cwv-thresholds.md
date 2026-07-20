@@ -1,5 +1,5 @@
-<!-- Updated: 2026-02-07 -->
-# Core Web Vitals Thresholds (February 2026)
+<!-- Updated: 2026-06-21 -->
+# Core Web Vitals Thresholds (June 2026)
 
 ## Current Metrics
 
@@ -10,13 +10,13 @@
 | CLS (Cumulative Layout Shift) | ≤0.1 | 0.1–0.25 | >0.25 |
 
 ## Key Facts
-- INP replaced FID (First Input Delay) on **March 12, 2024**. FID was fully removed from all Chrome tools (CrUX API, PageSpeed Insights, Lighthouse) on **September 9, 2024**. INP is the sole interactivity metric.
+- INP replaced FID (First Input Delay) on **March 12, 2024**. FID was removed from Chrome's field-data tools (CrUX API, PageSpeed Insights) on **September 9, 2024** (Lighthouse is a lab tool that never reported FID). INP is the sole interactivity metric.
 - Evaluation uses the **75th percentile** of real user data (field data from CrUX).
 - Google assesses at the **page level** and the **origin level**.
 - Core Web Vitals are a **tiebreaker** ranking signal: they matter most when content quality is similar between competitors.
 - **Thresholds unchanged since original definitions**: ignore claims of "tightened thresholds" from SEO blogs.
-- December 2025 core update appeared to weight **mobile CWV more heavily**.
-- As of October 2025: **57.1%** desktop sites and **49.7%** mobile sites pass all three CWV.
+- **Anti-hallucination guard**: There is **no "Visual Stability Index" (VSI)**, **no "Core Web Vitals 2.0"**, no "Engagement Reliability" metric, and no LCP-lowered-to-2.0s change. These appear only in third-party SEO blogs and are directly contradicted by web.dev/articles/vitals and the CrUX release notes. The three stable metrics (LCP, INP, CLS) are the entire CWV set as of 2026. Do **not** ingest VSI/CWV-2.0 as real.
+- As of the **May 2026 CrUX dataset** (~18.4M origins, published 2026-06-09): **55.9%** of origins pass all three CWV (down ~0.8% MoM); ~68.6% good LCP, ~87% good INP. Google reports **origin-level** pass rates (not a desktop/mobile split). This number moves monthly — re-check the CrUX release notes.
 
 ## LCP Subparts (February 2025 CrUX Addition)
 
@@ -35,7 +35,7 @@ Use this breakdown to identify which phase is causing LCP issues.
 
 ## Soft Navigations API (Experimental)
 
-**Chrome 139+ Origin Trial (July 2025)**: First step toward measuring CWV in SPAs.
+**Final origin trial Chrome 147-149 (2026), targeting an unflagged ship around Chrome 151**: measures CWV attribution for SPA soft navigations.
 
 - Addresses the long-standing SPA measurement blind spot
 - Currently experimental, **no ranking impact yet**
@@ -99,11 +99,12 @@ curl -H "X-Goog-Api-Key: $GOOGLE_API_KEY" \
 npx lighthouse URL --output json --output-path report.json
 ```
 
-## Performance Tooling Updates (2025)
+## Performance Tooling Updates (2025-2026)
 
-- **Lighthouse 13.0** (October 2025): Major audit restructuring with reorganized performance categories and updated scoring weights. Lighthouse is a lab tool (simulated conditions): always cross-reference with CrUX field data for real-world performance.
-- **CrUX Vis** replaced the CrUX Dashboard (November 2025). The old Looker Studio dashboard was deprecated. Use [CrUX Vis](https://cruxvis.withgoogle.com) or the CrUX API directly.
+- **Lighthouse 13.4.0** (June 2026, latest stable): Lighthouse 13.0 (Oct 2025) migrated performance audits to **insight-based audits** aligned with the DevTools Performance panel and removed legacy audits (first-meaningful-paint, font-size, third-party-facades) — the performance *score* is metric-based and was **not** re-weighted. 13.2.0–13.3.0 added and default-enabled a new **Agentic Browsing** category (Chrome 150+; fractional pass-ratio — see `agent-friendly-pages.md`); 13.4.0 disabled it in the PSI REST API. Lighthouse is a lab tool (simulated conditions): always cross-reference with CrUX field data.
+- **PSI / PSI API v5** run Lighthouse 13.x (updated 2025-10-20). The **PWA category was removed in Lighthouse 12** — do not parse a `pwa` category. Mobile lab **CPU throttling was increased on 2024-12-05** (higher mobile lab TBT since then; field/desktop unaffected — do not compare mobile lab TBT across that boundary).
+- **CrUX Vis** replaced the CrUX Dashboard (Looker Studio), which was **shut down at end of November 2025** (October 2025 was its final dataset; the CrUX Connector is no longer updated). Use [CrUX Vis](https://cruxvis.withgoogle.com) or the CrUX API directly.
 - **LCP subparts** added to CrUX (February 2025): Time to First Byte (TTFB), resource load delay, resource load time, and element render delay are now available as sub-components of LCP in CrUX data.
-- **Google Search Console 2025 features** (December 2025): AI-powered configuration for automated analysis. Branded vs. non-branded queries filter. Hourly data available in API. Custom chart annotations. Social channels tracking.
+- **Google Search Console (2025-2026)**: hourly data in the Search Analytics API (HOUR dimension / HOURLY_ALL) shipped **April 2025**; the **branded vs. non-branded** query filter launched **Nov 2025** (expanded to all eligible sites ~Mar 2026, AI-classified — no manual regex); the AI-powered natural-language configuration tool was announced Dec 2025 and rolled out globally **Feb 2026**. The standalone **Page Experience report was removed** from Search Console — monitor via the Core Web Vitals report and the HTTPS report only.
 
-> **Mobile-first indexing** is 100% complete as of July 5, 2024. Google now crawls and indexes ALL websites exclusively with the mobile Googlebot user-agent. Ensure your mobile version contains all critical content, structured data, and meta tags.
+> **Mobile-first indexing** is the default for the indexed web and Googlebot Smartphone is the primary crawler (rollout completed 2024). A mobile version is **not strictly required** (Google says it is "very strongly recommended"); sites that don't work well on mobile can still be indexed, but the real risk is content/parity loss. Ensure the mobile version contains equivalent primary content, structured data, and meta tags.

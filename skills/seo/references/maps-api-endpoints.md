@@ -20,7 +20,7 @@
 ## Google Maps SERP API (Geo-Grid Backbone)
 
 **Endpoint:** `POST https://api.dataforseo.com/v3/serp/google/maps/live/advanced`
-**Pricing source:** https://dataforseo.com/pricing/serp-api
+**Pricing source:** https://dataforseo.com/pricing
 
 ### Request Parameters
 
@@ -110,7 +110,7 @@ Returns questions, answers, upvotes, dates, answer sources. Live and standard me
 
 **Use case:** Identify unanswered questions, FAQ gap analysis.
 
-**Note:** Google deprecated GBP Q&A in Dec 2025 (replaced by Ask Maps Gemini AI). This endpoint returns historical data.
+**Note:** GBP Q&A is active where available. Use this endpoint when DataForSEO returns current Q&A data, noting category/region limits.
 
 ---
 

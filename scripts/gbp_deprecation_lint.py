@@ -7,13 +7,12 @@ Google sunset two long-running Google Business Profile features:
   - **GBP chat + call history**: fully wound down 2024-07-31. Any page
     that still surfaces a "Message us via Google" CTA or wires up a
     GBP-chat widget is broken.
-  - **`*.business.site` GBP websites**: shut down March 2024; redirects
-    expired 2024-06-10. References to these URLs in citations or
-    internal navigation are dead links.
+  - **`*.business.site` GBP websites**: legacy-risk references that need
+    manual verification before treating them as inactive.
 
 This script scans HTML for both patterns and emits a structured report
 so the seo-local audit can include "remove deprecated GBP references"
-as a Critical finding.
+with the severity provided by each finding.
 
 Usage::
 
@@ -59,19 +58,10 @@ _BUSINESS_SITE_URL = re.compile(
 )
 
 
-# GBP Q&A deprecated December 2025; replaced by "Ask Maps Gemini AI".
-# Sites with their own Q&A widgets are fine; we flag *embedded* GBP Q&A.
-_GBP_QA_EMBED = re.compile(
-    r"\b(?:google[-\s]?business[-\s]?(?:q&?a|questions)|maps[-\s]?q&?a)\b",
-    re.IGNORECASE,
-)
-
-
 def scan(html: str) -> dict:
     """Find every deprecated GBP feature reference in the HTML."""
     chat_matches = sorted(set(_GBP_CHAT_CTAS.findall(html)))
     business_site_matches = sorted(set(_BUSINESS_SITE_URL.findall(html)))
-    qa_matches = sorted(set(_GBP_QA_EMBED.findall(html)))
 
     findings: list[dict] = []
     for hit in chat_matches:
@@ -86,23 +76,13 @@ def scan(html: str) -> dict:
         })
     for url in business_site_matches:
         findings.append({
-            "severity": "High",
+            "severity": "Medium",
             "feature": "business-site-url",
             "match": url,
-            "message": "*.business.site URLs were shut down March 2024 and "
-                       "redirects expired 2024-06-10. This link is now dead. "
-                       "Update to your actual site URL.",
-        })
-    for hit in qa_matches:
-        findings.append({
-            "severity": "Medium",
-            "feature": "gbp-qa-embed",
-            "match": hit[:200],
-            "message": "Embedded Google Business Q&A was retired December "
-                       "2025 in favour of 'Ask Maps Gemini AI'. The embed "
-                       "may render empty. Replace with an on-page FAQ "
-                       "(but note FAQPage rich result is government/"
-                       "healthcare only since Aug 2023).",
+            "message": "Legacy *.business.site URL found. Google shutdown "
+                       "status was not confirmed from a live Google page in "
+                       "this run; manually verify whether the URL resolves "
+                       "and update to your actual site URL if inactive.",
         })
 
     return {
@@ -118,7 +98,7 @@ def scan(html: str) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="GBP deprecation linter (chat + business.site + Q&A)."
+        description="GBP deprecation linter (chat + business.site)."
     )
     parser.add_argument("source", help="URL, or file path with --file.")
     parser.add_argument("--file", action="store_true",

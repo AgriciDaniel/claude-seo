@@ -52,7 +52,7 @@ Match existing claude-seo patterns:
 
 ## Report Generation (MANDATORY)
 
-After completing data collection at any tier, ALWAYS offer to generate a PDF report.
+After completing data collection at any tier, offer to generate a PDF report.
 The report uses the enterprise template: white cover, navy accents, Times New Roman, charts at 85% width, Google logo on title page. No page-break-inside: avoid (causes white gaps).
 
 ```bash

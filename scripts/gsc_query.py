@@ -41,6 +41,23 @@ INDEXATION_NOTE = (
     "Use the URL Inspection API as the indexation truth for whether specific "
     "URLs are indexed."
 )
+GSC_ANOMALY_START = "2025-05-13"
+GSC_ANOMALY_END = "2026-04-27"
+GSC_ANOMALY_WARNING = (
+    "GSC impressions logging error affected impressions, CTR, and average "
+    "position from 2025-05-13 through 2026-04-27; clicks were not affected."
+)
+
+
+def _date_range_overlaps(start_date: str, end_date: str, overlap_start: str, overlap_end: str) -> bool:
+    try:
+        start = datetime.strptime(start_date, "%Y-%m-%d").date()
+        end = datetime.strptime(end_date, "%Y-%m-%d").date()
+        window_start = datetime.strptime(overlap_start, "%Y-%m-%d").date()
+        window_end = datetime.strptime(overlap_end, "%Y-%m-%d").date()
+    except ValueError:
+        return False
+    return start <= window_end and end >= window_start
 
 
 def _build_gsc_service():
@@ -129,6 +146,7 @@ def query_search_analytics(
         "rows": [],
         "totals": {"clicks": 0, "impressions": 0, "ctr": 0, "position": 0},
         "quick_wins": [],
+        "warnings": [],
         "row_count": 0,
         "error": None,
     }
@@ -146,6 +164,8 @@ def query_search_analytics(
         dimensions = ["query", "page"]
 
     result["date_range"] = {"start": start_date, "end": end_date}
+    if _date_range_overlaps(start_date, end_date, GSC_ANOMALY_START, GSC_ANOMALY_END):
+        result["warnings"].append(GSC_ANOMALY_WARNING)
 
     body = {
         "startDate": start_date,
@@ -431,6 +451,8 @@ def main():
             totals = result.get("totals", {})
             print(f"=== Search Analytics: {prop} ===")
             print(f"Period: {result.get('date_range', {}).get('start')} to {result.get('date_range', {}).get('end')}")
+            for warning in result.get("warnings", []):
+                print(f"Warning: {warning}")
             print(f"Clicks: {totals.get('clicks', 0):,} | Impressions: {totals.get('impressions', 0):,} | CTR: {totals.get('ctr', 0)}% | Rows: {result.get('row_count', 0)}")
 
             qw = result.get("quick_wins", [])

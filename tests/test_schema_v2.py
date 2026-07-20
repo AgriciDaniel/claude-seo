@@ -131,12 +131,12 @@ def _minimal_product() -> dict:
     }
 
 
-def test_validate_flags_missing_return_policy() -> None:
+def test_validate_warns_for_missing_return_policy_and_shipping() -> None:
     result = ev.validate(_minimal_product())
-    rules = [f["rule"] for f in result["findings"]]
-    assert "missing-return-policy" in rules
-    assert "missing-shipping-details" in rules
-    assert result["ok"] is False
+    severities = {f["rule"]: f["severity"] for f in result["findings"]}
+    assert severities["missing-return-policy"] == "Medium"
+    assert severities["missing-shipping-details"] == "Medium"
+    assert result["ok"] is True
 
 
 def test_validate_passes_when_return_policy_and_shipping_present() -> None:
@@ -209,7 +209,8 @@ def test_validate_no_product_block_at_all_fails_loudly() -> None:
 def test_validate_summary_counts_severities() -> None:
     result = ev.validate(_minimal_product())
     s = result["summary"]
-    assert s["high"] >= 2  # missing return policy + shipping
+    assert s["medium"] >= 2  # missing return policy + shipping
+    assert s["high"] == 0
     assert s["critical"] >= 0
     assert sum(s.values()) == len(result["findings"])
 

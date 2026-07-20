@@ -112,7 +112,7 @@ VIEWPORTS: dict[str, dict[str, int]] = {
 
 USER_AGENT = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 ClaudeSEO/2.0"
+    "(KHTML, like Gecko) Chrome/150.0.7871.115 Safari/537.36 ClaudeSEO/2.0"
 )
 
 # Hydration-shell signatures. Any single match flips is_spa to True. These

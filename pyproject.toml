@@ -1,6 +1,6 @@
 [project]
 name = "claude-seo"
-version = "2.2.0"
+version = "2.2.3"
 description = "Comprehensive SEO analysis skill for Claude Code"
 requires-python = ">=3.10"
 license = "MIT"

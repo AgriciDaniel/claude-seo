@@ -108,7 +108,7 @@ XGBoost regression model, explains 92-93% of variance. (Study)
 | Source | Why It Matters |
 |--------|---------------|
 | Google Business Profile | Primary local signal source |
-| Apple Business Connect | Usage nearly doubled, from 14% to 27% (BrightLocal 2026). 1B+ iPhone users |
+| Apple Business (formerly Apple Business Connect) | TechRadar/secondary reporting described a new all-in-one platform launched 2026-04-14, 200+ countries (replaces Business Connect / Manager / Essentials), and Apple Maps Ads beginning summer 2026; unverified against Apple primary. ~14% to 27% usage (BrightLocal 2026, secondary). 1B+ iPhone users |
 | Bing Places | Overhauled Oct 2025. Powers ChatGPT, Copilot, Alexa. 900M queries/day |
 | Facebook | Social + citation signal |
 | Yelp | Still ranks on page 1 for many local queries |
@@ -135,15 +135,14 @@ BBB, YellowPages, Manta, Superpages, Foursquare, Nextdoor
 
 | Feature | Date | Replacement |
 |---------|------|------------|
-| Q&A section | Dec 3, 2025 | Ask Maps (Gemini AI) |
 | GBP Messaging/Chat | Removed | None |
 | Call History/Tracking | Jul 31, 2024 | None |
-| GBP-hosted websites | Discontinued | Redirect to social/website |
+| GBP-hosted websites | Historically reported; unverified in this run | Recheck live primary source before advising redirects |
 | School reviews/ratings | Apr 30, 2025 | None |
 
 ### Active Features
 
-Posts (with scheduling), Services menu, Attributes (including identity: Women-led, Eco-friendly), Photos/Video, Local Lists (Local Gems, Trending, Top List), AI-generated "Suggest Description", Google Verified badge (replaced Guaranteed/Screened Oct 2025)
+Q&A section (active where available; category/region limited), Posts (with scheduling), Services menu, Attributes (including identity: Women-led, Eco-friendly), Photos/Video, Local Lists (Local Gems, Trending, Top List), AI-generated "Suggest Description", Google Verified badge (replaced Guaranteed/Screened Oct 2025)
 
 ### Key GBP Insights
 
@@ -160,9 +159,15 @@ Posts (with scheduling), Services menu, Attributes (including identity: Women-le
 | March 2025 Core | Mar 13-27 | Emphasized E-E-A-T, penalized thin/AI content | Confirmed |
 | June 2025 Core | Jun-Jul 17 | General quality focus | Confirmed |
 | August 2025 Spam | Aug 26-Sep 22 | Targeted keyword stuffing, fake reviews, PBNs. Local Pack often stable | Confirmed |
-| December 2025 Core | Dec 11-29 | Enhanced E-E-A-T, behavioral signal weighting | Confirmed |
-| February 2026 Discover Core | Feb 5-27 | Discover-only; favored local expertise | Confirmed |
+| December 2025 Core | Dec 11-29 | Broad core update (rollout confirmed; "impact" is third-party interpretation — Google gave only generic guidance) | Dates confirmed |
+| February 2026 Discover Update | Feb 5-27 | Discover-only; favored original/in-depth/local content, reduced clickbait | Dates confirmed |
+| March 2026 Spam | Mar 24 (~19.5h) | Fast spam refresh; no local-specific guidance | Dates confirmed |
+| March 2026 Core | Mar 27-Apr 8 | First core update of 2026 | Dates confirmed |
+| May 2026 Core | May 21-Jun 2 | Second core update of 2026 | Dates confirmed |
+| June 2026 Spam | Jun 24-26 | Normal spam update, all languages | Dates confirmed |
 | "Diversity Update" | 2025 | Harder to rank in both map pack AND organic simultaneously | Study (Sterling Sky) |
+
+> **Note:** core-update *rollout dates* are Google-confirmed (Search Status Dashboard); the **"Impact" descriptions are third-party interpretation** — Google's only on-record statement for broad core updates is generic ("better surface relevant, satisfying content from all types of sites"). Do not present impact framing as Google fact.
 
 ---
 
@@ -175,7 +180,7 @@ Posts (with scheduling), Services menu, Attributes (including identity: Women-le
 | Voice Assistant | Primary Data Source |
 |-----------------|-------------------|
 | Google Assistant | GBP (transitioning to Gemini) |
-| Siri (Apple) | Apple Business Connect + Yelp |
+| Siri (Apple) | Apple Business (formerly Apple Business Connect) + Yelp |
 | Alexa (Amazon) | Bing Places + Yelp + aggregators |
 
 ---
@@ -203,7 +208,7 @@ Posts (with scheduling), Services menu, Attributes (including identity: Women-le
 
 - Standard: **3 results** (universal)
 - New: Curated Local Lists (Local Gems, Trending) around position 4 (SOCi, Nov 2025)
-- AI-powered local packs (mobile US): Only 1-2 businesses, 32% fewer businesses shown (Sterling Sky)
+- Sterling Sky observed mobile US local packs showing only 1-2 businesses and 32% fewer businesses; do not present "AI-powered local pack" as an official Google feature name
 - Local pack ads grew from ~1% to **22%** of tracked mobile keywords in 12 months (Sterling Sky/Places Scout)
 - Zero-click rate for local-intent searches: up to **78%** on mobile (Similarweb)
 

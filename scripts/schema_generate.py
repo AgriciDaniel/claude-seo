@@ -10,9 +10,9 @@ JSON-LD generators for the four high-leverage v2 Schema.org types:
                        for AI citation entity graphs)
 
 Per the v2 gap analysis (May 2026):
-  - AI Mode now executes restaurant reservations (Robby Stein, Google,
-    2025-08-21). Reservation + potentialAction markup matters more
-    than it did in 2024.
+  - Internal hypothesis: Reservation + potentialAction markup may help
+    machine readability for restaurant booking flows. This is not confirmed
+    Google guidance for AI Mode.
   - The "Discussions and forums" SERP feature is live; sites that mark
     up community content with DiscussionForumPosting are eligible.
   - ProfilePage with sameAs / knowsAbout is the cheapest entity-graph

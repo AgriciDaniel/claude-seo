@@ -64,6 +64,7 @@ integration + 2 extension mirrors), and 50 Python execution scripts.
 | `/seo page <url>` | Deep single-page analysis |
 | `/seo technical <url>` | Technical SEO audit (9 categories) |
 | `/seo content <url>` | E-E-A-T and content quality analysis |
+| `/seo content-brief <topic>` | Generate a content brief for a topic |
 | `/seo schema <url>` | Schema.org detection, validation, generation |
 | `/seo sitemap <url>` | XML sitemap analysis or generation |
 | `/seo images <url>` | Image SEO: on-page audit, SERP analysis, file optimization |
@@ -77,6 +78,7 @@ integration + 2 extension mirrors), and 50 Python execution scripts.
 | `/seo ecommerce <url>` | E-commerce SEO: product schema, marketplace intelligence |
 | `/seo programmatic [url]` | Programmatic SEO at scale |
 | `/seo competitor-pages [url]` | Competitor comparison pages |
+| `/seo flow [stage]` | FLOW framework prompts (Find, Leverage, Optimize, Win, Local; prompts/sync utilities.) |
 | `/seo local <url>` | Local SEO analysis (GBP, citations, reviews) |
 | `/seo maps [cmd] [args]` | Maps intelligence (geo-grid, GBP audit, competitors) |
 | `/seo hreflang <url>` | Hreflang/i18n SEO audit, cultural profiles, content parity |
@@ -87,6 +89,11 @@ integration + 2 extension mirrors), and 50 Python execution scripts.
 | `/seo dataforseo [cmd]` | Live SEO data via DataForSEO (extension) |
 | `/seo image-gen [use-case]` | AI image generation for SEO assets (extension) |
 | `/seo firecrawl [cmd] <url>` | Full-site crawling and site mapping (extension) |
+| `/seo ahrefs [cmd] <target>` | Ahrefs backlink and keyword data (extension) |
+| `/seo bing [cmd] <url>` | Bing Webmaster data and IndexNow (extension) |
+| `/seo profound [cmd]` | LLM brand-citation tracking (extension) |
+| `/seo seranking [cmd]` | AI share-of-voice tracking (extension) |
+| `/seo unlighthouse <url>` | Multi-page Lighthouse audits (extension) |
 
 ## Using with Cursor / Cursor Cloud
 
@@ -139,6 +146,7 @@ skills/                    # 25 sub-skills (auto-discovered)
   seo-page/               # Single-page analysis
   seo-technical/          # Technical SEO
   seo-content/            # E-E-A-T quality
+  seo-content-brief/      # Content brief generation
   seo-schema/             # Schema.org markup
   seo-sitemap/            # XML sitemaps
   seo-images/             # Image optimization
@@ -151,12 +159,13 @@ skills/                    # 25 sub-skills (auto-discovered)
   seo-backlinks/          # Backlink analysis
   seo-programmatic/       # Programmatic SEO
   seo-competitor-pages/   # Competitor pages
+  seo-flow/               # FLOW framework integration
   seo-dataforseo/         # DataForSEO (extension)
   seo-image-gen/          # AI images (extension)
 agents/                    # 18 subagents
 scripts/                   # 50 Python scripts
 schema/                    # JSON-LD templates
-extensions/                # Optional add-ons (DataForSEO, Firecrawl, Banana, ASO)
+extensions/                # 8 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse
 ```
 
 ## Key Principles

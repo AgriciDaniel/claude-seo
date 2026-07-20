@@ -7,9 +7,8 @@ Usage:
 """
 
 import argparse
-import ipaddress
 import json
-import socket
+import os
 import sys
 from urllib.parse import ParseResult, urlparse
 
@@ -18,6 +17,15 @@ try:
 except ImportError:
     print("Error: playwright required. Install with: pip install playwright && playwright install chromium")
     sys.exit(1)
+
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
+    URLSafetyError,
+    make_safe_playwright_route_handler,
+    validate_url_strict,
+)
 
 
 def normalize_url(url: str) -> tuple[str, ParseResult]:
@@ -70,21 +78,20 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
     }
 
     try:
-        url, parsed = normalize_url(url)
+        url, _parsed = normalize_url(url)
         result["url"] = url
     except ValueError as e:
         result["error"] = str(e)
         return result
 
-    # SSRF prevention: block private/internal IPs
     try:
-        resolved_ip = socket.gethostbyname(parsed.hostname)
-        ip = ipaddress.ip_address(resolved_ip)
-        if ip.is_private or ip.is_loopback or ip.is_reserved:
-            result["error"] = f"Blocked: URL resolves to private/internal IP ({resolved_ip})"
-            return result
-    except socket.gaierror:
-        pass
+        url, _pinned_ip = validate_url_strict(url)
+        result["url"] = url
+    except URLSafetyError as e:
+        result["error"] = f"url_safety: {e}"
+        return result
+
+    route_handler = make_safe_playwright_route_handler()
 
     try:
         with sync_playwright() as p:
@@ -93,6 +100,7 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             # Desktop analysis
             desktop = browser.new_context(viewport={"width": 1920, "height": 1080})
             page = desktop.new_page()
+            page.route("**/*", route_handler)
             page.goto(url, wait_until="networkidle", timeout=timeout)
 
             # Check H1 visibility above fold
@@ -147,6 +155,7 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             # Mobile analysis
             mobile = browser.new_context(viewport={"width": 375, "height": 812})
             page = mobile.new_page()
+            page.route("**/*", route_handler)
             page.goto(url, wait_until="networkidle", timeout=timeout)
 
             # Check viewport meta

@@ -67,7 +67,7 @@ Total possible: 50 points. Normalize to 0-100 scale: `(score / 50) * 100`
 | 22 | **Cover photo** | 2 | On-brand, high-resolution cover image |
 | 23 | **Videos** | 2 | At least 1 video uploaded |
 | 24 | **Owner responses** | 2 | Responding to reviews (target: 80%+ response rate) |
-| 25 | **Q&A engagement** | 2 | FAQ content on website (GBP Q&A deprecated Dec 2025) |
+| 25 | **Q&A engagement** | 2 | GBP Q&A active where available; website FAQ content supports coverage |
 
 **Subtotal: 18 points (9 fields)**
 

@@ -7,6 +7,7 @@ $BingKey = (Read-Host "Bing Webmaster Tools API key" -AsSecureString)
 $IdxKey  = Read-Host "IndexNow host key (32+ chars)"
 $IdxLoc  = Read-Host "IndexNow keyLocation URL"
 $BingPlain = [System.Net.NetworkCredential]::new("", $BingKey).Password
+if (-not $BingPlain -and -not $IdxKey) { throw "Provide at least one of: Bing API key, IndexNow key." }
 $SourceDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SkillTarget = Join-Path $SkillDir "seo-bing"
 New-Item -ItemType Directory -Path $SkillTarget -Force | Out-Null

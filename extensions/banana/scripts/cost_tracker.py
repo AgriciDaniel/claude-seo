@@ -18,20 +18,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 LEDGER_PATH = Path.home() / ".banana" / "costs.json"
-
-# Cost per image in USD (approximate, based on ~1,290 output tokens)
-PRICING = {
-    "gemini-3.1-flash-image-preview": {
-        "512": 0.020,
-        "1K": 0.039,
-        "2K": 0.078,
-        "4K": 0.156,
-    },
-    "gemini-2.5-flash-image": {
-        "512": 0.020,
-        "1K": 0.039,
-    },
-}
+PRICING_PATH = Path.home() / ".banana" / "pricing.json"
+PRICING_SOURCE = "https://ai.google.dev/gemini-api/docs/pricing"
 
 # Batch API gets 50% discount
 BATCH_DISCOUNT = 0.5
@@ -52,32 +40,53 @@ def _save_ledger(ledger):
         json.dump(ledger, f, indent=2)
 
 
+def _load_pricing_config():
+    """Load dated pricing config from disk."""
+    if not PRICING_PATH.exists():
+        print(f"Error: Missing pricing config at {PRICING_PATH}.", file=sys.stderr)
+        print(f"Check current pricing at {PRICING_SOURCE}, then create a dated pricing.json.", file=sys.stderr)
+        sys.exit(1)
+    with open(PRICING_PATH, "r") as f:
+        data = json.load(f)
+    models = data.get("models", {})
+    checked_date = data.get("checked_date")
+    if not models or not checked_date:
+        print("Error: pricing.json must include checked_date and models.", file=sys.stderr)
+        sys.exit(1)
+    return models, checked_date
+
+
 def _lookup_cost(model, resolution, batch=False):
     """Look up cost for a model+resolution combination."""
-    model_pricing = PRICING.get(model)
+    pricing, checked_date = _load_pricing_config()
+    model_pricing = pricing.get(model)
     if not model_pricing:
         # Try partial match
-        for key in PRICING:
+        for key in pricing:
             if key in model or model in key:
-                model_pricing = PRICING[key]
+                model_pricing = pricing[key]
                 break
     if not model_pricing:
-        print(f"Warning: Unknown model '{model}', using 3.1 Flash pricing", file=sys.stderr)
-        model_pricing = PRICING["gemini-3.1-flash-image-preview"]
+        print(f"Error: No pricing for model '{model}' in {PRICING_PATH}.", file=sys.stderr)
+        print(f"Check current pricing at {PRICING_SOURCE} and update pricing.json.", file=sys.stderr)
+        sys.exit(1)
 
     valid_resolutions = {"512", "1K", "2K", "4K"}
     if resolution not in valid_resolutions:
         print(f"Warning: Unknown resolution '{resolution}', using 1K pricing", file=sys.stderr)
-    cost = model_pricing.get(resolution, model_pricing.get("1K", 0.039))
+    cost = model_pricing.get(resolution, model_pricing.get("1K"))
+    if cost is None:
+        print(f"Error: No pricing for resolution '{resolution}' in {PRICING_PATH}.", file=sys.stderr)
+        sys.exit(1)
     if batch:
         cost *= BATCH_DISCOUNT
-    return cost
+    return cost, checked_date
 
 
 def cmd_log(args):
     """Log a generation to the ledger."""
     ledger = _load_ledger()
-    cost = _lookup_cost(args.model, args.resolution, getattr(args, "batch", False))
+    cost, checked_date = _lookup_cost(args.model, args.resolution, getattr(args, "batch", False))
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
 
@@ -86,6 +95,8 @@ def cmd_log(args):
         "model": args.model,
         "res": args.resolution,
         "cost": cost,
+        "pricing_checked_date": checked_date,
+        "approximate": True,
         "prompt": args.prompt[:100],
     }
 
@@ -100,14 +111,15 @@ def cmd_log(args):
 
     _save_ledger(ledger)
     print(json.dumps({"logged": True, "cost": cost, "total_cost": ledger["total_cost"],
-                       "total_images": ledger["total_images"]}))
+                       "total_images": ledger["total_images"], "approximate": True,
+                       "pricing_checked_date": checked_date}))
 
 
 def cmd_summary(args):
     """Show cost summary."""
     ledger = _load_ledger()
     print(f"Total images: {ledger['total_images']}")
-    print(f"Total cost:   ${ledger['total_cost']:.3f}")
+    print(f"Total cost:   approx ${ledger['total_cost']:.3f}")
     print()
 
     daily = ledger.get("daily", {})
@@ -117,7 +129,7 @@ def cmd_summary(args):
         print("Last 7 days:")
         for day in sorted_days:
             d = daily[day]
-            print(f"  {day}: {d['count']} images, ${d['cost']:.3f}")
+            print(f"  {day}: {d['count']} images, approx ${d['cost']:.3f}")
     else:
         print("No usage recorded yet.")
 
@@ -127,21 +139,22 @@ def cmd_today(args):
     ledger = _load_ledger()
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     daily = ledger.get("daily", {}).get(today, {"count": 0, "cost": 0.0})
-    print(f"Today ({today}): {daily['count']} images, ${daily['cost']:.3f}")
+    print(f"Today ({today}): {daily['count']} images, approx ${daily['cost']:.3f}")
 
 
 def cmd_estimate(args):
     """Estimate cost for a batch."""
-    cost_per = _lookup_cost(args.model, args.resolution, getattr(args, "batch", False))
+    cost_per, checked_date = _lookup_cost(args.model, args.resolution, getattr(args, "batch", False))
     total = round(cost_per * args.count, 3)
     print(f"Model:      {args.model}")
     print(f"Resolution: {args.resolution}")
     print(f"Count:      {args.count}")
-    print(f"Cost/image: ${cost_per:.3f}")
-    print(f"Total est:  ${total:.3f}")
+    print(f"Pricing checked: {checked_date}")
+    print(f"Approx cost/image: ${cost_per:.3f}")
+    print(f"Approx total est:  ${total:.3f}")
     if not getattr(args, "batch", False):
         batch_total = round(cost_per * BATCH_DISCOUNT * args.count, 3)
-        print(f"Batch est:  ${batch_total:.3f} (50% discount)")
+        print(f"Approx batch est:  ${batch_total:.3f} (50% discount)")
 
 
 def cmd_reset(args):

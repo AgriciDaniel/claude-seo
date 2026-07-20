@@ -1,14 +1,15 @@
 ---
 name: seo-ahrefs
-description: Ahrefs API analyst (extension). Reads referring domains, backlinks, organic keywords, and content explorer data via the official @ahrefs/mcp@0.0.11 server. Pairs with seo-backlinks for multi-source confidence weighting.
+description: Ahrefs API analyst (extension). Reads referring domains, backlinks, organic keywords, and content explorer data via the tested @ahrefs/mcp@0.0.11 server. Pairs with seo-backlinks for multi-source confidence weighting.
 metadata:
-  version: "2.2.0"
-compatibility: "Requires the official @ahrefs/mcp@0.0.11 server (installed by extensions/ahrefs/install.sh)."
+  version: "2.2.3"
+compatibility: "Tested with @ahrefs/mcp@0.0.11 (installed by extensions/ahrefs/install.sh)."
 ---
 
 # seo-ahrefs
 
-Live Ahrefs data via the official `@ahrefs/mcp@0.0.11` server.
+Live Ahrefs data via the tested `@ahrefs/mcp@0.0.11` server.
+Package check (2026-07-10): verify the current Ahrefs MCP package source before changing this tested version.
 
 ## Prerequisites
 
@@ -34,7 +35,7 @@ provide the install command above.
 
 - Cite the data source on every metric: "Ahrefs (live, confidence 1.00)".
 - When Ahrefs and Moz disagree on the same metric, trust Ahrefs and note the discrepancy in the report.
-- Toxic link assessment: combine Ahrefs Spam Score with the existing seo-backlinks Common Crawl + verify crawler signals.
+- Toxic link assessment: combine Ahrefs backlink quality signals with the existing seo-backlinks Common Crawl + verify crawler signals.
 
 ## Cross-skill delegation
 

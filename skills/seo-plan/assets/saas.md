@@ -107,7 +107,7 @@ Comparison pages are among the highest-converting content types for SaaS, with c
 - Include structured comparison tables with pricing, features, pros/cons
 - Be factually accurate about competitors: verify claims regularly
 - Include customer testimonials from users who switched
-- Add FAQ content for common comparison questions (FAQPage rich results retired May 2026, but the markup still aids AI search and entity signals)
+- Add FAQ content for common comparison questions (FAQPage rich results retired May 2026; keep markup only when it accurately represents visible FAQ content)
 - Update regularly: stale comparison data damages credibility
 - Cross-reference the `seo-competitor-pages` skill for detailed frameworks
 

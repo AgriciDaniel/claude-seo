@@ -10,7 +10,7 @@ banana Creative Director pipeline.
 > for SEO-specific use cases. Install the standalone skill for general-purpose image generation.
 
 - **Claude SEO** installed (`~/.claude/skills/seo/`)
-- **Node.js 18+** with npx
+- **Node.js 20+** with npx
 - **Google AI API key** (free at [aistudio.google.com/apikey](https://aistudio.google.com/apikey))
 - **ImageMagick** (optional, for post-processing)
 
@@ -37,16 +37,21 @@ The installer will:
 | `/seo image-gen custom <description>` | Custom with full Creative Director pipeline |
 | `/seo image-gen batch <description> [N]` | Generate N variations (default: 3) |
 
+CSV batch planning helper:
+```bash
+python3 extensions/banana/scripts/batch.py --csv requests.csv --model "$NANOBANANA_MODEL"
+```
+
 ## Use Case Defaults
 
-| Use Case | Aspect Ratio | Resolution | Domain Mode | Cost |
-|----------|-------------|------------|-------------|------|
-| OG/Social Preview | 16:9 | 1K | Product/UI | ~$0.04 |
-| Blog Hero | 16:9 | 2K | Cinema/Editorial | ~$0.08 |
-| Product Photo | 4:3 | 2K | Product | ~$0.08 |
-| Infographic | 2:3 | 4K | Infographic | ~$0.16 |
-| Social Square | 1:1 | 1K | UI/Web | ~$0.04 |
-| Favicon/Icon | 1:1 | 512 | Logo | ~$0.02 |
+| Use Case | Aspect Ratio | Resolution | Domain Mode | Pricing |
+|----------|-------------|------------|-------------|---------|
+| OG/Social Preview | 16:9 | 1K | Product/UI | Verify current pricing |
+| Blog Hero | 16:9 | 2K | Cinema/Editorial | Verify current pricing |
+| Product Photo | 4:3 | 2K | Product | Verify current pricing |
+| Infographic | 2:3 | 4K | Infographic | Verify current pricing |
+| Social Square | 1:1 | 1K | UI/Web | Verify current pricing |
+| Favicon/Icon | 1:1 | 512 | Logo | Verify current pricing |
 
 ## How It Works
 

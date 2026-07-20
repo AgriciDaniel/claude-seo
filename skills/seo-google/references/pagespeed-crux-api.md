@@ -96,6 +96,11 @@ Send the API key in the `X-Goog-Api-Key` header, not in the URL.
 | Metric | Type | Notes |
 |--------|------|-------|
 | `largest_contentful_paint` | int (ms) | Core Web Vital |
+| `largest_contentful_paint_resource_type` | fractions | LCP resource type, added January 2025 |
+| `largest_contentful_paint_image_time_to_first_byte` | int (ms) | LCP image subpart, added January 2025 |
+| `largest_contentful_paint_image_resource_load_delay` | int (ms) | LCP image subpart, added January 2025 |
+| `largest_contentful_paint_image_resource_load_duration` | int (ms) | LCP image subpart, added January 2025 |
+| `largest_contentful_paint_image_element_render_delay` | int (ms) | LCP image subpart, added January 2025 |
 | `interaction_to_next_paint` | int (ms) | Core Web Vital (replaced FID) |
 | `cumulative_layout_shift` | **string** | Core Web Vital. **String-encoded!** Parse carefully. |
 | `first_contentful_paint` | int (ms) | |
@@ -195,7 +200,7 @@ Instead of single values, returns timeseries:
 
 ## Core Web Vitals Thresholds
 
-Current as of March 2026. INP replaced FID on March 12, 2024.
+Current as of 2026-07-09; no threshold changes were announced. INP replaced FID on March 12, 2024.
 
 | Metric | Good | Needs Improvement | Poor |
 |--------|------|-------------------|------|
@@ -205,4 +210,4 @@ Current as of March 2026. INP replaced FID on March 12, 2024.
 | **FCP** | ≤ 1,800ms | 1,800–3,000ms | > 3,000ms |
 | **TTFB** | ≤ 800ms | 800–1,800ms | > 1,800ms |
 
-FID was fully removed from Chrome tools (CrUX, PSI, Lighthouse) on September 9, 2024. Never reference FID in outputs.
+FID was removed from Chrome's field-data tools (CrUX, PSI) on September 9, 2024. Never reference FID in outputs.

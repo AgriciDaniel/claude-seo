@@ -62,6 +62,7 @@
 
 ### Important Notes
 - Data has a **2-3 day lag**. Available for approximately 16 months.
+- If a date range overlaps 2025-05-13 to 2026-04-27, clicks remain usable but impressions, CTR, and average position require caution due to the confirmed GSC impressions logging error.
 - `discover` and `googleNews` types do not support `query` dimension or `position` metric.
 - Country codes are **ISO 3166-1 alpha-3** (e.g., `USA`, `GBR`, `DEU`).
 - Pagination: increment `startRow` by `rowLimit` until fewer rows returned.
@@ -103,7 +104,7 @@
 | `userCanonical` | URL declared canonical by the page |
 | `crawledAs` | `DESKTOP`, `MOBILE` |
 
-**`richResultsResult`:** Verdict + detected rich result types (FAQPage, HowTo, etc.)
+**`richResultsResult`:** Verdict + detected rich result types (e.g. Product, Breadcrumb, Review snippet, Event). Note: FAQPage and HowTo no longer produce rich results (FAQ retired 2026-05-07; HowTo retired 2023), so don't expect them as current rich-result types.
 
 ### Rate Limits
 - 2,000 QPD / 600 QPM per site

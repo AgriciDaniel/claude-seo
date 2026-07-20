@@ -3,7 +3,7 @@
 > Load this on-demand when constructing complex prompts or when the user
 > asks about prompt techniques. Do NOT load at startup.
 >
-> Aligned with Google's March 2026 "Ultimate Prompting Guide" for Gemini image generation.
+> Package prompt guidance. Do not cite this as aligned with a Google-owned prompting guide unless a current source is verified.
 
 ## Table of Contents
 

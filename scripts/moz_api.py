@@ -2,9 +2,10 @@
 """
 Moz Link Explorer API client for Claude SEO.
 
-Queries the Moz API (JSON-RPC 2.0) for Domain Authority, Page Authority,
-Spam Score, link counts, and referring domain data. Free tier provides
-2,500 rows/month at 1 request per 10 seconds.
+Queries the Moz v2 REST API for Domain Authority, Page Authority,
+Spam Score, link counts, and referring domain data. Uses a conservative
+10-second default delay; verify current Moz plan limits and rely on live
+429 handling.
 
 Usage:
     python moz_api.py metrics https://example.com --json
@@ -41,7 +42,7 @@ MOZ_BASE = "https://api.moz.com"
 # Legacy JSON-RPC endpoint was deprecated; Moz migrated to v2 REST.
 # All four legacy methods map to dedicated v2 REST paths.
 
-# Rate limit: 1 request per 10 seconds on free tier
+# Conservative default delay; verify current Moz plan limits.
 RATE_LIMIT_DELAY = 10
 RATE_LIMIT_FILE = os.path.expanduser("~/.cache/claude-seo/moz_last_request.lock")
 
@@ -62,7 +63,7 @@ def _moz_basic_auth_header(api_key: str) -> str | None:
 
 
 def _rate_limit():
-    """Enforce Moz free tier rate limit: 1 request per 10 seconds.
+    """Apply the conservative Moz request delay.
 
     Persists timestamp to a lockfile so the limit is respected across
     separate CLI invocations (each call is a new process).
@@ -129,7 +130,7 @@ def _moz_request(path: str, body: dict, api_key: str) -> dict:
             return {
                 "status": "rate_limited",
                 "data": None,
-                "error": "Moz free tier rate limit exceeded. Wait 10 seconds between requests.",
+                "error": "Moz rate limit exceeded. Wait and verify current plan limits.",
                 "metadata": {"source": "moz", "rate_limited": True},
             }
 

@@ -8,6 +8,15 @@
 
 **Solutions:**
 
+For plugin installs, verify and reinstall through Claude Code:
+```bash
+/plugin list
+/plugin marketplace add AgriciDaniel/claude-seo
+/plugin install claude-seo@agricidaniel-claude-seo
+```
+
+For manual installs:
+
 1. Verify installation:
 ```bash
 ls ~/.claude/skills/seo/SKILL.md
@@ -52,16 +61,22 @@ If the venv doesn't exist, install with `--user`:
 pip install --user -r ~/.claude/skills/seo/requirements.txt
 ```
 
-Or install individually:
+Do not install individual packages; use the shipped requirements file:
 ```bash
-pip install --user beautifulsoup4 requests lxml playwright Pillow urllib3 validators
+pip install --user -r ~/.claude/skills/seo/requirements.txt
 ```
 
 ### requirements.txt Not Found
 
 **Symptom:** `No such file: requirements.txt` after install
 
-**Solution:** As of v1.2.0, requirements.txt is copied to the skill directory:
+**Solution:** For plugin installs, reinstall the plugin first:
+
+```bash
+/plugin install claude-seo@agricidaniel-claude-seo
+```
+
+For manual installs, requirements.txt is copied to the skill directory:
 
 ```bash
 ls ~/.claude/skills/seo/requirements.txt
@@ -121,6 +136,10 @@ chmod +x ~/.claude/skills/seo/scripts/*.py
 
 **Solution:**
 
+For plugin installs, check `/plugin list` and reinstall `claude-seo@agricidaniel-claude-seo`; subagents load from the plugin, not `~/.claude/agents/`.
+
+For manual installs:
+
 1. Verify agent files exist:
 ```bash
 ls ~/.claude/agents/seo-*.md
@@ -159,8 +178,9 @@ cp /path/to/claude-seo/agents/*.md ~/.claude/agents/
 
 1. Ensure placeholders are replaced
 2. Verify @context is `https://schema.org`
-3. Check for deprecated types (HowTo, SpecialAnnouncement)
-4. Validate at [Google's Rich Results Test](https://search.google.com/test/rich-results)
+3. Check for deprecated/retired types: HowTo and SpecialAnnouncement, plus the June 2025 retirements (ClaimReview, VehicleListing, EstimatedSalary, LearningVideo, and the CourseInfo carousel)
+4. FAQPage rich results were retired for all sites on 2026-05-07: FAQPage no longer yields rich results, but the hook should NOT block it (still a valid AI/entity signal)
+5. Validate at [Google's Rich Results Test](https://search.google.com/test/rich-results)
 
 ---
 

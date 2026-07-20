@@ -1,4 +1,4 @@
-# Agent-friendly pages — audit reference (May 2026)
+# Agent-friendly pages — audit reference (June 2026)
 
 The next wave of AI search is not summarization — it's **agents** acting on the
 user's behalf (search, compare, buy, book). Google's AI optimization guide and
@@ -102,16 +102,58 @@ Avoid auto-generated class names like `__sc_a4b7d9e2` as the only handle on a
 critical interactive element — agents can target them but cannot tell what
 they mean.
 
-## Forward-looking: WebMCP
+## Lighthouse Agentic Browsing category (shipped)
 
-Google's AI optimization guide name-drops **WebMCP**, a proposed standard for
-direct site-to-agent interaction (analogous to MCP in the Claude / Anthropic
-ecosystem, but operating at the page level). There is an early preview
-program; broad adoption is not expected before 2027.
+Google now ships a dedicated **Agentic Browsing** Lighthouse category — created
+in Lighthouse **13.2.0 (2026-05-01)** and **on by default since 13.3.0
+(2026-05-07)** in DevTools and the CLI (Chrome 150+). Category id:
+`agentic-browsing`. Unlike other categories it reports a **fractional
+pass-ratio** (X of N checks passed), **not** a 0–100 weighted score — so do not
+compute or report a weighted agentic "score". It groups deterministic audits
+into three buckets:
 
-**Audit posture:** mention WebMCP in reports as a forward-looking signal worth
-tracking. Do not flag the absence of WebMCP support as a finding — the
-standard is not yet stable.
+- **Agent-centric accessibility** — reuses three a11y audits: *Names and labels*
+  (every interactive element has a programmatic name), *Tree integrity* (valid
+  roles + parent-child relationships), *Visibility* (interactive content not
+  hidden from the accessibility tree). These map directly onto checklist items
+  1–2 above and the `agent_ux_check.py` heuristics.
+- **Stability & discoverability** — *CLS* (visual stability for element
+  positioning; see checklist item 5) + an *llms.txt* presence-at-domain-root
+  check (13.4.0 relaxed it to allow leading whitespace).
+- **WebMCP integration** — three audits, see below.
+
+**Run paths:** DevTools Lighthouse panel (Chrome 150+, default-on, no toggle);
+CLI `npx lighthouse@latest <url> --only-categories=agentic-browsing` (per-audit
+JSON for CI); PageSpeed Insights **web UI**. **The PSI REST API does NOT return
+this category** — `scripts/pagespeed_check.py` will not contain agentic results
+(disabled in Lighthouse 13.4.0); CrUX never provides these lab audits.
+
+## WebMCP (proposed standard; status needs recheck)
+
+**WebMCP** lets a site declare structured tools/actions for agents rather than
+agents inferring intent from the DOM. It is **no longer "years away"**: a
+flag-gated Early Preview (Chrome 146 Canary) opened 2026-02-10, and Chrome 149
+origin-trial/sign-up status needs verification from a Google-owned source
+(local dev flag: `chrome://flags/#enable-webmcp-testing`). It remains a
+*proposed* standard from the Web Machine Learning community group
+(github.com/webmachinelearning/webmcp), not W3C-finalized.
+
+Lighthouse 13.2+ ships **three WebMCP audits** under the Agentic Browsing
+category (require Chrome 150+ and origin-trial registration). Shipped audit ids
+in the 13.2.0 release notes:
+
+- `webmcp-form-coverage`: informational; flags `<form>` elements lacking
+  `toolname` / `tooldescription`.
+- `webmcp-registered-tools`: informational; lists tools registered via the
+  declarative (HTML) and imperative (JS) APIs.
+- `webmcp-schema-validity`: validates WebMCP form schemas.
+
+(Code parsing Lighthouse JSON should expect the release-note ids above.)
+
+**Audit posture:** WebMCP is an active opportunity, not a finding to hard-fail —
+absence is not a defect. Surface it as an opportunity for sites that want
+first-class agent actions, and note origin-trial enrollment is required for the
+audits to fire.
 
 ## Quick-audit one-liner
 
@@ -130,8 +172,10 @@ future iteration.
 
 ## Last verified
 
-2026-05-18. Update when:
+2026-06-21. (Google has now published an agent-UX scoring framework — the
+Lighthouse Agentic Browsing category — and WebMCP has reached a public Chrome
+149 origin trial; both are reflected above.) Update when:
 
-- WebMCP graduates from preview to stable.
-- Google publishes a separate agent-UX scoring framework.
+- WebMCP graduates from origin trial to a stable/shipped API (or W3C status changes).
+- Google adds or renames audits in the `agentic-browsing` category.
 - web.dev publishes a follow-up article with revised criteria.

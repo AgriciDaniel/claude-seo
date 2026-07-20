@@ -1,15 +1,18 @@
-# `/llms.txt` — evidence-based reframe (May 2026)
+# `/llms.txt` — evidence-based reframe (June 2026)
 
 ## TL;DR
 
-`/llms.txt` is **not currently consumed by any major AI search system**.
-Generate one anyway as low-cost optionality, but do not present it as a
-ranking or citation lever in any claude-seo report.
+`/llms.txt` is **not currently consumed by any major AI search system**, and
+**Google now states in its own docs that Google Search ignores it**. Generate
+one anyway as low-cost optionality for non-Google AI services, but never present
+it as a Google ranking or citation lever in any claude-seo report.
 
 ## Primary-source evidence
 
 | Source | Date | What they said |
 |---|---|---|
+| **Google AI optimization guide** (docs) | 2026-06-29 | You don't need llms.txt/AI-text files for Google Search (incl. generative AI features); doing so "won't harm (nor help) your visibility or rankings in Google Search, **as Google Search ignores them**." |
+| **John Mueller** (Google) | 2026 | Called the llms.txt discovery/differentiation use case "a dead end." |
 | **John Mueller** (Google) — Reddit + Bluesky | 2025 | "No AI system currently uses llms.txt." Compared the file to deprecated meta keywords. |
 | **Gary Illyes** (Google) — Search Central Live | July 2025 | Google has no plans to support llms.txt. |
 | **SE Ranking** — 300k-domain study | November 2025 | Among the 50 most AI-cited domains, **only one** had an `/llms.txt`. |
@@ -34,8 +37,9 @@ adopts it.
 - The audit notes whether the file is well-formed (Mintlify-style markdown).
 - The audit explicitly does **not** assign citation-ranking weight to it.
 - If the user asks to generate one, claude-seo produces a minimal valid
-  example and a banner stating "no major LLM provider has confirmed
-  consumption as of May 2026; ship for optionality, not for citation".
+  example and a banner stating "Google Search ignores llms.txt (Google docs,
+  2026-06-29); no major LLM provider has confirmed consumption; ship for
+  non-Google optionality, not for citation".
 
 ## When this guidance changes
 
@@ -48,4 +52,4 @@ Update this file (and the seo-geo audit copy) when:
   inflection in `/llms.txt` request rate.
 - John Mueller / Gary Illyes / equivalent retract their 2025 statements.
 
-Last verified: 2026-05-17.
+Last verified: 2026-06-21.

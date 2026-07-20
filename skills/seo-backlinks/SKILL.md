@@ -7,7 +7,7 @@ license: MIT
 compatibility: "Free: Common Crawl + verify always available. Optional: Moz API, Bing Webmaster (free signup). Premium: DataForSEO extension."
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -50,7 +50,7 @@ Produce all 7 sections below. Each section lists data sources in preference orde
 
 **Moz API:** `python3 scripts/moz_api.py metrics <url> --json` → Domain Authority, Page Authority, Spam Score, linking root domains, external links.
 
-**Common Crawl:** `python3 scripts/commoncrawl_graph.py <domain> --json` → in-degree (referring domain count), PageRank, harmonic centrality.
+**Common Crawl:** `python3 scripts/commoncrawl_graph.py <domain> --json` → PageRank, harmonic centrality, and low-confidence rank/presence data.
 
 **Scoring:**
 
@@ -80,7 +80,7 @@ Produce all 7 sections below. Each section lists data sources in preference orde
 | Partial match keyword | 5-15% | >25% |
 | Long-tail / natural | 5-15% | N/A |
 
-Flag if exact-match anchors exceed 15% -- this is a Google Penguin risk signal.
+Flag if exact-match anchors exceed 15% as a review heuristic; it may indicate unnatural or link-spam patterns.
 
 ### 3. Referring Domain Quality
 
@@ -88,7 +88,7 @@ Flag if exact-match anchors exceed 15% -- this is a Google Penguin risk signal.
 
 **Moz API:** `python3 scripts/moz_api.py domains <url> --json` → domains with DA scores
 
-**Common Crawl:** `python3 scripts/commoncrawl_graph.py <domain> --json` → top referring domains (domain-level, no authority scores)
+**Common Crawl:** `python3 scripts/commoncrawl_graph.py <domain> --json` → domain-level rank/presence data, no verified referring-domain counts
 
 Analyze:
 - **TLD distribution**: .edu, .gov, .org = high authority. Excessive .xyz, .info = low quality
@@ -100,7 +100,7 @@ Analyze:
 
 **DataForSEO:** `dataforseo_backlinks_bulk_spam_score` + toxic patterns from reference
 
-**Moz API:** Spam Score from `python3 scripts/moz_api.py metrics <url> --json` (1-17% scale, >11% = high risk)
+**Moz API:** Raw vendor spam_score from `python3 scripts/moz_api.py metrics <url> --json` (source-label the value; apply thresholds only if verified against current Moz docs)
 
 **Verification Crawler:** `python3 scripts/verify_backlinks.py --target <url> --links <file> --json` (verify suspicious links still exist)
 
@@ -118,7 +118,7 @@ Analyze:
 - Links from thin content pages (<100 words)
 - Excessive links from a single domain (>50 backlinks from 1 domain)
 
-Load `references/backlink-quality.md` for the full 30 toxic patterns and disavow criteria.
+Load `../seo/references/backlink-quality.md` for the full 30 toxic patterns and disavow criteria.
 
 ### 5. Top Pages by Backlinks
 
@@ -136,7 +136,7 @@ Find:
 
 **DataForSEO:** `dataforseo_backlinks_referring_domains` for both domains, then compare
 
-**Bing Webmaster (unique!):** `python3 scripts/bing_webmaster.py compare <url1> <url2> --json` — the only free tool with built-in competitor comparison
+**Bing Webmaster (unique!):** `python3 scripts/bing_webmaster.py compare <url1> <url2> --json`: the only free tool with built-in competitor comparison
 
 **Moz API:** Compare DA/PA between domains via `python3 scripts/moz_api.py metrics <url> --json` for each
 
@@ -150,7 +150,7 @@ Output:
 
 **DataForSEO only:** `dataforseo_backlinks_backlinks` with date filters for 30/60/90 day changes
 
-**Verification Crawler:** For known links, verify current status with `python3 scripts/verify_backlinks.py`
+**Verification Crawler:** For known links, verify current status with `python3 scripts/verify_backlinks.py --target <url> --links <file> --json`
 
 **Note:** Free sources cannot track new/lost links over time. If this section is requested without DataForSEO, inform the user: "Link velocity tracking requires the DataForSEO extension. Free sources provide point-in-time snapshots only."
 
@@ -165,7 +165,7 @@ Calculate a 0-100 score. When mixing sources, apply confidence weighting:
 
 | Factor | Weight | Sources (preference order) | Confidence |
 |--------|--------|---------------------------|------------|
-| Referring domain count | 20% | DataForSEO > Moz > CC in-degree | 1.0 / 0.85 / 0.50 |
+| Referring domain count | 20% | DataForSEO > Moz | 1.0 / 0.85 |
 | Domain quality distribution | 20% | DataForSEO > Moz DA distribution | 1.0 / 0.85 |
 | Anchor text naturalness | 15% | DataForSEO > Moz > Bing anchors | 1.0 / 0.85 / 0.70 |
 | Toxic link ratio | 20% | DataForSEO > Moz spam score | 1.0 / 0.85 |
@@ -182,8 +182,8 @@ Calculate a 0-100 score. When mixing sources, apply confidence weighting:
   Show individual factor scores that ARE available with their source and confidence.
   Recommend: "Configure Moz API (free) for a scoreable profile. Run `/seo backlinks setup`"
 
-When only CC is available, cap maximum score at 70/100.
-A numeric score with fewer than 4 data sources is **misleading** — it implies poor health when
+When only CC is available, do not produce a numeric score; report low-confidence rank/presence data only.
+A numeric score with fewer than 4 data sources is **misleading**, it implies poor health when
 the reality is we simply lack data.
 
 ## Output Format
@@ -230,14 +230,14 @@ Do NOT skip this step. Fix any issues found before showing the report.
 
 ### Fact-Check Every Claim
 - [ ] **Schema claims**: Did parse_html return `@type` for each block? If any `@type` is missing,
-      re-check — it may use `@graph` wrapper (valid JSON-LD, not malformed).
-- [ ] **"link_removed" findings**: Is the page JS-rendered? If `unverifiable_js`, say so — never
+      re-check, it may use `@graph` wrapper (valid JSON-LD, not malformed).
+- [ ] **"link_removed" findings**: Is the page JS-rendered? If `unverifiable_js`, say so, never
       report a JS-rendered page as "link removed" (that's a false negative).
 - [ ] **H1 findings**: Are any H1s in the `h1_suspicious` list? If so, note they are likely
       counters/stats, not semantic headings.
 - [ ] **Reciprocal links**: If site A links to site B AND B links back to A, flag it as a
       reciprocal link pattern. Check outbound links against verified inbound sources.
-- [ ] **Health score**: Are 4+ of 7 factors scored? If not, report INSUFFICIENT DATA — never
+- [ ] **Health score**: Are 4+ of 7 factors scored? If not, report INSUFFICIENT DATA, never
       show a misleading numeric score.
 
 ### Verify Data Source Labels

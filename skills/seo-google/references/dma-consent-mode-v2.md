@@ -54,7 +54,7 @@ For audits as of May 2026:
 ## Primary sources
 
 - DMA enforcement: https://digital-markets-act.ec.europa.eu/
-- Google's third-party cookie reversal: https://privacysandbox.com/news/privacy-sandbox-update-jul-2024
-- Consent Mode v2 spec: https://support.google.com/google-ads/answer/14411014
+- Google's third-party cookie reversal: https://privacysandbox.com/news/privacy-sandbox-update/
+- Consent Mode v2, EEA consent updates: https://support.google.com/google-ads/answer/13695607
 
 Last verified: 2026-05-17.

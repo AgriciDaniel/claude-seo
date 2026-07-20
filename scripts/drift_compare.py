@@ -69,6 +69,67 @@ def load_baseline(conn: sqlite3.Connection, uhash: str, baseline_id: int | None 
 # Comparison rules
 # ---------------------------------------------------------------------------
 
+_RETIRED_OR_UNSUPPORTED_SCHEMA_TYPES = {"FAQPage", "HowTo", "Dataset"}
+_FIELD_CWV_METRICS = [
+    ("largest_contentful_paint", "LCP"),
+    ("interaction_to_next_paint", "INP"),
+    ("cumulative_layout_shift", "CLS"),
+]
+
+
+def _schema_types(schema_blocks: list) -> list[str]:
+    types: set[str] = set()
+    for block in schema_blocks:
+        if not isinstance(block, dict):
+            continue
+        value = block.get("@type")
+        values = value if isinstance(value, list) else [value]
+        for item in values:
+            if isinstance(item, str) and item:
+                types.add(item.rsplit("/", 1)[-1].rsplit("#", 1)[-1])
+    return sorted(types)
+
+
+def _schema_removal_message(schema_types: list[str]) -> str:
+    if not schema_types:
+        return (
+            "All JSON-LD structured data has been removed. Validate schema "
+            "types individually before assuming rich-result impact."
+        )
+    retired = [t for t in schema_types if t in _RETIRED_OR_UNSUPPORTED_SCHEMA_TYPES]
+    active = [t for t in schema_types if t not in _RETIRED_OR_UNSUPPORTED_SCHEMA_TYPES]
+    if active and retired:
+        return (
+            f"Structured data removed for {', '.join(schema_types)}. Check "
+            "current Google Search rich-result eligibility for non-retired "
+            "types; FAQPage, HowTo, and Dataset should not be treated as "
+            "Google Search rich-result loss."
+        )
+    if active:
+        return (
+            f"Structured data removed for {', '.join(active)}. Check current "
+            "Google Search rich-result eligibility before assuming rich-result "
+            "impact."
+        )
+    return (
+        f"Removed JSON-LD types ({', '.join(retired)}) are retired or "
+        "unsupported for Google Search rich results. Keep only if useful "
+        "outside rich results."
+    )
+
+
+def _field_p75(field_metrics: dict, metric_id: str):
+    for key in (f"url_{metric_id}", f"origin_{metric_id}", metric_id):
+        data = field_metrics.get(key, {})
+        if isinstance(data, dict):
+            value = data.get("p75")
+            if value is None:
+                value = data.get("value")
+            if value is not None:
+                return value
+    return None
+
+
 def _make_finding(rule: str, severity: str, triggered: bool, old_value, new_value, message: str) -> dict:
     """Create a standardized finding dict."""
     return {
@@ -86,11 +147,13 @@ def rule_01_schema_removed(baseline: dict, current: dict) -> dict:
     old_schema = json.loads(baseline.get("schema_json") or "[]")
     new_schema = current.get("schema", [])
     triggered = len(old_schema) > 0 and len(new_schema) == 0
+    schema_types = _schema_types(old_schema)
+    retired_only = bool(schema_types) and all(t in _RETIRED_OR_UNSUPPORTED_SCHEMA_TYPES for t in schema_types)
     return _make_finding(
-        "schema_removed", "CRITICAL", triggered,
+        "schema_removed", "WARNING" if triggered and retired_only else "CRITICAL", triggered,
         f"{len(old_schema)} schema block(s)",
         "0 schema blocks",
-        "All structured data (JSON-LD) has been removed. Rich results will be lost. Restore immediately."
+        _schema_removal_message(schema_types)
         if triggered else "Schema presence unchanged.",
     )
 
@@ -229,22 +292,25 @@ def rule_11_cwv_regressed(baseline: dict, current_cwv: dict | None) -> dict:
         return _make_finding("cwv_regressed", "WARNING", False, None, None, "CWV comparison skipped (data unavailable).")
 
     regressions = []
-    old_lab = old_cwv.get("lab_metrics", {})
-    new_lab = current_cwv.get("lab_metrics", {})
+    old_field = old_cwv.get("field_metrics", {})
+    new_field = current_cwv.get("field_metrics", {})
+    if not old_field or not new_field:
+        return _make_finding("cwv_regressed", "WARNING", False, None, None, "CWV field comparison skipped (field data unavailable).")
 
-    for metric_id in ["largest-contentful-paint", "cumulative-layout-shift", "total-blocking-time"]:
-        old_val = old_lab.get(metric_id, {}).get("value")
-        new_val = new_lab.get(metric_id, {}).get("value")
+    for metric_id, label in _FIELD_CWV_METRICS:
+        old_val = _field_p75(old_field, metric_id)
+        new_val = _field_p75(new_field, metric_id)
         if old_val is not None and new_val is not None and old_val > 0:
             pct_change = (new_val - old_val) / old_val
             if pct_change > 0.20:  # >20% worse (higher is worse for all these)
-                regressions.append(f"{metric_id}: {old_val:.0f} -> {new_val:.0f} (+{pct_change:.0%})")
+                fmt = ".3f" if metric_id == "cumulative_layout_shift" else ".0f"
+                regressions.append(f"{label}: {old_val:{fmt}} -> {new_val:{fmt}} (+{pct_change:.0%})")
 
     triggered = len(regressions) > 0
     return _make_finding(
         "cwv_regressed", "WARNING", triggered,
-        {k: v.get("value") for k, v in old_lab.items()} if old_lab else None,
-        {k: v.get("value") for k, v in new_lab.items()} if new_lab else None,
+        {k: _field_p75(old_field, k) for k, _ in _FIELD_CWV_METRICS} if old_field else None,
+        {k: _field_p75(new_field, k) for k, _ in _FIELD_CWV_METRICS} if new_field else None,
         f"CWV regressions detected: {'; '.join(regressions)}"
         if triggered else "No significant CWV regressions.",
     )

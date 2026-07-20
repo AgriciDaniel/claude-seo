@@ -2,10 +2,10 @@
 """
 IndexNow submitter.
 
-POSTs a list of URLs to the IndexNow open API (Bing, Yandex, Seznam,
-Naver consume the same endpoint). Google does NOT consume IndexNow as
-of 2026 per Gary Illyes (multiple Search Off the Record episodes), so
-this is specifically a non-Google indexing signal.
+POSTs a list of URLs to the IndexNow open API. Amazon, Bing, Naver,
+Seznam.cz, Yandex, and Yep consume the same endpoint. Google does not
+participate per the IndexNow FAQ, so this is specifically a non-Google
+indexing signal.
 
 Setup
 =====
@@ -32,6 +32,7 @@ Usage
         --urls-file changed.txt
 
 Spec: https://www.indexnow.org/documentation
+FAQ: https://www.indexnow.org/faq
 """
 
 from __future__ import annotations
@@ -42,6 +43,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import urlparse
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
@@ -49,9 +51,20 @@ if _SCRIPTS_DIR not in sys.path:
 from url_safety import URLSafetyError, safe_requests_get, validate_url_strict  # noqa: E402
 
 # The umbrella endpoint forwards to every participating engine. Individual
-# engine endpoints exist (bing.com/IndexNow, yandex.com/indexnow, etc.) but
-# api.indexnow.org dispatches automatically — one POST covers all four.
+# engine endpoints exist, but api.indexnow.org dispatches automatically.
+# One POST covers all six listed IndexNow participants.
 INDEXNOW_ENDPOINT = "https://api.indexnow.org/indexnow"
+
+
+def _normalized_host(value: str) -> str:
+    parsed = urlparse(value if "://" in value else f"//{value}")
+    return (parsed.hostname or value).lower().rstrip(".")
+
+
+def _belongs_to_host(url: str, host: str) -> bool:
+    parsed_host = _normalized_host(url)
+    declared_host = _normalized_host(host)
+    return parsed_host == declared_host or parsed_host.endswith(f".{declared_host}")
 
 
 def submit(
@@ -76,11 +89,11 @@ def submit(
 
     # Every submitted URL must belong to the declared host. IndexNow rejects
     # cross-host submissions to prevent abuse.
-    bad = [u for u in url_list if host not in u]
+    bad = [u for u in url_list if not _belongs_to_host(u, host)]
     if bad:
         return {
             "ok": False,
-            "error": f"{len(bad)} URLs don't contain host {host!r}",
+            "error": f"{len(bad)} URLs don't belong to host {host!r}",
             "examples": bad[:3],
             "submitted": 0,
         }
@@ -116,7 +129,7 @@ def submit(
         "status_code": resp.status_code,
         "submitted": len(url_list),
         "endpoint": INDEXNOW_ENDPOINT,
-        "engines": ["Bing", "Yandex", "Seznam", "Naver"],
+        "engines": ["Amazon", "Bing", "Naver", "Seznam.cz", "Yandex", "Yep"],
         "response_body_preview": (resp.text or "")[:200],
     }
 

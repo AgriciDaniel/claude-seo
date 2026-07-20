@@ -13,7 +13,7 @@ The plugin ships 25 sub-skills (21 core + 1 orchestrator + 1 framework integrati
 ├── skills/
 │   ├── seo/                    # Main orchestrator
 │   │   ├── SKILL.md
-│   │   └── references/         # On-demand reference files (12 files)
+│   │   └── references/         # On-demand reference files (13 files)
 │   │
 │   ├── seo-audit/              # Full site audit (parallel subagents)
 │   ├── seo-page/               # Single page analysis
@@ -166,7 +166,7 @@ User Request (e.g., /seo page)
 
 ### 1. Progressive Disclosure
 
-- Main SKILL.md is concise (<200 lines)
+- Main SKILL.md stays under 500 lines (per the development rules)
 - Reference files loaded on-demand
 - Detailed instructions in sub-skills
 
@@ -247,13 +247,48 @@ extensions/
 │   ├── references/           # 7 reference files (prompt engineering, models, presets)
 │   └── docs/BANANA-SETUP.md
 │
-└── firecrawl/                # Firecrawl MCP for full-site crawling
-    ├── README.md
+├── firecrawl/                # Firecrawl MCP for full-site crawling
+│   ├── README.md
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── uninstall.ps1
+│   └── skills/seo-firecrawl/SKILL.md
+│
+├── ahrefs/                   # Ahrefs MCP for backlinks + organic data
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-ahrefs/SKILL.md
+│   └── docs/AHREFS-SETUP.md
+│
+├── seranking/                # SE Ranking AI Share-of-Voice tracking
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-seranking/SKILL.md
+│   └── docs/SERANKING-SETUP.md
+│
+├── profound/                 # Profound LLM citation tracking
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-profound/SKILL.md
+│   └── docs/PROFOUND-SETUP.md
+│
+├── bing-webmaster/           # Bing Webmaster Tools + IndexNow
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-bing/SKILL.md
+│   └── docs/BING-WEBMASTER-SETUP.md
+│
+└── unlighthouse/             # Multi-page Lighthouse runner (local)
     ├── install.sh
     ├── install.ps1
     ├── uninstall.sh
-    ├── uninstall.ps1
-    └── skills/seo-firecrawl/SKILL.md
+    ├── skills/seo-unlighthouse/SKILL.md
+    └── docs/UNLIGHTHOUSE-SETUP.md
 ```
 
 ### Available Extensions
@@ -263,13 +298,18 @@ extensions/
 | **DataForSEO** | `dataforseo-mcp-server@2.8.10` | Live SERP data, keyword research, backlinks, on-page analysis, business listings, AI visibility, LLM mention tracking |
 | **Banana Image Gen** | `@ycse/nanobanana-mcp@1.1.1` | AI image generation for SEO assets via Gemini (OG images, hero images, product photos, infographics, batch) |
 | **Firecrawl** | `firecrawl-mcp@3.11.0` | Full-site crawling and URL discovery for audits |
+| **Ahrefs** | `@ahrefs/mcp@0.0.11` | Backlinks and organic keyword data via the official `@ahrefs/mcp` server |
+| **SE Ranking** | SE Ranking API | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, and AI Mode |
+| **Profound** | Profound API | LLM citation tracking with time-series data |
+| **Bing Webmaster** | Bing Webmaster Tools API | Bing Webmaster Tools + IndexNow URL submission |
+| **Unlighthouse** | `unlighthouse@0.13.5` | Multi-page Lighthouse runner, runs locally |
 
 ### Extension Convention
 
 1. Self-contained in `extensions/<name>/`
-2. Own `install.sh` and `install.ps1` that copy files and configure MCP (where applicable)
-3. Own `uninstall.sh` and `uninstall.ps1` that reverse installation
+2. Own `install.sh` (and `install.ps1` where Windows is supported) that copies files and configures MCP (where applicable)
+3. Own `uninstall.sh` (and `uninstall.ps1` where present) that reverses installation
 4. Installs the sub-skill mirror to the plugin's skill directory
-5. Installs the sub-agent mirror to the plugin's agent directory
+5. Installs the sub-agent mirror to the plugin's agent directory (extensions that ship one; lighter extensions are skill-only)
 6. Merges MCP config into `~/.claude/settings.json` non-destructively
 7. MCP server versions are pinned (`@<version>`) for supply-chain stability

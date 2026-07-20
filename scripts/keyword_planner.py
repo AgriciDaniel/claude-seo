@@ -8,7 +8,6 @@ Requires a Google Ads Manager account with a developer token.
 Usage:
     python keyword_planner.py ideas "seo tools" --json
     python keyword_planner.py volume "seo tools,seo audit,seo checker" --json
-    python keyword_planner.py forecast "seo tools" --json
 
 Prerequisites:
     - Google Ads Manager account (can be free)

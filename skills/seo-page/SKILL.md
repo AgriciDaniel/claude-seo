@@ -10,7 +10,7 @@ argument-hint: "[url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -45,14 +45,14 @@ metadata:
 - Detect all types (JSON-LD preferred)
 - Validate required properties
 - Identify missing opportunities
-- NEVER recommend HowTo (deprecated) or FAQ for rich results (retired May 2026); keep existing FAQPage as an AI-citation signal, use QAPage for genuine Q&A
+- Never recommend HowTo (deprecated) or FAQ for rich results (retired May 2026); existing FAQPage need not be removed, use QAPage for genuine Q&A
 
 ### Images
 - Alt text: present, descriptive, includes keywords where natural
 - File size: flag >200KB (warning), >500KB (critical)
 - Format: recommend WebP/AVIF over JPEG/PNG
 - Dimensions: width/height set for CLS prevention
-- Lazy loading: report `lazy_method` per image (native | perfmatters | ewww | js-generic | none). Do not flag "not lazy-loaded" when JS lazy-loaders (Perfmatters, EWWW, lazysizes) are detected — they intentionally strip the native `loading="lazy"` attribute and use `data-src` placeholders
+- Lazy loading: report `lazy_method` per image (native | perfmatters | ewww | js-generic | none). Do not flag "not lazy-loaded" when JS lazy-loaders (Perfmatters, EWWW, lazysizes) are detected, they intentionally strip the native `loading="lazy"` attribute and use `data-src` placeholders
 
 ### Core Web Vitals (reference only, not measurable from HTML alone)
 - Flag potential LCP issues (huge hero images, render-blocking resources)

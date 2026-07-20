@@ -5,9 +5,8 @@
 1. **Bing Webmaster Tools API**: inbound links, crawl stats, search
    keywords, and competitor link comparison via
    `scripts/bing_webmaster.py` (already shipped with claude-seo).
-2. **IndexNow URL submission** for Bing, Yandex, Seznam, Naver via
-   `scripts/indexnow_submit.py`. The single POST hits all four
-   engines.
+2. **IndexNow URL submission** for Amazon, Bing, Naver, Seznam.cz,
+   Yandex, and Yep via `scripts/indexnow_submit.py`.
 3. A unified `seo-bing` skill that routes the right command at the
    right script.
 
@@ -37,17 +36,26 @@ writes only the env vars you provide.
    /seo bing verify-indexnow
    ```
    The verifier fetches your keyLocation URL and confirms the body
-   matches the key — the #1 onboarding mistake.
+   matches the key, the #1 onboarding mistake.
 
 ## Microsoft Copilot citation
 
 Microsoft Copilot pulls citations from the Bing index. Pages that
-aren't in Bing aren't citable. IndexNow gets a page into Bing
-within minutes vs. Bing's organic crawl which can take days. For
-new content launches this is a meaningful indexing speed win.
+aren't in Bing aren't citable. IndexNow notifies participating
+engines about changed URLs and can speed discovery, but it does not
+guarantee indexing speed.
 
 ## Uninstall
 
 ```bash
 ./extensions/bing-webmaster/uninstall.sh
 ```
+
+PowerShell manual removal:
+```powershell
+Remove-Item -Recurse -Force "$HOME\.claude\skills\seo-bing"
+notepad "$HOME\.claude\settings.json"
+```
+
+In `settings.json`, remove `BING_WEBMASTER_API_KEY`, `INDEXNOW_KEY`, and
+`INDEXNOW_KEY_LOCATION` from the top-level `env` object.

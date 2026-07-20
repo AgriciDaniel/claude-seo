@@ -47,7 +47,7 @@ Missing from SERP expectations:
 <section class="how-it-works"> 3-step process with numbered icons </section>
 <section class="testimonial"> Quote + photo + name + title + company </section>
 <section class="pricing"> 2-3 tiers, recommended highlighted, annual toggle </section>
-<section class="faq"> 5-7 PAA questions, FAQPage schema </section>
+<section class="faq"> FAQ content from 5-7 PAA questions </section>
 <section class="final-cta"> Repeat hero CTA with urgency </section>
 ```
 

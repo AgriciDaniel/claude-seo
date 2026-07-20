@@ -5,9 +5,10 @@ Google Indexing API v3 - notify Google of URL updates and removals.
 Publishes URL_UPDATED or URL_DELETED notifications. Supports single URL
 and batch mode (up to 200 URLs/day). Includes quota tracking.
 
-IMPORTANT: The Indexing API is officially restricted to pages with
-JobPosting or BroadcastEvent/VideoObject structured data. Google may
-process other page types but provides no guarantees.
+IMPORTANT: The Indexing API is restricted to pages with JobPosting or
+BroadcastEvent embedded in a VideoObject. Do not submit ordinary URLs.
+URL_UPDATED is not an indexing guarantee; abuse can revoke access. Use
+URL Inspection or sitemaps for ordinary URLs.
 
 Usage:
     python indexing_notify.py https://example.com/jobs/123
@@ -34,19 +35,20 @@ except ImportError:
     sys.exit(1)
 
 try:
-    from google_auth import get_oauth_credentials
+    from google_auth import get_oauth_credentials, validate_url
 except ImportError:
     import os
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from google_auth import get_oauth_credentials
+    from google_auth import get_oauth_credentials, validate_url
 
 INDEXING_SCOPES = ["https://www.googleapis.com/auth/indexing"]
 DAILY_QUOTA = 200
 
 SCOPE_WARNING = (
-    "NOTE: The Indexing API is officially for JobPosting and "
-    "BroadcastEvent/VideoObject pages only. Google may process other "
-    "page types but provides no guarantees."
+    "NOTE: The Indexing API is for JobPosting and BroadcastEvent embedded "
+    "in a VideoObject only. Do not submit ordinary URLs. URL_UPDATED is not "
+    "an indexing guarantee; abuse can revoke access. Use URL Inspection or "
+    "sitemaps for ordinary URLs."
 )
 
 
@@ -82,6 +84,10 @@ def notify_url(
         "notify_time": None,
         "error": None,
     }
+
+    if not validate_url(url):
+        result["error"] = "URL rejected: only public http/https URLs are accepted (SSRF protection)"
+        return result
 
     service = _build_indexing_service()
     if not service:
@@ -139,6 +145,10 @@ def get_notification_metadata(url: str) -> dict:
         "latest_remove": None,
         "error": None,
     }
+
+    if not validate_url(url):
+        result["error"] = "URL rejected: only public http/https URLs are accepted (SSRF protection)"
+        return result
 
     service = _build_indexing_service()
     if not service:

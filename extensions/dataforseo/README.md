@@ -1,6 +1,6 @@
 # DataForSEO Extension for Claude SEO
 
-Live SEO data via the [DataForSEO MCP server](https://github.com/dataforseo/mcp-server-typescript). Adds 22 commands across 9 API modules: SERP analysis, keyword research, backlinks, on-page analysis, competitor analysis, content analysis, business listings, AI visibility checking, and LLM mention tracking.
+Live SEO data via the [DataForSEO MCP server](https://github.com/dataforseo/mcp-server-typescript). Adds 23 data commands across 9 API modules: SERP analysis, keyword research, backlinks, on-page analysis, competitor analysis, content analysis, business listings, AI visibility checking, and LLM mention tracking.
 
 ## Prerequisites
 
@@ -39,6 +39,7 @@ The installer will:
 | Command | Description |
 |---------|-------------|
 | `/seo dataforseo serp <keyword>` | Google organic SERP results (also supports Bing/Yahoo via `se` parameter) |
+| `/seo dataforseo serp-images <keyword>` | Google Images SERP results |
 | `/seo dataforseo serp-youtube <keyword>` | YouTube search results |
 | `/seo dataforseo youtube <video_id>` | YouTube video deep analysis (info, comments, subtitles) |
 
@@ -110,7 +111,7 @@ DataForSEO charges per API call. Credit costs vary by endpoint:
 - **Keyword** research: ~0.0005-0.002 per keyword
 - **Backlinks**: ~0.002-0.01 per request
 - **On-page** analysis: ~0.01-0.05 per page
-- **AI optimization**: ~0.01 per request
+- **AI optimization**: ~0.05 per request
 
 New accounts include a free trial balance. See [DataForSEO pricing](https://dataforseo.com/pricing) for current rates.
 

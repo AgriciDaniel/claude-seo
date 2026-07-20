@@ -124,9 +124,11 @@
           {
             "@type": "Product",
             "name": "[Variant - Red, Large]",
+            "image": "[Variant image URL]",
             "sku": "[SKU-001]",
             "color": "[Red]",
             "size": "[Large]",
+            "hasAdultConsideration": "[Optional: https://schema.org/SexualContentConsideration for adult-oriented variants]",
             "offers": {
               "@type": "Offer",
               "price": "[29.99]",

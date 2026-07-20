@@ -1,15 +1,15 @@
 # Gemini Image Generation Models
 
-> Last updated: 2026-03-13
-> Aligned with Google's March 2026 API state
+> Package alias notes. Verify current Google model IDs before use.
+> Do not treat these as Google-confirmed current model IDs.
 
-## Available Models
+## Package Model Aliases
 
-### gemini-3.1-flash-image-preview (Recommended)
+### gemini-3.1-flash-image-preview (Unverified package-specific alias)
 | Property | Value |
 |----------|-------|
-| **Model ID** | `gemini-3.1-flash-image-preview` |
-| **Tier** | Nano Banana 2 (Flash) |
+| **Model ID** | `gemini-3.1-flash-image-preview` (verify in installed MCP/tool config) |
+| **Tier** | Package label: Nano Banana 2 (Flash) |
 | **Speed** | Fast - optimized for high-volume use |
 | **Aspect Ratios** | All 14 ratios (see table below) |
 | **Max Resolution** | Up to 4096×4096 (4K tier) |

@@ -113,8 +113,8 @@ Per Google Developers documentation (updated December 10, 2025, Confirmed).
 ```
 Restaurant (or specific subtype)
   + Menu > MenuSection > MenuItem (name, price, nutrition, suitableForDiet)
-  + ReserveAction (booking capabilities)
-  + OrderAction (takeout/delivery)
+  + ReserveAction (booking capabilities; not a Google-supported rich result, machine-readable data only)
+  + OrderAction (takeout/delivery; not a Google-supported rich result, machine-readable data only)
   + servesCuisine, acceptsReservations
 ```
 Note: Google Food Ordering (GFO) direct checkout discontinued June 2024. "Order Online" button now redirects to third-party platforms.

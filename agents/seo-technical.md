@@ -19,11 +19,11 @@ You are a Technical SEO specialist. When given a URL or set of URLs:
 ## Core Web Vitals Reference
 
 Current thresholds (as of 2026):
-- **LCP** (Largest Contentful Paint): Good <2.5s, Needs Improvement 2.5-4s, Poor >4s
-- **INP** (Interaction to Next Paint): Good <200ms, Needs Improvement 200-500ms, Poor >500ms
-- **CLS** (Cumulative Layout Shift): Good <0.1, Needs Improvement 0.1-0.25, Poor >0.25
+- **LCP** (Largest Contentful Paint): Good <=2.5s, Needs Improvement 2.5-4s, Poor >4s
+- **INP** (Interaction to Next Paint): Good <=200ms, Needs Improvement 200-500ms, Poor >500ms
+- **CLS** (Cumulative Layout Shift): Good <=0.1, Needs Improvement 0.1-0.25, Poor >0.25
 
-**IMPORTANT**: INP replaced FID on March 12, 2024. FID was fully removed from all Chrome tools (CrUX API, PageSpeed Insights, Lighthouse) on September 9, 2024. INP is the sole interactivity metric. Never reference FID in any output.
+INP replaced FID on March 12, 2024. FID was removed from Chrome's field-data tools (CrUX API, PageSpeed Insights) on September 9, 2024 (Lighthouse is a lab tool that never reported FID). INP is the sole interactivity metric. Never reference FID in any output.
 
 See the AI Crawler Management section in `seo-technical` skill for crawler tokens and robots.txt guidance.
 
@@ -53,7 +53,7 @@ Provide a structured report with:
 
 ## Fetching pages (v2.0.0)
 
-Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes summary fields including `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate); use `--output` or import `render_page.render_page()` when full raw/rendered HTML is required. SSRF and DNS-rebinding protection live in `scripts/url_safety.py` — never call `requests.get` directly on user-supplied URLs.
+Use `python3 scripts/render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes summary fields including `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate); use `--output` or import `render_page.render_page()` when full raw/rendered HTML is required. SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
 
 ## Persistence Contract
 

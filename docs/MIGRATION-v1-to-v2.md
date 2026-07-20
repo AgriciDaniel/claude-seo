@@ -8,7 +8,7 @@ changes are limited to two narrow surfaces:
    has been removed. If `scripts/url_safety.py` cannot be imported, the
    module now raises `RuntimeError` at import time instead of running
    with SSRF protection disabled.
-2. Three `Schema.org` rich-result types Google retired in 2025 are now
+2. Six `Schema.org` rich-result types Google retired in 2025 are now
    marked as Critical findings when the `seo-schema` skill detects them
    (Vehicle Listing, Claim Review, Estimated Salary, Learning Video,
    Special Announcement, Course Info carousel). Sites still generating
@@ -18,6 +18,10 @@ changes are limited to two narrow surfaces:
 Everything else is additive — new commands, new scripts, new reference
 files, new extensions. Existing audit reports will look slightly fuller
 but use exactly the same overall structure.
+
+This guide covers the v1.x → v2.0.0 jump only; the v2.1.0 through v2.2.3
+releases are documented in [../CHANGELOG.md](../CHANGELOG.md), and the
+suite is now at 326 tests.
 
 ## What's new in v2
 
@@ -80,7 +84,7 @@ but use exactly the same overall structure.
 
 | New | What it does |
 |---|---|
-| `python3 scripts/gbp_deprecation_lint.py` | Detects retired GBP chat / `.business.site` / Q&A references |
+| `python3 scripts/gbp_deprecation_lint.py` | Detects retired GBP chat; treats `.business.site` as unresolved and Q&A as review-only |
 | `skills/seo-google/references/dma-consent-mode-v2.md` | EU CTR diagnostic + softened cookieless framing |
 | `skills/seo-hreflang/references/machine-translation-qa.md` | Untranslated-MT detection per Jan 2025 QRG §4.6.5 |
 
@@ -106,19 +110,19 @@ but use exactly the same overall structure.
 - **FQDN trailing-dot bypass** of metadata-endpoint blocklist (HIGH) — closed.
 - **IPv6 blind spot in Playwright route handler** (MEDIUM) — closed.
 - **OAuth file-permission TOCTOU** (LOW) — closed.
-- **Unsigned install scripts** — partially closed; release manifest
-  tooling shipped, install.sh integration in v2.0.x.
+- **Unsigned install scripts:** partially closed; release manifest
+  tooling shipped in v2.0.0, install.sh integration tracked for v2.3.
 
 ## Breaking changes (full list)
 
 There are exactly two surface-visible breaks:
 
-### 1. `backlinks_auth.py` hard-fails without `requests`
+### 1. `backlinks_auth.py` hard-fails without `url_safety`
 
 ```python
 # v1.x
 from backlinks_auth import validate_url  # silently uses unsafe fallback
-                                          # if google_auth not importable
+                                          # if url_safety not importable
 
 # v2.x
 from backlinks_auth import validate_url  # raises RuntimeError if

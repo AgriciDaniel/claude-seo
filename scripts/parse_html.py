@@ -27,6 +27,11 @@ try:
 except ImportError:
     _HTML_PARSER = "html.parser"
 
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from url_safety import safe_requests_get
+
 
 # Lazy-loader detection — covers native + the major JS lazy-loaders found on
 # WordPress/WooCommerce sites (Perfmatters, EWWW Image Optimizer, generic
@@ -241,6 +246,10 @@ def main():
             html = f.read()
     else:
         html = sys.stdin.read()
+        if not html and args.url:
+            resp = safe_requests_get(args.url, timeout=30, allow_redirects=True)
+            html = resp.text
+            args.url = resp.url
 
     result = parse_html(html, args.url)
 

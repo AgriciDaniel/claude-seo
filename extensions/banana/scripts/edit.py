@@ -19,7 +19,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-DEFAULT_MODEL = "gemini-3.1-flash-image-preview"
+DEFAULT_MODEL = os.environ.get("NANOBANANA_MODEL")
 OUTPUT_DIR = Path.home() / "Documents" / "nanobanana_generated"
 API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 _GOOGLE_API_KEY_PREFIX = "AI" + "za"
@@ -143,10 +143,14 @@ def main():
     parser = argparse.ArgumentParser(description="Edit images via Gemini REST API")
     parser.add_argument("--image", required=True, help="Path to input image")
     parser.add_argument("--prompt", required=True, help="Edit instruction")
-    parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Model ID (default: {DEFAULT_MODEL})")
+    parser.add_argument("--model", default=DEFAULT_MODEL, help="Model ID (or set NANOBANANA_MODEL env)")
     parser.add_argument("--api-key", default=None, help="Google AI API key (or set GOOGLE_AI_API_KEY env)")
 
     args = parser.parse_args()
+
+    if not args.model:
+        print(json.dumps({"error": True, "message": "No model. Set NANOBANANA_MODEL or pass --model."}))
+        sys.exit(1)
 
     api_key = args.api_key or os.environ.get("GOOGLE_AI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not api_key:

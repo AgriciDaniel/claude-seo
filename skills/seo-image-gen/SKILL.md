@@ -7,7 +7,7 @@ license: MIT
 compatibility: "Requires nanobanana MCP server"
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -82,7 +82,7 @@ For every generation request:
 
 If the user mentions a brand or has SEO presets configured:
 ```bash
-python3 scripts/presets.py list
+# Use the installed Banana MCP/tool configuration to list presets.
 ```
 Load matching preset and apply as defaults. Also check `references/seo-image-presets.md`
 for SEO-specific preset templates.
@@ -120,23 +120,20 @@ After every successful generation, guide the user on:
 
 Image generation costs money. Be transparent:
 - Show estimated cost before generating (especially for batch)
-- Log every generation: `python3 scripts/cost_tracker.py log --model MODEL --resolution RES --prompt "brief"`
-- Run `cost_tracker.py summary` if user asks about usage
+- Log every generation in the installed Banana MCP/tool ledger when available
+- Use the installed Banana MCP/tool usage summary if user asks about usage
 
-Approximate costs (gemini-3.1-flash):
-- 512: ~$0.02/image
-- 1K resolution: ~$0.04/image
-- 2K resolution: ~$0.08/image
-- 4K resolution: ~$0.16/image
+Approximate costs:
+- Verify current pricing in the installed MCP/tool configuration before quoting
 
 ## Model Routing
 
 | Scenario | Model | Why |
 |----------|-------|-----|
-| OG images, social previews | `gemini-3.1-flash-image-preview` @ 1K | Fast, cost-effective |
-| Hero images, product photos | `gemini-3.1-flash-image-preview` @ 2K | Quality + detail |
-| Infographics with text | `gemini-3.1-flash-image-preview` @ 2K, thinking: high | Better text rendering |
-| Quick drafts | `gemini-2.5-flash-image` @ 512 | Rapid iteration |
+| OG images, social previews | Installed MCP/tool default @ 1K | Fast, cost-effective |
+| Hero images, product photos | Installed MCP/tool quality model @ 2K | Quality + detail |
+| Infographics with text | Installed MCP/tool text-capable model @ 2K, thinking: high if supported | Better text rendering |
+| Quick drafts | Installed MCP/tool draft model @ 512 | Rapid iteration |
 
 ## Error Handling
 
@@ -146,7 +143,7 @@ Approximate costs (gemini-3.1-flash):
 | API key invalid | New key at https://aistudio.google.com/apikey |
 | Rate limited (429) | Wait 60s, retry. Free tier: ~10 RPM / ~500 RPD |
 | `IMAGE_SAFETY` | Rephrase prompt - see `references/prompt-engineering.md` Safety section |
-| MCP unavailable | Fall back: `python3 scripts/generate.py --prompt "..." --aspect-ratio "16:9"` |
+| MCP unavailable | Configure MCP with `./extensions/banana/install.sh`; claude-seo does not vendor a local generation fallback script |
 | Extension not installed | Show install instructions: `./extensions/banana/install.sh` |
 
 ## Cross-Skill Integration

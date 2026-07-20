@@ -58,7 +58,7 @@
 - **Certification**: For product certifications (Energy Star, safety, organic). Replaced EnergyConsumptionDetails (April 2025). Use `hasCertification` on Product.
 - **OfferShippingDetails**: Include shipping rate, handling time, and transit time. Critical for Merchant Center eligibility.
 
-> **Google Merchant Center Free Listings:** Products can appear in Google Shopping for free. Ensure Product structured data is in the initial server-rendered HTML (not JavaScript-injected) with required properties: `name`, `image`, `price`, `priceCurrency`, `availability`.
+> **Google Merchant Center Free Listings:** Products can appear in Google Shopping for free. Ensure a purchase page and Product structured data in the initial server-rendered HTML (not JavaScript-injected): Product with `name`, `image`, and `offers`; Offer with `price`, `priceCurrency`, `availability`, and `url` as applicable.
 
 > **JS Rendering Note:** Product structured data should be in initial server-rendered HTML: not dynamically injected via JavaScript (per December 2025 Google JS SEO guidance).
 

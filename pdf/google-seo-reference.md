@@ -1,8 +1,8 @@
-<!-- Updated: 2026-02-07 -->
-# Google SEO Quick Reference (February 2026)
+<!-- Updated: 2026-07-10 -->
+# Google SEO Quick Reference (July 2026)
 
-Concise reference guide for subagents. Summarizes key Google Search concepts,
-requirements, and best practices. Not a reproduction of Google's documentation;
+Deprecated standalone reference guide. It is not wired into any subagent loading path.
+Summarizes key Google Search concepts, requirements, and best practices. Not a reproduction of Google's documentation;
 see Official Documentation Links at the bottom for full details.
 
 ---
@@ -21,7 +21,6 @@ Formerly known as "Webmaster Guidelines." Key requirements:
 - Pages must be accessible to Googlebot (not blocked by robots.txt or noindex)
 - Pages must return HTTP 200 status for indexable content
 - Content must be in a format Google can process (HTML preferred, JS-rendered content supported but slower)
-- Pages must be served over HTTPS
 
 ### Spam Policies
 - No cloaking (showing different content to Googlebot vs users)
@@ -40,6 +39,7 @@ Formerly known as "Webmaster Guidelines." Key requirements:
 - Use heading tags (H1-H6) to structure content logically
 - Optimize images with alt text and appropriate file sizes
 - Ensure mobile-friendly responsive design
+- Serve pages over HTTPS for security, trust, and a lightweight ranking signal
 - Improve page load speed (Core Web Vitals)
 - Submit an XML sitemap to Google Search Console
 - Use structured data (JSON-LD) to help Google understand content
@@ -57,7 +57,7 @@ Google evaluates content quality through the E-E-A-T framework:
 
 > **YMYL Note**: "Your Money or Your Life" topics (health, finance, safety, legal) are held to the highest E-E-A-T standards. Inaccurate YMYL content can cause real-world harm, so Google applies stricter quality thresholds.
 
-> **December 2025 Update**: E-E-A-T evaluation now extends to ALL competitive queries, not just YMYL topics. Every page competing for ranking is assessed on these signals.
+> **Scope note**: E-E-A-T informs Google's core ranking and helpful-content systems broadly (not only YMYL), but Google never published a "December 2025 watershed" extending it to *all* competitive queries, nor per-industry traffic-drop figures — treat such claims as third-party interpretation, not Google fact.
 
 ---
 
@@ -72,7 +72,7 @@ Measured at the 75th percentile of real user data (field data).
 | **CLS** (Cumulative Layout Shift) | ≤ 0.1 | 0.1 – 0.25 | > 0.25 |
 
 **Key facts:**
-- INP replaced FID (First Input Delay) on March 12, 2024. FID was fully removed from all Chrome tools (CrUX API, PageSpeed Insights, Lighthouse) on September 9, 2024. Do NOT reference FID.
+- INP replaced FID (First Input Delay) on March 12, 2024. FID was removed from Chrome's field-data tools (CrUX API, PageSpeed Insights) on September 9, 2024 (Lighthouse is a lab tool that never reported FID). Do NOT reference FID.
 - Core Web Vitals are a confirmed ranking signal (since June 2021)
 - Field data (CrUX) is preferred over lab data (Lighthouse) for assessment
 - Passing all three metrics at "Good" is the target
@@ -97,9 +97,9 @@ Measured at the 75th percentile of real user data (field data).
 - Do not mark up content that is misleading or hidden from users
 - Keep schema current: update when page content changes
 
-### Deprecated/Restricted Types (as of Feb 2026)
+### Deprecated/Restricted Types (as of May 2026)
 - **HowTo**: Rich results removed (September 2023)
-- **FAQ**: Restricted to government and healthcare authority sites (August 2023)
+- **FAQ**: Rich results retired for all sites (May 7, 2026). FAQPage markup can still aid AI/entity-signal use, but not rich-result eligibility.
 - **SpecialAnnouncement**: Deprecated (July 31, 2025)
 - **CourseInfo, EstimatedSalary, LearningVideo**: Retired (June 2025)
 - **ClaimReview**: Retired (June 2025)
@@ -148,4 +148,4 @@ No manual notification, detected through ranking drops. Common causes:
 - [Spam Policies](https://developers.google.com/search/docs/essentials/spam-policies)
 - [E-E-A-T and Quality Rater Guidelines](https://developers.google.com/search/docs/fundamentals/creating-helpful-content)
 
-> **Mobile-first indexing** is 100% complete as of July 5, 2024. Google now crawls and indexes ALL websites exclusively with the mobile Googlebot user-agent.
+> **Mobile-first indexing** is the default for the indexed web and Googlebot Smartphone is the primary crawler (rollout completed 2024). A mobile version is not strictly required (Google says it is "very strongly recommended"); the real risk for desktop-only sites is content/parity loss, not hard exclusion.

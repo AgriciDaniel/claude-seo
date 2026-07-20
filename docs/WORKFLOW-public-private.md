@@ -150,12 +150,12 @@ upgrade.
 | Letting `aimh/main` lag behind `origin/main` | Always push to `aimh` first, then `origin` on release |
 | Confusing `aimh/v2` with `origin/v2` | `origin` should never have an unreleased `v2` branch |
 
-## State at the time of writing (2026-05-25)
+## State for the v2.2.3 public release (2026-07-20)
 
-- v2.0.0 is **released to public**. Latest tag on both remotes: `v2.0.0`.
+- v2.2.3 is the **current public release**. Latest tag on both remotes: `v2.2.3`.
 - `aimh/main` = shared canonical (public-first README, private marketplace name).
 - `origin/main` = `aimh/main` + the public-branding commit (public marketplace name).
-- `v2.0.0` tag points at each repo's own HEAD: `origin`'s tag includes the
+- `v2.2.3` tag points at each repo's own HEAD: `origin`'s tag includes the
   branding commit, `aimh`'s does not (see "Public-branding divergence" above).
 - `aimh/v2` tracks the shared canonical for ongoing v2.x work.
 

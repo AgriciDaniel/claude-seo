@@ -18,7 +18,7 @@ Select the template that matches the page type. Adapt sections based on the spec
 | FAQ | Capture PAA traffic | 5-8 questions, 40-60 words each, FS target |
 | CTA | Convert | Clear action, reduce risk (free consult, no obligation) |
 
-**Schema:** Service + FAQPage + LocalBusiness (if location-specific)
+**Schema:** Service + FAQPage + LocalBusiness (if location-specific). FAQPage no longer produces Google FAQ rich results.
 **Primary keyword placement:** H1, first 100 words, one H2, URL slug, meta title
 
 ## Blog Post
@@ -34,7 +34,7 @@ Select the template that matches the page type. Adapt sections based on the spec
 | FAQ | Capture long-tail traffic | 5 questions from gap analysis |
 | CTA to relevant service | Convert intent | Contextual link, not hard sell |
 
-**Schema:** Article + FAQPage
+**Schema:** Article + FAQPage. FAQPage no longer produces Google FAQ rich results.
 **Primary keyword placement:** H1, first 100 words, URL slug, meta title, one image alt text
 
 ## Case Study
@@ -67,7 +67,7 @@ Select the template that matches the page type. Adapt sections based on the spec
 | FAQ | Capture variations | 5-8 questions |
 | CTA | Convert | Clear next step |
 
-**Schema:** Service + BreadcrumbList + FAQPage
+**Schema:** Service + BreadcrumbList + FAQPage. FAQPage no longer produces Google FAQ rich results.
 **Primary keyword:** Category name, in H1, title, URL, first paragraph
 **Site Structure Rule:** MUST include every relevant sub-page from the sitemap.
 
@@ -85,7 +85,7 @@ Select the template that matches the page type. Adapt sections based on the spec
 | Objection handling / FAQ | Remove doubts | 4-6 common objections answered |
 | Final CTA | Convert | Repeat the offer |
 
-**Schema:** WebPage + FAQPage
+**Schema:** WebPage + FAQPage. FAQPage no longer produces Google FAQ rich results.
 **Primary keyword:** Offer or outcome, in H1, title, hero subheading
 
 ## FAQ Page
@@ -97,7 +97,7 @@ Select the template that matches the page type. Adapt sections based on the spec
 | 8-15 questions | Grouped by subtopic | Each answered in 40-60 words, FS target for each |
 | CTA after last question | Convert | Contextual next step |
 
-**Schema:** FAQPage (every Q&A as mainEntity) — Google retired FAQ rich results for all sites on May 7, 2026, so this no longer produces a SERP rich result; the markup still aids AI Mode / AI Overviews entity resolution (treat as a supporting signal, not a ranking feature). For genuine user Q&A pages, use QAPage instead. See the seo-schema skill for the canonical position.
+**Schema:** FAQPage (every Q&A as mainEntity). Google retired FAQ rich results for all sites on May 7, 2026, so this no longer produces a SERP rich result. For genuine user Q&A pages, use QAPage instead. See the seo-schema skill for the canonical position.
 **Primary keyword:** In H1 as "[Topic]: Frequently Asked Questions", in first answer
 
 ## Location Page

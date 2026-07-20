@@ -4,9 +4,8 @@ Parasite-SEO risk scanner.
 
 Per Google's 2024-11-19 policy clarification, "no amount of first-party
 involvement alters the third-party nature" of a section. Section-level
-manual actions hit Forbes Advisor, CNN Underscored, and WSJ Buy Side
-within hours of the clarification. The risk pattern is now a Critical
-finding to surface in any audit of an established editorial domain.
+risk is now a Critical finding to surface in any audit of an established
+editorial domain.
 
 This scanner crawls a small set of representative URLs on a site,
 classifies each into a content "topic", and flags subfolders where

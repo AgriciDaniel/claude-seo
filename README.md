@@ -138,7 +138,7 @@ claude
 
 ![Claude SEO sub-skill ecosystem: 25 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
 
-25 user-invocable `/seo` commands across the orchestrator and its sub-skills. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
+30 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 8 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
 
 | Command | Description |
 |---------|-------------|
@@ -167,12 +167,17 @@ claude
 | `/seo firecrawl [command] <url>` | Full-site crawling (extension) |
 | `/seo dataforseo [command]` | Live SEO data (extension) |
 | `/seo image-gen [use-case]` | AI image generation for SEO assets (extension) |
+| `/seo ahrefs [command] <url>` | Backlinks, organic keywords, and content data via the official Ahrefs MCP (extension) |
+| `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
+| `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
+| `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
+| `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
 
 ## Features
 
 ### What Core Web Vitals does Claude SEO check?
 
-Claude SEO measures the current three Core Web Vitals: **LCP** (Largest Contentful Paint, target under 2.5s), **INP** (Interaction to Next Paint, target under 200ms), and **CLS** (Cumulative Layout Shift, target under 0.1). [INP replaced FID](https://web.dev/articles/inp) on March 12, 2024; FID was removed from all Chrome tools (CrUX API, PageSpeed Insights, Lighthouse) on September 9, 2024, and Claude SEO never references FID. Field data comes from the Chrome User Experience Report (CrUX) when available; lab data falls back to Lighthouse via PageSpeed Insights. LCP can be decomposed into subparts (TTFB, load delay, load duration, render delay) via the `/seo google` CrUX integration to localize bottlenecks. Mobile and desktop are measured separately. CrUX History (25-week trend) is included in the Tier 0 free credential set.
+Claude SEO measures the current three Core Web Vitals: **LCP** (Largest Contentful Paint, target under 2.5s), **INP** (Interaction to Next Paint, target under 200ms), and **CLS** (Cumulative Layout Shift, target under 0.1). [INP replaced FID](https://web.dev/articles/inp) on March 12, 2024; FID was removed from Chrome's field-data tools (CrUX API, PageSpeed Insights) on September 9, 2024 (Lighthouse is a lab tool and never reported FID), and Claude SEO never references FID. Field data comes from the Chrome User Experience Report (CrUX) when available; lab data falls back to Lighthouse via PageSpeed Insights. LCP can be decomposed into subparts (TTFB, load delay, load duration, render delay) via the `/seo google` CrUX integration to localize bottlenecks. Mobile and desktop are measured separately. CrUX History (25-week trend) is included in the Tier 0 free credential set.
 
 ### How does Claude SEO assess E-E-A-T?
 
@@ -180,7 +185,7 @@ E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) is evaluated
 
 ### What Schema.org types does Claude SEO support?
 
-JSON-LD is the preferred format (Google's stated preference). Active types Claude SEO detects, validates, and generates: Organization, LocalBusiness, Article, BlogPosting, NewsArticle, Product, ProductGroup, Offer, Review, AggregateRating, BreadcrumbList, WebSite, WebPage, Person, ProfilePage, ContactPage, VideoObject, ImageObject, Event, JobPosting, Course, DiscussionForumPosting, Reservation, OrderAction, plus video and specialized types (BroadcastEvent, Clip, SeekToAction, SoftwareSourceCode). FAQPage: Google stopped showing FAQ rich results for all sites on May 7, 2026; still useful as a supporting AI/entity signal, not for rich results. Deprecated and never recommended: HowTo (rich results removed September 2023), SpecialAnnouncement (July 2025), ClaimReview, VehicleListing, EstimatedSalary, LearningVideo, CourseInfo carousel (all retired June 2025). Replacement guidance: [skills/seo-schema/references/deprecated-types-2024-2026.md](skills/seo-schema/references/deprecated-types-2024-2026.md).
+JSON-LD is the preferred format (Google's stated preference). Claude SEO detects, validates, and generates the active Schema.org types documented in [skills/seo/references/schema-types.md](skills/seo/references/schema-types.md), including organization, article, product, local, event, job, course, software/application, service, Q&A, and video patterns. FAQPage: Google stopped showing FAQ rich results for all sites on May 7, 2026; it has no Google rich-result benefit. Keep it only for non-Google or internal semantics if needed. Deprecated and never recommended: HowTo (rich results removed September 2023), SpecialAnnouncement (July 2025), ClaimReview, VehicleListing, EstimatedSalary, LearningVideo, CourseInfo carousel (all retired June 2025). Replacement guidance: [skills/seo-schema/references/deprecated-types-2024-2026.md](skills/seo-schema/references/deprecated-types-2024-2026.md).
 
 ### How does Claude SEO optimize for AI search?
 
@@ -285,7 +290,7 @@ Other audit outputs follow the same shape: `FULL-AUDIT-REPORT.md` (umbrella audi
 
 ## Architecture
 
-![Claude SEO audit signal flow: /seo audit enters the orchestrator, fans out to 25 sub-skills and 6 parallel audit agents, and converges through the scoring engine into a prioritized report](assets/signal-flow.svg)
+![Claude SEO audit signal flow: /seo audit enters the orchestrator, fans out to 25 sub-skills and up to 15 parallel audit agents, and converges through the scoring engine into a prioritized report](assets/signal-flow.svg)
 
 The plugin follows the [Agent Skills standard](https://docs.claude.com/en/docs/claude-code/skills) with a 3-layer architecture (directive, orchestration, execution). Skills and agents are auto-discovered from `skills/seo-*/` and `agents/seo-*.md`. The orchestrator (`skills/seo/SKILL.md`) handles industry detection (SaaS, local, ecommerce, publisher, agency), parallel sub-agent dispatch up to 15 simultaneously, and synthesis through the [10-principle framework](#methodology) before emitting the action plan. Full architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -313,9 +318,17 @@ v2.0.0 is the largest release in the plugin's history. Six build phases, all shi
 - **Phase C: Technical and CWV depth.** LCP subparts via CrUX (TTFB, load delay, load duration, render delay), Speculation Rules and bfcache detection, IndexNow submitter for Bing / Yandex / Seznam / Naver, Unlighthouse multi-page Lighthouse wrapper.
 - **Phase D: Schema completeness.** Four explicit generators (Reservation, OrderAction, DiscussionForumPosting, ProfilePage), e-commerce schema validator (`hasMerchantReturnPolicy`, `shippingDetails`, `MemberProgram`, EU `energyEfficiencyClass`, ProductGroup variants), dual validator (Rich Results Test plus Schema Markup Validator).
 - **Phase E: AI search reframing and 5 new MCP extensions.** Ahrefs, SE Ranking (AI Share-of-Voice), Profound (LLM citation tracker), Bing Webmaster plus IndexNow, Unlighthouse. Plus the parasite-SEO risk scanner per Google's November 2024 [site reputation abuse policy](https://developers.google.com/search/blog/2024/11/site-reputation-abuse-update).
-- **Phase F: Local, international, and privacy polish.** Google Business Profile deprecation linter (chat field, `.business.site` URLs, Q&A), DMA consent-mode-v2 click-through diagnostic, machine-translation QA flag per January 2025 QRG.
+- **Phase F: Local, international, and privacy polish.** Google Business Profile deprecation linter (chat field and `.business.site` URLs, with Q&A treated as category/region-limited), DMA consent-mode-v2 click-through diagnostic, machine-translation QA flag per January 2025 QRG.
 
-Test coverage: 248 → 271 (a 5.4× increase over the v1.9.9 baseline). 83 SSRF and DNS-rebinding bypass tests close the full obfuscated-IPv4, FQDN-trailing-dot, and redirect-rebinding bypass classes. Full migration notes and breaking changes: [docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md).
+Test coverage grew from 39 (v1.9.9) to 326 across the v2 line; the url_safety suite alone runs 91 SSRF and DNS-rebinding bypass cases, closing the obfuscated-IPv4, FQDN-trailing-dot, and redirect-rebinding bypass classes. Full migration notes and breaking changes: [docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md).
+
+### Since v2.0.0
+
+- **v2.1.0 (May 2026): currency refresh.** May 2026 core update, Google I/O 2026 (custom version of Gemini 2.5 powers AI Mode), FAQ rich results retired 2026-05-07 (QAPage remains the type for genuine Q&A pages, FAQ markup itself just no longer yields rich results).
+- **v2.2.0 (June 2026): security + portability.** Installer credential-injection fix, SSRF authority-confusion bypass closed, Google API keys moved to the `X-Goog-Api-Key` header, secret-scan CI gate, Windows/macOS fixes; suite at 326.
+- **v2.2.1 (June 2026): Google-currency reconfirmation + full command audit.** Lighthouse 13.4.0 with the new Agentic Browsing category, Google Search ignores llms.txt, an internally-reweighted E-E-A-T scorecard (Trust highest, per Google's 'trust is most important'); every `/seo` command and subcommand audited and COMMANDS.md brought to 100% coverage.
+- **v2.2.2 (July 2026): full-review maintenance.** Corrected GBP Q&A handling, AI Mode model naming, image-model IDs, hook input behavior, and added a strict reference-graph consistency gate.
+- **v2.2.3 (July 2026): prompt-hygiene alignment.** Normalized emphasis and punctuation across the prompt surface without changing behavior, routing, or output contracts.
 
 ## Limitations
 
@@ -323,13 +336,13 @@ Two real boundaries worth being upfront about.
 
 **Heavy client-side hydration timing.** Phase A's headless renderer handles most SPAs out of the box (`--render auto` detects empty `<div id="root">` shells and switches to Playwright). Edge cases that still produce noisy findings: pages with hydration tied to scroll position past the fold, pages that fetch critical content after user interaction (modal opens, tab clicks), pages with race-condition-prone third-party widget mounts. For these, manually triggering the `seo-visual` subagent and comparing its Playwright snapshot to the raw-HTML subagents' findings is the recommended workflow.
 
-**Local-only without enrichment.** The free tier does not call any external API and produces zero-network output. Adding Google API credentials (Tier 0 through 3) unlocks real field data and live indexation status; without them, Core Web Vitals are lab estimates only and indexation is inferred from page-level signals. Adding MCP extensions (Ahrefs, DataForSEO, SE Ranking, Profound) similarly unlocks competitive and AI-citation data but requires their respective accounts.
+**Local-only without enrichment.** The free tier makes no third-party API calls by default (audits still fetch the target URLs you point them at). Adding Google API credentials (Tier 0 through 3) unlocks real field data and live indexation status; without them, Core Web Vitals are lab estimates only and indexation is inferred from page-level signals. Adding MCP extensions (Ahrefs, DataForSEO, SE Ranking, Profound) similarly unlocks competitive and AI-citation data but requires their respective accounts.
 
 ## Requirements
 
 - Python 3.10+
 - Claude Code CLI
-- Optional: Playwright Chromium (auto-installed by `install.sh`) for SPA rendering and screenshots
+- Optional: Playwright Chromium — install.sh offers to install it (you can skip the prompt); needed only for SPA rendering and screenshots
 - Optional: Google API credentials for enriched CWV / GSC / GA4 data (see `/seo google setup`)
 
 ## Uninstall
@@ -354,7 +367,7 @@ Optional MCP servers add live data to the audit pipeline. Claude SEO ships exten
 
 ### DataForSEO
 
-Live SERP data, keyword research, backlinks, on-page analysis, content analysis, business listings, AI visibility checks, and LLM mention tracking. 22 commands across 9 API modules.
+Live SERP data, keyword research, backlinks, on-page analysis, content analysis, business listings, AI visibility checks, and LLM mention tracking. 23 data commands across 9 API modules.
 
 ```bash
 ./extensions/dataforseo/install.sh   # requires DataForSEO account
@@ -396,7 +409,7 @@ Five extensions added in Phase E:
 - **Bing Webmaster:** Bing Webmaster Tools plus IndexNow unified
 - **Unlighthouse:** MIT-licensed multi-page Lighthouse runner
 
-Setup walkthroughs: [docs/MCP-INTEGRATION.md](docs/MCP-INTEGRATION.md).
+Setup walkthroughs live under `extensions/<name>/docs/`; integration notes: [docs/MCP-INTEGRATION.md](docs/MCP-INTEGRATION.md).
 
 ## Ecosystem
 
@@ -425,7 +438,7 @@ Claude SEO is part of a family of Claude Code skills that interoperate cleanly:
 - [Commands Reference](docs/COMMANDS.md): every `/seo` command in depth
 - [Architecture](docs/ARCHITECTURE.md): 3-layer design, auto-discovery, parallel dispatch
 - [Migration v1 → v2](docs/MIGRATION-v1-to-v2.md): breaking changes, six phases of work
-- [MCP Integration](docs/MCP-INTEGRATION.md): extension setup for all 8 servers
+- [MCP Integration](docs/MCP-INTEGRATION.md): integration notes; extension setup lives under `extensions/<name>/docs/`
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Contributors](CONTRIBUTORS.md): community credits
 
@@ -433,7 +446,7 @@ Claude SEO is part of a family of Claude Code skills that interoperate cleanly:
 
 ### What is Claude SEO?
 
-Claude SEO is an open-source SEO analysis plugin for Claude Code. It runs 25 sub-skills and 18 specialist agents in parallel across technical SEO, content quality, Schema.org markup, AI search optimization, local SEO, e-commerce, and international SEO. Audits produce a prioritized action plan where each recommendation carries the first-principle observation it rests on, its dependency relationship to other recommendations, a "how would we know this failed?" check, and a leading indicator. The plugin is MIT-licensed, ships zero proprietary tracking, and works fully offline if you skip the optional Google API and MCP-extension enrichments. Aligned with [Google's AI Optimization Guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide) and the September 2025 Quality Rater Guidelines.
+Claude SEO is an open-source SEO analysis plugin for Claude Code. It runs 25 sub-skills and 18 specialist agents in parallel across technical SEO, content quality, Schema.org markup, AI search optimization, local SEO, e-commerce, and international SEO. Audits produce a prioritized action plan where each recommendation carries the first-principle observation it rests on, its dependency relationship to other recommendations, a "how would we know this failed?" check, and a leading indicator. The plugin is MIT-licensed, ships zero proprietary tracking, and works without third-party API enrichment; audits still contact the target URLs you analyze. Aligned with [Google's AI Optimization Guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide) and the September 2025 Quality Rater Guidelines.
 
 ### How is Claude SEO different from Screaming Frog or Ahrefs Site Audit?
 
@@ -441,11 +454,11 @@ Different surface area, different tradeoffs. **Screaming Frog** crawls deeper an
 
 ### Does Claude SEO work on single-page applications (Next.js, React, Vue)?
 
-Yes. Phase A of v2 shipped a shared headless renderer (`scripts/render_page.py`) backed by Playwright Chromium. Every fetching subagent supports `--render auto` (the default), which auto-detects SPA hallmarks (empty `<div id="root">` shells, single bundle script, hydration markers) and switches to a rendered fetch. Set `--render always` to force rendering, or `--render never` for raw HTML only. Content extraction uses [trafilatura](https://github.com/adbar/trafilatura) for boilerplate removal. Publication dates come from [htmldate](https://github.com/adbar/htmldate). Known nuance: pages with scroll-bound hydration or post-interaction content fetches still produce noisy findings; see the [Limitations](#limitations) section for the recommended `seo-visual` cross-check workflow on those edge cases.
+Yes. Phase A of v2 shipped a shared headless renderer (`scripts/render_page.py`) backed by Playwright Chromium. Audit subagents call `render_page.py --mode auto`, which auto-detects SPA hallmarks (empty `<div id="root">` shells, single bundle script, hydration markers) and switches to a rendered fetch. The lower-level `scripts/fetch_page.py` wrapper supports `--render auto` as an opt-in wrapper mode; its default is `--render never` for raw HTTP. Use `render_page.py --mode always` or `fetch_page.py --render always` to force rendering. Content extraction uses [trafilatura](https://github.com/adbar/trafilatura) for boilerplate removal. Publication dates come from [htmldate](https://github.com/adbar/htmldate). Known nuance: pages with scroll-bound hydration or post-interaction content fetches still produce noisy findings; see the [Limitations](#limitations) section for the recommended `seo-visual` cross-check workflow on those edge cases.
 
 ### What Google APIs does Claude SEO use, and are they required?
 
-None are required. Claude SEO is fully functional with zero API keys. A 4-tier credential system lets you upgrade gradually: Tier 0 (API key only) unlocks PageSpeed Insights, CrUX, and CrUX History (25-week trend data). Tier 1 (+ OAuth or service account) adds Search Console with queries, URL Inspection, sitemap status, and the Indexing API. Tier 2 (+ GA4 property config) adds organic traffic, top landing pages, and device / country breakdowns. Tier 3 (+ Ads developer token) adds Keyword Planner search volume and competition data. The credential setup wizard runs via `/seo google setup`. All credentials live under `~/.config/claude-seo/` with `0o600` file permissions; nothing is checked into the repo and nothing is transmitted beyond Google's own endpoints.
+None are required. Claude SEO is fully functional with zero API keys. A 4-tier credential system lets you upgrade gradually: Tier 0 (API key only) unlocks PageSpeed Insights, CrUX, and CrUX History (25-week trend data). Tier 1 (+ OAuth or service account) adds Search Console with queries, URL Inspection, sitemap status, and the Indexing API for eligible JobPosting pages or BroadcastEvent in VideoObject pages; the API does not guarantee indexing. Tier 2 (+ GA4 property config) adds organic traffic, top landing pages, and device / country breakdowns. Tier 3 (+ Ads developer token) adds Keyword Planner search volume and competition data. The credential setup wizard runs via `/seo google setup`. All credentials live under `~/.config/claude-seo/` with `0o600` file permissions; nothing is checked into the repo and nothing is transmitted beyond Google's own endpoints.
 
 ### Is Claude SEO free?
 
@@ -475,7 +488,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Contributing
 
-Contributions welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting PRs. The project enforces a per-PR audit gate covering manifest consistency (14 assertions), the test suite (326 passing), and an 8-dimension security review before any merge to `main`.
+Contributions welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting PRs and include the tests or checks you ran in the PR description.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: seo-flow
 description: >
-  FLOW framework integration — evidence-led SEO using the Find → Leverage →
+  FLOW framework integration: evidence-led SEO using the Find → Leverage →
   Optimize → Win loop. Surfaces stage-specific AI prompts from the FLOW
   knowledge base (41 prompts, CC BY 4.0). Use when user says "FLOW", "FLOW
   framework", "seo flow", "evidence-led SEO", "find leverage optimize win",
@@ -11,20 +11,20 @@ argument-hint: "[stage] [url|topic]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
-# FLOW Framework — Find · Leverage · Optimize · Win
-
-> Framework and prompts © Daniel Agrici, CC BY 4.0 — github.com/AgriciDaniel/flow
+# FLOW Framework: Find · Leverage · Optimize · Win
 
 FLOW is an evidence-led SEO operating model built for the AI-search era. Claude SEO
 integrates the FLOW prompt library (41 prompts across 5 stages) so every analysis can
 be driven by structured, evidence-backed AI prompts rather than improvised queries.
 
+> Framework and prompts © Daniel Agrici, CC BY 4.0: github.com/AgriciDaniel/flow
+
 **Runtime context:** Load `references/flow-framework.md` on every `/seo flow` activation.
-Load prompt files on demand — only for the stage the user requests.
+Load prompt files on demand, only for the stage the user requests.
 
 ---
 
@@ -38,7 +38,7 @@ Load prompt files on demand — only for the stage the user requests.
 | `/seo flow optimize [url]` | Optimize-stage: select 2-3 most relevant of 21 prompts based on context |
 | `/seo flow win [url]` | Win-stage: BOFU, conversion rate, dual-surface scorecard (3 prompts) |
 | `/seo flow local [url]` | Local-stage: GBP optimization, meta, title tags, local audits (11 prompts) |
-| `/seo flow prompts` | Full index of all 41 prompts — stage, name, trigger conditions |
+| `/seo flow prompts` | Full index of all 41 prompts (stage, name, trigger conditions) |
 | `/seo flow sync` | Pull latest prompt files from github.com/AgriciDaniel/flow |
 
 ---
@@ -102,15 +102,15 @@ Always surface exactly 2-3 prompts. State which prompts you chose and why.
 
 ## Reference Files
 
-Load on-demand — do NOT load all at startup:
-- `references/flow-framework.md` — FLOW operating model (load on every `/seo flow` activation)
-- `references/bibliography.md` — Evidence sources; load when citing studies or statistics
-- `references/prompts/README.md` — Prompt index; load for `/seo flow prompts`
-- `references/prompts/find/` — 5 prompts; load for `/seo flow find`
-- `references/prompts/leverage/` — 1 prompt; load for `/seo flow leverage`
-- `references/prompts/optimize/` — 21 prompts; load selectively for `/seo flow optimize`
-- `references/prompts/win/` — 3 prompts; load for `/seo flow win`
-- `references/prompts/local/` — 11 prompts; load for `/seo flow local`
+Load on-demand, do NOT load all at startup:
+- `references/flow-framework.md`: FLOW operating model (load on every `/seo flow` activation)
+- `references/bibliography.md`: Evidence sources; load when citing studies or statistics
+- `references/prompts/README.md`: Prompt index; load for `/seo flow prompts`
+- `references/prompts/find/`: 5 prompts; load for `/seo flow find`
+- `references/prompts/leverage/`: 1 prompt; load for `/seo flow leverage`
+- `references/prompts/optimize/`: 21 prompts; load selectively for `/seo flow optimize`
+- `references/prompts/win/`: 3 prompts; load for `/seo flow win`
+- `references/prompts/local/`: 11 prompts; load for `/seo flow local`
 
 ---
 
@@ -119,7 +119,7 @@ Load on-demand — do NOT load all at startup:
 Every `/seo flow` activation (any sub-command) outputs before analysis:
 
 ```
-Framework and prompts © Daniel Agrici, CC BY 4.0 — github.com/AgriciDaniel/flow
+Framework and prompts © Daniel Agrici, CC BY 4.0: github.com/AgriciDaniel/flow
 ```
 
 Do not omit or modify the attribution.

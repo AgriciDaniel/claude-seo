@@ -12,7 +12,7 @@ These changes typically cause measurable traffic loss within days.
 ### Rule 1: Schema/JSON-LD Completely Removed
 - **Compare**: Baseline `schema` array has items, current is empty
 - **Threshold**: Any schema present before, none now
-- **Action**: Restore structured data immediately. Rich results will be lost within hours.
+- **Action**: Restore structured data immediately. Eligible rich results (Product, Review, LocalBusiness, and similar supported types) can drop from SERPs quickly; retired types (FAQ, HowTo) should not be treated as rich-result losses.
 - **Cross-ref**: `/seo schema <url>`
 
 ### Rule 2: Canonical URL Changed
@@ -81,7 +81,7 @@ These changes may impact rankings or CTR but are sometimes intentional.
 - **Action**: Investigate performance regression. Check recent code changes or third-party scripts.
 - **Cross-ref**: `/seo technical <url>`
 
-### Rule 12: CWV Performance Score Dropped 10+ Points
+### Rule 12: Lighthouse Performance Score Dropped 10+ Points
 - **Compare**: Lighthouse performance score baseline vs current
 - **Threshold**: Drop of 10 or more points (e.g., 85 to 74)
 - **Action**: Run full PageSpeed analysis to identify new bottlenecks.

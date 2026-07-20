@@ -13,7 +13,7 @@ license: MIT
 metadata:
   author: AgriciDaniel
   original_author: "Florian Schmitz (Pro Hub Challenge)"
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -59,7 +59,7 @@ Read `references/page-type-taxonomy.md` for classification rules.
    - Page type (classify using taxonomy)
    - Content format (long-form, listicle, how-to, comparison, tool, video)
    - Word count estimate (from snippet length and page structure)
-   - Schema types present (from SERP features: ratings, FAQ, HowTo)
+   - Schema types present (from currently supported SERP features; exclude FAQ/HowTo)
    - Media signals (video carousel, image pack, thumbnail presence)
 3. Record SERP features present:
    - Featured snippet (paragraph / list / table / video)
@@ -170,8 +170,8 @@ Read `references/wireframe-templates.md` for templates.
 If DataForSEO MCP tools are available:
 
 1. **Before any API call**, run cost estimate and confirm with user
-2. Use `google_organic_serp` for precise SERP data (positions, features, snippets)
-3. Use `keyword_data` for search volume and competition metrics
+2. Use `serp_organic_live_advanced` for precise SERP data (positions, features, snippets)
+3. Use `kw_data_google_ads_search_volume` for search volume and competition metrics
 4. Fall back to WebSearch if DataForSEO unavailable -- note reduced precision in output
 
 ## SXO Score vs SEO Health Score

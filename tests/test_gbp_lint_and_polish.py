@@ -41,19 +41,20 @@ def test_detects_gbp_chat_cta() -> None:
     assert result["summary"]["critical"] >= 1
 
 
-def test_detects_business_site_url() -> None:
+def test_treats_business_site_url_as_manual_verification() -> None:
     html = '<a href="https://shopname-456.business.site/menu">our menu</a>'
     result = gbp.scan(html)
     feats = {f["feature"] for f in result["findings"]}
     assert "business-site-url" in feats
-    assert result["summary"]["high"] >= 1
+    assert result["summary"]["medium"] >= 1
+    assert result["summary"]["high"] == 0
 
 
-def test_detects_gbp_qa_embed() -> None:
+def test_does_not_flag_gbp_qa_embed() -> None:
     html = '<div data-google-business-qa>...</div>'
     result = gbp.scan(html)
-    feats = {f["feature"] for f in result["findings"]}
-    assert "gbp-qa-embed" in feats
+    assert result["findings"] == []
+    assert result["ok"] is True
 
 
 def test_does_not_flag_generic_chat_widget() -> None:
@@ -74,7 +75,7 @@ def test_summary_counts_match_findings() -> None:
     s = result["summary"]
     assert s["critical"] + s["high"] + s["medium"] == len(result["findings"])
     assert s["critical"] >= 1
-    assert s["high"] >= 1  # at least one of the .business.site URLs
+    assert s["medium"] >= 2  # both .business.site URLs need manual verification
 
 
 # ---------------------------------------------------------------------------

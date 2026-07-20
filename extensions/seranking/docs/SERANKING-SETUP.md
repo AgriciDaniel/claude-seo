@@ -1,8 +1,7 @@
 # SE Ranking extension setup
 
 SE Ranking's API exposes traditional SEO data (SERP, backlinks,
-competitors) PLUS AI Share-of-Voice across 5 AI platforms — the
-single largest "AI citation" coverage of any vendor in 2026.
+competitors) plus AI Share-of-Voice across 5 AI platforms.
 
 ## Install
 
@@ -17,7 +16,7 @@ The installer prompts for an API key (hidden input), copies
 
 ## Get an API key
 
-https://seranking.com/api — pricing is unit-based; the AI visibility
+https://seranking.com/api.html — pricing is unit-based; the AI visibility
 endpoint costs ~5 units per query (1 per platform).
 
 ## Verify

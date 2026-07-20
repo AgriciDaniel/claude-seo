@@ -71,7 +71,7 @@ Apply the page-type template from `references/page-type-templates.md`, then cust
 
 ### Website Relevance Rule
 
-Every heading, subtopic, keyword, and FAQ you suggest MUST be something the target website can credibly write about based on its actual services or products.
+Every heading, subtopic, keyword, and FAQ you suggest must be something the target website can credibly write about based on its actual services or products.
 
 - Read the site's homepage and sitemap to understand what it does
 - Do not borrow competitor structure if those sections cover things this site does not offer
@@ -80,7 +80,7 @@ Every heading, subtopic, keyword, and FAQ you suggest MUST be something the targ
 ### Site Structure Coverage Rule
 
 When briefing a hub, overview, category, or "types of" page:
-- The outline MUST reference every relevant product category, service, or sub-page that exists on the site
+- The outline must reference every relevant product category, service, or sub-page that exists on the site
 - Do not invent categories that don't exist, do not leave out categories that do exist
 - Each category should appear as its own section with an internal link suggestion
 - This ensures the page acts as a proper hub linking to all child pages
@@ -97,12 +97,12 @@ For non-hub pages (single service page, blog post), use site structure to sugges
 
 Read `references/keyword-density.md` for the full rules. Summary:
 
-**Primary keyword density:** 0.5% to 2.0% of total word count.
-- Above 2% requires review. Above 3% risks keyword stuffing penalties.
-- First 1-2 mentions carry the most SEO weight. Diminishing returns after.
-- For a 1,000-word article at 1-2%: roughly 10-20 total appearances including headings, body, and alt text.
+**Primary keyword use:** Use the primary keyword naturally in high-value locations.
+- Do not optimize to a fixed density. Treat density checks as optional internal readability/stuffing heuristics only.
+- First 1-2 mentions help establish topic context. Diminishing returns after.
+- For a 1,000-word article, avoid forced repetition across headings, body, and alt text.
 
-**Primary keyword MUST appear in:**
+**Primary keyword must appear in:**
 1. Title tag (near the front)
 2. H1 tag (near the front)
 3. URL slug
@@ -230,7 +230,7 @@ When the user asks for "just an outline" or "content outline" instead of a full 
 
 ## DataForSEO Integration (Optional)
 
-If DataForSEO MCP tools are available, use `serp_google_organic_live_advanced` for real SERP data and competitor analysis, `kw_data_google_ads_search_volume` for keyword volume, `dataforseo_labs_bulk_keyword_difficulty` for difficulty scores, `dataforseo_labs_search_intent` for intent classification, and `on_page_content_parsing_live` for competitor content extraction.
+If DataForSEO MCP tools are available, use `serp_organic_live_advanced` for real SERP data and competitor analysis, `kw_data_google_ads_search_volume` for keyword volume, `dataforseo_labs_bulk_keyword_difficulty` for difficulty scores, `dataforseo_labs_search_intent` for intent classification, and `on_page_content_parsing_live` for competitor content extraction.
 
 ## Ahrefs Integration (Optional)
 

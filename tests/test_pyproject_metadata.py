@@ -31,5 +31,7 @@ def test_pyproject_has_minimal_ruff_config_only() -> None:
 def test_requirements_accept_selected_security_compatibility_floors() -> None:
     text = (REPO_ROOT / "requirements.txt").read_text(encoding="utf-8")
     assert re.search(r"^lxml>=6\.1\.1,<7\.0\.0", text, re.MULTILINE)
-    assert re.search(r"^Pillow>=12\.2\.0,<13\.0\.0", text, re.MULTILINE)
+    assert re.search(r"^urllib3>=2\.7\.0,<3\.0\.0", text, re.MULTILINE)
+    assert re.search(r"^numpy>=1\.26\.0,<3\.0\.0", text, re.MULTILINE)
     assert re.search(r"^google-auth-httplib2>=0\.4\.0,<1\.0\.0", text, re.MULTILINE)
+    assert re.search(r"^google-ads>=25\.0\.0,<40\.0\.0", text, re.MULTILINE)

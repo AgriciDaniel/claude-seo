@@ -3,7 +3,7 @@
 QRG-aligned content quality detector.
 
 Scores a block of text against the three lowest-rating triggers from
-Google's January 23, 2025 Quality Rater Guidelines update:
+Google's September 11, 2025 Quality Rater Guidelines:
 
   - §4.6.5 Scaled content abuse
         "Using automated tools (generative AI or otherwise) as a

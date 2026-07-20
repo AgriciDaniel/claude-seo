@@ -6,16 +6,10 @@
 
 | Model | Resolution | Cost/Image | Notes |
 |-------|-----------|-----------|-------|
-| 3.1 Flash | 512 | $0.020 | Quick drafts |
-| 3.1 Flash | 1K | $0.039 | Standard (default) |
-| 3.1 Flash | 2K | $0.078 | Quality assets |
-| 3.1 Flash | 4K | $0.156 | Print/hero images |
-| 2.5 Flash | 512 | $0.020 | Draft fallback |
-| 2.5 Flash | 1K | $0.039 | Standard fallback |
-| Batch API | Any | 50% of above | Asynchronous, higher latency |
+| Installed MCP model | Any | Verify before use | Check https://ai.google.dev/gemini-api/docs/pricing and installed MCP config |
+| Batch API | Any | Verify before use | Confirm availability and discount before quoting |
 
-Pricing is approximate, based on ~1,290 output tokens per image.
-Research suggests actual costs may be ~$0.067/img. Verify at https://ai.google.dev/gemini-api/docs/pricing
+Do not quote fixed package prices unless they have been verified at https://ai.google.dev/gemini-api/docs/pricing.
 
 ## Free Tier Limits
 

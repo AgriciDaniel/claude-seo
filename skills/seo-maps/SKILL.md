@@ -1,22 +1,20 @@
 ---
 name: seo-maps
 description: >
-  Maps intelligence for local SEO — geo-grid rank tracking, GBP profile
+  Maps intelligence for local SEO: geo-grid rank tracking, GBP profile
   auditing via API, review intelligence across Google/Tripadvisor/Trustpilot,
-  cross-platform NAP verification (Google/Bing/Apple/OSM), competitor
-  radius mapping, and LocalBusiness schema generation from API data.
-  Three-tier capability: free (Overpass + Geoapify), DataForSEO (full
-  intelligence), DataForSEO + Google (maximum coverage). Use when user
-  says "maps", "geo-grid", "rank tracking", "GBP audit", "review
-  velocity", "competitor radius", "maps analysis", "local rank
-  tracking", "Share of Local Voice", or "SoLV".
+  cross-platform NAP verification, competitor radius mapping, and
+  LocalBusiness schema generation. Three tiers: free (Overpass + Geoapify),
+  DataForSEO, and DataForSEO + Google. Use when user says "maps", "geo-grid",
+  "rank tracking", "GBP audit", "review velocity", "competitor radius", or
+  "SoLV".
 user-invocable: true
 argument-hint: "[command] [url|keyword|location]"
 license: MIT
 compatibility: "DataForSEO MCP for Tier 1+, Google Maps API for Tier 2"
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -104,6 +102,17 @@ Audits the 25 fields that affect Google Business Profile quality and ranking.
 
 **Load:** `../seo/references/maps-gbp-checklist.md` for full checklist and scoring.
 
+> **AI & 2026 context (third-party reported):** **Ask Maps**, reported by AP News
+> as a Gemini conversational Maps feature launched 2026-03-12 (iOS/Android,
+> US + India). **AI Mode** (1B+ MAU, reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source)
+> increasingly surfaces 1-2 business local AI interfaces in third-party terminology, and **agentic
+> booking/calling** for local services (home repair, beauty, pet care) rolls out
+> to all US users summer 2026 (Google can call businesses on the user's behalf).
+> New 2026 GBP API additions: review media URLs, recurring local-post scheduling,
+> review reply-state/moderation, and invitation Place ID. Source:
+> blog.google/products-and-platforms/products/search/search-io-2026/ ·
+> developers.google.com/my-business/content/latest-updates
+
 ### Tier 1 Workflow
 
 1. Fetch business profile via DataForSEO My Business Info API (keyword or CID)
@@ -180,7 +189,7 @@ Check business listing consistency across Google, Bing Places, Apple, and OSM.
 1. Search for business name on each platform:
    - Google: infer from GBP data or Maps SERP result
    - Bing: `WebFetch https://www.bing.com/maps?q=BUSINESS+NAME+LOCATION`
-   - Apple: manual check (no public API -- recommend Apple Business Connect at businessconnect.apple.com)
+   - Apple: manual check (no public API -- verify/claim Apple business listing presence; treat Apple Business launch/rename claims as TechRadar-sourced until confirmed by Apple primary)
    - OSM: Overpass or Nominatim search
 2. Extract NAP (Name, Address, Phone) from each source
 3. Compare for consistency: exact match, partial match, missing, or conflicting

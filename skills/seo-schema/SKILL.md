@@ -9,7 +9,7 @@ argument-hint: "[url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -35,9 +35,9 @@ metadata:
   - Invalid date formats
 - Flag deprecated types (see below)
 
-## Schema Type Status (as of May 2026)
+## Schema Type Status (as of June 2026)
 
-Read `references/schema-types.md` for the full list. Key rules:
+Read `../seo/references/schema-types.md` for the full list. Key rules:
 
 ### ACTIVE (recommend freely):
 Organization, LocalBusiness, SoftwareApplication, WebApplication, Product (with Certification markup as of April 2025), ProductGroup, Offer, Service, Article, BlogPosting, NewsArticle, Review, AggregateRating, BreadcrumbList, WebSite, WebPage, Person, ProfilePage, ContactPage, VideoObject, ImageObject, Event, JobPosting, Course, DiscussionForumPosting
@@ -49,8 +49,8 @@ See `schema/templates.json` for ready-to-use JSON-LD templates for these types.
 
 > **JSON-LD and JavaScript rendering:** Per Google's December 2025 JS SEO guidance, structured data injected via JavaScript may face delayed processing. For time-sensitive markup (especially Product, Offer), include JSON-LD in the initial server-rendered HTML.
 
-### NO RICH RESULTS — KEEP FOR AI:
-- **FAQPage**: Google retired FAQ rich results for ALL sites on May 7, 2026 (supersedes the Aug 2023 gov/health restriction). No SERP feature anymore — but flag existing FAQPage at Info (not Critical), since the markup still aids AI Mode / AI Overviews entity resolution. For genuine user Q&A pages, use **QAPage**.
+### NO RICH RESULTS, KEEP IF USEFUL:
+- **FAQPage**: Google retired FAQ rich results for ALL sites on May 7, 2026 (supersedes the Aug 2023 gov/health restriction). No Google SERP rich-result benefit; flag existing FAQPage at Info (not Critical) rather than removal. For genuine user Q&A pages, use **QAPage**.
 
 ### DEPRECATED (never recommend):
 - **HowTo**: Rich results removed September 2023
@@ -58,9 +58,15 @@ See `schema/templates.json` for ready-to-use JSON-LD templates for these types.
 - **CourseInfo, EstimatedSalary, LearningVideo**: Retired June 2025
 - **ClaimReview**: Retired from rich results June 2025
 - **VehicleListing**: Retired from rich results June 2025
-- **Practice Problem**: Retired from rich results late 2025
-- **Dataset**: Retired from rich results late 2025
-- **Book Actions**: Deprecated then reversed, still functional as of Feb 2026 (historical note)
+- **Practice Problem**: Deprecation notice 2025-11-05; Search Console / Rich Results Test support removed 2026-01-06
+- **Book Actions**: Deprecated/removed from Google rich results; do not recommend it for SERP features.
+- Search Console / Rich Results Test / appearance-filter support for CourseInfo, EstimatedSalary, LearningVideo, SpecialAnnouncement, VehicleListing was removed 2025-09-09; Practice Problem support was removed 2026-01-06.
+
+### Supported for Dataset Search only:
+- **Dataset**: Not discontinued; consumed by Google Dataset Search, with no Google Search rich-result surface. Don't advise removal as if it were killed.
+
+### Still supported (do not flag):
+- QAPage (expanded comment-thread properties 2026-03-24), DiscussionForumPosting, Education Q&A (Quiz / `eduQuestionType=Flashcard`). For e-commerce, **hasAdultConsideration** (added 2026-05-22; value `https://schema.org/SexualContentConsideration`) is required for adult products.
 
 ## Generation
 

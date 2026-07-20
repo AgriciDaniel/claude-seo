@@ -75,12 +75,12 @@ explanations with "learn more" and "get started" side by side, common in SaaS,
 both /blog/ and /product/ internal links in navigation.
 
 **SERP indicators (top 10):** mix of branded and informational results,
-some results with FAQ schema + others with SoftwareApplication schema,
+some results with Product schema + others with SoftwareApplication schema,
 moderate ad density.
 
 **Content structure:** Problem statement > Solution overview > How it works > Feature deep-dives > Social proof > CTA > FAQ.
 
-**Required elements:** FAQPage or HowTo schema combined with product schema,
+**Required elements:** Product or SoftwareApplication schema where appropriate,
 both educational and commercial CTAs, clear value proposition.
 
 **Common mismatches:**

@@ -1,21 +1,19 @@
 ---
 name: seo-dataforseo
 description: >
-  Live SEO data via DataForSEO MCP server. SERP analysis (Google, Bing, Yahoo,
-  YouTube, Google Images), keyword research (volume, difficulty, intent, trends),
-  backlink profiles, on-page analysis (Lighthouse, content parsing), competitor
-  analysis, content analysis, business listings, AI visibility (ChatGPT scraper,
-  LLM mention tracking), and domain analytics. Requires DataForSEO extension
+  Live SEO data via DataForSEO MCP server: SERP analysis, keyword research
+  (volume, difficulty, intent, trends), backlink profiles, on-page analysis,
+  competitor and content analysis, business listings, AI visibility (LLM
+  mention tracking), and domain analytics. Requires DataForSEO extension
   installed. Use when user says "dataforseo", "live SERP", "keyword volume",
-  "backlink data", "competitor data", "AI visibility check", "LLM mentions",
-  "image SERP", "google images", "image rankings", or "real search data".
+  "backlink data", "AI visibility check", or "real search data".
 user-invocable: true
 argument-hint: "[command] [query]"
 license: MIT
 compatibility: "Requires DataForSEO MCP server"
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -24,7 +22,7 @@ metadata:
 Live search data via the DataForSEO MCP server. Provides real-time SERP results
 (organic + images), keyword metrics, backlink profiles, on-page analysis, content
 analysis, business listings, AI visibility checking, and LLM mention tracking
-across 10 API modules with 79+ MCP tools.
+across 9 API modules with 79+ MCP tools.
 
 ## Prerequisites
 
@@ -123,7 +121,7 @@ Fetch YouTube search results. Valuable for GEO. YouTube mentions correlate most 
 
 ### `/seo dataforseo youtube <video_id>`
 
-Deep analysis of a specific YouTube video: info, comments, and subtitles. YouTube mentions have the strongest correlation (0.737) with AI visibility, making this critical for GEO analysis.
+Deep analysis of a specific YouTube video: info, comments, and subtitles. Some third-party studies report a 0.737 correlation between YouTube mentions and AI visibility, so treat this as a methodology-dependent GEO signal.
 
 **MCP tools:** `serp_youtube_video_info_live_advanced`, `serp_youtube_video_comments_live_advanced`, `serp_youtube_video_subtitles_live_advanced`
 
@@ -341,7 +339,7 @@ Search business listings for local SEO competitive analysis.
 
 ### `/seo dataforseo ai-scrape <query>`
 
-Scrape what ChatGPT web search returns for a query. Real GEO visibility check: see which sources ChatGPT cites for your target keywords.
+Scrape what ChatGPT web search returns for a query. ChatGPT visibility check: see which sources ChatGPT cites for your target keywords. Check Google AI Overviews and AI Mode with GSC gen-AI reports when available.
 
 **MCP tools:** `ai_optimization_chat_gpt_scraper`
 

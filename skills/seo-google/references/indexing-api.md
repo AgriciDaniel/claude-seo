@@ -4,7 +4,7 @@
 
 The Indexing API allows you to notify Google when pages are added or removed.
 
-**IMPORTANT:** Officially restricted to pages with **JobPosting** or **BroadcastEvent/VideoObject** structured data. Google may process other page types, but provides no guarantees. Always inform users of this limitation.
+**IMPORTANT:** Use the Indexing API only for eligible URLs with **JobPosting** or **BroadcastEvent embedded in VideoObject** structured data. For a few ordinary URLs, use URL Inspection; for many ordinary URLs, use sitemaps. A `URL_UPDATED` notification only means Google may recrawl soon and gives no indexing benefit for other page types.
 
 ## Endpoints
 
@@ -87,7 +87,7 @@ Content-Type: application/json
 | Read-only requests | 180/min | Per project |
 | Total requests | 380/min | Per project |
 
-Request a quota increase: [Indexing API Quota Increase Form](https://developers.google.com/search/apis/indexing-api/v3/quota-increase)
+Request a quota increase: [Indexing API Quota Increase Form](https://developers.google.com/search/apis/indexing-api/v3/quota)
 
 ## Error Codes
 

@@ -6,15 +6,13 @@ description: >
   and GA4 organic traffic. Provides real Google field data for Core Web Vitals,
   indexation status, search performance, and organic traffic trends. Use when
   user says "search console", "GSC", "PageSpeed", "CrUX", "field data",
-  "indexing API", "GA4 organic", "URL inspection", "google api setup",
-  "real CWV data", "impressions", "clicks", "CTR", "position data",
-  "LCP", "INP", "CLS", "FCP", "TTFB", or "Lighthouse scores".
+  "indexing API", "GA4 organic", "URL inspection", or "real CWV data".
 user-invocable: true
 argument-hint: "[command] [url|property]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -127,6 +125,11 @@ Search Analytics: clicks, impressions, CTR, position for last 28 days.
 
 Includes quick-win detection: queries at position 4-10 with high impressions.
 
+> **AI surfaces in GSC (2026):**
+> - **Generative AI performance report** (launched 2026-06-03), a dedicated view of **AI Overviews + AI Mode** visibility. **Impressions only** (no clicks/CTR/position/query); dimensions Pages/Countries/Devices/Dates (Pacific Time); 1,000-row limit; newest data preliminary; a separate Discover gen-AI report also exists. Rolling out to a subset of properties.
+> - **AI Mode already rolls into standard Performance totals** (Web search type), clicks (external-link clicks in AI Mode) and impressions are counted in the normal report, so you **cannot** cleanly split "classic" vs "AI" traffic from totals. Use the Generative AI report for impressions-only AI visibility.
+> - **Data-reliability caveat:** a GSC logging error made **impressions, CTR, and average position unreliable from 2025-05-13 to 2026-04-27** (clicks unaffected; fixed forward-only, **no backfill**). Treat impression/CTR/position trends spanning that window with caution; expect an apparent impressions drop after the fix.
+
 ### `/seo google inspect <url>`
 
 URL Inspection: real indexation status from Google.
@@ -182,6 +185,8 @@ Organic traffic report: daily sessions, users, pageviews, bounce rate, engagemen
 **Reference:** `references/ga4-data-api.md`
 **Default:** 28 days, filtered to Organic Search channel group.
 
+> **GA4 "AI Assistants" channel (live ~2026-05-13):** GA4 added a native *AI Assistants* Default Channel Group. Sessions referred by a recognized AI assistant get `medium=ai-assistant`. Google's recognized sources are **ChatGPT, Gemini, Claude, Deepseek, Copilot, Grok** and the channel **excludes** Google AI Overviews / AI Mode. **Verify Perplexity separately if needed**; unsupported sources may stay in Referral, and most AI sessions arrive referrer-less and fall into **Direct**, so this channel undercounts AI traffic. Forward-only, no backfill.
+
 ### `/seo google ga4-pages [property-id]`
 
 Top organic landing pages ranked by sessions.
@@ -192,7 +197,7 @@ Top organic landing pages ranked by sessions.
 
 ## YouTube (Video SEO)
 
-YouTube mentions have the strongest AI visibility correlation (0.737). Free, API key only.
+Some third-party studies report a 0.737 correlation between YouTube mentions and AI visibility. Treat it as a methodology-dependent signal. Free, API key only.
 
 ### `/seo google youtube <query>`
 
@@ -213,7 +218,7 @@ Detailed video info + tags + top 10 comments.
 
 ## NLP Content Analysis
 
-Google's own entity/sentiment analysis. Enhances E-E-A-T scoring.
+Google NLP entity/sentiment output for internal content-quality checks. Do not treat it as Google E-E-A-T scoring.
 
 ### `/seo google nlp <url-or-text>`
 
@@ -316,7 +321,7 @@ Generate a professional PDF report with charts and analytics.
 - **seo-performance**: CrUX field data supplements Lighthouse lab data
 - **seo-sitemap**: GSC sitemap status shows submitted counts, errors, and warnings; use URL Inspection for indexation truth
 - **seo-content**: GSC query data informs keyword targeting
-- **seo-geo**: GSC search appearance data includes AI Overview references
+- **seo-geo**: Use GSC Generative AI performance reports and AI Overviews/AI Mode/Discover gen-AI include/exclude controls where available
 
 ## Output Format
 
@@ -324,7 +329,7 @@ Generate a professional PDF report with charts and analytics.
 - Performance reports: tables with sortable columns
 - Always include data freshness note
 - Save reports as `GOOGLE-API-REPORT-{domain}.md`
-- Use templates from `assets/templates/` for structured output
+- Markdown/LLM templates in `assets/templates/`: `cwv-audit-report.md`, `gsc-performance-report.md`, `indexation-status-report.md`; distinct from `google_report.py`'s PDF pipeline
 
 ## Technical Notes
 

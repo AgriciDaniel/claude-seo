@@ -1,12 +1,12 @@
 ---
 name: seo
-description: "Comprehensive SEO analysis for any website or business type. Full site audits, single-page analysis, technical SEO (crawlability, indexability, Core Web Vitals with INP), schema markup, content quality (E-E-A-T), image optimization, sitemap analysis, and GEO for AI Overviews/ChatGPT/Perplexity. Industry detection for SaaS, e-commerce, local, publishers, agencies. Triggers on: SEO, audit, schema, Core Web Vitals, sitemap, E-E-A-T, AI Overviews, GEO, technical SEO, content quality, page speed, structured data."
+description: "Comprehensive SEO analysis for any website or business type. Full site audits, single-page analysis, technical SEO (crawlability, indexability, Core Web Vitals with INP), schema markup, content quality (E-E-A-T), image optimization, sitemap analysis, and GEO for AI Overviews/ChatGPT/Perplexity. Industry detection for SaaS, e-commerce, local, publishers, agencies. Triggers on: SEO, audit, schema, Core Web Vitals, sitemap, E-E-A-T, AI Overviews, GEO, technical SEO, content quality, page speed."
 user-invocable: true
 argument-hint: "[command] [url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.0"
+  version: "2.2.3"
   category: seo
 ---
 
@@ -68,7 +68,7 @@ When the user invokes `/seo audit`, delegate to subagents in parallel:
 10. If drift baseline exists for this URL (`python3 scripts/drift_history.py <url>`), also spawn seo-drift agent
 11. Always include seo-sxo in full audits (search experience applies to all sites)
 12. Collect results and generate unified report with SEO Health Score (0-100)
-13. **Synthesize via the 10-principle framework** (see "Synthesis Methodology" below) — walk PERCEIVE → ANALYZE → VALIDATE → ACT before bucketing findings into Critical / High / Medium / Low
+13. **Synthesize via the 10-principle framework** (see "Synthesis Methodology" below), walk PERCEIVE → ANALYZE → VALIDATE → ACT before bucketing findings into Critical / High / Medium / Low
 14. Create prioritized action plan with dependency sequencing + falsifiability per recommendation
 15. **Offer PDF report**: "Generate a professional PDF report? Use `/seo google report full`"
 
@@ -77,7 +77,7 @@ After any analysis command completes, offer to generate a PDF report via `script
 
 ## Synthesis Methodology
 
-Audits are not just findings — they are findings synthesized into a coherent
+Audits are not just findings, they are findings synthesized into a coherent
 strategy. claude-seo uses a 10-principle thinking framework grouped into four
 phases: **PERCEIVE** (observe-external · observe-internal · listen),
 **ANALYZE** (think · connect-lateral · connect-system), **VALIDATE** (feel ·
@@ -113,7 +113,7 @@ Hard rules:
 - WARNING at 30+ location pages (enforce 60%+ unique content)
 - HARD STOP at 50+ location pages (require user justification)
 - Never recommend HowTo schema (deprecated Sept 2023)
-- FAQ schema: Google retired FAQ rich results for ALL sites on May 7, 2026 (no SERP feature anymore; supersedes the Aug 2023 gov/health restriction). Flag existing FAQPage at Info (not Critical) for its AI/LLM citation benefit; do not recommend removal; do not recommend new FAQPage for Google SERP benefit; use QAPage for genuine user Q&A
+- FAQ schema: Google retired FAQ rich results for ALL sites on May 7, 2026 (no SERP feature anymore; supersedes the Aug 2023 gov/health restriction). Flag existing FAQPage at Info (not Critical); do not claim confirmed AI/LLM citation benefit; do not recommend removal; do not recommend new FAQPage for Google SERP benefit; use QAPage for genuine user Q&A
 - All Core Web Vitals references use INP, never FID
 
 ## Community Footer
@@ -151,8 +151,8 @@ Display after these commands complete their full output:
 ### When to skip
 
 Do NOT show the footer after:
-- `/seo images` (quick image check — too small)
-- `/seo hreflang` (quick validation — too small)
+- `/seo images` (quick image check, too small)
+- `/seo hreflang` (quick validation, too small)
 - `/seo competitor-pages` (page generation step)
 - `/seo programmatic` (quick analysis)
 - `/seo dataforseo` (data fetching utility)
@@ -230,10 +230,11 @@ orchestrate itself, so it is not enumerated below.
 The following ship in `extensions/` rather than `skills/` and require a separate
 installer to activate (see each extension's `install.sh`/`install.ps1`):
 
-Of the optional extensions, firecrawl, dataforseo, and image-gen are reachable
-through `/seo` subcommands. Ahrefs, Bing, Profound, SE Ranking, and Unlighthouse
-install as standalone skills invoked by their own descriptions. The model
-auto-routes to those triggers, not through `/seo <name>`.
+All optional extensions are reachable through `/seo` subcommands once
+installed: firecrawl, dataforseo, and image-gen, plus `/seo ahrefs`,
+`/seo bing`, `/seo profound`, `/seo seranking`, and `/seo unlighthouse`.
+Each installs as its own sub-skill, so the model also auto-routes to their
+descriptions without the `/seo` prefix.
 
 - **seo-firecrawl** -- Full-site crawling and site mapping via Firecrawl MCP. Install
   via `extensions/firecrawl/install.sh` (Unix) or `extensions/firecrawl/install.ps1`

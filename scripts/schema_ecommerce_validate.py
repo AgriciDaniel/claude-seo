@@ -3,10 +3,13 @@
 Product schema validator focused on Google merchant-listing fields.
 
 The 2025 Google Search docs for Product structured data list four
-property groups that strongly influence merchant listing eligibility:
+property groups that strongly influence merchant listing diagnostics:
 
-  - ``hasMerchantReturnPolicy``         (REQUIRED for merchant listings)
-  - ``shippingDetails``                  (REQUIRED for merchant listings)
+  - ``name`` + ``image`` + ``offers``   (confirmed merchant listing minimum)
+  - ``offers.@type`` must be ``Offer``  (not ``AggregateOffer``)
+  - ``description``                     (recommended Product field)
+  - ``hasMerchantReturnPolicy``         (recommended or conditional)
+  - ``shippingDetails``                 (recommended or conditional)
   - ``MemberProgram``                    (loyalty pricing visibility)
   - ``energyEfficiencyClass``            (REQUIRED in the EU for in-scope
                                           categories under EPREL)
@@ -54,8 +57,9 @@ _DEPRECATED_TYPES: dict[str, str] = {
 }
 
 
-_REQUIRED_PRODUCT_FIELDS = ("name", "image", "description", "offers")
-_REQUIRED_OFFER_FIELDS = ("price", "priceCurrency", "availability")
+_REQUIRED_PRODUCT_FIELDS = ("name", "image", "offers")
+_RECOMMENDED_PRODUCT_FIELDS = ("description",)
+_RECOMMENDED_OFFER_FIELDS = ("price", "priceCurrency", "availability")
 _REQUIRED_RETURN_POLICY_FIELDS = (
     "applicableCountry",
     "returnPolicyCategory",
@@ -97,6 +101,15 @@ def _all_types(payload) -> list[str]:
     return types
 
 
+def _has_type(payload: dict, target_type: str) -> bool:
+    kind = payload.get("@type")
+    if isinstance(kind, str):
+        return kind == target_type
+    if isinstance(kind, list):
+        return target_type in kind
+    return False
+
+
 def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
     findings: list[dict] = []
 
@@ -127,7 +140,16 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
                     "message": f"Product is missing required {field!r}.",
                 })
 
-        # 3. Offers must include price, currency, availability.
+        for field in _RECOMMENDED_PRODUCT_FIELDS:
+            if field not in prod or prod[field] in (None, "", []):
+                findings.append({
+                    "severity": "Medium",
+                    "rule": f"recommended-product-{field}",
+                    "message": f"Product is missing recommended {field!r}.",
+                })
+
+        # 3. Offers must use @type Offer. Price, currency, and availability
+        # are recommended diagnostics, not merchant-listing failure gates.
         offers = prod.get("offers", [])
         if isinstance(offers, dict):
             offers_list = [offers]
@@ -139,25 +161,37 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
         for offer in offers_list:
             if not isinstance(offer, dict):
                 continue
-            for field in _REQUIRED_OFFER_FIELDS:
+            if _has_type(offer, "AggregateOffer"):
+                findings.append({
+                    "severity": "High",
+                    "rule": "merchant-listing-offer-type",
+                    "message": "Merchant listings require offers.@type='Offer', "
+                               "not 'AggregateOffer'.",
+                })
+            elif not _has_type(offer, "Offer"):
+                findings.append({
+                    "severity": "High",
+                    "rule": "merchant-listing-offer-type",
+                    "message": "Merchant listings require offers.@type='Offer'.",
+                })
+            for field in _RECOMMENDED_OFFER_FIELDS:
                 if field not in offer or offer[field] in (None, "", []):
                     findings.append({
-                        "severity": "High",
-                        "rule": f"missing-offer-{field}",
-                        "message": f"Offer is missing required {field!r}.",
+                        "severity": "Medium",
+                        "rule": f"recommended-offer-{field}",
+                        "message": f"Offer is missing recommended {field!r}.",
                     })
 
-        # 4. hasMerchantReturnPolicy (required for merchant listings).
+        # 4. hasMerchantReturnPolicy (recommended or conditional).
         return_policy = prod.get("hasMerchantReturnPolicy") or (
             offers_list[0].get("hasMerchantReturnPolicy") if offers_list else None
         )
         if not return_policy:
             findings.append({
-                "severity": "High",
+                "severity": "Medium",
                 "rule": "missing-return-policy",
                 "message": "Product (or its Offer) is missing "
-                           "hasMerchantReturnPolicy — required for Google "
-                           "merchant listing eligibility.",
+                           "hasMerchantReturnPolicy.",
             })
         elif isinstance(return_policy, dict):
             for field in _REQUIRED_RETURN_POLICY_FIELDS:
@@ -168,17 +202,16 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
                         "message": f"MerchantReturnPolicy is missing {field!r}.",
                     })
 
-        # 5. shippingDetails (required for merchant listings).
+        # 5. shippingDetails (recommended or conditional).
         shipping = prod.get("shippingDetails") or (
             offers_list[0].get("shippingDetails") if offers_list else None
         )
         if not shipping:
             findings.append({
-                "severity": "High",
+                "severity": "Medium",
                 "rule": "missing-shipping-details",
                 "message": "Product (or its Offer) is missing "
-                           "shippingDetails — required for Google merchant "
-                           "listing eligibility.",
+                           "shippingDetails.",
             })
         elif isinstance(shipping, dict):
             for field in _REQUIRED_SHIPPING_FIELDS:

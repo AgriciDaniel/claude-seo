@@ -1,36 +1,31 @@
 # E-E-A-T Evaluation Framework
-## Updated per Google Quality Rater Guidelines: September 11, 2025
-## Plus December 2025 Core Update Implications
+## Per Google Quality Rater Guidelines (September 11, 2025); currency-checked June 2026
 
 ## Overview
 
 E-E-A-T = **E**xperience, **E**xpertise, **A**uthoritativeness, **T**rustworthiness
 
-Trustworthiness is the most important factor. It is assessed based on the
-other three signals plus direct trust indicators.
+**Trust is the most important member of the family** (Google's own wording);
+Experience, Expertise, and Authoritativeness support the assessment of Trust.
+E-E-A-T is a **concept in the Quality Rater Guidelines**, not a direct ranking
+score — it informs the core ranking and helpful-content systems.
 
-## CRITICAL: December 2025 Core Update
+> **No "watershed" framing.** Google never characterized the December 2025 (or
+> any 2026) core update as "extending E-E-A-T to ALL competitive queries," and
+> never published per-industry traffic-drop percentages. Those figures and the
+> "watershed" narrative are third-party SEO-blog interpretation — do not assert
+> them as Google fact. Google's only on-record description of broad core updates
+> is generic ("a regular update designed to better surface relevant, satisfying
+> content … from all types of sites").
 
-> **E-E-A-T now applies to ALL competitive queries, not just YMYL.**
-
-The December 2025 core update was described as a "watershed moment" that:
-- Extended E-E-A-T evaluation to virtually all competitive queries
-- Made author attribution standards tighter across all categories
-- Penalized anonymous or generic authorship even for non-YMYL content
-- Significantly improved AI content quality detection
-
-**Impact by industry:**
-| Industry | Traffic Drops |
-|----------|--------------|
-| Affiliate sites | 71% average decline |
-| Health/YMYL | 67% average decline |
-| E-commerce | 52% average decline |
-
-**Key takeaway:** Even entertainment and lifestyle content now requires demonstrated expertise. Generic content no longer ranks.
+> **Continuous core updates.** Google now documents (changelog 2025-12-09) that
+> it continually makes **smaller, unannounced core updates** between the major
+> ones — so content improvements can lift rankings without waiting for the next
+> major update. Treat helpful-content evaluation as always-on.
 
 ## YMYL (Your Money or Your Life)
 
-Topics requiring **highest** E-E-A-T standards (but E-E-A-T now matters everywhere):
+Topics requiring the **highest** E-E-A-T standards (E-E-A-T applies broadly, but YMYL carries the highest bar):
 - Health and safety
 - Financial advice and transactions
 - Legal information
@@ -41,7 +36,7 @@ Topics requiring **highest** E-E-A-T standards (but E-E-A-T now matters everywhe
 
 ---
 
-## Experience (Weight: 20%)
+## Experience (claude-seo internal scoring weight: 20%)
 
 First-hand knowledge and personal involvement with the topic.
 
@@ -61,7 +56,7 @@ First-hand knowledge and personal involvement with the topic.
 
 ---
 
-## Expertise (Weight: 25%)
+## Expertise (claude-seo internal scoring weight: 25%)
 
 Formal qualifications, training, and demonstrated knowledge.
 
@@ -81,7 +76,7 @@ Formal qualifications, training, and demonstrated knowledge.
 
 ---
 
-## Authoritativeness (Weight: 25%)
+## Authoritativeness (claude-seo internal scoring weight: 25%)
 
 Recognition by others as a go-to source.
 
@@ -102,7 +97,7 @@ Recognition by others as a go-to source.
 
 ---
 
-## Trustworthiness (Weight: 30%)
+## Trustworthiness (claude-seo internal scoring weight: 30%)
 
 The most important factor, overall reliability and transparency.
 
@@ -142,10 +137,11 @@ Raters now formally evaluate whether content appears AI-generated:
 - Repetitive structure across multiple pages
 - No author attribution or expertise signals
 
-### New Spam Categories
+### Spam Policies (updated 2026-05-15)
 - **Expired domain abuse**: Buying expired domains for their backlinks
-- **Site reputation abuse**: Using reputable site to host low-quality content
-- **Scaled content abuse**: Mass-producing content without value
+- **Site reputation abuse**: Using a reputable site to host low-quality content (parasite SEO)
+- **Scaled content abuse**: Mass-producing content without value — Google's policy now **explicitly** names "using generative AI tools to generate many pages without adding value" (also covers automated transformations like synonymizing/translating).
+- **Back-button hijacking** (NEW, malicious practices): manipulating browser history (`history.pushState`/`replaceState`, including via third-party ad/library scripts) so users can't use the Back button. Announced 2026-04-13; **enforcement live since 2026-06-15** (manual actions + automated demotions).
 
 ### AI Overview Evaluation
 Raters assess quality of AI-generated summaries in search results.
@@ -160,7 +156,7 @@ New machine-readable content licensing standard (December 2025) for AI training:
 
 ## Experience Signals Are Critical Differentiators
 
-The December 2025 update elevated the "Experience" dimension as a key differentiator:
+The "Experience" dimension is a key differentiator, especially against scaled/AI content:
 - First-person narrative ("I tested this...", "In my experience...")
 - Original photos and screenshots (not stock images)
 - Specific examples with verifiable details

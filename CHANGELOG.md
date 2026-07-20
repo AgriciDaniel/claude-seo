@@ -5,6 +5,98 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.3] - 2026-07-14
+
+Prompt-hygiene alignment to the Fable 5 prompt principles. No behavior, routing, or output changes.
+
+- Removed CAPS emphasis words (MUST, NEVER, ALWAYS, and a CRITICAL RULES heading) used as emphasis
+  across skills and agents; severity status tokens left intact.
+- Swept em-dashes and en-dashes from prose to commas, colons, and hyphens across the prompt surface
+  (code fences untouched).
+- Trimmed five over-long skill descriptions.
+
+## [2.2.2] - 2026-07-10
+
+Full-review maintenance pass (2026-07-09/10). 319 adversarially verified findings from a
+multi-engine review (7 Google research streams, 20 currency audit slices, 6 refuter slices);
+all fix bundles applied. No breaking changes.
+
+### Fixed
+
+- GBP Q&A false-deprecation removed from `scripts/gbp_deprecation_lint.py` and
+  `skills/seo/references/local-seo-signals.md` (Google: Q&A is category/region-limited, not retired).
+- AI Mode model claim corrected to Google's confirmed "custom version of Gemini 2.5";
+  AI Overviews / AI Mode user counts attributed to third-party I/O 2026 reporting.
+- Stale Gemini image-model IDs refreshed across seo-image-gen and the banana extension;
+  dead `scripts/presets.py` / `cost_tracker.py` invocations repointed.
+- rel=next/prev pagination and Publisher Center news-sitemap guidance corrected; WebMCP audit
+  IDs aligned with Lighthouse 13.2.0 release notes; GA4 AI Assistants source list fixed.
+- CLAUDE.md tree/table brought to v2.2.1; PRIVACY.md now discloses the Bing Webmaster /
+  IndexNow extension; README offline phrasing corrected; TROUBLESHOOTING de-v1'd.
+- `hooks/validate-schema.py` now supports the documented stdin hook-event contract.
+
+### Added
+
+- `scripts/consistency_check.py`: path-aware reference-graph gate (dead refs, routing tables,
+  FLOW lock, orphans) with CI coverage via `tests/test_consistency_check.py`.
+
+## [2.2.1] - 2026-06-22
+
+Google-currency refresh. Reconfirms the suite against the latest Google updates, verified against Google-primary sources via a multi-agent reconfirmation run. Documentation/data accuracy only — no code behavior change beyond two added IPTC vocabulary values. No breaking changes.
+
+### Fixed (stale → current)
+
+- **Lighthouse**: `13.0 (Oct 2025)` → `13.4.0 (June 2026, latest stable)`; corrected the 13.0 description (insight-based audits, not "reorganized scoring weights"); documented the new **Agentic Browsing** category (created 13.2.0, default 13.3.0, disabled in the PSI REST API in 13.4.0) as a **fractional pass-ratio**, not a 0–100 score. (`agents/seo-performance.md`, `skills/seo/references/cwv-thresholds.md`, `skills/seo-technical/**`)
+- **WebMCP**: replaced the "early preview / not before 2027" framing with the live **Chrome 149 origin trial** (sign-up open 2026-06-09) and the three shipped Lighthouse audits (`registered-webmcp-tools`, `forms-missing-declarative-webmcp`, `webmcp-schema-validity`).
+- **GEO**: AI Overviews reach `1.5B` → **2.5B+ MAU** (I/O 2026); added that **Google Search ignores llms.txt** (docs, 2026-06-15); reconciled the unified AI-Search experience with the two-citation-engines model.
+- **E-commerce**: UCP `"version": "1.0"` → **date-based** (current `2026-04-08`) with canonical URLs; **AP2 donated to FIDO** (2026-04-28); Universal Cart / Native-vs-Embedded checkout / Lodging+Food verticals.
+- **Content/E-E-A-T**: removed the fabricated "December 2025 watershed / 71-67-52% drops" claim; set the plugin's internal E-E-A-T scorecard weights to **20/25/25/30** (Trust highest) — an internal scoring model; Google publishes no numeric E-E-A-T weights, only that 'trust is most important'.
+- **Schema**: Dataset is **not discontinued** (Dataset Search still consumes it); corrected the deprecated-types tooling-removal timeline.
+- **Technical**: softened mobile-first absolutism + added content-parity; added the **back-button hijacking** spam policy; page-experience framing; Googlebot **2MB/64MB** fetch limits; crawling-docs migration to developers.google.com/crawling; user-triggered fetchers (Google-Agent etc.) ignore robots.txt.
+- **Verticals**: JPEG XL shipped (Chrome 145, flag-gated); two new IPTC DigitalSourceType values; hreflang ISO-15924 script subtags + signal hierarchy; sitemap 50MB/extension-subtype rules; **Apple Business** rename; Ask Maps / AI local pack.
+- **Ledger**: refreshed `data/google-updates.json` (Feb 2026 Discover, March 2026 spam, May 2026 core completion, back-button policy, GSC gen-AI report, etc.); fixed the INP date and replaced 301'd `ranking-update-history` URLs with the Search Status Dashboard.
+
+### Added
+
+- `seo-google`: Search Console **Generative AI performance report**, GSC impressions logging-error caveat (2025-05-13 → 2026-04-27), GA4 **AI Assistants** channel.
+- `scripts/iptc_ai_label.py`: `algorithmicMedia` and `compositeWithTrainedAlgorithmicMedia` DigitalSourceType values.
+- Documentation: primary-source reconfirmation details folded into public references.
+
+### Fixed (command audit)
+
+Full audit of every `/seo` command + subcommand (25 skills + 8 extensions), via deterministic wiring checks + 5 Codex sub-agents; findings were folded into this release.
+
+- **Wiring bugs:** `seo-sxo` agent called `parse_html.py "<url>"` (script needs `--url`); `seo-sxo` and `seo-local` referenced DataForSEO tools not in the catalog (`google_organic_serp`/`keyword_data`/`local_business_data`/`google_local_pack_serp`/`business_listings` → `serp_organic_live_advanced` / `kw_data_google_ads_search_volume` / `business_data_business_listings_search`); `content-brief` used `serp_google_organic_live_advanced` → `serp_organic_live_advanced`; Bing `submit-batch`/`verify-indexnow` were missing the required `--host` flag.
+- **Broken docs:** `docs/COMMANDS.md` google examples used non-existent command names (`psi`/`gsc-queries`/`indexing-notify`/`ga4-organic`/`check`) → real `pagespeed`/`gsc`/`inspect`/`index`/`ga4`; maps used `geogrid`/`audit` → `grid`/`gbp`; "7 specialist subagents" → "up to 15".
+- **Shared-reference paths:** `seo-schema`/`seo-backlinks` pointed at `` `references/...` `` as if local → repointed to the shared `seo/references/` location.
+- **COMMANDS.md completeness:** documented every previously-unlisted subcommand (backlinks, ecommerce, dataforseo cost/serp-images, flow, cluster, sxo, hreflang, images) and added the missing extension command tables (ahrefs, bing, profound, seranking, unlighthouse). Coverage now 100% (every skill subcommand is indexed).
+
+### Fixed (docs consistency)
+
+Reconciled the public docs/manifests with the v2.1.0–v2.2.1 code state via a parallel per-file pass with an independent verifier gate. No behavior change.
+
+- **README.md:** added a "Since v2.0.0" recap (v2.1.0–v2.2.1); reframed the command surface to **30 user-invocable `/seo` commands** and added the five missing extension commands (`ahrefs`, `seranking`, `profound`, `bing`, `unlighthouse`) to the table; corrected stale figures: DataForSEO `22 → 23` commands, manifest `14 → 15` assertions, audit fan-out "6 parallel" → "up to 15 core audit agents; optional extension agents such as seo-dataforseo may run in addition", and the v2 test narrative to `39 → 326` (url_safety suite = 91 cases); reworded the "zero-network" overclaim (audits still fetch target URLs) and the Playwright optional/auto-install wording.
+- **docs/COMMANDS.md:** added the five extension commands to the Quick Reference table (detail sections already existed).
+- **docs/ARCHITECTURE.md:** extension tree and capability table now cover all **8** extensions (added Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse).
+- **PRIVACY.md:** data-transfer disclosure for the five newer extensions (Unlighthouse marked local-only — no third-party egress); same zero-network reword.
+- **SECURITY.md:** reconciled the internal `tests/test_url_safety.py` count contradiction (`52+` vs `122`) to the verified **91 cases (31 functions)** in both places.
+- **CONTRIBUTING.md:** corrected the SSRF guidance — fetchers route through `scripts/url_safety.py` (`validate_url()` / `safe_requests_session()`), not `google_auth.py` (OAuth-only).
+- **AGENTS.md:** removed the non-existent "ASO" extension (listed the real 8); added `seo-content-brief` and `seo-flow` to the tree and command table.
+- **Other docs:** `MIGRATION-v1-to-v2.md` ("Three" → six rich-result types + v2.1–2.2.1 forward pointer), `MCP-INTEGRATION.md` (DataForSEO `22 → 23`), `TROUBLESHOOTING.md` (schema false-positive note now covers the 2025 retirements + the 2026-05-07 FAQ retirement), `INSTALLATION.md` (Playwright wording), `WORKFLOW-public-private.md` (state section refreshed to v2.2.1 / 2026-06-22).
+- **`.claude-plugin/marketplace.json`:** descriptions refreshed for the 2.1–2.2.1 currency + command audit, and both trimmed under the 500-char registry cap (the plugin-entry description was previously over cap at 573).
+- **`extensions/dataforseo/`:** `README.md`, `install.sh`, and `install.ps1` corrected `22 → 23` commands.
+
+### Fixed (fact accuracy)
+
+Corrections from a live re-confirmation of every time-sensitive Google claim against Google-primary sources fetched 2026-06-22. Confirmed claims were updated and uncertain claims relabeled. All are precision/labeling fixes — the v2.2.1 currency substance was confirmed accurate.
+
+- **E-E-A-T weights are an internal model, not Google's.** Google publishes no numeric E-E-A-T weights (only "trust is most important"). Relabeled the 20/25/25/30 split as the plugin's own scoring model in `agents/seo-content.md`, `skills/seo-content/SKILL.md`, README, and this changelog.
+- **FID was never in Lighthouse.** Removed "Lighthouse" from the FID-removal tool list across 7 files (it is a lab tool and never reported the field-only FID metric); the removal applies to Chrome's field-data tools (CrUX API, PageSpeed Insights).
+- **QAPage is not the "FAQ replacement."** Reworded README + the v2.1.0 changelog note: QAPage is the type for genuine Q&A pages, not a replacement for FAQ rich results (per the primary `qapage` doc).
+- **June 2025 deprecation date** corrected `2025-06-19 → 2025-06-12` (announcement date) in `data/google-updates.json` and the deprecated-types reference.
+- **January-2026 tooling sunset scoped to Practice Problems** (the only type Google documents it for) in the deprecated-types reference, instead of generalizing it to all retired types.
+- **Dead citation repaired:** the HowTo retirement source `…/2023/09/structured-data-changes` (HTTP 404) repointed to the real post `…/2023/08/howto-faq-changes`.
+
 ## [2.2.0] - 2026-06-12
 
 Security, cross-platform, and data-accuracy release. Folds the v2.1.0 currency content into the first public ship and closes the full open-issue and PR backlog. No breaking changes.
@@ -61,8 +153,8 @@ Knowledge-currency refresh for Google's May 2026 wave: the **May 2026 core updat
 
 - **`data/google-updates.json`:** four primary-source-verified entries — March 2026 Core Update (promoted from `unverified[]` after Google status-dashboard confirmation; Mar 27 to Apr 8 rollout), FAQ rich result retirement (May 7), Google I/O 2026 / Gemini 3.5 Flash in AI Mode (May 19), and the May 2026 Core Update (May 21). `unverified[]` is now empty; `last_verified` bumped to 2026-05-25.
 - **`skills/seo-geo/SKILL.md`:** AI Mode is now modeled as a **distinct citation engine** from AI Overviews (Ahrefs: only 13.7% URL overlap across 540K query pairs), with its own row in the platform table, the Gemini 3.5 Flash + 1B-user stats, content **recency** as a citation lever (~3x for content under 3 months, SE Ranking), and the "~44% of AI citations come from the first 30% of the page" finding.
-- **`skills/seo/references/schema-types.md`:** `QAPage` added as the active type for genuine user Q&A (Google's FAQ replacement).
-- **`tests/test_schema_v2.py`:** `test_faq_rich_results_retirement_documented` locks the May 7 2026 FAQ retirement + QAPage replacement across the canonical schema references.
+- **`skills/seo/references/schema-types.md`:** `QAPage` added as the active type for genuine user Q&A (the active type for real Q&A pages — not a replacement for FAQ rich results).
+- **`tests/test_schema_v2.py`:** `test_faq_rich_results_retirement_documented` locks the May 7 2026 FAQ retirement + QAPage-for-Q&A guidance across the canonical schema references.
 
 ### Changed
 

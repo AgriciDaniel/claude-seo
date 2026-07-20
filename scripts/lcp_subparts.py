@@ -2,7 +2,7 @@
 """
 LCP subparts breakdown via CrUX API.
 
-Since 2024 CrUX has exposed the four LCP sub-metrics:
+Since January 2025 CrUX has exposed the four LCP sub-metrics:
   - largest_contentful_paint_image_time_to_first_byte
   - largest_contentful_paint_image_resource_load_delay
   - largest_contentful_paint_image_resource_load_duration

@@ -13,9 +13,15 @@ agent UX. Findings cover the three channels agents use:
 
 Audit posture
 =============
-Per the reference doc, agent-UX standards (WebMCP) are early. Findings
-are surfaced as **opportunities**, not failures. The scoring exists to
-give the audit a quantitative axis without making it a hard SEO gate.
+Findings are surfaced as **opportunities**, not failures. The scoring
+exists to give the audit a quantitative axis without making it a hard
+SEO gate.
+
+NOTE: this score is a local 0-100 heuristic and is **distinct** from
+Google's Lighthouse "Agentic Browsing" category, which reports a
+**fractional pass-ratio (X of N), not a 0-100 score** (Chrome 150+).
+Do not present this heuristic as the official Lighthouse agentic score.
+See ``skills/seo-technical/references/agent-friendly-pages.md``.
 
 Implementation
 ==============

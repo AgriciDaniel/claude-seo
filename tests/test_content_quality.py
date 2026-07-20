@@ -236,6 +236,7 @@ def test_seo_updates_every_entry_has_google_owned_source() -> None:
         "status.search.google.com",
         "web.dev",
         "services.google.com",
+        "support.google.com",
     )
     for entry in data["updates"]:
         url = entry.get("source", "")

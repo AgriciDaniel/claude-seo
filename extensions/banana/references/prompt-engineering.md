@@ -5,6 +5,16 @@
 >
 > Aligned with Google's March 2026 "Ultimate Prompting Guide" for Gemini image generation.
 
+## Table of Contents
+
+- [The 6-Component Reasoning Brief](#the-6-component-reasoning-brief) -- Subject, Action, Context, Composition, Style, Technical
+- [Domain Mode Modifier Libraries](#domain-mode-modifier-libraries) -- Photography, product, editorial, infographic modifiers
+- [Advanced Techniques](#advanced-techniques) -- Negative prompting, iterative refinement, batch variation
+- [Prompt Adaptation Rules](#prompt-adaptation-rules) -- Model-specific adjustments
+- [Common Prompt Mistakes](#common-prompt-mistakes) -- Anti-patterns to avoid
+- [Proven Prompt Templates](#proven-prompt-templates) -- Ready-to-use templates by use case
+- [Safety Filter Rephrase Strategies](#safety-filter-rephrase-strategies) -- Workarounds for blocked prompts
+
 ## The 6-Component Reasoning Brief
 
 Every image prompt should contain these components, written as natural
@@ -129,7 +139,7 @@ Use `gemini_chat` and maintain descriptive anchors:
 - Following turns: Reference "the same character" + repeat 2-3 key identifiers
 - Key identifiers: hair color/style, distinctive clothing, facial feature
 
-**Multi-image reference technique** (3.1 Flash):
+**Multi-image reference technique** (verified image model):
 - Provide up to 4-5 character reference images in the conversation
 - Assign distinct names to each character ("Character A: the red-haired knight")
 - Model preserves features across different angles, actions, and environments

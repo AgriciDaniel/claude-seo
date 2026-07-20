@@ -171,7 +171,7 @@ PY
     echo "     /seo dataforseo backlinks example.com"
     echo "     /seo dataforseo ai-mentions your brand"
     echo ""
-    echo "All 22 commands: see extensions/dataforseo/README.md"
+    echo "All 23 commands: see extensions/dataforseo/README.md"
     echo "To uninstall: ./extensions/dataforseo/uninstall.sh"
 }
 

@@ -171,7 +171,13 @@ def test_extension_skillmd_has_required_frontmatter(
     assert f"name: {skill_dir}" in head, f"{name}: frontmatter name must be {skill_dir}"
     assert "description:" in head, f"{name}: missing description"
     assert "metadata:" in head, f"{name}: missing metadata block"
-    assert 'version: "2.2.0"' in head, f"{name}: SKILL.md must declare version 2.2.0"
+    import json as _json
+    _expected = _json.loads(
+        (_REPO_ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )["version"]
+    assert f'version: "{_expected}"' in head, (
+        f"{name}: SKILL.md must declare version {_expected} (from plugin.json)"
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -1,8 +1,12 @@
-# Machine-translation QA flag (Jan 2025 QRG)
+# Machine-translation QA flag (September 11, 2025 QRG)
 
 Google's January 23, 2025 Quality Rater Guidelines update added
 explicit language about **machine-translated content with no human
-review** as a form of scaled content abuse (§4.6.5).
+review** as a form of scaled content abuse (§4.6.5). This is also the
+**enforceable webmaster-facing spam policy** (updated 2026-05-15), which
+names "automated transformations like synonymizing, **translating**, or
+other obfuscation techniques" as scaled content abuse:
+https://developers.google.com/search/docs/essentials/spam-policies
 
 > "Using automated tools (generative AI or otherwise) as a low-effort
 > way to produce many pages that add little-to-no value."
@@ -40,14 +44,17 @@ content abuse.
   AI-pattern detection in body), defer to `seo-content` via
   `python3 scripts/content_quality.py`.
 - For "is this translated by Google's own auto-translate widget"
-  detection, look for the `.goog-te-banner-frame` iframe; auto-
-  translate widgets are explicitly exempted from MT-scaled-content
-  abuse but produce poor passage-citability anyway.
+  detection, look for the `.goog-te-banner-frame` iframe. There is **no
+  per-mechanism exemption**: in June 2025 Google removed the
+  robots.txt-blocking guidance for auto-translated pages, and auto/AI-
+  translated content is now judged **case-by-case on user value**. Use
+  page-level `noindex` for low-value translated pages, not sitewide blocks;
+  the widget also produces poor passage-citability.
 
 ## Primary sources
 
-- Jan 2025 QRG §4.6.5: https://services.google.com/fh/files/misc/hsw-sqrg.pdf
+- Current QRG (September 11, 2025; 182 pages; nothing newer through 2026-07-09): https://services.google.com/fh/files/misc/hsw-sqrg.pdf
 - John Mueller on MT (multiple SOTR episodes, 2024-2025): MT is OK
   when reviewed by a human; bulk MT without review is abuse.
 
-Last verified: 2026-05-17.
+Last verified: 2026-07-09.

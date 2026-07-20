@@ -5,7 +5,7 @@ Expired-domain heritage check.
 Compares a domain's registration age against the topical fingerprint
 of its current content. A site that was registered 18 years ago for
 veterinary services and now reads as a high-volume crypto signal hub
-is the canonical "expired-domain abuse" pattern under Jan 2025 QRG
+is the canonical "expired-domain abuse" pattern under current QRG
 §4.6.7.
 
 Approach
@@ -259,7 +259,7 @@ def assess_risk(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Expired-domain heritage check (Jan 2025 QRG §4.6.7)."
+        description="Expired-domain heritage check (current QRG §4.6.7)."
     )
     parser.add_argument("domain")
     parser.add_argument("--topic", help="Current detected topic (free text).")

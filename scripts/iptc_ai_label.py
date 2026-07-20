@@ -44,6 +44,8 @@ from typing import Iterable, Optional
 IPTC_VOCAB = {
     "trainedAlgorithmicMedia": "https://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia",
     "compositeSynthetic": "https://cv.iptc.org/newscodes/digitalsourcetype/compositeSynthetic",
+    "algorithmicMedia": "https://cv.iptc.org/newscodes/digitalsourcetype/algorithmicMedia",
+    "compositeWithTrainedAlgorithmicMedia": "https://cv.iptc.org/newscodes/digitalsourcetype/compositeWithTrainedAlgorithmicMedia",
     "digitalCapture": "https://cv.iptc.org/newscodes/digitalsourcetype/digitalCapture",
     "negativeFilm": "https://cv.iptc.org/newscodes/digitalsourcetype/negativeFilm",
     "positiveFilm": "https://cv.iptc.org/newscodes/digitalsourcetype/positiveFilm",
@@ -107,8 +109,7 @@ def audit(target: Path) -> dict:
         report["summary"] = {"error": "exiftool-not-installed"}
         return report
 
-    counts: dict[str, int] = {"missing": 0, "trainedAlgorithmicMedia": 0,
-                              "compositeSynthetic": 0, "digitalCapture": 0,
+    counts: dict[str, int] = {"missing": 0, **{label: 0 for label in IPTC_VOCAB},
                               "other": 0}
     for image in _iter_images(target):
         value = _read_source_type(image)
@@ -205,8 +206,7 @@ def _cli() -> None:
             print(f"Error: {report['summary']['error']}", file=sys.stderr)
             sys.exit(2)
         print(f"Total images: {report['summary'].get('total')}")
-        for label in ("missing", "trainedAlgorithmicMedia", "compositeSynthetic",
-                      "digitalCapture", "other"):
+        for label in ("missing", *sorted(IPTC_VOCAB), "other"):
             print(f"  {label}: {report['summary'].get(label, 0)}")
         sys.exit(0)
     elif args.command == "inject":
