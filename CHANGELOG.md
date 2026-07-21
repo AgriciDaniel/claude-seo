@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `seo-technical` no longer treats dynamic rendering as a valid setup to verify. Google
+  documents it as a workaround rather than a recommended solution, so the audit step now
+  flags it as technical debt. Adds a rendering-strategy table (SSR / SSG / CSR) and a
+  preferred-framework list so the skill recommends a target state rather than only naming
+  the anti-pattern. Detection logic in `fetch_page.py` is unchanged: identifying dynamic
+  rendering is still useful, it is only the recommendation that was stale.
+
 ## [2.2.4] - 2026-07-20
 
 Community maintenance release following a full review of every open issue and pull request.

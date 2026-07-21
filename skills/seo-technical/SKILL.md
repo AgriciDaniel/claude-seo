@@ -128,7 +128,20 @@ Allow: /
 - Check if content visible in initial HTML vs requires JS
 - Identify client-side rendered (CSR) vs server-side rendered (SSR)
 - Flag SPA frameworks (React, Vue, Angular) that may cause indexing issues
-- Verify dynamic rendering setup if applicable
+- If dynamic rendering is detected, flag it as technical debt rather than a valid setup.
+  Google documents it as "a workaround and not a recommended solution" because of the added
+  complexity and resource cost.
+  See https://developers.google.com/search/docs/crawling-indexing/javascript/dynamic-rendering
+
+**Recommended rendering strategy:**
+
+| Strategy | Use Case |
+|----------|----------|
+| **SSR** | Public SEO content, dynamic pages |
+| **SSG** | Static content, blogs, docs |
+| **CSR** | Authenticated / behind-login content only |
+
+**Preferred frameworks:** Next.js, Astro, React Router v7 (Remix), SvelteKit
 
 #### JavaScript SEO: Canonical & Indexing Guidance (December 2025)
 
