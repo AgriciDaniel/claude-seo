@@ -9,8 +9,16 @@ import sys
 from pathlib import Path
 from unittest import mock
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+
+# gsc_query calls sys.exit(1) at import time when google-api-python-client is
+# missing. Under pytest that SystemExit escapes collection as an INTERNALERROR
+# and aborts the whole session, so no test in tests/ runs. Skip this module
+# instead when the optional Google stack is absent.
+pytest.importorskip("googleapiclient")
 
 import gsc_query  # noqa: E402
 

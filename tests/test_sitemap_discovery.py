@@ -6,8 +6,14 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+
+# sitemap_discovery imports lxml at module scope. Without it the collection
+# error interrupts the whole pytest session, so skip this module instead.
+pytest.importorskip("lxml")
 
 import sitemap_discovery as discovery  # noqa: E402
 
