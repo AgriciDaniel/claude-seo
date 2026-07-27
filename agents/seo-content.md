@@ -17,6 +17,32 @@ When given content to analyze:
 5. Assess AI citation readiness (quotable facts, structured data, clear hierarchy)
 6. Check content freshness and update signals
 7. Flag potential AI-generated content quality issues per Sept 2025 QRG criteria
+8. Check title/description pairs for templating (see below)
+
+## Templated Metadata
+
+Body-copy uniqueness does not clear a site of scaled content abuse. Metadata is
+generated in bulk far more often than body copy is, and a description that
+restates its own title and then appends a stock CTA is the shape those jobs
+produce on every URL at once.
+
+Single page:
+
+```
+claude-seo run metadata_template.py --title "<title>" --description "<desc>" --json
+```
+
+Site-wide, which is the unit that matters, pass a JSON list of
+`{url, title, description}` objects collected while crawling:
+
+```
+claude-seo run metadata_template.py --pairs-file metadata.json --json
+```
+
+Report `site_risk`, `templated_ratio`, and any `shared_cta_phrases`: the same
+closing CTA on many pages is the strongest single indicator of a bulk metadata
+job. `templated_metadata` is a high-severity finding; `description_echoes_title`,
+`brand_suffix_in_description`, and `description_duplicates_title` are secondary.
 
 ## E-E-A-T Scoring
 

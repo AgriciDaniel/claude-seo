@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Templated-metadata detector (`scripts/metadata_template.py`): flags meta descriptions that
+  restate their own title tag verbatim and then close with a stock call to action, the shape bulk
+  metadata jobs produce site-wide. Deterministic string comparison, no model. Exposes a site-level
+  roll-up (`templated_ratio`, `shared_cta_phrases`, `site_risk`) because scaled content abuse is a
+  site-scale signal, not a per-page one. Wired into `seo-page`, the `seo-content` agent, the
+  quality-gates meta description table, and the `seo-programmatic` uniqueness gate, which measures
+  body copy only and therefore cannot see this. 48 new tests.
+
 ## [2.2.4] - 2026-07-20
 
 Community maintenance release following a full review of every open issue and pull request.
