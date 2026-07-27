@@ -21,7 +21,7 @@ openpyxl>=3.1.5,<4.0.0                # No known CVEs (Excel export)
 
 # Google API dependencies (for seo-google skill)
 google-api-python-client>=2.196.0,<3.0.0   # No known CVEs
-google-auth>=2.20.0,<3.0.0                  # No known CVEs
+google-auth>=2.56.2,<3.0.0                  # No known CVEs
 google-auth-httplib2>=0.4.0,<1.0.0           # Compatibility floor for current google-auth stack
 google-analytics-data>=0.18.0,<1.0.0         # No known CVEs
 google-ads>=25.0.0,<40.0.0                   # Direct import in keyword_planner.py
