@@ -85,7 +85,7 @@ claude-seo/
     seo-flow.md                  # FLOW framework integration
   hooks/                           # Quality gate hooks
     hooks.json                   # PostToolUse schema validation
-  scripts/                         # 53 Python execution scripts
+  scripts/                         # 54 Python execution scripts
     google_auth.py               # Credential management (OAuth, SA, API key, 4-tier detection)
     backlinks_auth.py            # Backlink API credential management (Moz, Bing)
     moz_api.py                   # Moz Link Explorer API (DA/PA, spam, domains, anchors)
@@ -120,6 +120,7 @@ claude-seo/
     preload_check.py             # Speculation Rules / bfcache / prerender / preload detector
     agent_ux_check.py            # Agent-friendly page auditor
     content_quality.py           # QRG-aligned content quality detector
+    metadata_template.py         # Templated title/description detector (title echo + stock CTA)
     content_humanize.py          # AI-pattern remover (rewrites AI-typical phrasing)
     content_verify.py            # Claim extractor + citation-gap detector
     schema_generate.py           # JSON-LD generators for high-leverage v2 schema types

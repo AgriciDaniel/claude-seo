@@ -21,6 +21,12 @@ metadata:
 ### On-Page SEO
 - Title tag: 50-60 characters, includes primary keyword, unique
 - Meta description: 150-160 characters, compelling, includes keyword
+- Meta description is not a restatement of the title: run
+  `claude-seo run metadata_template.py --title "<title>" --description "<desc>" --json`.
+  A description that opens by repeating its own title and closes on a stock CTA
+  ("Try it free now.", "Start free!") is templated metadata, the shape bulk
+  generation jobs produce site-wide, and it reads as scaled content abuse
+  regardless of how original the body copy is
 - H1: exactly one, matches page intent, includes keyword
 - H2-H6: logical hierarchy (no skipped levels), descriptive
 - URL: short, descriptive, hyphenated, no parameters

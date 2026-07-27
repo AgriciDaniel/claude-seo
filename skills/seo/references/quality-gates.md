@@ -94,9 +94,20 @@ Google's doorway page algorithm penalizes programmatic location pages with thin/
 |--------|-------------|
 | Minimum length | 120 characters |
 | Maximum length | 160 characters (Google truncates ~155-160) |
-| Call-to-action | Include compelling CTA |
+| Call-to-action | Include compelling CTA, written for this page |
 | Primary keyword | Include naturally |
 | Uniqueness | Each page must have unique description |
+| Not a title restatement | Must not open by repeating the title tag verbatim |
+
+> **Templated metadata gate.** "Unique per page" is necessary but not
+> sufficient: 26 descriptions can each be unique strings while all sharing one
+> generated shape. Opening with the page title and closing on a stock CTA
+> ("Try it free now.", "Start free!") is that shape, and site-wide it reads as
+> scaled content abuse under Google's spam policies even when the body copy is
+> entirely original. Check with
+> `claude-seo run metadata_template.py --pairs-file <file> --json`. The CTA
+> requirement above means a CTA written for this page, not one appended to every
+> page by a template.
 
 ---
 

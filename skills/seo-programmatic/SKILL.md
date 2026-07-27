@@ -116,6 +116,8 @@ Unique content % = (words unique to this page) / (total words on page) × 100
 
 Measure against all other pages in the programmatic set. Shared headers, footers, and navigation are excluded from the calculation. Template boilerplate text IS included.
 
+**Metadata is scored separately.** This calculation covers body copy only, so a set that passes it can still carry one generated title/description shape on every URL. Run `claude-seo run metadata_template.py --pairs-file <file> --json` over the whole set and treat a `site_risk` of `high` as a gate failure regardless of body uniqueness.
+
 ## Canonical Strategy
 
 - Every programmatic page must have a self-referencing canonical tag
