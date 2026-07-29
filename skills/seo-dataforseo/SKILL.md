@@ -48,7 +48,7 @@ DataForSEO charges per API call. Be efficient:
 
 **Before every DataForSEO MCP call**, run cost estimation:
 ```
-claude-seo run dataforseo_costs.py check <endpoint> [--count N]
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_costs.py check <endpoint> [--count N]
 ```
 
 - If `"status": "approved"` → proceed with the API call
@@ -57,7 +57,7 @@ claude-seo run dataforseo_costs.py check <endpoint> [--count N]
 
 **After each API call completes**, log the cost:
 ```
-claude-seo run dataforseo_costs.py log <endpoint> <actual_cost>
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_costs.py log <endpoint> <actual_cost>
 ```
 
 **User commands for cost management:**
@@ -373,7 +373,7 @@ Additional DataForSEO MCP tools are available for internal use but do not have d
 
 ## Cross-Skill Integration
 
-When DataForSEO MCP tools are available, other claude-seo skills can leverage live data:
+When DataForSEO MCP tools are available, other "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" skills can leverage live data:
 
 - **seo-audit**:Spawn `seo-dataforseo` agent for real SERP, backlink, on-page, and listings data
 - **seo-technical**:Use `on_page_instant_pages` / `on_page_lighthouse` for real crawl data, `domain_analytics_technologies_domain_technologies` for stack detection
@@ -393,7 +393,7 @@ When DataForSEO MCP tools are available, other claude-seo skills can leverage li
 
 ## Output Formatting
 
-Match existing claude-seo output patterns:
+Match existing "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" output patterns:
 - Use tables for comparative data
 - Prioritize issues as Critical > High > Medium > Low
 - Include specific, actionable recommendations

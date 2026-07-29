@@ -299,9 +299,9 @@ try {
         $text = [System.IO.File]::ReadAllText($_.FullName)
         $manualSetup = '"$HOME/.claude/skills/seo/bin/claude-seo" setup'
         $manualDoctor = '"$HOME/.claude/skills/seo/bin/claude-seo" doctor'
-        $updated = $text.Replace('claude-seo run', $manualRunner)
-        $updated = $updated.Replace('claude-seo setup', $manualSetup)
-        $updated = $updated.Replace('claude-seo doctor', $manualDoctor)
+        $updated = $text.Replace('"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run', $manualRunner)
+        $updated = $updated.Replace('"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" setup', $manualSetup)
+        $updated = $updated.Replace('"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" doctor', $manualDoctor)
         if ($updated -ne $text) {
             [System.IO.File]::WriteAllText($_.FullName, $updated, $utf8NoBom)
         }

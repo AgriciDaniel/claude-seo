@@ -550,7 +550,7 @@ def main():
         result = {
             "status": "error",
             "data": None,
-            "error": "No Bing Webmaster API key configured. Run: claude-seo run backlinks_auth.py --setup",
+            "error": "No Bing Webmaster API key configured. Run: "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run backlinks_auth.py --setup",
             "metadata": {"source": "bing_webmaster"},
         }
         if args.json:

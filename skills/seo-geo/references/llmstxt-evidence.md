@@ -5,7 +5,7 @@
 `/llms.txt` is **not currently consumed by any major AI search system**, and
 **Google now states in its own docs that Google Search ignores it**. Generate
 one anyway as low-cost optionality for non-Google AI services, but never present
-it as a Google ranking or citation lever in any claude-seo report.
+it as a Google ranking or citation lever in any "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" report.
 
 ## Primary-source evidence
 
@@ -31,12 +31,12 @@ For a non-developer business site, the value is purely defensive: zero
 cost, possible future-optionality if a major AI provider eventually
 adopts it.
 
-## How claude-seo treats `llms.txt`
+## How "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" treats `llms.txt`
 
 - `seo-geo` audits **report presence** of `/llms.txt` and `/llms-full.txt`.
 - The audit notes whether the file is well-formed (Mintlify-style markdown).
 - The audit explicitly does **not** assign citation-ranking weight to it.
-- If the user asks to generate one, claude-seo produces a minimal valid
+- If the user asks to generate one, "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" produces a minimal valid
   example and a banner stating "Google Search ignores llms.txt (Google docs,
   2026-06-29); no major LLM provider has confirmed consumption; ship for
   non-Google optionality, not for citation".

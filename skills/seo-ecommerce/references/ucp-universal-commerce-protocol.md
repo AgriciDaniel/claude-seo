@@ -89,7 +89,7 @@ Merchants join a **waitlist** and must be Google-approved before going live.
 Exact identifiers are governed by the live spec. The namespace pattern is
 `dev.ucp.<domain>.<verb>`; version values are date-based.
 
-## What claude-seo audits
+## What "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" audits
 
 `/seo ecommerce <url>` should report:
 

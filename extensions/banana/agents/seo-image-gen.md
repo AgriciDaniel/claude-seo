@@ -22,7 +22,7 @@ For each audited page, evaluate:
 
 ## Output Format
 
-Match existing claude-seo patterns:
+Match existing "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" patterns:
 
 ### Image Audit Summary
 

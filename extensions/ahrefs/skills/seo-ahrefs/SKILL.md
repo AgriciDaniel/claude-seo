@@ -46,7 +46,7 @@ provide the install command above.
 
 Ahrefs API usage is metered per unit. Before running a batch (>= 50 URLs):
 
-1. Estimate cost with `claude-seo run dataforseo_costs.py` (the cost-tracker module is generic and supports Ahrefs unit accounting).
+1. Estimate cost with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_costs.py` (the cost-tracker module is generic and supports Ahrefs unit accounting).
 2. Surface the estimate to the orchestrator.
 3. Log actual cost after each call.
 

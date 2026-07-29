@@ -159,9 +159,9 @@ PY
     for installed_doc in "${SKILL_DIR}/SKILL.md" "${SKILL_DIR}/references/"*.md "${AGENT_DIR}/seo-image-gen.md"; do
         [ -f "${installed_doc}" ] || continue
         temp_doc="${installed_doc}.claude-seo-tmp"
-        sed -e 's#claude-seo run#"$HOME/.claude/skills/seo/bin/claude-seo" run#g' \
-            -e 's#claude-seo setup#"$HOME/.claude/skills/seo/bin/claude-seo" setup#g' \
-            -e 's#claude-seo doctor#"$HOME/.claude/skills/seo/bin/claude-seo" doctor#g' \
+        sed -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run#"$HOME/.claude/skills/seo/bin/claude-seo" run#g' \
+            -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" setup#"$HOME/.claude/skills/seo/bin/claude-seo" setup#g' \
+            -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" doctor#"$HOME/.claude/skills/seo/bin/claude-seo" doctor#g' \
             "${installed_doc}" > "${temp_doc}"
         mv "${temp_doc}" "${installed_doc}"
     done

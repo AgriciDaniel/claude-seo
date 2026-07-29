@@ -53,7 +53,7 @@ PY
 
     echo
     echo "Done. Verify your IndexNow key is published:"
-    echo "  claude-seo run indexnow_submit.py --host example.com \\"
+    echo "  "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run indexnow_submit.py --host example.com \\"
     echo "    --key \$INDEXNOW_KEY --key-location \$INDEXNOW_KEY_LOCATION --verify-only"
 }
 main "$@"

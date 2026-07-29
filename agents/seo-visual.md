@@ -29,8 +29,8 @@ pip install playwright && playwright install chromium
 Use the screenshot script (`scripts/capture_screenshot.py` in the plugin root) for browser automation:
 
 ```bash
-claude-seo run capture_screenshot.py URL --all --output screenshots/
-claude-seo run render_page.py URL --mode auto --a11y-tree --json
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run capture_screenshot.py URL --all --output screenshots/
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run render_page.py URL --mode auto --a11y-tree --json
 ```
 
 ## Viewports to Test

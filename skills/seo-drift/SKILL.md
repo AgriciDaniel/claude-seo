@@ -103,8 +103,8 @@ Captures the current state of a page and stores it.
 
 **Execution:**
 ```bash
-claude-seo run drift_baseline.py <url>
-claude-seo run drift_baseline.py <url> --skip-cwv
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_baseline.py <url>
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_baseline.py <url> --skip-cwv
 ```
 
 **Output:** JSON with baseline ID, timestamp, URL, and summary of captured elements.
@@ -126,16 +126,16 @@ Fetches the current page state and diffs it against the most recent baseline.
 
 **Execution:**
 ```bash
-claude-seo run drift_compare.py <url>
-claude-seo run drift_compare.py <url> --baseline-id 5
-claude-seo run drift_compare.py <url> --skip-cwv
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_compare.py <url>
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_compare.py <url> --baseline-id 5
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_compare.py <url> --skip-cwv
 ```
 
 **Output:** JSON with all triggered rules, old/new values, severity, and actions.
 
 After comparison, offer to generate an HTML report:
 ```bash
-claude-seo run drift_report.py <comparison_json_file> --output drift-report.html
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_report.py <comparison_json_file> --output drift-report.html
 ```
 
 ---
@@ -146,8 +146,8 @@ Shows all baselines and comparisons for a URL.
 
 **Execution:**
 ```bash
-claude-seo run drift_history.py <url>
-claude-seo run drift_history.py <url> --limit 10
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_history.py <url>
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_history.py <url> --limit 10
 ```
 
 **Output:** JSON array of baselines (newest first) with timestamps and comparison summaries.

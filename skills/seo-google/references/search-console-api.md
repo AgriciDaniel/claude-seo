@@ -66,7 +66,7 @@
 - `discover` and `googleNews` types do not support `query` dimension or `position` metric.
 - Country codes are **ISO 3166-1 alpha-3** (e.g., `USA`, `GBR`, `DEU`).
 - Pagination: increment `startRow` by `rowLimit` until fewer rows returned.
-- `rowLimit` is per API request. The claude-seo `--limit` option is a total
+- `rowLimit` is per API request. The "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" `--limit` option is a total
   result cap and requests are paged internally at up to 25,000 rows.
 - For accurate site totals, omit `query` and `page` dimensions. Query rows can
   omit anonymized low-volume traffic and must not be summed as site totals.

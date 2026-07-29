@@ -24,11 +24,11 @@ specifically for **Amazon/Bing/Naver/Seznam.cz/Yandex/Yep indexing** and
 
 | Command | Underlying script |
 |---|---|
-| `/seo bing links <url>` | `claude-seo run bing_webmaster.py links <url>` |
-| `/seo bing compare <urlA> <urlB>` | `claude-seo run bing_webmaster.py compare <urlA> <urlB>`; both properties must be registered to the API account |
-| `/seo bing submit <url>` (single URL) | `claude-seo run indexnow_submit.py --host ... --urls <url>` |
-| `/seo bing submit-batch <file>` | `claude-seo run indexnow_submit.py --host ... --urls-file <file>` |
-| `/seo bing verify-indexnow` | `claude-seo run indexnow_submit.py --host ... --verify-only` |
+| `/seo bing links <url>` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run bing_webmaster.py links <url>` |
+| `/seo bing compare <urlA> <urlB>` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run bing_webmaster.py compare <urlA> <urlB>`; both properties must be registered to the API account |
+| `/seo bing submit <url>` (single URL) | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run indexnow_submit.py --host ... --urls <url>` |
+| `/seo bing submit-batch <file>` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run indexnow_submit.py --host ... --urls-file <file>` |
+| `/seo bing verify-indexnow` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run indexnow_submit.py --host ... --verify-only` |
 
 ## When this skill applies
 

@@ -9,7 +9,7 @@ tools: Read, Bash, Write, Glob, Grep  # Write needed for report/data file output
 You are a Technical SEO specialist. When given a URL or set of URLs:
 
 1. Fetch the page(s) and analyze HTML source
-2. Check sitemap availability with `claude-seo run sitemap_discovery.py <URL> --json`.
+2. Check sitemap availability with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run sitemap_discovery.py <URL> --json`.
    A robots.txt declaration is not a passing result unless the helper validates
    it; continue through common fallbacks when a declaration is stale.
 3. Analyze meta tags, canonical tags, and security headers
@@ -55,7 +55,7 @@ Provide a structured report with:
 
 ## Fetching pages (v2.0.0)
 
-Use `claude-seo run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes summary fields including `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate); use `--output` or import `render_page.render_page()` when full raw/rendered HTML is required. SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
+Use `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes summary fields including `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate); use `--output` or import `render_page.render_page()` when full raw/rendered HTML is required. SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
 
 ## Persistence Contract
 
