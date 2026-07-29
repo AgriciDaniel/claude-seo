@@ -39,7 +39,7 @@ The installer will:
 
 CSV batch planning helper:
 ```bash
-claude-seo run --extension banana batch.py --csv requests.csv --model "$NANOBANANA_MODEL"
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run --extension banana batch.py --csv requests.csv --model "$NANOBANANA_MODEL"
 ```
 
 ## Use Case Defaults

@@ -123,7 +123,7 @@ preset format (see `references/presets.md` for schema details).
 
 Users can create their own presets with the installed Banana MCP preset tool.
 If the standalone Banana extension is not installed, configure it before using
-custom presets. The core claude-seo skill does not assume a local fallback
+custom presets. The core "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" skill does not assume a local fallback
 script or a fixed personal configuration directory.
 
 This creates `~/.banana/presets/my-brand.json` with the full schema.

@@ -36,7 +36,7 @@ Topics requiring the **highest** E-E-A-T standards (E-E-A-T applies broadly, but
 
 ---
 
-## Experience (claude-seo internal scoring weight: 20%)
+## Experience ("${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" internal scoring weight: 20%)
 
 First-hand knowledge and personal involvement with the topic.
 
@@ -56,7 +56,7 @@ First-hand knowledge and personal involvement with the topic.
 
 ---
 
-## Expertise (claude-seo internal scoring weight: 25%)
+## Expertise ("${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" internal scoring weight: 25%)
 
 Formal qualifications, training, and demonstrated knowledge.
 
@@ -76,7 +76,7 @@ Formal qualifications, training, and demonstrated knowledge.
 
 ---
 
-## Authoritativeness (claude-seo internal scoring weight: 25%)
+## Authoritativeness ("${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" internal scoring weight: 25%)
 
 Recognition by others as a go-to source.
 
@@ -97,7 +97,7 @@ Recognition by others as a go-to source.
 
 ---
 
-## Trustworthiness (claude-seo internal scoring weight: 30%)
+## Trustworthiness ("${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" internal scoring weight: 30%)
 
 The most important factor, overall reliability and transparency.
 

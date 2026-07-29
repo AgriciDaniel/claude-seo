@@ -13,7 +13,7 @@ Every skill in `skills/*/SKILL.md` is authored to a portable subset of the
 Claude Code skill spec. Validate compatibility with your harness via:
 
 ```bash
-./bin/claude-seo run portability_check.py
+./scripts/claude-seo run portability_check.py
 ```
 
 The check confirms each `SKILL.md` has the minimum frontmatter every harness
@@ -106,19 +106,19 @@ provide execution capabilities.
 **Running scripts directly** (Cursor doesn't have MCP):
 ```bash
 # Page fetching with SSRF protection
-./bin/claude-seo run fetch_page.py https://example.com
+./scripts/claude-seo run fetch_page.py https://example.com
 
 # HTML parsing for SEO elements
-./bin/claude-seo run parse_html.py https://example.com
+./scripts/claude-seo run parse_html.py https://example.com
 
 # PageSpeed Insights
-./bin/claude-seo run pagespeed_check.py https://example.com --json
+./scripts/claude-seo run pagespeed_check.py https://example.com --json
 
 # Drift baseline
-./bin/claude-seo run drift_baseline.py https://example.com
+./scripts/claude-seo run drift_baseline.py https://example.com
 
 # DataForSEO (requires credentials)
-DATAFORSEO_USERNAME=user DATAFORSEO_PASSWORD=pass ./bin/claude-seo run dataforseo_merchant.py search "keyword"
+DATAFORSEO_USERNAME=user DATAFORSEO_PASSWORD=pass ./scripts/claude-seo run dataforseo_merchant.py search "keyword"
 ```
 
 **Cursor Cloud gotchas:**

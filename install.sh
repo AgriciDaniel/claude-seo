@@ -73,10 +73,10 @@ main() {
     fi
 
     # Copy the stable runtime launcher. Manual installs use its explicit path;
-    # plugin installs expose the repository bin/ directory automatically.
-    if [ -f "${TEMP_DIR}/claude-seo/bin/claude-seo" ]; then
+    # hosted Claude surfaces review the launcher under scripts/.
+    if [ -f "${TEMP_DIR}/claude-seo/scripts/claude-seo" ]; then
         mkdir -p "${SKILL_DIR}/bin"
-        cp "${TEMP_DIR}/claude-seo/bin/claude-seo" "${SKILL_DIR}/bin/claude-seo"
+        cp "${TEMP_DIR}/claude-seo/scripts/claude-seo" "${SKILL_DIR}/bin/claude-seo"
         chmod +x "${SKILL_DIR}/bin/claude-seo"
     fi
 
@@ -132,9 +132,9 @@ main() {
     rewrite_doc() {
         local doc="$1" temp_doc
         temp_doc="${doc}.claude-seo-tmp"
-        sed -e 's#claude-seo run#"$HOME/.claude/skills/seo/bin/claude-seo" run#g' \
-            -e 's#claude-seo setup#"$HOME/.claude/skills/seo/bin/claude-seo" setup#g' \
-            -e 's#claude-seo doctor#"$HOME/.claude/skills/seo/bin/claude-seo" doctor#g' \
+        sed -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run#"$HOME/.claude/skills/seo/bin/claude-seo" run#g' \
+            -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" setup#"$HOME/.claude/skills/seo/bin/claude-seo" setup#g' \
+            -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" doctor#"$HOME/.claude/skills/seo/bin/claude-seo" doctor#g' \
             "${doc}" > "${temp_doc}"
         mv "${temp_doc}" "${doc}"
     }

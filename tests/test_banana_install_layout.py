@@ -17,7 +17,10 @@ def _text(path: Path) -> str:
 
 def _runtime_extension_scripts(text: str) -> set[str]:
     return set(
-        re.findall(r"claude-seo run --extension banana ([A-Za-z0-9_]+\.py)", text)
+        re.findall(
+            r'"\$\{CLAUDE_PLUGIN_ROOT\}/scripts/claude-seo" run --extension banana ([A-Za-z0-9_]+\.py)',
+            text,
+        )
     )
 
 

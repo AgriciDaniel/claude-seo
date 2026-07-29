@@ -4,7 +4,7 @@ set -euo pipefail
 # Stable entry point for bundled Python tools. The launcher uses only shell
 # built-ins until a usable Python 3 interpreter has been identified.
 launcher_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-runtime="${launcher_dir}/../scripts/runtime.py"
+runtime="${launcher_dir}/runtime.py"
 
 if [[ ! -f "${runtime}" ]]; then
     echo "Claude SEO runtime is missing. Reinstall Claude SEO." >&2

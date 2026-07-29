@@ -27,7 +27,7 @@ When delegated tasks during an SEO audit or analysis:
 
 Before ANY DataForSEO Merchant API call:
 ```bash
-claude-seo run dataforseo_costs.py check <endpoint>
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_costs.py check <endpoint>
 ```
 
 Only proceed if `"status": "approved"`. If `"needs_approval"`, surface the cost
@@ -36,7 +36,7 @@ the limitation.
 
 After each API call, log the cost:
 ```bash
-claude-seo run dataforseo_costs.py log <endpoint> <actual_cost>
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_costs.py log <endpoint> <actual_cost>
 ```
 
 ## Analysis Priorities
@@ -49,7 +49,7 @@ claude-seo run dataforseo_costs.py log <endpoint> <actual_cost>
 
 ## Output Format
 
-Match existing claude-seo patterns:
+Match existing "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" patterns:
 - Tables for comparative data (pricing, seller landscape)
 - Scores as XX/100 (schema, images, content, overall)
 - Priority: Critical > High > Medium > Low
@@ -65,7 +65,7 @@ Match existing claude-seo patterns:
 
 ## Fetching pages (v2.0.0)
 
-Use `claude-seo run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
+Use `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
 
 E-commerce sites overwhelmingly inject product schema client-side (Shopify, Magento PWA, headless commerce on Next.js). Prefer `--mode always` for product page audits and compare `raw_content` vs `content` to confirm whether the JSON-LD is server-rendered.
 

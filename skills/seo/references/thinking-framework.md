@@ -1,6 +1,6 @@
 # The 10-Principle Audit Synthesis Framework
 
-This is the canonical methodology claude-seo uses to assemble raw findings
+This is the canonical methodology "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" uses to assemble raw findings
 into strategically coherent recommendations. Every full-site audit and
 deep-page analysis walks through these ten principles before producing the
 final action plan.
@@ -202,7 +202,7 @@ The audit is a snapshot, not a verdict. Build the feedback loop:
   Reddit / YouTube).
 - Schedule a re-audit cadence appropriate to the site's velocity
   (weekly for a high-churn ecommerce; quarterly for a B2B SaaS).
-- Surface what claude-seo itself **could not measure** (offline
+- Surface what "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" itself **could not measure** (offline
   conversion, brand lift, customer interviews) so the human closes
   those loops.
 

@@ -321,13 +321,13 @@ https://support.google.com/merchants/answer/14743464
 
 ```bash
 # Audit a directory for the IPTC label (counts: missing, ai, captured, etc.)
-claude-seo run iptc_ai_label.py audit ./images/ --json
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run iptc_ai_label.py audit ./images/ --json
 
 # Audit a single image
-claude-seo run iptc_ai_label.py audit ./hero.webp --json
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run iptc_ai_label.py audit ./hero.webp --json
 
 # Inject the AI label into an image
-claude-seo run iptc_ai_label.py inject ./ai-hero.webp \
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run iptc_ai_label.py inject ./ai-hero.webp \
     --source-type trainedAlgorithmicMedia
 
 # Other vocabulary values:

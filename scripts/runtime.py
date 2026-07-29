@@ -2,7 +2,7 @@
 """Cross-platform runtime for Claude SEO's bundled Python scripts.
 
 This module deliberately uses only the Python standard library. It is launched
-by ``bin/claude-seo`` under a base Python, then dispatches work through the
+by ``scripts/claude-seo`` under a base Python, then dispatches work through the
 managed virtual environment created by ``setup``.
 """
 
