@@ -40,11 +40,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
     with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(65536), b""):
-            h.update(chunk)
-    return h.hexdigest()
+        return hashlib.file_digest(fh, "sha256").hexdigest()
 
 
 def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
