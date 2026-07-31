@@ -341,9 +341,47 @@ def test_safe_requests_head_uses_strict_validation_and_dns_pin() -> None:
         "https://safe.example/path",
         timeout=7,
         allow_redirects=True,
+        headers=url_safety.DEFAULT_REQUEST_HEADERS,
     )
     assert captured["pin"] == ("safe.example", "1.1.1.1", 443)
     assert result is response
+
+
+def test_default_headers_are_browser_like() -> None:
+    headers = url_safety.DEFAULT_REQUEST_HEADERS
+    assert "python-requests" not in headers["User-Agent"]
+    assert headers["User-Agent"].startswith("Mozilla/5.0")
+    assert "Accept-Language" in headers
+
+
+def test_with_default_headers_fills_unset_headers() -> None:
+    assert url_safety._with_default_headers({})["headers"] == (
+        url_safety.DEFAULT_REQUEST_HEADERS
+    )
+    assert url_safety._with_default_headers({"headers": None})["headers"] == (
+        url_safety.DEFAULT_REQUEST_HEADERS
+    )
+
+
+def test_with_default_headers_lets_caller_override() -> None:
+    # fetch_page.py --user-agent (Googlebot cloaking checks) must still win.
+    merged = url_safety._with_default_headers(
+        {"headers": {"User-Agent": "Googlebot/2.1"}}
+    )["headers"]
+    assert merged["User-Agent"] == "Googlebot/2.1"
+    # Headers the caller did not set are still filled in.
+    assert merged["Accept-Language"] == (
+        url_safety.DEFAULT_REQUEST_HEADERS["Accept-Language"]
+    )
+
+
+def test_with_default_headers_preserves_other_kwargs_and_constant() -> None:
+    before = dict(url_safety.DEFAULT_REQUEST_HEADERS)
+    kwargs = url_safety._with_default_headers({"stream": True, "allow_redirects": False})
+    assert kwargs["stream"] is True
+    assert kwargs["allow_redirects"] is False
+    url_safety._with_default_headers({"headers": {"User-Agent": "mutating/1.0"}})
+    assert url_safety.DEFAULT_REQUEST_HEADERS == before
 
 
 def test_pin_dns_restores_getaddrinfo_on_exception() -> None:
