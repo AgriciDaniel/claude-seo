@@ -10,6 +10,7 @@ Provides cost-aware guardrails for DataForSEO API usage:
 
 Config: ~/.config/claude-seo/dataforseo-costs.json
 Ledger: ~/.config/claude-seo/dataforseo-ledger.json
+Set CLAUDE_SEO_CONFIG_DIR to point both somewhere else (used by the tests).
 
 Usage:
     python dataforseo_costs.py estimate <endpoint> [--count N]
@@ -28,18 +29,30 @@ import argparse
 import json
 import os
 import sys
+import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 
 try:
     import fcntl
 except ImportError:
-    fcntl = None  # Windows fallback: no locking
+    fcntl = None
+
+try:
+    import msvcrt
+except ImportError:
+    msvcrt = None
 
 # ----- paths -----
-CONFIG_DIR = Path.home() / ".config" / "claude-seo"
+# CLAUDE_SEO_CONFIG_DIR lets tests (and anyone running an isolated budget) point
+# the ledger somewhere other than the real one. Resolved at import.
+CONFIG_DIR = Path(
+    os.environ.get("CLAUDE_SEO_CONFIG_DIR") or Path.home() / ".config" / "claude-seo"
+)
 CONFIG_FILE = CONFIG_DIR / "dataforseo-costs.json"
 LEDGER_FILE = CONFIG_DIR / "dataforseo-ledger.json"
+LOCK_FILE = CONFIG_DIR / "dataforseo-ledger.lock"
 
 # ----- cost table (USD per call, standard queue) -----
 # Source: https://dataforseo.com/pricing
@@ -141,41 +154,108 @@ def _save_config(cfg):
         json.dump(cfg, f, indent=2)
 
 
-def _load_ledger():
-    """Load spending ledger with file locking."""
+class LedgerError(RuntimeError):
+    """The ledger could not be read or written safely."""
+
+
+def _lock(handle, exclusive):
+    """Take an advisory lock on an open handle, blocking until acquired.
+
+    Never degrades to running unlocked: a spend ledger that silently drops
+    entries is worse than one that refuses to run.
+    """
+    if fcntl is not None:
+        fcntl.flock(handle, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
+    elif msvcrt is not None:
+        # msvcrt has no shared mode, so readers take an exclusive lock too.
+        # LK_LOCK retries 10 times at 1s intervals, then raises OSError.
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+    else:
+        raise LedgerError(
+            "No file-locking primitive available (neither fcntl nor msvcrt). "
+            "Refusing to touch the spend ledger unlocked."
+        )
+
+
+def _unlock(handle):
+    if fcntl is not None:
+        fcntl.flock(handle, fcntl.LOCK_UN)
+    elif msvcrt is not None:
+        handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+
+
+def _read_ledger():
+    """Read the ledger. Caller must hold the lock."""
     if not LEDGER_FILE.exists():
         return {"entries": []}
-    if fcntl:
-        lock_path = LEDGER_FILE.with_suffix(".lock")
-        with open(lock_path, "w") as lock_file:
-            fcntl.flock(lock_file, fcntl.LOCK_SH)
-            try:
-                with open(LEDGER_FILE) as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, IOError):
-                return {"entries": []}
-            finally:
-                fcntl.flock(lock_file, fcntl.LOCK_UN)
-    else:
+    try:
         with open(LEDGER_FILE) as f:
-            return json.load(f)
+            ledger = json.load(f)
+    except json.JSONDecodeError as exc:
+        raise LedgerError(
+            f"Spend ledger {LEDGER_FILE} is not valid JSON ({exc}). Refusing to "
+            "continue from a zero balance, which would under-report spend. "
+            "Inspect the file, then repair or remove it."
+        ) from exc
+    if not isinstance(ledger, dict) or not isinstance(ledger.get("entries"), list):
+        raise LedgerError(
+            f"Spend ledger {LEDGER_FILE} has an unexpected shape (no 'entries' "
+            "list). Inspect the file, then repair or remove it."
+        )
+    return ledger
 
 
-def _save_ledger(ledger):
-    """Save spending ledger with file locking."""
-    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-    if fcntl:
-        lock_path = LEDGER_FILE.with_suffix(".lock")
-        with open(lock_path, "w") as lock_file:
-            fcntl.flock(lock_file, fcntl.LOCK_EX)
-            try:
-                with open(LEDGER_FILE, "w") as f:
-                    json.dump(ledger, f, indent=2)
-            finally:
-                fcntl.flock(lock_file, fcntl.LOCK_UN)
-    else:
-        with open(LEDGER_FILE, "w") as f:
+def _write_ledger(ledger):
+    """Write the ledger atomically. Caller must hold the exclusive lock.
+
+    tempfile + os.replace so a crash mid-write can never leave a truncated,
+    unparseable ledger behind (same idiom as scripts/google_auth.py).
+    """
+    fd, tmp_path = tempfile.mkstemp(
+        dir=str(CONFIG_DIR), prefix=".dataforseo-ledger.", suffix=".tmp"
+    )
+    try:
+        with os.fdopen(fd, "w") as f:
             json.dump(ledger, f, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, LEDGER_FILE)
+    except Exception:
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
+        raise
+
+
+@contextmanager
+def _locked_ledger(write=False):
+    """Yield the ledger under ONE lock held across the whole read-modify-write.
+
+    Taking the lock to read, dropping it, then re-taking it to write loses
+    entries: two concurrent writers both read the same ledger and the second
+    overwrites the first. The lock has to span both halves.
+
+    The lock lives in a separate .lock file on purpose. The atomic write
+    replaces the ledger's inode, so a lock held on the ledger itself would not
+    protect the replacement.
+    """
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    with open(LOCK_FILE, "a+") as lock_handle:
+        _lock(lock_handle, exclusive=write)
+        try:
+            ledger = _read_ledger()
+            yield ledger
+            if write:
+                _write_ledger(ledger)
+        finally:
+            _unlock(lock_handle)
+
+
+def _ledger_snapshot():
+    """Read the ledger under a shared lock. For read-only commands."""
+    with _locked_ledger() as ledger:
+        return ledger
 
 
 def _today_str():
@@ -230,7 +310,7 @@ def cmd_estimate(args):
 def cmd_check(args):
     """Check if an API call should proceed (cost + approval logic)."""
     cfg = _load_config()
-    ledger = _load_ledger()
+    ledger = _ledger_snapshot()
     endpoint = args.endpoint
     count = args.count or 1
     unit_cost = COST_TABLE.get(endpoint)
@@ -299,7 +379,6 @@ def cmd_check(args):
 
 def cmd_log(args):
     """Log a completed API call cost."""
-    ledger = _load_ledger()
     entry = {
         "timestamp": datetime.now().isoformat(),
         "endpoint": args.endpoint,
@@ -307,8 +386,10 @@ def cmd_log(args):
     }
     if args.note:
         entry["note"] = args.note
-    ledger["entries"].append(entry)
-    _save_ledger(ledger)
+    # Read and write inside one lock, so a concurrent log cannot overwrite this
+    # entry with a ledger it read before this one was appended.
+    with _locked_ledger(write=True) as ledger:
+        ledger["entries"].append(entry)
 
     result = {
         "status": "logged",
@@ -320,7 +401,7 @@ def cmd_log(args):
 
 def cmd_summary(args):
     """Show spending summary for recent days."""
-    ledger = _load_ledger()
+    ledger = _ledger_snapshot()
     days = args.days or 7
     cutoff = (datetime.now() - timedelta(days=days)).isoformat()
 
@@ -351,7 +432,7 @@ def cmd_summary(args):
 
 def cmd_today(args):
     """Show today's spending."""
-    ledger = _load_ledger()
+    ledger = _ledger_snapshot()
     cfg = _load_config()
     today = _today_str()
     today_entries = [e for e in ledger["entries"] if e["timestamp"].startswith(today)]
@@ -417,23 +498,23 @@ def cmd_reset(args):
         json.dump(result, sys.stdout, indent=2)
         return
 
-    ledger = _load_ledger()
     today = _today_str()
-    today_entries = [e for e in ledger["entries"] if e["timestamp"].startswith(today)]
-    removed_total = sum(e["cost"] for e in today_entries)
-    removed_count = len(today_entries)
+    # One lock across the whole read-modify-write, so a concurrent log is either
+    # cleared by this reset or survives it, never silently discarded.
+    with _locked_ledger(write=True) as ledger:
+        today_entries = [e for e in ledger["entries"] if e["timestamp"].startswith(today)]
+        removed_total = sum(e["cost"] for e in today_entries)
+        removed_count = len(today_entries)
 
-    ledger["entries"] = [e for e in ledger["entries"] if not e["timestamp"].startswith(today)]
+        ledger["entries"] = [e for e in ledger["entries"] if not e["timestamp"].startswith(today)]
 
-    # Immutable audit entry for the reset itself
-    ledger["entries"].append({
-        "timestamp": datetime.now().isoformat(),
-        "endpoint": "_audit_reset",
-        "cost": 0,
-        "note": f"Reset cleared {removed_count} entries totaling ${removed_total:.4f}",
-    })
-
-    _save_ledger(ledger)
+        # Immutable audit entry for the reset itself
+        ledger["entries"].append({
+            "timestamp": datetime.now().isoformat(),
+            "endpoint": "_audit_reset",
+            "cost": 0,
+            "note": f"Reset cleared {removed_count} entries totaling ${removed_total:.4f}",
+        })
 
     result = {
         "status": "reset",
@@ -493,7 +574,13 @@ def main():
         "config": cmd_config,
         "reset": cmd_reset,
     }
-    dispatch[args.command](args)
+    try:
+        dispatch[args.command](args)
+    except LedgerError as exc:
+        # Fail closed and loudly. Callers parse stdout as JSON, so keep the
+        # contract even on the error path.
+        json.dump({"status": "error", "message": str(exc)}, sys.stdout, indent=2)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
