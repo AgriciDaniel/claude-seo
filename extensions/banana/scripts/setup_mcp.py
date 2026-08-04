@@ -2,7 +2,7 @@
 """
 Setup script for Claude Banana MCP server in Claude Code.
 
-Configures @ycse/nanobanana-mcp in Claude Code's settings.json
+Configures @ycse/nanobanana-mcp in Claude Code's ~/.claude.json
 with the user's Google AI API key.
 
 Usage:
@@ -18,13 +18,13 @@ import sys
 import os
 from pathlib import Path
 
-SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
+SETTINGS_PATH = Path.home() / ".claude.json"
 MCP_NAME = "nanobanana-mcp"
 MCP_PACKAGE = "@ycse/nanobanana-mcp@1.1.1"
 
 
 def load_settings() -> dict:
-    """Load Claude Code settings.json."""
+    """Load Claude Code ~/.claude.json."""
     if not SETTINGS_PATH.exists():
         return {}
     with open(SETTINGS_PATH, "r") as f:
@@ -32,7 +32,7 @@ def load_settings() -> dict:
 
 
 def save_settings(settings: dict) -> None:
-    """Save Claude Code settings.json."""
+    """Save Claude Code ~/.claude.json."""
     SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(SETTINGS_PATH, "w") as f:
         json.dump(settings, f, indent=2)

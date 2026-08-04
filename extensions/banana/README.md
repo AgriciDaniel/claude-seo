@@ -24,7 +24,7 @@ The installer will:
 1. Verify Claude SEO is installed
 2. Prompt for your Google AI API key (if nanobanana-mcp not already configured)
 3. Install the `seo-image-gen` skill and agent
-4. Configure the MCP server in `~/.claude/settings.json`
+4. Configure the MCP server in `~/.claude.json`
 
 ## Commands
 

@@ -56,7 +56,7 @@ When installed, other Claude SEO skills automatically leverage Firecrawl:
 ## Troubleshooting
 
 **MCP not connecting?**
-- Check: `cat ~/.claude/settings.json | python3 -m json.tool | grep firecrawl`
+- Check: `cat ~/.claude.json | python3 -m json.tool | grep firecrawl`
 - Manual config: See [FIRECRAWL-SETUP.md](docs/FIRECRAWL-SETUP.md)
 
 **Credits exhausted?**

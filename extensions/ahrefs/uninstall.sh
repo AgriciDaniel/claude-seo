@@ -3,15 +3,15 @@
 set -euo pipefail
 
 SKILL_DIR="${HOME}/.claude/skills/seo-ahrefs"
-SETTINGS_JSON="${HOME}/.claude/settings.json"
+MCP_CONFIG_JSON="${HOME}/.claude.json"
 
 if [ -d "${SKILL_DIR}" ]; then
     rm -rf "${SKILL_DIR}"
     echo "✓ Removed ${SKILL_DIR}"
 fi
 
-if [ -f "${SETTINGS_JSON}" ]; then
-    python3 - "${SETTINGS_JSON}" <<'PY'
+if [ -f "${MCP_CONFIG_JSON}" ]; then
+    python3 - "${MCP_CONFIG_JSON}" <<'PY'
 import json, os, sys, tempfile
 path = sys.argv[1]
 with open(path) as fh:

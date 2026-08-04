@@ -19,7 +19,7 @@ It will prompt for your API key and configure the MCP server.
 
 ## 3. Manual MCP Configuration
 
-If the installer fails, add this to `~/.claude/settings.json` manually:
+If the installer fails, add this to `~/.claude.json` manually:
 
 ```json
 {

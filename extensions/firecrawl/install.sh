@@ -8,7 +8,10 @@ main() {
     SKILL_DIR="${HOME}/.claude/skills/seo-firecrawl"
     AGENT_DIR="${HOME}/.claude/agents"
     SEO_SKILL_DIR="${HOME}/.claude/skills/seo"
-    SETTINGS_FILE="${HOME}/.claude/settings.json"
+    # MCP servers live in ~/.claude.json (the file `claude mcp add` writes).
+    # NOT ~/.claude/settings.json - `mcpServers` is not a key Claude Code reads
+    # there, so entries written to settings.json silently never load.
+    MCP_CONFIG_FILE="${HOME}/.claude.json"
 
     echo "════════════════════════════════════════"
     echo "║   Firecrawl Extension - Installer    ║"
@@ -78,12 +81,12 @@ main() {
     mkdir -p "${SKILL_DIR}"
     cp "${SOURCE_DIR}/skills/seo-firecrawl/SKILL.md" "${SKILL_DIR}/SKILL.md"
 
-    # Merge MCP config into settings.json
+    # Merge MCP config into ~/.claude.json
     echo "-> Configuring MCP server..."
 
     # Credentials are passed as argv (never interpolated into the source string)
     # and the settings file is written atomically with 0600 permissions.
-    python3 - "${SETTINGS_FILE}" "${FIRECRAWL_API_KEY}" <<'PY'
+    python3 - "${MCP_CONFIG_FILE}" "${FIRECRAWL_API_KEY}" <<'PY'
 import json, os, sys, tempfile
 
 settings_path, api_key = sys.argv[1:3]
@@ -117,11 +120,11 @@ except Exception:
         os.unlink(tmp)
     raise
 
-print('  v MCP server configured in settings.json')
+print('  v MCP server configured in ~/.claude.json')
 PY
     if [ $? -ne 0 ]; then
         echo "  Warning: Could not auto-configure MCP server."
-        echo "  Add the firecrawl-mcp server manually to ~/.claude/settings.json"
+        echo "  Add the firecrawl-mcp server manually to ~/.claude.json"
         echo "  See: extensions/firecrawl/docs/FIRECRAWL-SETUP.md"
     fi
 

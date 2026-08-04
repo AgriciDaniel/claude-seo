@@ -18,7 +18,7 @@ The installer:
 3. Pre-warms the `@ahrefs/mcp@0.0.11` npm package via `npx --yes` so the first
    MCP call doesn't spend 10+ seconds downloading.
 4. Copies `skills/seo-ahrefs/SKILL.md` into `~/.claude/skills/seo-ahrefs/`.
-5. Atomically writes `mcpServers.ahrefs` into `~/.claude/settings.json`
+5. Atomically writes `mcpServers.ahrefs` into `~/.claude.json`
    with your token in the `env` block. The settings file is `chmod 0o600`
    after the merge (same hardening as the OAuth token).
 
@@ -41,7 +41,7 @@ Re-run the installer to pre-warm or run `npx --yes --package=@ahrefs/mcp@0.0.11 
 
 The Python merge script is idempotent — re-running only replaces the
 `mcpServers.ahrefs.env.AHREFS_API_TOKEN` value, leaving the rest of
-`settings.json` intact.
+`~/.claude.json` intact.
 
 ## Uninstall
 
