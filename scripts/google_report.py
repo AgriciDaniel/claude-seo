@@ -1271,9 +1271,15 @@ def _build_executive_summary(domain, timestamp, data, report_type):
     # Critical issues box
     issues = []
     for item in _coerce_items(summary.get("top_findings")):
-        severity = _finding_severity(item)
         title = _finding_title(item)
-        issues.append(f'<strong>{escape(severity)}:</strong> {escape(title)}')
+        # Only label a severity when the finding actually carries one. Plain-string
+        # top_findings (the shape documented in seo-audit/SKILL.md) have no severity, and
+        # _finding_severity() falls back to "Info" -- which rendered every entry in the
+        # "Critical Issues Found" box as "Info:", understating the whole section.
+        if isinstance(item, dict) and item.get("severity"):
+            issues.append(f'<strong>{escape(str(item["severity"]))}:</strong> {escape(title)}')
+        else:
+            issues.append(escape(title))
 
     failed_audits = mobile.get("failed_audits", [])
     if failed_audits:
