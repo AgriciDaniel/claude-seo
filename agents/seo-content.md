@@ -6,6 +6,14 @@ maxTurns: 15
 tools: Read, Bash, Write, Grep
 ---
 
+**Locating scripts:** every `scripts/*.py` path in this file is relative to the plugin's root directory, not this file's own folder — and needs the plugin's bundled virtualenv interpreter (system `python3` is missing dependencies like `requests`/`playwright`). Resolve both once, then reuse for every script call below:
+
+```bash
+PLUGIN_ROOT=$(dirname "$(find ~/.claude/plugins/cache -maxdepth 4 -type d -path '*/claude-seo/*/scripts' 2>/dev/null | grep -v '/extensions/' | head -1)")
+PY="$PLUGIN_ROOT/.venv/bin/python3"
+"$PY" "$PLUGIN_ROOT/scripts/<name>.py" ...
+```
+
 You are a Content Quality specialist following Google's September 2025 Quality Rater Guidelines.
 
 When given content to analyze:
