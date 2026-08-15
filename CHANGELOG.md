@@ -23,6 +23,8 @@ patches excluded. No breaking command changes. Full suite: 410 passing tests.
 
 ### Fixed
 
+- Schema validation no longer treats words such as "replacement" as unresolved `REPLACE`
+  placeholders, while standalone placeholder tokens remain blocked.
 - GSC queries now honor exact result limits, validate dimensions before API access, support
   dimensionless totals, and report whether aggregate totals are complete.
 - Bing Webmaster backlink commands now use supported endpoints, bounded pagination, deduplication,

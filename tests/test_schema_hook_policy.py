@@ -32,3 +32,11 @@ def test_faqpage_not_blocked(tmp_path):
 
 def test_deprecated_type_still_blocks(tmp_path):
     assert _run(tmp_path, "ClaimReview") == 2
+
+
+def test_replacement_text_is_not_treated_as_placeholder(tmp_path):
+    assert _run(tmp_path, "Product", ',"description":"Replacement coils"') == 0
+
+
+def test_standalone_replace_still_blocks(tmp_path):
+    assert _run(tmp_path, "Product", ',"description":"REPLACE"') == 2

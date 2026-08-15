@@ -36,6 +36,8 @@ import re
 import sys
 from typing import List
 
+BARE_PLACEHOLDER = "REPLACE"
+
 
 def validate_jsonld(content: str) -> List[str]:
     """Validate JSON-LD blocks in HTML content."""
@@ -87,7 +89,6 @@ def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
         "[Address]",
         "[Your",
         "[INSERT",
-        "REPLACE",
         "[URL]",
         "[Email]",
     ]
@@ -95,6 +96,8 @@ def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
     for p in placeholders:
         if p.lower() in text.lower():
             errors.append(f"{prefix}: Contains placeholder text: {p}")
+    if re.search(rf"\b{re.escape(BARE_PLACEHOLDER)}\b", text, re.IGNORECASE):
+        errors.append(f"{prefix}: Contains placeholder text: {BARE_PLACEHOLDER}")
 
     # Check for deprecated types
     schema_type = obj.get("@type", "")
