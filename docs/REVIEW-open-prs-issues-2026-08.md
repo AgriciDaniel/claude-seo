@@ -299,7 +299,11 @@ substitution is exactly what left #198 unparseable. Five descriptive references
 that explain internals (e.g. "All URL fetching goes through `fetch_page.py`
 which enforces SSRF protection") are deliberately unchanged.
 
-Suite after all fixes: **400 passed** (393 baseline + 7 new regression tests). `consistency_check.py` and
+Full suite, nothing excluded — `main` **407 passed / 3 failed**, this branch
+**414 passed / 3 failed**. Exactly +7 tests, all passing, zero new failures. The
+3 failures are byte-identical on both branches and are network-bound
+(`example.com` fetch, and the GitHub API returning 403 through the sandbox
+proxy), so they are environmental rather than pre-existing defects. `consistency_check.py` and
 `portability_check.py` both pass (0 errors); the one warning is this review doc
 itself being unreferenced from the docs tree.
 
