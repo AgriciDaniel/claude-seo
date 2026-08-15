@@ -23,6 +23,7 @@ patches excluded. No breaking command changes. Full suite: 410 passing tests.
 
 ### Fixed
 
+- Schema validation now accepts top-level `@graph` containers and validates their member nodes.
 - GSC queries now honor exact result limits, validate dimensions before API access, support
   dimensionless totals, and report whether aggregate totals are complete.
 - Bing Webmaster backlink commands now use supported endpoints, bounded pagination, deduplication,

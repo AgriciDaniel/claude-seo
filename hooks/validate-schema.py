@@ -36,6 +36,8 @@ import re
 import sys
 from typing import List
 
+GRAPH_KEY = "@graph"
+
 
 def validate_jsonld(content: str) -> List[str]:
     """Validate JSON-LD blocks in HTML content."""
@@ -58,21 +60,36 @@ def validate_jsonld(content: str) -> List[str]:
             for item in data:
                 errors.extend(_validate_schema_object(item, i))
         elif isinstance(data, dict):
-            errors.extend(_validate_schema_object(data, i))
+            graph = data.get(GRAPH_KEY)
+            if isinstance(graph, list):
+                errors.extend(_validate_schema_context(data, i))
+                for item in graph:
+                    errors.extend(_validate_schema_object(item, i, require_context=False))
+            else:
+                errors.extend(_validate_schema_object(data, i))
 
     return errors
 
 
-def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
+def _validate_schema_context(obj: dict, block_num: int) -> List[str]:
+    """Validate the context declared by a schema document."""
+    prefix = f"Block {block_num}"
+    if "@context" not in obj:
+        return [f"{prefix}: Missing @context"]
+    if obj["@context"] not in ("https://schema.org", "http://schema.org"):
+        return [f"{prefix}: @context should be 'https://schema.org'"]
+    return []
+
+
+def _validate_schema_object(
+    obj: dict, block_num: int, require_context: bool = True
+) -> List[str]:
     """Validate a single schema object."""
     errors = []
     prefix = f"Block {block_num}"
 
-    # Check @context
-    if "@context" not in obj:
-        errors.append(f"{prefix}: Missing @context")
-    elif obj["@context"] not in ("https://schema.org", "http://schema.org"):
-        errors.append(f"{prefix}: @context should be 'https://schema.org'")
+    if require_context:
+        errors.extend(_validate_schema_context(obj, block_num))
 
     # Check @type
     if "@type" not in obj:
