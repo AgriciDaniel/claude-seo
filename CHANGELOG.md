@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `agent_ux_check.py` no longer emits a passing agent-UX score for an empty or
+  whitespace-only document. A successful fetch that returned no HTML previously
+  scored 90/100, because every signal it counts collapses to zero on an empty
+  document; it is now reported as a render error (#210).
+- `validate-schema.py` no longer crashes on a non-UTF-8 console. Encoding the
+  banner markers to cp1252 raised `UnicodeEncodeError` before `sys.exit(2)` ran,
+  so the hook exited 1 — warnings-only — and a blocking schema finding was
+  silently non-blocking on Windows. The quality gate failed open; it now fails
+  closed with the finding intact (#186).
+
 ## [2.2.4] - 2026-07-20
 
 Community maintenance release following a full review of every open issue and pull request.

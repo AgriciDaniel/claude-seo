@@ -143,7 +143,29 @@ def _resolve_filepath():
     return None
 
 
+def _make_output_encoding_safe():
+    """Stop a non-UTF-8 console from turning a finding into a crash.
+
+    This hook prints warning/error banners containing non-ASCII markers. On a
+    Windows console defaulting to cp1252, encoding those raised
+    UnicodeEncodeError, so the hook died with exit code 1 and the operator saw a
+    traceback instead of the schema finding (issue #186).
+
+    The stream's encoding is left alone deliberately - forcing UTF-8 onto a
+    cp1252 console produces mojibake. Only the error handler is relaxed, so an
+    unencodable character degrades to a replacement character and the finding,
+    and the blocking exit code, still get through.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")
+        except (AttributeError, OSError, ValueError):
+            # Non-TextIOWrapper stream (redirected/wrapped); nothing to relax.
+            pass
+
+
 def main():
+    _make_output_encoding_safe()
     filepath = _resolve_filepath()
     if not filepath:
         sys.exit(0)

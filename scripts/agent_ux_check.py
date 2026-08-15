@@ -195,6 +195,13 @@ def audit(url: str, *, timeout_ms: int = 15000) -> dict:
     if page.get("error"):
         return report
     html = page.get("content") or ""
+    if not html.strip():
+        # A fetch that succeeded but returned nothing is a render failure, not a
+        # clean page. Every count in analyze_html() collapses to 0 on an empty
+        # document, which score() would otherwise read as "no problems found"
+        # and reward with 90/100. Surface it as an error instead (issue #210).
+        report["render_error"] = "empty document returned (no HTML content)"
+        return report
     a11y = page.get("accessibility_tree")
 
     report["html_findings"] = analyze_html(html)

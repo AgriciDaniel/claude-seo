@@ -313,6 +313,45 @@ def test_score_deducts_for_div_onclick_and_unnamed_interactives():
     assert any("accessible name" in issue for issue in scored["issues"])
 
 
+def _fake_page(content, *, error=None, a11y=None):
+    """Minimal render_page() result stub for audit() tests."""
+    return {
+        "url": "https://example.test/",
+        "status_code": 200,
+        "error": error,
+        "content": content,
+        "accessibility_tree": a11y,
+    }
+
+
+def test_audit_refuses_score_on_empty_html(monkeypatch):
+    # A successful fetch that returns an empty document must NOT be scored.
+    # Every count in analyze_html() collapses to 0, which score() would read as
+    # a clean page and reward with 90/100 (issue #210).
+    monkeypatch.setattr(agent_ux_check, "render_page", lambda *a, **k: _fake_page(""))
+    report = agent_ux_check.audit("https://example.test/")
+    assert report["score"] is None
+    assert report["render_error"]
+
+
+def test_audit_refuses_score_on_whitespace_only_html(monkeypatch):
+    monkeypatch.setattr(
+        agent_ux_check, "render_page", lambda *a, **k: _fake_page("   \n\t  ")
+    )
+    report = agent_ux_check.audit("https://example.test/")
+    assert report["score"] is None
+    assert report["render_error"]
+
+
+def test_audit_still_scores_real_html(monkeypatch):
+    # The empty guard must not swallow genuine documents.
+    html = "<html><body><nav><a href='/'>home</a></nav><main>hi</main></body></html>"
+    monkeypatch.setattr(agent_ux_check, "render_page", lambda *a, **k: _fake_page(html))
+    report = agent_ux_check.audit("https://example.test/")
+    assert report["render_error"] is None
+    assert report["score"] is not None
+
+
 # ---------------------------------------------------------------------------
 # render_page extension
 # ---------------------------------------------------------------------------

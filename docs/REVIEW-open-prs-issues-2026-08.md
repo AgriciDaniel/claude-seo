@@ -190,7 +190,7 @@ the 3.10 CI matrix. Safe.
 | **#210** empty HTML scores 90/100 | ✅ **Confirmed** | Reproduced: `score()` on an empty doc returns `{'score': 90, ...}`. Fix still missing (#242 is tests-only) |
 | **#187** `@graph` false positive | ✅ **Confirmed** | Reproduced on `main`: valid top-level `@graph` → `['Block 1: Missing @type']`. Fixed by #241 |
 | **#188** / **#205** bare `REPLACE` substring | ✅ **Confirmed — duplicates** | Reproduced: `"renal replacement therapy"` → `Contains placeholder text: REPLACE`. Fixed by #240. Close one as a duplicate of the other |
-| **#186** `UnicodeEncodeError` on Windows cp1252 | ✅ **Confirmed — no PR open** | `hooks/validate-schema.py:183,188` print `⚠️` and `🛑`. Crashes on a cp1252 stdout. **Unclaimed gap** |
+| **#186** `UnicodeEncodeError` on Windows cp1252 | ✅ **Confirmed — worse than reported.** Fixed in §6 | `hooks/validate-schema.py:183,188` print `⚠️`/`🛑`. The crash pre-empts `sys.exit(2)`, so the hook exits **1** — the gate fails *open* on Windows |
 | **#208** script path resolution | ✅ Confirmed, ❌ wrong fix proposed | 25 raw refs vs 28 using `claude-seo run`. See #209 above |
 | **#180** trafilatura / `lxml_html_clean` | ❓ **Does not reproduce** | Fresh install of the exact pins: trafilatura 2.2.0 imports fine, `lxml.html.clean` resolves, `lxml_html_clean` pulled in automatically. Ask the reporter for their platform and `pip freeze` before acting |
 | **#177** subagents write no findings on large sites | ⚠️ Plausible, unverified | `maxTurns` is 15/20/25 and `seo-audit/SKILL.md` does specify `findings/*.md`. Needs a real large-site run to confirm — not reproducible from static inspection |
@@ -201,22 +201,85 @@ the 3.10 CI matrix. Safe.
 
 ---
 
-## 5. Not yet reviewed in depth
+## 5. Second pass: the remaining PRs
 
-#178 (docs, 2 files), #179 (tests only, +95), #183/#184/#185 (CI: fail-fast on
-install, pip-audit, Windows/macOS matrix), #195 (new templated-metadata detector,
-+810), #198 (hosted-Claude compat, 60 files). #183–#185 pair naturally with #182 as
-a CI-health batch. #195 and #198 are large enough to deserve dedicated passes.
+| PR | Verdict | Evidence |
+|----|---------|----------|
+| **#183** don't swallow install failure in v2 CI | ✅ **Merge — pairs with #182** | Removes `pip install -r requirements.txt \|\| true`. Independently corroborates §0: a swallowed install resurfaces as an opaque pytest INTERNALERROR rather than the pip error that caused it |
+| **#185** portability matrix (Windows/macOS) | ✅ Merge | `fail-fast: false`; deliberately runs only the 3 platform-neutral modules and explains why the other 15 assert POSIX semantics. Action versions (`@v7`) match `main` |
+| **#184** pip-audit job | ✅ Merge, with one caveat | Sound, and the author flags the tradeoff honestly: because pins are ranges, a newly published advisory turns CI red with no commit. Fine as an advisory job — think twice before making it a *required* check |
+| **#178** dynamic rendering is a workaround | ✅ Merge | Docs-only, factually correct — Google does document dynamic rendering as "a workaround and not a recommended solution" |
+| **#179** validate_backlink_report coverage | ✅ Merge | Tests only, +95, no source change |
+| **#195** templated-metadata detector | ✅ Merge (feature — scope is your call) | 48 tests pass. Pure offline string analysis, no network, so no `url_safety` exposure. Clean structure |
+| **#198** hosted-Claude compatibility | ❌ **Do not merge — breaks the build** | See below |
+
+### PR #198 breaks `scripts/bing_webmaster.py`
+
+The PR does a blind find/replace of `claude-seo run` →
+`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run` across 60 files, including
+**inside a Python string literal**. The injected double quotes terminate the
+string:
+
+```
+scripts/bing_webmaster.py:553
+    "error": "No Bing Webmaster API key configured. Run: "${CLAUDE_PLUGIN_ROOT}/...
+SyntaxError: invalid syntax
+```
+
+Compile-checking every tracked `.py` file: **1 broken on #198, 0 on `main`.** The
+file does not parse, so `tests/test_bing_webmaster.py` cannot even be collected.
+
+The goal (making the plugin work on hosted Claude) is legitimate and #199 is a real
+report. But this needs a re-run of the substitution that respects string literals,
+plus a `py_compile` gate — worth adding to CI regardless, since nothing currently
+catches an unparseable file.
 
 ---
 
-## 6. Recommended sequence
+## 6. Fixes implemented on this branch
+
+Two confirmed bugs had no working PR, so they are fixed here with regression tests.
+Both tests were verified to **fail without the fix** and pass with it.
+
+### `scripts/agent_ux_check.py` — issue #210
+
+`audit()` returned early only on `page["error"]`, so an empty-but-successful fetch
+flowed into `score()` and scored 90/100. Now surfaced as a render error
+(`score: None`). This is the hunk #242 was missing; its tests were good and
+equivalents are included.
+
+### `hooks/validate-schema.py` — issue #186 (more serious than reported)
+
+The report describes a `UnicodeEncodeError` traceback on cp1252 consoles. Measured,
+the impact is worse: the crash happens **before** `sys.exit(2)`, so the hook exits
+**1** instead of **2**.
+
+```
+main (pre-fix) exit code: 1     <- "warnings only, proceed"
+fixed exit code:          2     <- blocking
+```
+
+Exit 1 means warnings-only. So on any Windows console defaulting to cp1252, a
+*blocking* schema error was silently non-blocking — **the quality gate failed open**,
+which is the one direction a gate must never fail. Fixed by relaxing only the error
+handler (`reconfigure(errors="replace")`), deliberately not forcing UTF-8 onto a
+cp1252 console, which would produce mojibake.
+
+Suite after both fixes: **393 passed**, unchanged from baseline.
+
+---
+
+## 7. Recommended sequence
 
 1. Merge **#182** — restores the ability to test anything.
 2. Merge **#202**, **#207**, **#196**.
 3. Merge **#241**, ask for a rebase of **#240**.
 4. Merge Dependabot **#190–#194**; close **#201** as superseded.
-5. Return **#242** for its missing fix; return **#197**/**#203** for the SSRF and
-   file-read issues; close **#209** in favour of `claude-seo run`.
-6. Harden the write path in **#204**, then merge.
-7. Pick up **#186** — a confirmed bug with nobody working on it.
+5. Merge the CI batch **#183**, **#185**, **#184**, then **#178**, **#179**, **#195**.
+6. Return **#242** for its missing fix; return **#197**/**#203** for the SSRF and
+   file-read issues; return **#198** for the `SyntaxError`; close **#209** in favour
+   of `claude-seo run`.
+7. Harden the write path in **#204**, then merge.
+8. **#210** and **#186** are fixed on this branch (§6) — review and land.
+9. Consider a `py_compile` gate in CI. Nothing today catches a tracked `.py` file
+   that does not parse, which is how #198 got this far.
