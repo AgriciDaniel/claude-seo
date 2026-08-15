@@ -23,6 +23,9 @@ patches excluded. No breaking command changes. Full suite: 410 passing tests.
 
 ### Fixed
 
+- `agent_ux_check.py` no longer emits a passing agent-UX score when the fetched
+  document is empty or whitespace-only; the empty fetch is now surfaced as a
+  render error instead of being rewarded ~90/100.
 - GSC queries now honor exact result limits, validate dimensions before API access, support
   dimensionless totals, and report whether aggregate totals are complete.
 - Bing Webmaster backlink commands now use supported endpoints, bounded pagination, deduplication,
