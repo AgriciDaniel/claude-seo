@@ -352,6 +352,34 @@ def test_audit_still_scores_real_html(monkeypatch):
     assert report["score"] is not None
 
 
+def test_audit_flags_a_score_computed_without_an_a11y_tree(monkeypatch):
+    """A missing accessibility tree must not read as a clean result.
+
+    render_page() treats the snapshot as best-effort and swallows failures into
+    None. score() then skips every a11y deduction, so the same page scores 75
+    with a tree and 100 without one. The score has to declare that it only
+    covers half the analysis (issue #210, Bug 2).
+    """
+    html = "<html><body><nav><a href='/'>home</a></nav><main>hi</main></body></html>"
+    monkeypatch.setattr(
+        agent_ux_check, "render_page", lambda *a, **k: _fake_page(html, a11y=None)
+    )
+    report = agent_ux_check.audit("https://example.test/")
+    assert report["partial"] is True
+    assert any("accessibility tree unavailable" in i for i in report["issues"])
+
+
+def test_audit_does_not_flag_partial_when_the_tree_is_present(monkeypatch):
+    html = "<html><body><nav><a href='/'>home</a></nav><main>hi</main></body></html>"
+    tree = {"role": "WebArea", "name": "t", "children": [{"role": "link", "name": "home"}]}
+    monkeypatch.setattr(
+        agent_ux_check, "render_page", lambda *a, **k: _fake_page(html, a11y=tree)
+    )
+    report = agent_ux_check.audit("https://example.test/")
+    assert report["partial"] is False
+    assert not any("accessibility tree unavailable" in i for i in report["issues"])
+
+
 # ---------------------------------------------------------------------------
 # render_page extension
 # ---------------------------------------------------------------------------

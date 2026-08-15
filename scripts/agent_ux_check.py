@@ -190,6 +190,7 @@ def audit(url: str, *, timeout_ms: int = 15000) -> dict:
         "html_findings": {},
         "a11y_findings": {},
         "score": None,
+        "partial": False,
         "issues": [],
     }
     if page.get("error"):
@@ -209,6 +210,18 @@ def audit(url: str, *, timeout_ms: int = 15000) -> dict:
     scored = score(report["html_findings"], report["a11y_findings"])
     report["score"] = scored["score"]
     report["issues"] = scored["issues"]
+
+    if not report["a11y_findings"]["tree_present"]:
+        # render_page() treats the accessibility snapshot as best-effort and
+        # swallows any failure into None. score() then skips every a11y
+        # deduction, so absent data reads as a clean result: a page scoring 75
+        # with a tree scores 100 without one. Mark the score partial rather than
+        # presenting a confident number built on half the analysis (issue #210).
+        report["partial"] = True
+        report["issues"].append(
+            "accessibility tree unavailable - score reflects HTML signals only "
+            "and may be optimistic"
+        )
     return report
 
 
@@ -232,7 +245,8 @@ def _cli() -> None:
 
     print(f"URL: {report['url']}")
     print(f"Status: {report['status_code']}")
-    print(f"Agent-UX score: {report['score']}/100")
+    partial_note = " (partial)" if report["partial"] else ""
+    print(f"Agent-UX score: {report['score']}/100{partial_note}")
     if report["issues"]:
         print("Issues:")
         for issue in report["issues"]:

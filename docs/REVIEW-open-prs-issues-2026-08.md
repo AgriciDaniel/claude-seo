@@ -265,7 +265,43 @@ which is the one direction a gate must never fail. Fixed by relaxing only the er
 handler (`reconfigure(errors="replace")`), deliberately not forcing UTF-8 onto a
 cp1252 console, which would produce mojibake.
 
-Suite after both fixes: **393 passed**, unchanged from baseline.
+### `scripts/agent_ux_check.py` — issue #210 Bug 2
+
+The report says the accessibility tree is "never captured". That part is not
+accurate — `render_page.py:441` does capture it under `mode="always"`, which
+`audit()` uses. The real defect is next to it: the snapshot is best-effort and
+any failure is swallowed into `None`, after which `score()` skips every
+accessibility deduction. Measured on the same page:
+
+```
+score without a11y tree: 100
+score with a bad a11y tree: 75
+```
+
+`tree_present` was never surfaced, so the operator saw a perfect score with no
+sign that half the analysis never ran — the same "missing data reads as clean"
+failure as Bug 1. The report now carries `partial: true` plus an explicit issue,
+and the CLI prints `Agent-UX score: 100/100 (partial)`.
+
+### CI — `py_compile` gate
+
+Added a `compile-check` job over every tracked `.py` file. Validated against
+PR #198: passes on this branch, fails on that one naming
+`scripts/bing_webmaster.py`. Dependency-free, so it cannot fail for environment
+reasons.
+
+### `claude-seo run` conversions — issue #208
+
+20 instructional references across 13 files now show the sanctioned invocation.
+Applied as explicit one-occurrence-each replacements, not a pattern rewrite —
+the inventory showed most of the 25 references are prose, and blanket
+substitution is exactly what left #198 unparseable. Five descriptive references
+that explain internals (e.g. "All URL fetching goes through `fetch_page.py`
+which enforces SSRF protection") are deliberately unchanged.
+
+Suite after all fixes: **400 passed** (393 baseline + 7 new regression tests). `consistency_check.py` and
+`portability_check.py` both pass (0 errors); the one warning is this review doc
+itself being unreferenced from the docs tree.
 
 ---
 

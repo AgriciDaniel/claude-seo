@@ -7,12 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- CI now compile-checks every tracked Python file. An unparseable module
+  previously reached review unnoticed: pytest surfaces it only as a collection
+  error for that module's own test file, and a script with no test is never
+  imported at all.
+
+### Changed
+
+- Skill and agent instructions that tell an agent to run a bundled script now
+  show the `claude-seo run <script>.py` form rather than a bare `scripts/*.py`
+  path, so the wrapper resolves the plugin root and interpreter. Descriptive
+  references that explain internals are unchanged (#208).
+
 ### Fixed
 
 - `agent_ux_check.py` no longer emits a passing agent-UX score for an empty or
   whitespace-only document. A successful fetch that returned no HTML previously
   scored 90/100, because every signal it counts collapses to zero on an empty
   document; it is now reported as a render error (#210).
+- `agent_ux_check.py` no longer presents a confident score when the accessibility
+  tree could not be captured. The snapshot is best-effort in `render_page.py` and
+  failures are swallowed, after which `score()` skips every accessibility
+  deduction: the same page scores 75 with a tree and 100 without one. The report
+  now carries `partial: true` and an explicit issue instead (#210).
 - `validate-schema.py` no longer crashes on a non-UTF-8 console. Encoding the
   banner markers to cp1252 raised `UnicodeEncodeError` before `sys.exit(2)` ran,
   so the hook exited 1 — warnings-only — and a blocking schema finding was
