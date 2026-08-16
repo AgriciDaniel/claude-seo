@@ -30,6 +30,32 @@ call to the GitHub API — environmental, unrelated to the PR.
 **Merge #182 before evaluating anything else.** Until it lands, a green local run
 proves nothing, and no contributor can validate their own work.
 
+### And CI never runs on contributor PRs at all
+
+Discovered while opening #243. Sampling check runs across fork-based PRs:
+
+```
+PR #198 check runs: 0
+PR #242 check runs: 0
+PR #182 check runs: 0
+```
+
+Zero on every fork PR sampled, while a same-repo branch PR (#243) received its
+four checks within seconds. That signature matches GitHub's "require approval for
+all external contributors" setting for fork workflow runs, which holds each run
+until a maintainer clicks *Approve and run*.
+
+This is probably the most consequential finding in this document, because it
+explains the rest of it. #198's `SyntaxError` and #242's failing tests both
+reached review looking clean for the same reason: **no external contributor is
+receiving any automated feedback.** The existing `lint` job would have caught
+PR #198 — it compiles `scripts/*.py`, and `scripts/bing_webmaster.py` matches —
+but it never ran.
+
+Fixing this (Settings → Actions → Fork pull request workflows) would do more for
+contribution quality than any individual patch reviewed below, and it would have
+caught two of the three broken PRs here without human review.
+
 ---
 
 ## 1. PRs that do not do what they say
@@ -114,7 +140,8 @@ Thank the reporter — the diagnosis in #208 is sound even though the remedy isn
 |---|----|---------|----------|
 | 1 | **#182** stop module-level `sys.exit` aborting pytest | ✅ Merge first | Only branch where tests run: 232 passed vs 0 |
 | 2 | **#202** cost ledgers lose concurrent writes | ✅ Merge | Genuine lost-update: old code took `LOCK_SH` to read, released, re-took `LOCK_EX` to write. Fix spans one lock, adds atomic `os.replace`, `msvcrt` fallback, fails closed on corruption. Thorough tests |
-| 3 | **#240** / **#241** schema hook fixes | ✅ Merge — but see conflict | Both branches' tests pass (4 and 5 respectively) |
+| 3 | **#241** `@graph` validation | ✅ Merge — higher priority than its size suggests | Tests pass (5). Yoast emits a top-level `@graph` on *every page* of every site running it, so this false positive rejects the standard output of the most widely deployed SEO plugin on the web, and blocks the user's edit. Survived adversarial probing: missing `@context`, a member without `@type`, and a bad `@context` all still error |
+| 4 | **#240** bare `REPLACE` placeholder | ⚠️ Hold for a one-line change | Tests pass (4), but see the boundary problem below |
 | 4 | **#207** install.ps1 empty-array binding | ✅ Merge | One line, correct; mandatory `[string[]]` with no args prompts on PS 5.1 |
 | 5 | **#196** ponytail cleanup (−102 lines) | ✅ Merge | Verified dead: `_stream_gz_lines`, `normalize_social`, `normalize_reviews` all have **0** references outside their own file |
 | 6 | **#190** requests floor | ✅ Merge; supersedes #201 | See §3 |
@@ -133,6 +160,34 @@ CONFLICT (content): Merge conflict in CHANGELOG.md
 Merge one, then ask the author (same contributor, `ousamabenyounes`) to rebase the
 other. #241 changes the function signature (`require_context`), so landing **#241
 first** and rebasing #240 onto it is the smaller conflict.
+
+### ⚠️ #240's new boundary is wrong in both directions
+
+Its tests pass, so this only shows up under adversarial probing. `\bREPLACE\b`
+with `re.IGNORECASE` trades one false positive for two worse problems:
+
+```
+'Replace the cartridge every 6 months' -> BLOCKED   <- ordinary product copy
+'Easy to replace filter'               -> BLOCKED   <- ordinary product copy
+'REPLACE_ME'                           -> allowed   <- real placeholder, missed
+'REPLACE_WITH_URL'                     -> allowed   <- real placeholder, missed
+```
+
+`_` is a word character, so `\bREPLACE\b` never matches the most common
+placeholder forms. Meanwhile `IGNORECASE` catches the ordinary English verb —
+and "Replace the cartridge every 6 months" is exactly the sentence that belongs
+in a `Product` description, so for that schema type this would fire more often
+than the bug it fixes.
+
+Making the match all-caps, underscore-aware and case-**sensitive** handles every
+case tested:
+
+```python
+re.search(r"\bREPLACE(_[A-Z]+)*\b", text)   # no IGNORECASE
+```
+
+A genuine unresolved placeholder is a screaming-caps token; lowercase "replace"
+is just English. Posted to the PR with the evidence.
 
 ### PR #204 — MCP config location — ⚠️ **Correct premise, unsafe write path**
 
