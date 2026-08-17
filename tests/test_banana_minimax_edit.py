@@ -6,6 +6,7 @@ import base64
 import importlib.util
 import io
 import json
+import types
 import urllib.error
 from contextlib import redirect_stdout
 from pathlib import Path
@@ -97,9 +98,47 @@ def test_subject_reference_local_file_becomes_data_uri(tmp_path):
     module = _load_edit()
     ref = tmp_path / "ref.png"
     ref.write_bytes(b"pixels")
-    payload = module._encode_subject_reference([str(ref)])
+    with patch.object(module, "OUTPUT_DIR", tmp_path):
+        payload = module._encode_subject_reference([str(ref)])
     assert payload[0]["type"] == "character"
     assert payload[0]["image_file"].startswith("data:image/png;base64,")
+
+
+def test_subject_reference_outside_allowlist_is_rejected(tmp_path):
+    module = _load_edit()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    ref = outside / "ref.png"
+    ref.write_bytes(b"pixels")
+    allowed = tmp_path / "allowed"
+    allowed.mkdir()
+    with patch.object(module, "OUTPUT_DIR", allowed), \
+            patch.dict(module.os.environ, {module.MINIMAX_INPUT_DIRS_ENV: ""}, clear=False):
+        with pytest.raises(ValueError, match="outside the allowlisted directories"):
+            module._encode_subject_reference([str(ref)])
+
+
+def test_subject_reference_allowlist_extended_by_env(tmp_path):
+    module = _load_edit()
+    extra = tmp_path / "extra"
+    extra.mkdir()
+    ref = extra / "ref.webp"
+    ref.write_bytes(b"pixels")
+    allowed = tmp_path / "allowed"
+    allowed.mkdir()
+    with patch.object(module, "OUTPUT_DIR", allowed), \
+            patch.dict(module.os.environ, {module.MINIMAX_INPUT_DIRS_ENV: str(extra)}, clear=False):
+        payload = module._encode_subject_reference([str(ref)])
+    assert payload[0]["image_file"].startswith("data:image/webp;base64,")
+
+
+def test_subject_reference_rejects_non_image_suffix(tmp_path):
+    module = _load_edit()
+    secret = tmp_path / "passwd"
+    secret.write_bytes(b"root:x:0:0")
+    with patch.object(module, "OUTPUT_DIR", tmp_path):
+        with pytest.raises(ValueError, match="Unsupported subject reference type"):
+            module._encode_subject_reference([str(secret)])
 
 
 def test_parse_response_extracts_urls_and_base64():
@@ -126,15 +165,33 @@ def test_parse_response_raises_on_upstream_error():
         )
 
 
+class _FakeGuardResponse:
+    def __init__(self, content):
+        self.content = content
+
+    def raise_for_status(self):
+        return None
+
+
+def _fake_url_safety(recorder):
+    module = types.SimpleNamespace()
+
+    def safe_requests_get(url, timeout=30, **kwargs):
+        recorder.append(url)
+        return _FakeGuardResponse(b"png-bytes")
+
+    module.safe_requests_get = safe_requests_get
+    return module
+
+
 def test_edit_minimax_sends_input_image_as_subject_reference(tmp_path):
     module = _load_edit()
     image = tmp_path / "input.png"
     image.write_bytes(b"not really png")
     captured = {}
+    fetched = []
 
     def _fake_urlopen(req, timeout=120):
-        if isinstance(req, str):
-            return _FakeResponse(b"png-bytes")
         captured["body"] = req.data.decode("utf-8")
         return _FakeResponse(
             {
@@ -145,6 +202,7 @@ def test_edit_minimax_sends_input_image_as_subject_reference(tmp_path):
         )
 
     with patch.object(module, "OUTPUT_DIR", tmp_path), \
+            patch.object(module, "_load_url_safety", return_value=_fake_url_safety(fetched)), \
             patch.object(module.urllib.request, "urlopen", side_effect=_fake_urlopen):
         result = module.edit_image_minimax(
             [str(image)], "make it sunset", "image-01", SECRET,
@@ -164,6 +222,63 @@ def test_edit_minimax_sends_input_image_as_subject_reference(tmp_path):
     saved = Path(result["paths"][0])
     assert saved.exists()
     assert saved.read_bytes() == b"png-bytes"
+    # The result URL must be fetched through the url_safety guard, not urlopen.
+    assert fetched == ["https://cdn/out.png"]
+
+
+def test_url_download_uses_real_url_safety_module():
+    module = _load_edit()
+    url_safety = module._load_url_safety()
+    assert url_safety.safe_requests_get is not None
+    assert url_safety.__file__ == str(REPO_ROOT / "scripts/url_safety.py")
+
+
+def test_url_download_fails_closed_without_url_safety(tmp_path):
+    module = _load_edit()
+    image = tmp_path / "input.png"
+    image.write_bytes(b"input pixels")
+    payload = {
+        "data": {"image_urls": ["https://cdn/out.png"]},
+        "metadata": {"success_count": "1", "failed_count": "0"},
+        "base_resp": {"status_code": 0, "status_msg": "success"},
+    }
+    with patch.object(module, "OUTPUT_DIR", tmp_path), \
+            patch.object(module, "_load_url_safety",
+                         side_effect=RuntimeError(module._URL_SAFETY_UNAVAILABLE)), \
+            patch.object(module.urllib.request, "urlopen", return_value=_FakeResponse(payload)):
+        out = _capture_exit_output(
+            lambda: module.edit_image_minimax(
+                [str(image)], "make it sunset", "image-01", SECRET, response_format="url",
+            )
+        )
+    assert out["error"] is True
+    assert "url_safety" in out["message"]
+    assert not list(tmp_path.glob("banana_edit_*.png"))
+
+
+def test_url_download_error_is_redacted(tmp_path):
+    module = _load_edit()
+    image = tmp_path / "input.png"
+    image.write_bytes(b"input pixels")
+    payload = {
+        "data": {"image_urls": ["https://cdn/out.png"]},
+        "base_resp": {"status_code": 0, "status_msg": "success"},
+    }
+    guard = types.SimpleNamespace(
+        safe_requests_get=lambda url, timeout=30, **kw: (_ for _ in ()).throw(
+            ValueError(f"blocked host for {SECRET}")
+        )
+    )
+    with patch.object(module, "OUTPUT_DIR", tmp_path), \
+            patch.object(module, "_load_url_safety", return_value=guard), \
+            patch.object(module.urllib.request, "urlopen", return_value=_FakeResponse(payload)):
+        out = _capture_exit_output(
+            lambda: module.edit_image_minimax(
+                [str(image)], "make it sunset", "image-01", SECRET, response_format="url",
+            )
+        )
+    assert out["error"] is True
+    assert SECRET not in json.dumps(out)
 
 
 def test_edit_base64_saves_file(tmp_path):

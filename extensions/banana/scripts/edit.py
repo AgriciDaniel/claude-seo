@@ -14,10 +14,15 @@ Usage:
             [--response-format url|base64] [--seed N] [--count N]
             [--prompt-optimizer|--no-prompt-optimizer]
             [--subject-reference SRC] [--api-key KEY]
+
+    Local image inputs must live under the banana output directory, the current
+    working directory, or a directory listed in NANOBANANA_INPUT_DIRS. Result
+    images returned as URLs are downloaded through scripts/url_safety.py.
 """
 
 import argparse
 import base64
+import importlib.util
 import json
 import os
 import re
@@ -43,6 +48,18 @@ MINIMAX_IMAGE_MIME = {
     ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
     ".webp": "image/webp", ".gif": "image/gif",
 }
+# Local images are only base64-encoded into an outbound MiniMax request when they
+# live under an allowlisted root. Defaults cover the banana output directory and
+# the current working directory; NANOBANANA_INPUT_DIRS (os.pathsep separated)
+# extends the list for other trusted image directories.
+MINIMAX_INPUT_DIRS_ENV = "NANOBANANA_INPUT_DIRS"
+# Result images are downloaded through the repository SSRF / DNS-rebinding guard.
+# When that module is unavailable the URL download fails closed instead of
+# falling back to an unvalidated fetch.
+_URL_SAFETY_UNAVAILABLE = (
+    "MiniMax returned image URLs but scripts/url_safety.py is unavailable, so the "
+    "download cannot be validated. Re-run with --response-format base64."
+)
 _GOOGLE_API_KEY_PREFIX = "AI" + "za"
 _GOOGLE_API_KEY_RE = re.compile(_GOOGLE_API_KEY_PREFIX + r"[0-9A-Za-z_-]+")
 _GOOGLE_KEY_QUERY_RE = re.compile(r"([?&])key=[^&\s'\"<>)]*(&?)")
@@ -168,11 +185,76 @@ def _redact_secret(value, secret):
     return text
 
 
+def _allowed_input_dirs():
+    """Return the resolved directories a local image reference may be read from."""
+    candidates = [OUTPUT_DIR, Path.cwd()]
+    for entry in os.environ.get(MINIMAX_INPUT_DIRS_ENV, "").split(os.pathsep):
+        if entry.strip():
+            candidates.append(Path(entry.strip()).expanduser())
+    allowed = []
+    for candidate in candidates:
+        try:
+            allowed.append(candidate.resolve())
+        except OSError:
+            continue
+    return allowed
+
+
+def _resolve_local_reference(item):
+    """Resolve a local image path, refusing anything outside the allowlisted roots.
+
+    The path is fully resolved first, so symlinks cannot escape the allowlist.
+    """
+    path = Path(item).expanduser().resolve()
+    allowed = _allowed_input_dirs()
+    if not any(path == root or path.is_relative_to(root) for root in allowed):
+        raise ValueError(
+            f"Subject reference outside the allowlisted directories: {path}. "
+            f"Set {MINIMAX_INPUT_DIRS_ENV} to allow another image directory."
+        )
+    if path.suffix.lower() not in MINIMAX_IMAGE_MIME:
+        raise ValueError(
+            f"Unsupported subject reference type '{path.suffix or path.name}'. "
+            f"Allowed: {sorted(MINIMAX_IMAGE_MIME)}"
+        )
+    if not path.exists():
+        raise FileNotFoundError(f"Subject reference not found: {path}")
+    return path
+
+
+def _load_url_safety():
+    """Load the canonical repository SSRF / DNS-rebinding guard.
+
+    Raises RuntimeError when the module (or its ``requests`` dependency) is not
+    importable, so callers fail closed rather than fetching an unvalidated URL.
+    """
+    module_path = Path(__file__).resolve().parents[3] / "scripts" / "url_safety.py"
+    if not module_path.is_file():
+        raise RuntimeError(_URL_SAFETY_UNAVAILABLE)
+    spec = importlib.util.spec_from_file_location("claude_seo_url_safety", module_path)
+    if not spec or not spec.loader:
+        raise RuntimeError(_URL_SAFETY_UNAVAILABLE)
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)
+    except Exception as exc:  # missing requests, syntax error, etc.
+        raise RuntimeError(_URL_SAFETY_UNAVAILABLE) from exc
+    return module
+
+
+def _download_result_image(url, url_safety):
+    """Fetch a MiniMax result image through the validated, DNS-pinned fetcher."""
+    response = url_safety.safe_requests_get(url, timeout=120)
+    response.raise_for_status()
+    return response.content
+
+
 def _encode_subject_reference(reference):
     """Normalise subject references into MiniMax image_file payloads.
 
-    Accepts an http(s) URL, an existing data URI, or a local file path
-    (encoded to a base64 data URI). Returns the request-ready list or None.
+    Accepts an http(s) URL, an existing data URI, or a local file path inside an
+    allowlisted directory (encoded to a base64 data URI). Returns the
+    request-ready list or None.
     """
     if not reference:
         return None
@@ -183,9 +265,7 @@ def _encode_subject_reference(reference):
         if item.startswith(("http://", "https://", "data:")):
             image_file = item
         else:
-            path = Path(item).expanduser().resolve()
-            if not path.exists():
-                raise FileNotFoundError(f"Subject reference not found: {path}")
+            path = _resolve_local_reference(item)
             mime = MINIMAX_IMAGE_MIME.get(path.suffix.lower(), "image/png")
             encoded = base64.b64encode(path.read_bytes()).decode("utf-8")
             image_file = f"data:{mime};base64,{encoded}"
@@ -281,6 +361,13 @@ def edit_image_minimax(image_paths, prompt, model, api_key, *, region="global_en
 
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    url_safety = None
+    if kind == "url":
+        try:
+            url_safety = _load_url_safety()
+        except RuntimeError as e:
+            print(json.dumps({"error": True, "message": str(e)}))
+            sys.exit(1)
     saved = []
     for index, item in enumerate(items):
         output_path = (OUTPUT_DIR / f"banana_edit_{timestamp}_{index}.png").resolve()
@@ -288,10 +375,9 @@ def edit_image_minimax(image_paths, prompt, model, api_key, *, region="global_en
             output_path.write_bytes(base64.b64decode(item))
         else:
             try:
-                with urllib.request.urlopen(item, timeout=120) as img_resp:
-                    output_path.write_bytes(img_resp.read())
-            except urllib.error.URLError as e:
-                print(json.dumps({"error": True, "message": _redact_secret(e.reason, api_key)}))
+                output_path.write_bytes(_download_result_image(item, url_safety))
+            except Exception as e:
+                print(json.dumps({"error": True, "message": _redact_secret(e, api_key)}))
                 sys.exit(1)
         saved.append(str(output_path))
 
@@ -358,7 +444,7 @@ def main():
                 prompt_optimizer=args.prompt_optimizer,
                 subject_reference=args.subject_reference,
             )
-        except FileNotFoundError as e:
+        except (FileNotFoundError, ValueError) as e:
             print(json.dumps({"error": True, "message": str(e)}))
             sys.exit(1)
         print(json.dumps(result, indent=2))
