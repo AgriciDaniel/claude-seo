@@ -37,6 +37,9 @@ import sys
 from typing import List
 
 BARE_PLACEHOLDER = "REPLACE"
+BARE_PLACEHOLDER_PATTERN = re.compile(
+    rf"\b{re.escape(BARE_PLACEHOLDER)}(?:_[A-Z]+)*\b"
+)
 
 
 def validate_jsonld(content: str) -> List[str]:
@@ -96,7 +99,7 @@ def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
     for p in placeholders:
         if p.lower() in text.lower():
             errors.append(f"{prefix}: Contains placeholder text: {p}")
-    if re.search(rf"\b{re.escape(BARE_PLACEHOLDER)}\b", text, re.IGNORECASE):
+    if BARE_PLACEHOLDER_PATTERN.search(text):
         errors.append(f"{prefix}: Contains placeholder text: {BARE_PLACEHOLDER}")
 
     # Check for deprecated types

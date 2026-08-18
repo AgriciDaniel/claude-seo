@@ -40,3 +40,11 @@ def test_replacement_text_is_not_treated_as_placeholder(tmp_path):
 
 def test_standalone_replace_still_blocks(tmp_path):
     assert _run(tmp_path, "Product", ',"description":"REPLACE"') == 2
+
+
+def test_replace_verb_is_not_treated_as_placeholder(tmp_path):
+    assert _run(tmp_path, "Product", ',"description":"Replace the cartridge every 6 months"') == 0
+
+
+def test_underscore_replace_placeholder_still_blocks(tmp_path):
+    assert _run(tmp_path, "Product", ',"description":"REPLACE_WITH_URL"') == 2
