@@ -371,7 +371,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/uninst
 
 ## Extensions
 
-Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 8 servers; the plugin core works without any of them.
+Optional services add live data and generation capabilities to the audit pipeline. Claude SEO ships 9 extensions; the plugin core works without any of them.
 
 ### DataForSEO
 
@@ -406,6 +406,19 @@ SEO image generation (OG previews, blog heroes, product photos, infographics) vi
 ```
 
 Full Banana docs: [extensions/banana/README.md](extensions/banana/README.md).
+
+### Atlas Cloud: SEO image generation
+
+Generate SEO images through an asynchronous API client with single-submit semantics,
+bounded polling, and credential-free media downloads.
+
+```bash
+./extensions/atlas/install.sh
+export ATLASCLOUD_API_KEY="..."
+/seo atlas-image-gen og "Professional SaaS dashboard"
+```
+
+Full Atlas setup: [extensions/atlas/README.md](extensions/atlas/README.md).
 
 ### Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse (new in v2)
 
