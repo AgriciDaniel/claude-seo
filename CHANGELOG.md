@@ -27,6 +27,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whitespace-only document. A successful fetch that returned no HTML previously
   scored 90/100, because every signal it counts collapses to zero on an empty
   document; it is now reported as a render error (#210).
+- `commoncrawl_graph.py` no longer writes outside its cache directory. The
+  `--release` value was interpolated raw into the cache filename, so
+  `--release ../../../../tmp/x` escaped the cache dir and `_save_cache`'s
+  `open(..., "w")` followed it. The value also reaches a download URL, so a
+  malformed release is now rejected at the CLI rather than silently rewritten
+  (which would leave the cache key disagreeing with what was fetched); path
+  components are sanitised and containment asserted as defence in depth.
+- `domain_history.py` no longer follows an unvalidated WHOIS referral. It asks
+  IANA for the authoritative server and dialled whatever host came back, over
+  plaintext port 43 -- so anyone able to tamper with that response could point
+  it at an internal address and use it to probe the operator's private network.
+  The referral is now resolved and validated through `url_safety` and the
+  connection is made to the pinned address; an unusable referral degrades to
+  IANA's own answer rather than blanking the lookup.
 - `render_page.py --json` no longer truncates `extracted_text`. That field is
   trafilatura's boilerplate-stripped text and the agent instructions point every
   scoring path at it (E-E-A-T, thin content, word count, citability), but it was
