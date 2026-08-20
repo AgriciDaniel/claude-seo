@@ -517,7 +517,19 @@ def _cli() -> None:
     parser.add_argument(
         "--json",
         action="store_true",
-        help="emit a JSON summary (truncates content fields)",
+        help=(
+            "emit a JSON summary; raw HTML fields are truncated (see "
+            "--max-text) and the 'truncation' map records which fields were cut"
+        ),
+    )
+    parser.add_argument(
+        "--max-text",
+        type=int,
+        default=0,
+        help=(
+            "cap extracted_text at N characters in --json output "
+            "(default 0 = no cap; extracted_text is what the scoring agents read)"
+        ),
     )
     parser.add_argument(
         "--json-ld-output",
@@ -546,21 +558,41 @@ def _cli() -> None:
         with open(args.json_ld_output, "w", encoding="utf-8") as fh:
             json.dump(extraction, fh, indent=2, ensure_ascii=False)
 
+    # --output is honoured before the --json branch exits, so the two compose.
+    # Previously the JSON branch returned first and `--json --output` silently
+    # wrote nothing, which also broke the documented "use --output when you need
+    # the full document" escape hatch from the truncation below.
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as fh:
+            fh.write(res["content"] or "")
+        print(f"saved to {args.output}", file=sys.stderr)
+
     if args.json:
         summary = dict(res)
         summary["structured_data"] = _extract_json_ld(full_content)
-        # JSON-safe truncation so the CLI is usable from agents without
-        # piping megabytes of HTML across stdio.
-        for field, limit in (
-            ("content", 500),
-            ("raw_content", 200),
-            ("extracted_text", 500),
-        ):
-            if summary.get(field):
-                value = summary[field]
-                summary[field] = (
-                    value[:limit] + "..." if len(value) > limit else value
-                )
+        # Raw HTML stays truncated so the CLI is usable from agents without
+        # piping megabytes across stdio -- use --output for the full document.
+        #
+        # extracted_text is NOT capped by default. It is trafilatura's
+        # boilerplate-stripped text, and the agent instructions tell every
+        # scoring path to read it (E-E-A-T, thin content, word count,
+        # citability). Capping it at 500 chars silently scored real pages on
+        # ~70 words, so every page looked thin. Pass --max-text to cap it.
+        limits = {
+            "content": 500,
+            "raw_content": 200,
+            "extracted_text": args.max_text if args.max_text > 0 else None,
+        }
+        truncation = {}
+        for field, limit in limits.items():
+            value = summary.get(field)
+            was_truncated = bool(value) and limit is not None and len(value) > limit
+            if was_truncated:
+                summary[field] = value[:limit] + "..."
+            truncation[field] = was_truncated
+        # Always emitted, so a consumer can tell a short page from a cut one
+        # instead of inferring it from a trailing ellipsis.
+        summary["truncation"] = truncation
         print(json.dumps(summary, indent=2, default=str))
         sys.exit(1 if res["error"] else 0)
 
@@ -568,11 +600,8 @@ def _cli() -> None:
         print(f"Error: {res['error']}", file=sys.stderr)
         sys.exit(1)
 
-    if args.output:
-        with open(args.output, "w", encoding="utf-8") as fh:
-            fh.write(res["content"] or "")
-        print(f"saved to {args.output}", file=sys.stderr)
-    else:
+    if not args.output:
+        # The --output write already happened above, before the --json branch.
         print(res["content"])
 
     print(

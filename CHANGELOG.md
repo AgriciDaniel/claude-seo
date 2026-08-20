@@ -27,6 +27,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   whitespace-only document. A successful fetch that returned no HTML previously
   scored 90/100, because every signal it counts collapses to zero on an empty
   document; it is now reported as a render error (#210).
+- `render_page.py --json` no longer truncates `extracted_text`. That field is
+  trafilatura's boilerplate-stripped text and the agent instructions point every
+  scoring path at it (E-E-A-T, thin content, word count, citability), but it was
+  capped at 500 characters — a 2000-word page arrived as 73 words, a 27x
+  undercount, so every real page looked thin. Raw HTML fields stay capped so the
+  CLI is still usable over stdio, and a new `truncation` map in the payload
+  records which fields were cut, so a short page is distinguishable from a cut
+  one. `--max-text` caps `extracted_text` on request (#246).
+- `render_page.py --output` now composes with `--json`. The JSON branch exited
+  before the output block ran, so `--json --output` silently wrote nothing —
+  which also broke the documented "use `--output` when you need the full
+  document" escape hatch (#250).
 - `agent_ux_check.py` no longer presents a confident score when the accessibility
   tree could not be captured. The snapshot is best-effort in `render_page.py` and
   failures are swallowed, after which `score()` skips every accessibility
