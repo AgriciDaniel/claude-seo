@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- CI now compile-checks every tracked Python file. An unparseable module
+  previously reached review unnoticed: pytest surfaces it only as a collection
+  error for that module's own test file, and a script with no test is never
+  imported at all.
+
+### Changed
+
+- Skill and agent instructions that tell an agent to run a bundled script now
+  show the `claude-seo run <script>.py` form rather than a bare `scripts/*.py`
+  path, so the wrapper resolves the plugin root and interpreter. Descriptive
+  references that explain internals are unchanged (#208).
+
+### Fixed
+
+- `agent_ux_check.py` no longer emits a passing agent-UX score for an empty or
+  whitespace-only document. A successful fetch that returned no HTML previously
+  scored 90/100, because every signal it counts collapses to zero on an empty
+  document; it is now reported as a render error (#210).
+- `commoncrawl_graph.py` no longer writes outside its cache directory. The
+  `--release` value was interpolated raw into the cache filename, so
+  `--release ../../../../tmp/x` escaped the cache dir and `_save_cache`'s
+  `open(..., "w")` followed it. The value also reaches a download URL, so a
+  malformed release is now rejected at the CLI rather than silently rewritten
+  (which would leave the cache key disagreeing with what was fetched); path
+  components are sanitised and containment asserted as defence in depth.
+- `domain_history.py` no longer follows an unvalidated WHOIS referral. It asks
+  IANA for the authoritative server and dialled whatever host came back, over
+  plaintext port 43 -- so anyone able to tamper with that response could point
+  it at an internal address and use it to probe the operator's private network.
+  The referral is now resolved and validated through `url_safety` and the
+  connection is made to the pinned address; an unusable referral degrades to
+  IANA's own answer rather than blanking the lookup.
+- `render_page.py --json` no longer truncates `extracted_text`. That field is
+  trafilatura's boilerplate-stripped text and the agent instructions point every
+  scoring path at it (E-E-A-T, thin content, word count, citability), but it was
+  capped at 500 characters — a 2000-word page arrived as 73 words, a 27x
+  undercount, so every real page looked thin. Raw HTML fields stay capped so the
+  CLI is still usable over stdio, and a new `truncation` map in the payload
+  records which fields were cut, so a short page is distinguishable from a cut
+  one. `--max-text` caps `extracted_text` on request (#246).
+- `render_page.py --output` now composes with `--json`. The JSON branch exited
+  before the output block ran, so `--json --output` silently wrote nothing —
+  which also broke the documented "use `--output` when you need the full
+  document" escape hatch (#250).
+- `agent_ux_check.py` no longer presents a confident score when the accessibility
+  tree could not be captured. The snapshot is best-effort in `render_page.py` and
+  failures are swallowed, after which `score()` skips every accessibility
+  deduction: the same page scores 75 with a tree and 100 without one. The report
+  now carries `partial: true` and an explicit issue instead (#210).
+- `validate-schema.py` no longer crashes on a non-UTF-8 console. Encoding the
+  banner markers to cp1252 raised `UnicodeEncodeError` before `sys.exit(2)` ran,
+  so the hook exited 1 — warnings-only — and a blocking schema finding was
+  silently non-blocking on Windows. The quality gate failed open; it now fails
+  closed with the finding intact (#186).
+
 ## [2.2.4] - 2026-07-20
 
 Community maintenance release following a full review of every open issue and pull request.

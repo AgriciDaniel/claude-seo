@@ -461,3 +461,100 @@ def test_render_page_result_dict_has_all_documented_fields() -> None:
         "render_diagnostics", "render_ms", "mode_used", "error",
     }
     assert set(result.keys()) == expected_fields
+
+
+# ---------------------------------------------------------------------------
+# --json field handling (issues #246, #250)
+# ---------------------------------------------------------------------------
+
+
+def _cli_result(monkeypatch, capsys, argv, *, extracted_text="", content=""):
+    """Run render_page._cli() with a stubbed render_page() and return stdout."""
+    payload = {
+        "url": "https://example.test/", "status_code": 200, "error": None,
+        "content": content, "raw_content": content,
+        "extracted_text": extracted_text, "is_spa": False,
+        "mode_used": "never", "render_ms": 0, "headers": {},
+        "accessibility_tree": None, "publication_date": None,
+        "render_engine": "raw", "render_diagnostics": [], "console_errors": [],
+    }
+    monkeypatch.setattr(render_page, "render_page", lambda *a, **k: dict(payload))
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit):
+        render_page._cli()
+    return capsys.readouterr().out
+
+
+def test_json_does_not_truncate_extracted_text_by_default(monkeypatch, capsys):
+    """extracted_text is what every scoring path reads -- it must arrive whole.
+
+    It was capped at 500 characters, so a 2000-word page reached the E-E-A-T,
+    thin-content and word-count logic as ~70 words. Every real page looked
+    thin (issue #246).
+    """
+    body = " ".join(f"word{i}" for i in range(2000))
+    out = _cli_result(
+        monkeypatch, capsys,
+        ["render_page.py", "https://example.test/", "--json"],
+        extracted_text=body, content=f"<html><body>{body}</body></html>",
+    )
+    payload = json.loads(out)
+    assert len(payload["extracted_text"].split()) == 2000
+    assert payload["truncation"]["extracted_text"] is False
+
+
+def test_json_still_truncates_raw_html_fields(monkeypatch, capsys):
+    """Raw HTML stays capped so agents don't pipe megabytes across stdio."""
+    html = "<html><body>" + ("x" * 5000) + "</body></html>"
+    payload = json.loads(_cli_result(
+        monkeypatch, capsys,
+        ["render_page.py", "https://example.test/", "--json"],
+        extracted_text="short", content=html,
+    ))
+    assert len(payload["content"]) <= 505
+    assert payload["truncation"]["content"] is True
+
+
+def test_json_truncation_map_is_always_present(monkeypatch, capsys):
+    """A consumer must be able to tell a short page from a cut one.
+
+    Before, truncation was only inferable from a trailing ellipsis, which is
+    indistinguishable from a page that genuinely ends in one.
+    """
+    payload = json.loads(_cli_result(
+        monkeypatch, capsys,
+        ["render_page.py", "https://example.test/", "--json"],
+        extracted_text="tiny", content="<html></html>",
+    ))
+    assert payload["truncation"] == {
+        "content": False, "raw_content": False, "extracted_text": False,
+    }
+
+
+def test_max_text_caps_extracted_text_and_flags_it(monkeypatch, capsys):
+    body = " ".join(f"word{i}" for i in range(2000))
+    payload = json.loads(_cli_result(
+        monkeypatch, capsys,
+        ["render_page.py", "https://example.test/", "--json", "--max-text", "500"],
+        extracted_text=body, content="<html></html>",
+    ))
+    assert len(payload["extracted_text"]) <= 503
+    assert payload["truncation"]["extracted_text"] is True
+
+
+def test_output_composes_with_json(monkeypatch, capsys, tmp_path):
+    """--json --output must write the file (issue #250).
+
+    The JSON branch used to sys.exit() before the --output block ran, so the
+    documented "use --output when you need the full document" escape hatch
+    silently produced nothing.
+    """
+    target = tmp_path / "page.html"
+    html = "<html><body>full document</body></html>"
+    _cli_result(
+        monkeypatch, capsys,
+        ["render_page.py", "https://example.test/", "--json", "--output", str(target)],
+        extracted_text="t", content=html,
+    )
+    assert target.exists(), "--output produced no file when combined with --json"
+    assert target.read_text(encoding="utf-8") == html

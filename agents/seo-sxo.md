@@ -85,7 +85,7 @@ Score the target page across 7 dimensions (100 points total):
 ## Pre-Delivery Checklist
 
 Before presenting results, verify:
-- [ ] URL was fetched via scripts/render_page.py --mode auto (not raw curl)
+- [ ] URL was fetched via `claude-seo run render_page.py --mode auto` (not raw curl)
 - [ ] At least 5 SERP results were analyzed
 - [ ] Page type classification uses the taxonomy reference
 - [ ] User stories cite specific SERP signals

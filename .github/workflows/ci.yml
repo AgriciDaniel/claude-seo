@@ -78,3 +78,34 @@ jobs:
             exit 1
           fi
           echo "Secret scan clean: no credentials detected in tracked files."
+
+  compile-check:
+    name: Python syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+
+      - name: Compile every tracked Python file
+        # Cheapest possible guard against a tracked .py file that does not
+        # parse. pytest does not cover this: an unparseable module surfaces as a
+        # collection error for its own test file, and a script with no test
+        # never gets imported at all. Deliberately dependency-free -- syntax is
+        # checked without installing requirements.txt, so this stays fast and
+        # cannot fail for environment reasons.
+        run: |
+          set -uo pipefail
+          BROKEN=""
+          while IFS= read -r f; do
+            python -m py_compile "$f" 2>/dev/null || BROKEN="${BROKEN}${f}"$'\n'
+          done < <(git ls-files '*.py')
+          if [ -n "$BROKEN" ]; then
+            echo "::error::Tracked Python files that do not parse:"
+            echo "$BROKEN"
+            exit 1
+          fi
+          echo "Syntax check clean: every tracked .py file parses."

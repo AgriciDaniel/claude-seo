@@ -87,7 +87,7 @@ When the user invokes `/seo audit`, delegate to subagents in parallel:
 15. **Offer PDF report**: "Generate a professional PDF report? Use `/seo google report full`"
 
 For individual commands, load the relevant sub-skill directly.
-After any analysis command completes, offer to generate a PDF report via `scripts/google_report.py`.
+After any analysis command completes, offer to generate a PDF report via `claude-seo run google_report.py`.
 
 ## Synthesis Methodology
 

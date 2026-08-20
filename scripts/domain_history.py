@@ -63,6 +63,11 @@ import sys
 from datetime import datetime, timezone
 from typing import Optional
 
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from url_safety import URLSafetyError, validate_url_strict  # noqa: E402
+
 
 _DATE_LABELS = {
     "created": (
@@ -126,8 +131,23 @@ def _socket_whois(domain: str) -> Optional[str]:
         return iana_text
 
     referral = m.group(1).strip()
+
+    # The referral host is attacker-influenceable: WHOIS runs unencrypted on
+    # port 43, so anyone able to tamper with the IANA response can inject a
+    # `refer:` line pointing at an internal address, turning this fallback into
+    # a port-43 probe of the operator's private network. Resolve and validate
+    # it through the same guard every other outbound call uses, then connect to
+    # the pinned address so the answer cannot be re-pointed after the check.
+    # WHOIS is plaintext with no SNI, so dialling the IP directly is lossless.
     try:
-        with socket.create_connection((referral, 43), timeout=10) as sock:
+        _, pinned_ip = validate_url_strict(f"https://{referral}/")
+    except URLSafetyError:
+        # A referral we cannot vouch for is not worth following. IANA's own
+        # answer is still useful, so return that rather than nothing.
+        return iana_text
+
+    try:
+        with socket.create_connection((pinned_ip, 43), timeout=10) as sock:
             sock.sendall(f"{domain}\r\n".encode("ascii"))
             buf = b""
             while True:
