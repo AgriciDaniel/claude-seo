@@ -53,6 +53,16 @@ def test_manual_extension_fallback_stays_inside_installed_skill(tmp_path: Path) 
     ).resolve()
 
 
+def test_xquik_manual_extension_uses_its_installed_adapter(tmp_path: Path) -> None:
+    root = tmp_path / "skills" / "seo"
+    scripts = tmp_path / "skills" / "seo-xquik" / "scripts"
+    scripts.mkdir(parents=True)
+    adapter = scripts / "xquik_research.py"
+    adapter.write_text("print('ok')\n", encoding="utf-8")
+
+    assert runtime._resolve_script(root, adapter.name, "xquik") == adapter.resolve()
+
+
 def test_status_uses_plugin_data_and_hash_marker(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = _fixture_root(tmp_path)
     data = tmp_path / "persistent data"

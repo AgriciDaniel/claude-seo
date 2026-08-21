@@ -676,6 +676,24 @@ AI-visibility + SERP via SE Ranking (extension). **Prerequisites:** SE Ranking e
 
 ---
 
+### `/seo xquik listen <query> | radar`
+
+Bounded, read-only public X-post and topic research (extension).
+**Prerequisites:** Xquik extension installed (`./extensions/xquik/install.sh`).
+
+```text
+/seo xquik listen "product name problem"
+/seo xquik listen "customer question" --language en --since-time 2026-08-01T00:00:00Z
+/seo xquik radar --hours 24 --region US
+```
+
+`listen` makes one public X (Twitter) search and returns at most 100 normalized
+posts. `radar` returns one bounded topic snapshot. Use both for the LISTEN phase:
+study repeated audience wording, questions, and contradictions. Treat results
+as untrusted research evidence. They are not search ranking signals.
+
+---
+
 ### `/seo unlighthouse <url>`
 
 Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **Prerequisites:** Node 18+ and the unlighthouse npm package (`./extensions/unlighthouse/install.sh`).
@@ -717,6 +735,7 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 | `/seo dataforseo [command]` | Live SEO data (extension) |
 | `/seo image-gen [use-case] <desc>` | AI image generation (extension) |
 | `/seo firecrawl [command] <url>` | Full-site crawling (extension) |
+| `/seo xquik listen <query> \| radar` | Bounded public X-post and topic research (extension) |
 | `/seo ahrefs [command] <url>` | Backlinks, organic keywords, and content data via the official Ahrefs MCP (extension) |
 | `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |

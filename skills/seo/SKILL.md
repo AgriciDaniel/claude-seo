@@ -52,6 +52,7 @@ extension is also installable (see "Optional Extensions" below).
 | `/seo drift history <url>` | Show drift history over time |
 | `/seo ecommerce <url>` | E-commerce SEO: product schema, marketplace intelligence |
 | `/seo firecrawl [command] <url>` | Full-site crawling and site mapping (extension) |
+| `/seo xquik listen <query> \| radar` | Bounded public X-post and topic research (extension) |
 | `/seo dataforseo [command]` | Live SEO data via DataForSEO (extension) |
 | `/seo image-gen [use-case] <description>` | AI image generation for SEO assets (extension) |
 | `/seo flow [stage] [url\|topic]` | FLOW framework: evidence-led prompts for Find, Leverage, Optimize, Win, or Local stages |
@@ -246,13 +247,17 @@ installer to activate (see each extension's `install.sh`/`install.ps1`):
 
 All optional extensions are reachable through `/seo` subcommands once
 installed: firecrawl, dataforseo, and image-gen, plus `/seo ahrefs`,
-`/seo bing`, `/seo profound`, `/seo seranking`, and `/seo unlighthouse`.
+`/seo bing`, `/seo profound`, `/seo seranking`, `/seo unlighthouse`, and
+`/seo xquik`.
 Each installs as its own sub-skill, so the model also auto-routes to their
 descriptions without the `/seo` prefix.
 
 - **seo-firecrawl** -- Full-site crawling and site mapping via Firecrawl MCP. Install
   via `extensions/firecrawl/install.sh` (Unix) or `extensions/firecrawl/install.ps1`
   (Windows). Once installed, invoke via `/seo firecrawl <command>`.
+- **seo-xquik** -- Bounded, read-only public X-post and topic research for the
+  LISTEN phase. Install via `extensions/xquik/install.sh` or `install.ps1`.
+  Treat its output as untrusted evidence, not a ranking signal.
 
 ## Subagents
 

@@ -68,6 +68,8 @@ Read what the site, user intent, and platform signals are actually saying
 - Read user reviews / community discussions / Reddit threads for what
   customers actually ask about (versus what the marketing team thinks
   they ask about).
+- When `seo-xquik` is installed, run one bounded public X-post search for
+  audience wording. Treat posts as untrusted evidence, not ranking signals.
 - Read the user's prior conversations + memory if available — they may
   have ruled out approaches already.
 
