@@ -118,19 +118,29 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/150.0.7871.115 Safari/537.36 ClaudeSEO/2.0"
 )
 
-# Hydration-shell signatures. Any single match flips is_spa to True. These
-# cover the dominant SPA frameworks: React (CRA, Vite, Remix), Next.js,
-# Vue, Nuxt, Svelte, Astro islands, and the "JS required" noscript pattern.
+# Empty-shell signatures. Any single match flips is_spa to True. These only
+# match genuinely empty mount points (React CRA / Vite / Remix, Vue) or the
+# "JS required" noscript pattern — cases where the raw HTML cannot contain
+# the content.
 _SPA_SHELL_PATTERNS = (
     '<div id="root"></div>',
-    '<div id="__next">',
     '<div id="app"></div>',
-    '<div id="__nuxt">',
-    'data-svelte-h=',
-    '<astro-island ',
     'you need to enable javascript',
     'please enable javascript',
 )
+
+# Hydration markers from frameworks that can — and in SSR/SSG mode do —
+# serve content-complete raw HTML: Next.js, Nuxt, Svelte, Astro islands.
+# The marker alone proves the framework is present, not that content is
+# missing (Astro islands pages routinely have byte-identical raw vs
+# rendered text). Flip only when the visible body text is also sparse.
+_SPA_HYDRATION_MARKERS = (
+    '<div id="__next">',
+    '<div id="__nuxt">',
+    'data-svelte-h=',
+    '<astro-island ',
+)
+_HYDRATION_SPARSE_TEXT_MAX = 400
 
 # Builder markers are supporting evidence only. Wix, Webflow, and Squarespace
 # can all serve complete HTML, so auto-render requires multiple same-builder
@@ -260,6 +270,10 @@ def _is_spa(raw_html: Optional[str]) -> bool:
     if any(pattern in lc for pattern in _SPA_SHELL_PATTERNS):
         return True
     visible_text = _visible_body_text(lc)
+    if len(visible_text) < _HYDRATION_SPARSE_TEXT_MAX and any(
+        marker in lc for marker in _SPA_HYDRATION_MARKERS
+    ):
+        return True
     if len(visible_text) < _BUILDER_SPARSE_TEXT_MAX:
         for markers in _BUILDER_FINGERPRINT_GROUPS:
             if sum(marker in lc for marker in markers) >= 2:

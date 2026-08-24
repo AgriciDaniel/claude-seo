@@ -86,6 +86,42 @@ def test_is_spa_negative(html: str) -> None:
     assert render_page._is_spa(html) is False
 
 
+@pytest.mark.parametrize(
+    "marker_html",
+    [
+        # Astro islands SSR/SSG: raw HTML is content-complete.
+        '<astro-island uid="x" component-url="/c.js"></astro-island>',
+        # Svelte hydration marker on a server-rendered node.
+        '<div data-svelte-h="svelte-abc123">widget</div>',
+        # Next.js SSR: __next wrapper around full server-rendered content.
+        '<div id="__next"><main>app shell</main></div>',
+        # Nuxt SSR.
+        '<div id="__nuxt"><main>app shell</main></div>',
+    ],
+)
+def test_is_spa_ignores_hydration_marker_on_content_complete_page(
+    marker_html: str,
+) -> None:
+    # Hydration markers alone must not force a render when the raw body
+    # already carries substantial visible text (SSR/SSG output).
+    html = (
+        "<html><body><article>"
+        + ("Server rendered industrial marketing copy with real substance. " * 10)
+        + "</article>"
+        + marker_html
+        + "</body></html>"
+    )
+    assert render_page._is_spa(html) is False
+
+
+def test_is_spa_flags_hydration_marker_with_sparse_body() -> None:
+    html = (
+        '<html><body><astro-island uid="x"></astro-island>'
+        "<main>Loading your experience</main></body></html>"
+    )
+    assert render_page._is_spa(html) is True
+
+
 def test_is_spa_detects_sparse_builder_shell_with_multiple_markers() -> None:
     html = (
         '<html><head><meta content="Wix.com Website Builder">'
