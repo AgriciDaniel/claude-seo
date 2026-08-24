@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- `render_page.py` no longer misclassifies SSR/SSG framework pages (Next.js, Nuxt, Svelte,
+  Astro islands) as SPAs. Hydration markers now flip `is_spa` only when the visible body
+  text is also sparse; genuinely empty mount shells and noscript walls still trigger
+  headless rendering unconditionally.
+
 ## [2.2.4] - 2026-07-20
 
 Community maintenance release following a full review of every open issue and pull request.
