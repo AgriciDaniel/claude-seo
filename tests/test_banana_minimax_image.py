@@ -35,11 +35,25 @@ class _FakeResponse:
     def read(self):
         return self._body
 
+    @property
+    def content(self):
+        return self._body
+
+    def raise_for_status(self):
+        return None
+
     def __enter__(self):
         return self
 
     def __exit__(self, *exc):
         return False
+
+
+class _BinaryResponse:
+    content = b"image"
+
+    def raise_for_status(self):
+        return None
 
 
 def _capture_exit_output(callable_):
@@ -93,11 +107,21 @@ def test_build_request_prefers_pixel_dimensions_and_subject_reference():
 
 def test_subject_reference_local_file_becomes_data_uri(tmp_path):
     module = _load_generate()
+    module.MINIMAX_SUBJECT_REFERENCE_DIR = tmp_path.resolve()
     ref = tmp_path / "ref.png"
     ref.write_bytes(b"pixels")
     payload = module._encode_subject_reference([str(ref)])
     assert payload[0]["type"] == "character"
     assert payload[0]["image_file"].startswith("data:image/png;base64,")
+
+
+def test_subject_reference_rejects_file_outside_allowlist(tmp_path):
+    module = _load_generate()
+    module.MINIMAX_SUBJECT_REFERENCE_DIR = tmp_path.resolve()
+    outside = tmp_path.parent / "outside.png"
+    outside.write_bytes(b"pixels")
+    with pytest.raises(ValueError, match="inside"):
+        module._encode_subject_reference([str(outside)])
 
 
 def test_parse_response_extracts_urls_and_base64():
@@ -143,6 +167,21 @@ def test_generate_base64_saves_file(tmp_path):
     saved = Path(result["paths"][0])
     assert saved.exists()
     assert saved.read_bytes() == b"fake-png-bytes"
+
+
+def test_generate_url_uses_safe_fetch(tmp_path):
+    module = _load_generate()
+    payload = {
+        "data": {"image_urls": ["https://cdn.example/img.png"]},
+        "metadata": {"success_count": "1", "failed_count": "0"},
+        "base_resp": {"status_code": 0},
+    }
+    with patch.object(module, "OUTPUT_DIR", tmp_path), \
+            patch.object(module.urllib.request, "urlopen", return_value=_FakeResponse(payload)), \
+            patch.object(module, "safe_requests_get", return_value=_BinaryResponse()) as fetch:
+        result = module.generate_image_minimax("a cat", "image-01", SECRET)
+    fetch.assert_called_once_with("https://cdn.example/img.png", timeout=120)
+    assert Path(result["path"]).read_bytes() == b"image"
 
 
 def test_generate_redacts_api_key_in_http_error(tmp_path):

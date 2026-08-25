@@ -25,10 +25,18 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
+_SCRIPTS_DIR = Path(__file__).resolve().parents[3] / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+from url_safety import safe_requests_get  # noqa: E402
+
 DEFAULT_MODEL = os.environ.get("NANOBANANA_MODEL")
 DEFAULT_RESOLUTION = "1K"
 DEFAULT_RATIO = "1:1"
 OUTPUT_DIR = Path.home() / "Documents" / "nanobanana_generated"
+MINIMAX_SUBJECT_REFERENCE_DIR = Path(
+    os.environ.get("MINIMAX_SUBJECT_REFERENCE_DIR", Path.cwd())
+).expanduser().resolve()
 API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
 VALID_RATIOS = {"1:1", "16:9", "9:16", "4:3", "3:4", "2:3", "3:2",
@@ -178,6 +186,13 @@ def _encode_subject_reference(reference):
             image_file = item
         else:
             path = Path(item).expanduser().resolve()
+            try:
+                path.relative_to(MINIMAX_SUBJECT_REFERENCE_DIR)
+            except ValueError as exc:
+                raise ValueError(
+                    "Subject reference must be inside "
+                    f"{MINIMAX_SUBJECT_REFERENCE_DIR}"
+                ) from exc
             if not path.exists():
                 raise FileNotFoundError(f"Subject reference not found: {path}")
             mime = MINIMAX_IMAGE_MIME.get(path.suffix.lower(), "image/png")
@@ -279,10 +294,11 @@ def generate_image_minimax(prompt, model, api_key, *, region="global_en",
             output_path.write_bytes(base64.b64decode(item))
         else:
             try:
-                with urllib.request.urlopen(item, timeout=120) as img_resp:
-                    output_path.write_bytes(img_resp.read())
-            except urllib.error.URLError as e:
-                print(json.dumps({"error": True, "message": _redact_secret(e.reason, api_key)}))
+                img_resp = safe_requests_get(item, timeout=120)
+                img_resp.raise_for_status()
+                output_path.write_bytes(img_resp.content)
+            except Exception as e:
+                print(json.dumps({"error": True, "message": _redact_secret(e, api_key)}))
                 sys.exit(1)
         saved.append(str(output_path))
 
@@ -349,7 +365,7 @@ def main():
                 prompt_optimizer=args.prompt_optimizer,
                 subject_reference=args.subject_reference,
             )
-        except FileNotFoundError as e:
+        except (FileNotFoundError, ValueError) as e:
             print(json.dumps({"error": True, "message": str(e)}))
             sys.exit(1)
         print(json.dumps(result, indent=2))
