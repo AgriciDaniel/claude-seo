@@ -235,6 +235,102 @@ def validate_health_score(scoring_factors: dict) -> list:
     return issues
 
 
+# Sources that can support a numeric backlink health score. Common Crawl is
+# deliberately absent: it provides rank/presence signals only, not the
+# referring-domain quality, anchor, or toxicity data a score implies.
+SCOREABLE_SOURCES = ("moz_data", "bing_data", "dataforseo_data")
+
+# Finding sources that mean "we did not measure this".
+UNMEASURED_SOURCES = ("not-assessed", "not_assessed")
+
+
+def _is_numeric_score(value) -> bool:
+    """True when value is a real number (bool excluded) or a numeric string."""
+    if value is None or isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return True
+    if isinstance(value, str):
+        try:
+            float(value.strip())
+        except (TypeError, ValueError):
+            return False
+        return True
+    return False
+
+
+def _scoreable_sources_present(report_data: dict) -> list:
+    """Return the scoreable sources that actually carry data in this report."""
+    present = []
+    for key in SCOREABLE_SOURCES:
+        value = report_data.get(key)
+        if isinstance(value, dict):
+            if value and not value.get("error"):
+                present.append(key)
+        elif value:
+            present.append(key)
+    return present
+
+
+def validate_source_score_consistency(report_data: dict) -> list:
+    """Enforce: never emit a numeric score for data that was not measured.
+
+    Two failure modes, both observed in real audits despite the instruction
+    already existing in the skill:
+
+    1. Common Crawl is the only source available, but a numeric health score is
+       still produced.
+    2. A finding is marked `source: not-assessed` yet carries a score.
+    """
+    issues = []
+
+    scoring_factors = report_data.get("scoring_factors") or {}
+    score = scoring_factors.get("score") if isinstance(scoring_factors, dict) else None
+
+    scoreable = _scoreable_sources_present(report_data)
+    has_cc = bool(report_data.get("cc_data"))
+
+    if _is_numeric_score(score) and not scoreable:
+        detail = (
+            "Common Crawl was the only source available"
+            if has_cc else "no backlink data source was available"
+        )
+        issues.append({
+            "severity": "error",
+            "field": "health_score",
+            "message": (
+                f"Numeric score ({score}) produced when {detail}. Common Crawl "
+                "supplies rank/presence signals only and MUST NOT be scored. "
+                "Report 'Not Assessed' with no numeric value."
+            ),
+            "fix": "Set the score to null and report Not Assessed.",
+        })
+
+    findings = report_data.get("findings")
+    if isinstance(findings, list):
+        for i, finding in enumerate(findings):
+            if not isinstance(finding, dict):
+                continue
+            source = str(finding.get("source", "")).strip().lower()
+            if source not in UNMEASURED_SOURCES:
+                continue
+            for field in ("score", "value", "health_score"):
+                if _is_numeric_score(finding.get(field)):
+                    issues.append({
+                        "severity": "error",
+                        "field": f"findings[{i}].{field}",
+                        "message": (
+                            f"Finding '{finding.get('title', 'untitled')}' is "
+                            f"source: not-assessed but carries a numeric "
+                            f"{field} ({finding[field]}). A not-assessed finding "
+                            "MUST NOT be scored."
+                        ),
+                        "fix": f"Omit {field} or set it to null.",
+                    })
+
+    return issues
+
+
 def validate_report(report_data: dict) -> dict:
     """
     Run all validations on a backlink report.
@@ -267,6 +363,10 @@ def validate_report(report_data: dict) -> dict:
     if report_data.get("scoring_factors"):
         all_issues.extend(validate_health_score(report_data["scoring_factors"]))
 
+    # Always run: this gate must fire even when the agent supplies no
+    # scoring_factors block at all.
+    all_issues.extend(validate_source_score_consistency(report_data))
+
     # Classify
     errors = [i for i in all_issues if i["severity"] == "error"]
     warnings = [i for i in all_issues if i["severity"] == "warning"]
@@ -289,6 +389,7 @@ def validate_report(report_data: dict) -> dict:
             "checks_run": [
                 "schema_claims", "verification_results", "h1_claims",
                 "cc_claims", "reciprocal_links", "health_score",
+                "source_score_consistency",
             ],
         },
     }

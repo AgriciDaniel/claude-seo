@@ -184,9 +184,40 @@ Calculate a 0-100 score. When mixing sources, apply confidence weighting:
   Show individual factor scores that ARE available with their source and confidence.
   Recommend: "Configure Moz API (free) for a scoreable profile. Run `/seo backlinks setup`"
 
-When only CC is available, do not produce a numeric score; report low-confidence rank/presence data only.
-A numeric score with fewer than 4 data sources is **misleading**, it implies poor health when
-the reality is we simply lack data.
+### MUST NOT: score what you did not measure
+
+**When Common Crawl is the only available source, you MUST NOT produce a numeric
+score of any kind** -- not a health score, not a per-factor score, not an
+"approximate" or "estimated" figure. Common Crawl supplies rank and presence
+signals only. Report low-confidence rank/presence data and the literal string
+`Not Assessed` in place of every number.
+
+**A finding written with `source: not-assessed` MUST NOT carry a numeric score.**
+
+A numeric score with fewer than 4 data sources is **misleading**: it implies poor
+health when the reality is that we simply lack data.
+
+### Validation gate (required, not optional)
+
+This rule has been stated in this skill before and was violated anyway, so it is
+now checkable. **Before writing any backlink output, run the validator:**
+
+```bash
+claude-seo run validate_backlink_report.py --report <report>.json --json
+```
+
+Pass the sources you actually collected (`cc_data`, `moz_data`, `bing_data`,
+`dataforseo_data`, `scoring_factors`, and your `findings` list). The
+`source_score_consistency` check fails the report with `status: FAIL` when:
+
+- a numeric score is present but no scoreable source (Moz, Bing, or DataForSEO)
+  supplied data -- i.e. the Common-Crawl-only case, and
+- any finding marked `source: not-assessed` carries a numeric `score`, `value`,
+  or `health_score`.
+
+**If the validator returns `status: FAIL`, do not present the report.** Fix the
+findings -- replace the offending numbers with `Not Assessed` -- and re-run until
+it passes.
 
 ## Output Format
 

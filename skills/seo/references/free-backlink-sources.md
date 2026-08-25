@@ -30,8 +30,20 @@ When merging data from multiple sources, apply confidence weights to each metric
 weighted_score = Σ(source_score × confidence × factor_weight) / Σ(confidence × factor_weight)
 ```
 
-When only Common Crawl is available, cap the maximum health score at 70/100 and note
-"limited to domain-level metrics" in the report.
+**When only Common Crawl is available, do not produce a health score at all.**
+Not a capped one, not an "approximate" one. Common Crawl supplies domain-level
+rank and presence signals only -- it carries none of the referring-domain quality,
+anchor, or toxicity data a health score claims to summarise, so any number derived
+from it reads as "this profile is weak" when the truth is "we have no data."
+
+Report `Not Assessed` in place of the score, surface the rank/presence data that
+Common Crawl *does* support as low-confidence findings, and note "limited to
+domain-level metrics" in the report. The same applies to any finding written with
+`source: not-assessed`.
+
+This is enforced, not advisory: `claude-seo run validate_backlink_report.py` fails
+a report (`status: FAIL`) that carries a number in either case. See the
+`seo-backlinks` skill's "MUST NOT: score what you did not measure" section.
 
 ## Source Details
 
