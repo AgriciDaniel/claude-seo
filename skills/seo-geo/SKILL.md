@@ -13,7 +13,7 @@ argument-hint: "[url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.4"
+  version: "2.2.5"
   category: seo
 ---
 
@@ -177,7 +177,12 @@ Check `robots.txt` for these AI crawlers:
 
 Read `references/llmstxt-evidence.md` for the primary-source evidence (Mueller, Illyes, SE Ranking 300k-domain study, OtterlyAI server-log audit) on why `/llms.txt` is not currently a citation lever for major AI search systems. claude-seo reports presence but assigns no citation-ranking weight.
 
-> **Google now states this explicitly.** Google's AI optimization guide (updated 2026-06-29) says you do **not** need `llms.txt` / AI-text files for Google Search, including its generative AI features, and that doing so "won't harm (nor help) your visibility or rankings in Google Search, as Google Search ignores them." Mueller separately called the llms.txt discovery use case "a dead end." It's fine to keep for **non-Google** AI services; never recommend it as a Google ranking/citation lever. Source: developers.google.com/search/docs/fundamentals/ai-optimization-guide
+> **Google now states this explicitly.** Google's AI optimization guide, introduced
+> 2026-05-15 and clarified 2026-06-15, says `llms.txt` and other AI-text files are
+> not needed for Google Search and do not help or hurt visibility or rankings.
+> They may still serve non-Google systems. Never recommend `llms.txt` as a Google
+> ranking or citation lever. Source:
+> developers.google.com/search/docs/fundamentals/ai-optimization-guide
 
 The emerging **llms.txt** standard provides AI crawlers with structured content guidance.
 
@@ -241,7 +246,13 @@ New standard (December 2025) for machine-readable AI licensing terms.
 
 Google added many AI citation/source surfaces across AI Overviews **and** AI Mode (May 2026):
 
-- **Preferred Sources**, users pick sites that get a "preferred" badge in AI answers; all-languages since 2026-04-30 (>345K sources selected); Google is working toward using it as a ranking signal. *Quick win:* encourage your audience to add the brand as a Preferred Source.
+- **Preferred Sources**, an eligible domain or subdomain can be selected by a
+  user, making its content more likely to appear in that user's Top Stories and
+  eligible for a preferred badge in AI Mode or AI Overviews. This is a
+  **per-user preference**, not a documented general ranking signal. Publishers
+  may offer Google's interactive button or a deeplink, but should not promise a
+  site-wide ranking lift. Source:
+  developers.google.com/search/docs/appearance/preferred-sources
 - **"Highly Cited" badges**, earned via original primary reporting that other articles cite.
 - **Community Perspectives**, elevates Reddit/forum/firsthand content.
 - Inline links, desktop hover **Link Previews**, and prominent link carousels.

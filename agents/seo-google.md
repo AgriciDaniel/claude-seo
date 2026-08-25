@@ -68,7 +68,7 @@ Before presenting: verify `"review": {"status": "PASS"}` in the JSON output.
 If `output_dir` is provided by the audit orchestrator, write:
 - `output_dir/findings/google.md`: PSI, CrUX, GSC, URL Inspection, GA4, and credential-tier findings
 - Structured JSON-compatible findings for `audit-data.json` under the Google SEO Data category
-- Generated PDF/HTML/XLSX reports under `output_dir/` by passing `--output-dir "$output_dir"` to `scripts/google_report.py`
+- Generated PDF/HTML/XLSX reports under `output_dir/` with `claude-seo run google_report.py --output-dir "$output_dir"`
 
 ## Error Handling
 

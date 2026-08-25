@@ -1,10 +1,11 @@
 # Claude SEO - Python Dependencies
 # Bounded version pinning with security-conscious minimums
-# Last updated: July 20, 2026 (v2.2.4)
+# Last updated: August 25, 2026 (v2.2.5)
 
 beautifulsoup4>=4.12.0,<5.0.0     # No known CVEs
 requests>=2.32.4,<3.0.0           # CVE-2024-47081, CVE-2024-35195 fixes
 lxml>=6.1.1,<7.0.0                # CVE-2025-24928 + additional libxml2 security patches
+lxml_html_clean>=0.4.3,<1.0.0     # lxml 6 removed html.clean into this standalone package
 playwright>=1.59.0,<2.0.0         # CVE-2025-59288 fix (macOS)
 urllib3>=2.7.0,<3.0.0             # High-severity urllib3 advisories GHSA-mf9v-mfxr-j63j, GHSA-qccp-gfcp-xxvc
 

@@ -150,13 +150,13 @@ upgrade.
 | Letting `aimh/main` lag behind `origin/main` | Always push to `aimh` first, then `origin` on release |
 | Confusing `aimh/v2` with `origin/v2` | `origin` should never have an unreleased `v2` branch |
 
-## State for the v2.2.4 public release (2026-07-20)
+## State for the v2.2.5 public release (2026-08-25)
 
-- v2.2.4 is the **current public release**. Latest public tag: `v2.2.4`.
+- v2.2.5 is the release represented by this branch. Its public tag is created only after the reviewed commit is published.
 - `aimh/main` = shared canonical (public-first README, private marketplace name).
 - `origin/main` = `aimh/main` + the public-branding commit (public marketplace name).
-- The public `v2.2.4` tag points at the reviewed maintenance release on `origin/main`.
-- Private synchronization for v2.2.4 requires a separate review because this release preserves
+- The intended public `v2.2.5` tag must point at the reviewed release commit on `origin/main`.
+- Private synchronization for v2.2.5 requires a separate review because this release preserves
   public branding and intentionally excludes private-only content.
 - `aimh/v2` tracks the shared canonical for ongoing v2.x work.
 

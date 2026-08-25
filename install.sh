@@ -12,7 +12,7 @@ main() {
     # This default MUST be bumped on every release. CI guard
     # (tests/test_manifest_consistency.py) enforces this matches plugin.json.
     # Override: CLAUDE_SEO_TAG=main bash install.sh
-    REPO_TAG="${CLAUDE_SEO_TAG:-v2.2.4}"
+    REPO_TAG="${CLAUDE_SEO_TAG:-v2.2.5}"
 
     echo "════════════════════════════════════════"
     echo "║   Claude SEO - Installer             ║"
@@ -54,6 +54,13 @@ main() {
     if [ -d "${TEMP_DIR}/claude-seo/schema" ]; then
         mkdir -p "${SKILL_DIR}/schema"
         cp -r "${TEMP_DIR}/claude-seo/schema/"* "${SKILL_DIR}/schema/"
+    fi
+
+    # Copy deterministic data files consumed by bundled scripts such as
+    # seo_updates.py. Keep the repository-relative data/ layout intact.
+    if [ -d "${TEMP_DIR}/claude-seo/data" ]; then
+        mkdir -p "${SKILL_DIR}/data"
+        cp -r "${TEMP_DIR}/claude-seo/data/"* "${SKILL_DIR}/data/"
     fi
 
     # Copy reference docs

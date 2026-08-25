@@ -25,12 +25,12 @@ not a recommendation.
 
 Collect signals without interpreting them. For a website audit this means:
 
-- Raw HTML + rendered HTML (via `scripts/render_page.py`)
+- Raw HTML + rendered HTML (via `claude-seo run render_page.py`)
 - Schema.org markup actually present (via `seo-schema`)
 - SERP visibility for the site's published topics (via `seo-dataforseo` /
   Google APIs when available)
 - Backlink + brand-mention landscape (via `seo-backlinks`)
-- Core Web Vitals field data from CrUX (via `scripts/pagespeed_check.py`)
+- Core Web Vitals field data from CrUX (via `claude-seo run pagespeed_check.py`)
 - AI-search citation patterns (via `seo-geo`)
 - Competitor pages on the target's primary keywords
 
@@ -185,7 +185,7 @@ Stop strategizing. Produce the artifact:
   measurable outcomes.
 - Generated schema JSON-LD ready to paste into the site.
 - A content brief with target keywords, outline, and internal links.
-- A PDF via `scripts/google_report.py` when the user asks for one.
+- A PDF via `claude-seo run google_report.py` when the user asks for one.
 - The smallest implementation of the highest-leverage recommendation,
   not the full plan.
 

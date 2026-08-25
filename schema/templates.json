@@ -221,6 +221,7 @@
         "description": "[Product Description]",
         "image": "[Product Image URL]",
         "sku": "[SKU]",
+        "category": "[Merchant-defined Product Category]",
         "brand": {
           "@type": "Brand",
           "name": "[Brand Name]"
@@ -231,6 +232,7 @@
           "priceCurrency": "[Currency Code, e.g. USD]",
           "availability": "https://schema.org/InStock",
           "url": "[Product Page URL]",
+          "validFrom": "[YYYY-MM-DDTHH:MM:SS+TZ]",
           "priceValidUntil": "[YYYY-MM-DD]",
           "hasMerchantReturnPolicy": {
             "@type": "MerchantReturnPolicy",

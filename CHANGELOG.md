@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.5] - 2026-08-25
+
+### Added
+
+- Focused regression coverage for manual-install data packaging, runtime imports,
+  JSON-LD graph validation, empty rendered pages, accessibility-tree capture,
+  JSON output bounds, and managed-runtime command references.
+- Strict Google update-ledger validation for chronological order, known event
+  kinds, exact approved hostnames, unique names, and verification dates.
+
+### Changed
+
+- Refreshed Google Search guidance through 2026-08-25 using Google-owned sources,
+  including the August spam update, Preferred Sources, Search Console platform
+  properties, review transparency, merchant schema, canonical timing, and AMP.
+- Updated Lighthouse guidance to 13.4.1, including PSI API support for Agentic
+  Browsing and the Node.js 22.19 minimum for the CLI.
+- JSON render output now preserves full content by default and supports explicit,
+  measured text bounds through `--max-text`.
+
+### Fixed
+
+- Manual installs now include the update ledger, and runtime setup validates the
+  split `lxml_html_clean` dependency required by current lxml releases.
+- JSON-LD hooks now traverse top-level graphs, reject malformed graph members,
+  handle non-UTF-8 input safely, and avoid ordinary-language placeholder false
+  positives.
+- Agent-UX reports now fail closed on empty rendered documents, capture Chromium's
+  accessibility tree through CDP, and expose partial or failed capture states.
+- User-facing guidance now routes bundled Python modules through `claude-seo run`.
+
 ## [2.2.4] - 2026-07-20
 
 Community maintenance release following a full review of every open issue and pull request.

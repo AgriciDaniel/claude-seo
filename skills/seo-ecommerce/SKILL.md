@@ -14,7 +14,7 @@ compatibility: "Enhanced with DataForSEO Merchant API (optional)"
 metadata:
   author: AgriciDaniel
   original_author: "Matej Marjanovic (Pro Hub Challenge)"
-  version: "2.2.4"
+  version: "2.2.5"
   category: seo
 ---
 
@@ -262,6 +262,9 @@ Confirmed required fields are `name`, `image`, and `offers`; use `Offer`, not `A
 - `shippingDetails` -- ShippingDetails with rate and delivery time (merchant-level shipping via `ShippingService` is also supported; shipping/returns can be set in Search Console without a Merchant Center account)
 - `hasMerchantReturnPolicy` -- MerchantReturnPolicy with type and days
 - `hasAdultConsideration` -- **required for adult-oriented products** (added 2026-05-20 to Product variant / Merchant listing); Google Search supports only the value `https://schema.org/SexualContentConsideration`
+- `category` -- `Text`, `CategoryCode`, or an array mixing both. Use custom
+  text for merchant-defined product types and `CategoryCode` with Google's
+  taxonomy URL plus `codeValue` for Google Product Categories.
 
 ### Validation Rules
 
@@ -270,8 +273,11 @@ Confirmed required fields are `name`, `image`, and `offers`; use `Offer`, not `A
 3. `image` should be array with >= 1 high-res image URL
 4. `priceCurrency` must be ISO 4217 (USD, EUR, GBP)
 5. If `brand` is present, `brand.name` must not be empty or "N/A"
-6. Dates in `priceValidUntil` must be ISO 8601
+6. Sale periods use `validFrom` plus either `validThrough` or
+   `priceValidUntil`, in ISO 8601 format. Include time and timezone when known.
 7. If `aggregateRating` present: `ratingValue` and `reviewCount` required
+8. Do not include fake reviews or undisclosed incentivized reviews in visible
+   content or structured data. Clearly and prominently disclose incentives.
 
 ### Schema Scoring
 

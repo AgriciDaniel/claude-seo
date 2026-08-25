@@ -277,7 +277,11 @@ def command_setup(args: argparse.Namespace) -> int:
                 except RuntimeError as exc:
                     print(f"Browser setup incomplete: {exc}", file=sys.stderr)
             _run_checked(
-                [str(staged_python), "-c", "import bs4, lxml, playwright, requests, trafilatura"],
+                [
+                    str(staged_python),
+                    "-c",
+                    "import bs4, lxml, lxml_html_clean, playwright, requests, trafilatura",
+                ],
                 env=env,
                 stage="runtime import validation",
             )

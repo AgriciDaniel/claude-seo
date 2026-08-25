@@ -49,7 +49,7 @@ RUNTIME_UTILITY_COMMANDS = {"setup", "doctor"}
 def tracked_files():
     out = subprocess.run(["git", "-C", REPO, "ls-files"],
                          capture_output=True, text=True, check=True).stdout
-    return [l for l in out.splitlines() if l.strip()]
+    return [line for line in out.splitlines() if line.strip()]
 
 
 def read(rel, _cache={}):
@@ -176,11 +176,17 @@ def check_runtime_invocations(texts):
     bare = re.compile(
         r"\b(?:python3|python|py\s+-3)\s+[^\n`]*?scripts/[A-Za-z0-9_./-]+\.py"
     )
+    raw_path = re.compile(r"(?<![\w/])scripts/([A-Za-z0-9_]+\.py)\b")
     runtime = re.compile(r"\bclaude-seo\s+run(?:\s+--extension\s+[a-z0-9-]+)?\s+([A-Za-z0-9_-]+\.py)")
     for f in carriers:
         content = read(f)
         for match in bare.finditer(content):
             errors.append(f"{f}: bare bundled-script invocation: {match.group(0)}")
+        for script in sorted(set(raw_path.findall(content))):
+            errors.append(
+                f"{f}: unsupported raw script path scripts/{script}; "
+                f"use claude-seo run {script}"
+            )
         for script in sorted(set(runtime.findall(content))):
             if not os.path.isfile(os.path.join(REPO, "scripts", script)) and not any(
                 os.path.isfile(path)
