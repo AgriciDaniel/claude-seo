@@ -39,8 +39,9 @@ As of 2025-2026, AI companies actively crawl the web to train models and power A
 
 | Crawler | Company | robots.txt token | Purpose |
 |---------|---------|-----------------|---------|
-| GPTBot | OpenAI | `GPTBot` | Model training |
-| ChatGPT-User | OpenAI | `ChatGPT-User` | Real-time browsing |
+| GPTBot | OpenAI | `GPTBot` | Model training (NOT ChatGPT Search) |
+| OAI-SearchBot | OpenAI | `OAI-SearchBot` | ChatGPT Search citability |
+| ChatGPT-User | OpenAI | `ChatGPT-User` | Real-time browsing (user-triggered) |
 | ClaudeBot | Anthropic | `ClaudeBot` | Model training |
 | PerplexityBot | Perplexity | `PerplexityBot` | Search index + training |
 | Bytespider | ByteDance | `Bytespider` | Model training |
@@ -49,7 +50,10 @@ As of 2025-2026, AI companies actively crawl the web to train models and power A
 
 **Key distinctions:**
 - Blocking `Google-Extended` prevents Gemini training use but does NOT affect Google Search indexing or AI Overviews (those use `Googlebot`)
-- Blocking `GPTBot` prevents OpenAI training but does NOT prevent ChatGPT from citing your content via browsing (`ChatGPT-User`)
+- Blocking `GPTBot` prevents OpenAI training but does NOT affect ChatGPT Search
+  citability, which is governed by `OAI-SearchBot`, nor user-triggered browsing
+  (`ChatGPT-User`). Check `OAI-SearchBot` for any citability claim; `GPTBot`
+  status is evidence about training use only
 - ~3-5% of websites now use AI-specific robots.txt rules
 
 **Example, selective AI crawler blocking:**

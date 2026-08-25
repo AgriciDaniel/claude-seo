@@ -152,8 +152,8 @@ Check `robots.txt` for these AI crawlers:
 
 | Crawler | Owner | Purpose | Obeys robots.txt? |
 |---------|-------|---------|---|
-| GPTBot | OpenAI | ChatGPT web search | yes |
-| OAI-SearchBot | OpenAI | OpenAI search features | yes |
+| GPTBot | OpenAI | **Model training only** (NOT ChatGPT Search) | yes |
+| OAI-SearchBot | OpenAI | **ChatGPT Search citability** (the crawler that decides it) | yes |
 | ChatGPT-User | OpenAI | ChatGPT browsing (user-triggered) | no (user-triggered) |
 | ClaudeBot | Anthropic | Claude web features | yes |
 | PerplexityBot | Perplexity | Perplexity AI search | yes |
@@ -161,13 +161,40 @@ Check `robots.txt` for these AI crawlers:
 | anthropic-ai | Anthropic | Claude training | yes |
 | Bytespider | ByteDance | TikTok/Douyin AI | yes |
 | cohere-ai | Cohere | Cohere models | yes |
-| Google-Extended | Google | Gemini/Vertex training & grounding opt-out | yes |
+| Google-Extended | Google | **Gemini/Vertex training & grounding only** (NOT Google Search) | yes |
 | Google-CloudVertexBot | Google | Site-owner-requested Vertex AI Agent crawls | yes |
 | Google-Agent | Google | Agentic browsing (Project Mariner), acts for a user | **no (user-triggered)** |
 | Google-NotebookLM | Google | Fetches individual user-added source URLs | **no (user-triggered)** |
 | Google Messages | Google | User-triggered fetch | **no (user-triggered)** |
 
-**Recommendation:** Allow GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot for AI search visibility. Block CCBot and training crawlers if desired.
+**Recommendation:** Allow OAI-SearchBot, ClaudeBot, and PerplexityBot for AI search
+visibility. GPTBot and CCBot are training crawlers -- allow or block them on licensing
+preference, not on search-visibility grounds.
+
+### Check the right bot for the claim you are making
+
+Two pairs are routinely conflated. **Each claim below may only be supported by its own
+bot's robots.txt status** -- check them separately and report them separately.
+
+| Claim you want to make | Bot to check | Bot that does NOT support this claim |
+|---|---|---|
+| "Content is citable in ChatGPT Search" | `OAI-SearchBot` | `GPTBot` |
+| "Content is available for OpenAI model training" | `GPTBot` | `OAI-SearchBot` |
+| "Content can be used for Gemini/Vertex training & grounding" | `Google-Extended` | `Googlebot` |
+| "Content is eligible for Google Search / AI Overviews" | `Googlebot` | `Google-Extended` |
+
+- **`Google-Extended` governs Gemini and Vertex AI training and grounding use only.
+  It does not affect inclusion in ordinary Google Search, or in AI Overviews and AI
+  Mode, both of which are served from the `Googlebot` index.** Never score
+  `Google-Extended` as a "Google Search readiness" signal, and never cite a blocked
+  `Google-Extended` as evidence that a site is missing from Google Search.
+- **`OAI-SearchBot` is the crawler that determines ChatGPT Search citability.
+  `GPTBot` is OpenAI's separate training crawler.** Checking `GPTBot` access tells
+  you nothing about whether ChatGPT Search can cite the page. A site that blocks
+  `GPTBot` and allows `OAI-SearchBot` is fully citable in ChatGPT Search.
+
+Do not use these names interchangeably in report prose. When reporting crawler access,
+name the specific user-agent that was checked and the specific capability it governs.
 
 > **User-triggered fetchers ignore robots.txt by design** (Google-Agent, Google-NotebookLM, Google Messages, ChatGPT-User). robots.txt cannot block them, use server-side access controls. Google's canonical crawling/robots reference moved to **developers.google.com/crawling** (migrated 2025-11-20); IP-range files now live at `/crawling/ipranges/` and `googlebot.json` was renamed `common-crawlers.json`. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate via a `Signature-Agent` header + key directory (used by Google-Agent); reverse-DNS verification remains the fallback.
 
@@ -258,7 +285,10 @@ Generate `GEO-ANALYSIS.md` with:
 
 1. **GEO Readiness Score: XX/100**
 2. **Platform breakdown** (Google AIO, ChatGPT, Perplexity scores)
-3. **AI Crawler Access Status** (which crawlers allowed/blocked)
+3. **AI Crawler Access Status** -- report each crawler separately with the
+   capability it governs. Training access (`GPTBot`, `Google-Extended`, `CCBot`)
+   and search citability (`OAI-SearchBot`, `Googlebot`, `PerplexityBot`,
+   `ClaudeBot`) are distinct findings and must never be merged into one line.
 4. **llms.txt Status** (present, missing, recommendations)
 5. **Brand Mention Analysis** (presence on Wikipedia, Reddit, YouTube, LinkedIn)
 6. **Passage-Level Citability** (optimal 134-167 word blocks identified)

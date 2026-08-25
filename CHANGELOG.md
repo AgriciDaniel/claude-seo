@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- AI crawler claims are now checked against the crawler that actually governs them.
+  `GPTBot` was documented as "ChatGPT web search" in the `seo-geo` crawler table; it is
+  OpenAI's model-training crawler, while `OAI-SearchBot` is what determines ChatGPT
+  Search citability. `Google-Extended` governs Gemini/Vertex training and grounding only
+  and is no longer treated as a Google Search readiness signal (Google Search, AI
+  Overviews, and AI Mode all follow `Googlebot`). Adds a claim-to-bot mapping table, the
+  missing `OAI-SearchBot` row to the `seo-technical` crawler table, and requires training
+  access and search citability to be reported as separate findings.
+
 ## [2.2.4] - 2026-07-20
 
 Community maintenance release following a full review of every open issue and pull request.
