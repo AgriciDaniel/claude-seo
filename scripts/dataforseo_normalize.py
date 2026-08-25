@@ -304,77 +304,6 @@ def normalize_merchant(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# Social normalizer (placeholder for future seo-social skill)
-# ---------------------------------------------------------------------------
-
-def normalize_social(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """
-    Normalize social signal data from DataForSEO.
-
-    Placeholder for future seo-social skill integration. Handles social
-    media engagement metrics, share counts, and platform-specific data.
-
-    Args:
-        items: Raw item dicts from DataForSEO social endpoints.
-
-    Returns:
-        List of normalized social signal dicts.
-    """
-    if not items:
-        return []
-    normalized = []
-    for item in items:
-        signal = {
-            "url": str(item.get("url", "")),
-            "title": str(item.get("title", "")),
-            "platform": str(item.get("platform", item.get("source", "unknown"))),
-            "engagement_count": _safe_int(
-                item.get("engagement_count", item.get("social_count", 0))
-            ),
-            "likes": _safe_int(item.get("likes")),
-            "shares": _safe_int(item.get("shares")),
-            "comments": _safe_int(item.get("comments")),
-            "date": str(item.get("date", item.get("datetime", ""))),
-            "sentiment": str(item.get("sentiment", "neutral")),
-        }
-        normalized.append(signal)
-    return normalized
-
-
-# ---------------------------------------------------------------------------
-# Reviews normalizer (placeholder for future expansion)
-# ---------------------------------------------------------------------------
-
-def normalize_reviews(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """
-    Normalize review data from DataForSEO.
-
-    Handles business listing reviews, product reviews, and Google Maps reviews.
-
-    Args:
-        items: Raw item dicts from DataForSEO review endpoints.
-
-    Returns:
-        List of normalized review dicts.
-    """
-    if not items:
-        return []
-    normalized = []
-    for item in items:
-        review = {
-            "author": str(item.get("author", item.get("profile_name", "Anonymous"))),
-            "rating": round(_safe_float(item.get("rating")), 1),
-            "text": str(item.get("text", item.get("review_text", ""))),
-            "date": str(item.get("date", item.get("time_ago", ""))),
-            "source": str(item.get("source", "")),
-            "verified": bool(item.get("is_verified", False)),
-            "helpful_count": _safe_int(item.get("helpful_count", item.get("likes", 0))),
-        }
-        normalized.append(review)
-    return normalized
-
-
-# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -385,7 +314,7 @@ def main():
     parser.add_argument("input", help="Input JSON file (use - for stdin)")
     parser.add_argument(
         "--module",
-        choices=["merchant", "social", "reviews"],
+        choices=["merchant"],
         default="merchant",
         help="Normalizer module to use (default: merchant)",
     )
@@ -426,12 +355,7 @@ def main():
         items = [items]
 
     # Normalize
-    normalizers = {
-        "merchant": normalize_merchant,
-        "social": normalize_social,
-        "reviews": normalize_reviews,
-    }
-    normalized = normalizers[args.module](items)
+    normalized = normalize_merchant(items)
 
     # Truncate if requested
     if args.max_tokens > 0:

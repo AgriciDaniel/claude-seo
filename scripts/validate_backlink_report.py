@@ -22,6 +22,7 @@ import argparse
 import json
 import sys
 from typing import Optional
+from urllib.parse import urlparse
 
 
 def validate_schema_claims(parsed_data: dict) -> list:
@@ -101,7 +102,6 @@ def validate_verification_results(verify_data: dict) -> list:
     for r in results:
         source = r.get("source_url", "")
         status = r.get("status", "")
-        from urllib.parse import urlparse
         source_domain = urlparse(source).netloc.lower()
 
         if status == "link_removed" and any(sd in source_domain for sd in social_domains):
@@ -181,7 +181,6 @@ def validate_reciprocal_links(parsed_data: dict, verify_data: dict) -> list:
     # Get outbound domains from homepage
     outbound_domains = set()
     for link in parsed_data.get("links", {}).get("external", []):
-        from urllib.parse import urlparse
         href = link.get("href", "")
         if href:
             domain = urlparse(href).netloc.lower()
@@ -192,7 +191,6 @@ def validate_reciprocal_links(parsed_data: dict, verify_data: dict) -> list:
     inbound_domains = set()
     for r in verify_data["data"].get("results", []):
         if r.get("status") == "verified":
-            from urllib.parse import urlparse
             source = r.get("source_url", "")
             domain = urlparse(source).netloc.lower().replace("www.", "")
             if domain:
