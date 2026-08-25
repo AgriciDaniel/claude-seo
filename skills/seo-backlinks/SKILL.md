@@ -4,10 +4,10 @@ description: "Backlink profile analysis: referring domains, anchor text distribu
 user-invocable: true
 argument-hint: "<url>"
 license: MIT
-compatibility: "Free: Common Crawl + verify always available. Optional: Moz API, Bing Webmaster (free signup). Premium: DataForSEO extension."
+compatibility: "Free: Common Crawl + verify always available. Optional: Moz API, Bing Webmaster, Keywords Everywhere (free signup). Premium: DataForSEO extension."
 metadata:
   author: AgriciDaniel
-  version: "2.2.4"
+  version: "2.3.0"
   category: seo
 ---
 
@@ -20,8 +20,9 @@ Before analysis, detect available data sources:
 1. **DataForSEO MCP** (premium): Check if `dataforseo_backlinks_summary` tool is available
 2. **Moz API** (free signup): `claude-seo run backlinks_auth.py --check moz --json`
 3. **Bing Webmaster** (free signup): `claude-seo run backlinks_auth.py --check bing --json`
-4. **Common Crawl** (always available): Domain-level graph with PageRank
-5. **Verification Crawler** (always available): Checks if known backlinks still exist
+4. **Keywords Everywhere** (free signup, single-metric): `claude-seo run backlinks_auth.py --check keywordseverywhere --json`
+5. **Common Crawl** (always available): Domain-level graph with PageRank
+6. **Verification Crawler** (always available): Checks if known backlinks still exist
 
 Run `claude-seo run backlinks_auth.py --check --json` to detect all sources at once.
 
@@ -49,6 +50,8 @@ Produce all 7 sections below. Each section lists data sources in preference orde
 **DataForSEO:** `dataforseo_backlinks_summary` → total backlinks, referring domains, domain rank, follow ratio, trend.
 
 **Moz API:** `claude-seo run moz_api.py metrics <url> --json` → Domain Authority, Page Authority, Spam Score, linking root domains, external links.
+
+**Keywords Everywhere:** `claude-seo run keywordseverywhere_api.py rank <domain> --json` → 0-10 domain rank only (no link counts). Use as a fallback when Moz isn't configured; do not use in place of Moz when both are available.
 
 **Common Crawl:** `claude-seo run commoncrawl_graph.py <domain> --json` → PageRank, harmonic centrality, and low-confidence rank/presence data.
 
@@ -222,9 +225,11 @@ the reality is we simply lack data.
 2. Moz configured? → Use for DA/PA/spam/anchors (confidence: 0.85)
 3. Bing configured? → Use for registered-property links and comparison only
    when both properties are accessible (confidence: 0.70)
-4. Always: Common Crawl for domain-level metrics (confidence: 0.50)
-5. Always: Verification crawler for known link checks (confidence: 0.95)
-6. Nothing works? → "Run `/seo backlinks setup` to configure free APIs"
+4. Moz not configured but Keywords Everywhere is? → Use for a Profile Overview
+   rank-only fallback (confidence: 0.60; single metric, no link counts/anchors)
+5. Always: Common Crawl for domain-level metrics (confidence: 0.50)
+6. Always: Verification crawler for known link checks (confidence: 0.95)
+7. Nothing works? → "Run `/seo backlinks setup` to configure free APIs"
 
 ## Pre-Delivery Review (MANDATORY)
 
