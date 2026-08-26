@@ -26,7 +26,7 @@ _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 try:
-    from url_safety import validate_url
+    import url_safety  # noqa: F401
 except ImportError as _import_exc:
     # Hard fail: a private-IP/loopback fallback that omits SSRF checks is
     # worse than no validation at all. The previous fallback shipped in

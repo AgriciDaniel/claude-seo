@@ -54,7 +54,6 @@ import re
 import sys
 from pathlib import Path
 
-
 # Claim patterns. Each is (regex, label). Order matters — first match
 # wins per substring so a "47% of users" doesn't double-count as both
 # statistic and quantity. Trailing-word groups are restricted to

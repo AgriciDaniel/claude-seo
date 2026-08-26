@@ -37,7 +37,6 @@ import json
 import sys
 from pathlib import Path
 
-
 # Types Google retired June 2025 (announced via developers.google.com/search/blog
 # /2025/06/simplifying-search-results). Generating any of these in 2026 is a
 # Critical finding because the rich result no longer renders.

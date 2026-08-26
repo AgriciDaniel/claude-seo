@@ -15,7 +15,6 @@ import argparse
 import json
 import sys
 from datetime import datetime, timedelta
-from typing import Optional
 
 try:
     from google.analytics.data_v1beta import BetaAnalyticsDataClient
@@ -447,7 +446,7 @@ def main():
         print(json.dumps(result, indent=2, default=str))
     else:
         if args.report == "top-pages":
-            print(f"=== Top Organic Landing Pages ===")
+            print("=== Top Organic Landing Pages ===")
             print(f"Property: {prop} | Period: {result.get('date_range', {}).get('start')} to {result.get('date_range', {}).get('end')}")
             print(f"Total organic sessions: {result.get('total_organic_sessions', 0):,}")
             print()
@@ -456,7 +455,7 @@ def main():
                 print(f"      Sessions: {page['sessions']:,} | Users: {page['users']:,} | Bounce: {page['bounce_rate']}%")
         else:
             totals = result.get("totals", {})
-            print(f"=== GA4 Organic Traffic Report ===")
+            print("=== GA4 Organic Traffic Report ===")
             print(f"Property: {prop}")
             dr = result.get("date_range", {})
             print(f"Period: {dr.get('start')} to {dr.get('end')}")

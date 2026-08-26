@@ -54,7 +54,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import shutil
 import socket
@@ -62,7 +61,6 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from typing import Optional
-
 
 _DATE_LABELS = {
     "created": (

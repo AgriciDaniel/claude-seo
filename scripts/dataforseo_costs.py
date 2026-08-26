@@ -26,7 +26,6 @@ Security fixes: config path corrected to ~/.config/claude-seo/
 
 import argparse
 import json
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
