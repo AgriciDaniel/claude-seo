@@ -108,6 +108,53 @@ def test_content_quality_detects_known_ai_patterns(phrase: str) -> None:
     assert result["ai_pattern_score"] > 0
     assert phrase.lower() in [m.lower() for m in result["matches"]["ai_patterns"]]
 
+def test_content_quality_tokenises_korean() -> None:
+    """Hangul is space-delimited, so a run of syllables is one token.
+
+    Before CJK support the Latin-only tokeniser matched nothing in Korean
+    text, so ``tokens`` was 0, ``information_density`` collapsed to 0.0 and
+    every Korean page scored an identical 65 regardless of content.
+    """
+    text = (
+        "한국천문연구원 공표 절기를 기준으로 계산하는 정통 사주팔자 풀이입니다. "
+        "생년월일시를 한 번만 입력하면 천간과 지지, 오행, 대운까지 확인할 수 있습니다."
+    )
+    result = content_quality.analyse(text)
+    assert result["tokens"] > 0, result
+    assert result["unique_tokens"] > 0, result
+
+
+def test_content_quality_tokenises_japanese_and_chinese() -> None:
+    """Japanese and Chinese are unspaced: one kana or ideograph is one token."""
+    for text in ("無料四柱推命で日柱と五行がわかります。", "免费四柱推命，一分钟了解日柱与五行。"):
+        result = content_quality.analyse(text)
+        assert result["tokens"] > 0, (text, result)
+
+
+def test_content_quality_cjk_distinguishes_documents() -> None:
+    """Different Korean documents must not collapse to one identical score."""
+    short = "사주는 자기 이해의 한 관점입니다."
+    long = (
+        "사주팔자는 태어난 연월일시를 천간과 지지로 옮긴 여덟 글자입니다. "
+        "절기를 기준으로 월주를 정하고, 진태양시로 시주를 보정합니다. "
+        "오행의 균형과 십신의 배치를 함께 살펴 전체 흐름을 읽습니다. "
+        "대운은 10년 단위로 바뀌고 세운은 해마다 달라집니다."
+    )
+    assert content_quality.analyse(long)["tokens"] > content_quality.analyse(short)["tokens"]
+
+
+def test_content_quality_latin_scoring_unchanged_by_cjk_support() -> None:
+    """Regression guard: adding CJK ranges must not shift Latin tokenisation."""
+    text = (
+        "Traditional Korean four pillars astrology calculated from the KASI "
+        "published solar terms. Enter your birth date and time once to see the "
+        "heavenly stems, earthly branches, five elements and major luck cycles."
+    )
+    result = content_quality.analyse(text)
+    assert result["tokens"] == len(
+        [w for w in __import__("re").findall(r"[A-Za-z][A-Za-z'\-]*", text)]
+    ), result
+
 
 # ---------------------------------------------------------------------------
 # content_humanize
