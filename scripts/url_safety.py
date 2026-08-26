@@ -424,6 +424,34 @@ def _pin_dns(hostname: str, pinned_ip: str, port: int) -> Iterator[None]:
         _dns_patch_lock.release()
 
 
+# Default request headers, mirroring the browser-like defaults fetch_page.py
+# has used since v1.2.1 (issue #9). Without them ``requests`` announces itself
+# as ``User-Agent: python-requests/x.y.z`` with no Accept-Language, which many
+# managed WAFs and CDNs answer with 403/406, and which SSR frameworks answer
+# with the empty client-side shell. Callers do not see an exception in that
+# case, they analyse the error page or the shell as if it were the real
+# document. Any header here can be overridden by passing ``headers=``.
+DEFAULT_REQUEST_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/150.0.7871.115 Safari/537.36 ClaudeSEO/2.0"
+    ),
+    "Accept": (
+        "text/html,application/xhtml+xml,application/xml;q=0.9,"
+        "image/avif,image/webp,*/*;q=0.8"
+    ),
+    "Accept-Language": "en-US,en;q=0.9",
+}
+
+
+def _with_default_headers(kwargs: dict) -> dict:
+    """Fill in DEFAULT_REQUEST_HEADERS for header keys the caller did not set."""
+    headers = dict(DEFAULT_REQUEST_HEADERS)
+    headers.update(kwargs.get("headers") or {})
+    kwargs["headers"] = headers
+    return kwargs
+
+
 def safe_requests_get(
     url: str,
     *,
@@ -434,12 +462,15 @@ def safe_requests_get(
     ``requests.get`` with DNS-rebinding protection.
 
     The request's hostname is pinned to a pre-validated IP for the
-    duration of the call. Standard ``requests`` semantics otherwise.
+    duration of the call. Standard ``requests`` semantics otherwise,
+    except that browser-like default headers are supplied for any header
+    the caller did not set (see ``DEFAULT_REQUEST_HEADERS``).
     """
     norm_url, pinned_ip = validate_url_strict(url)
     parsed = urlparse(norm_url)
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     assert parsed.hostname is not None  # validate_url_strict guarantees this
+    kwargs = _with_default_headers(kwargs)
     with _pin_dns(parsed.hostname, pinned_ip, port):
         return requests.get(norm_url, timeout=timeout, **kwargs)
 
@@ -454,12 +485,15 @@ def safe_requests_head(
     ``requests.head`` with DNS-rebinding protection.
 
     The request's hostname is pinned to a pre-validated IP for the
-    duration of the call. Standard ``requests`` semantics otherwise.
+    duration of the call. Standard ``requests`` semantics otherwise,
+    except that browser-like default headers are supplied for any header
+    the caller did not set (see ``DEFAULT_REQUEST_HEADERS``).
     """
     norm_url, pinned_ip = validate_url_strict(url)
     parsed = urlparse(norm_url)
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     assert parsed.hostname is not None
+    kwargs = _with_default_headers(kwargs)
     with _pin_dns(parsed.hostname, pinned_ip, port):
         return requests.head(norm_url, timeout=timeout, **kwargs)
 
