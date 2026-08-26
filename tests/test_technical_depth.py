@@ -18,17 +18,14 @@ import os
 import sys
 from unittest.mock import patch
 
-import pytest
-
 _SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 
-import preload_check  # noqa: E402
 import indexnow_submit  # noqa: E402
 import lcp_subparts  # noqa: E402
+import preload_check  # noqa: E402
 import unlighthouse_run  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # preload_check

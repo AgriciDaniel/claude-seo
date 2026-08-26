@@ -349,13 +349,13 @@ def main():
 
         categories = result.get("categories", [])
         if categories:
-            print(f"\nContent Categories:")
+            print("\nContent Categories:")
             for c in categories:
                 print(f"  {c['name']} ({c['confidence']:.1%})")
 
         moderation = result.get("moderation", [])
         if moderation:
-            print(f"\nModeration Flags:")
+            print("\nModeration Flags:")
             for m in moderation:
                 print(f"  {m['name']} ({m['confidence']:.1%})")
 

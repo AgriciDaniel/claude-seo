@@ -13,7 +13,8 @@ import sys
 from urllib.parse import ParseResult, urlparse
 
 try:
-    from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout
+    from playwright.sync_api import sync_playwright
 except ImportError:
     print("Error: playwright required. Install with: pip install playwright && playwright install chromium")
     sys.exit(1)

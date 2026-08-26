@@ -28,7 +28,6 @@ from datetime import date
 from pathlib import Path
 from typing import Iterable
 
-
 _DATA_FILE = Path(__file__).resolve().parents[1] / "data" / "google-updates.json"
 
 

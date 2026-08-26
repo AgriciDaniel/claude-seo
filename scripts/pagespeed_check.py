@@ -29,7 +29,6 @@ try:
     from google_auth import (
         get_api_key,
         google_api_key_headers,
-        load_config,
         redact_google_api_key,
         validate_url,
     )
@@ -40,7 +39,6 @@ except ImportError:
     from google_auth import (
         get_api_key,
         google_api_key_headers,
-        load_config,
         redact_google_api_key,
         validate_url,
     )
@@ -595,7 +593,7 @@ def _print_psi_summary(psi: dict):
     diags = psi.get("diagnostics", [])
     notable_diags = [d for d in diags if d.get("score") is not None and d["score"] < 0.9]
     if notable_diags:
-        print(f"\nDiagnostics (needs attention):")
+        print("\nDiagnostics (needs attention):")
         for d in notable_diags[:5]:
             score_pct = f"{d['score']:.0%}" if d['score'] is not None else "info"
             print(f"  [{score_pct}] {d['title']}: {d.get('display', '')}")

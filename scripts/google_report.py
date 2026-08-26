@@ -20,13 +20,12 @@ import sys
 from datetime import datetime
 from html import escape
 from pathlib import Path
-from typing import Optional
 
 try:
     import matplotlib
     matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
+    import matplotlib.pyplot as plt
     import numpy as np
     _CHART_IMPORT_ERROR = None
 except (ImportError, OSError, RuntimeError) as exc:
@@ -280,8 +279,6 @@ def chart_cwv_timeline(data: dict, output_dir: Path) -> str:
         axes = [axes]
 
     x_labels = [p.get("last", "")[-5:] for p in periods]  # MM-DD format
-    x = range(len(x_labels))
-
     for ax, metric_name in zip(axes, available):
         m = metrics[metric_name]
         p75s = m.get("p75_values", [])
@@ -1262,9 +1259,9 @@ def _build_executive_summary(domain, timestamp, data, report_type):
         display_cards = cards[:5]
         lines.append(f'  <div class="{col_class}">')
         for _, val, lbl, clr in display_cards:
-            lines.append(f'    <div class="col">')
+            lines.append('    <div class="col">')
             lines.append(_metric_card(val, lbl, clr))
-            lines.append(f'    </div>')
+            lines.append('    </div>')
         lines.append('  </div>')
         lines.append('')
 
@@ -1535,9 +1532,9 @@ def _build_cwv_section(psi_data, crux_data, chart_paths, history_data=None, sect
         if seo_failed:
             lines.append(f'  <h3>SEO Audit Issues ({len(seo_failed)})</h3>')
             for a in seo_failed:
-                lines.append(f'  <div class="action-item critical">')
+                lines.append('  <div class="action-item critical">')
                 lines.append(f'    <h4>{a.get("title", "")}</h4>')
-                lines.append(f'  </div>')
+                lines.append('  </div>')
         else:
             lines.append(f'  <div class="success-box"><strong>SEO:</strong> '
                          f'All {len(seo_audits)} Lighthouse SEO checks passed.</div>')
@@ -1672,12 +1669,12 @@ def _build_gsc_section(gsc_data, chart_paths, section_num=3, fig_start=1):
         beyond = len([r for r in rows if r.get("position", 99) > 10])
         lines.append(f'  <h3>{section_num}.4 Query Position Analysis</h3>')
         lines.append('  <div class="two-col">')
-        lines.append(f'    <div class="col">')
+        lines.append('    <div class="col">')
         lines.append(_metric_card(str(top3), "Queries in Top 3", BRAND["success"]))
-        lines.append(f'    </div>')
-        lines.append(f'    <div class="col">')
+        lines.append('    </div>')
+        lines.append('    <div class="col">')
         lines.append(_metric_card(str(top10), "Queries in Top 10", BRAND["warning"]))
-        lines.append(f'    </div>')
+        lines.append('    </div>')
         lines.append('  </div>')
         if beyond:
             lines.append(f'  <p>{beyond} queries rank beyond position 10 '
@@ -1739,25 +1736,24 @@ def _build_indexation_section(inspect_data, chart_paths, section_num=4, fig_star
         if idx_path:
             fig_n = next_fig()
             lines.append(f'  <h3>{section_num}.1 Index Coverage Overview</h3>')
-            lines.append(f'    <div class="chart-container">')
+            lines.append('    <div class="chart-container">')
             lines.append(f'      <img src="file://{idx_path}" style="width: 70%;" alt="Index status donut chart">')
             lines.append(f'      <div class="chart-caption">Figure {fig_n}: URL indexation status distribution from Google URL Inspection API.</div>')
-            lines.append(f'    </div>')
+            lines.append('    </div>')
 
         # Summary cards
         lines.append(f'  <p>Total URLs inspected: <strong>{total}</strong></p>')
         lines.append('  <div class="two-col">')
-        lines.append(f'    <div class="col">')
+        lines.append('    <div class="col">')
         lines.append(_metric_card(summary.get("pass", 0), "Indexed", BRAND["success"]))
-        lines.append(f'    </div>')
-        lines.append(f'    <div class="col">')
+        lines.append('    </div>')
+        lines.append('    <div class="col">')
         lines.append(_metric_card(summary.get("fail", 0), "Not Indexed", BRAND["danger"]))
-        lines.append(f'    </div>')
+        lines.append('    </div>')
         lines.append('  </div>')
         lines.append('')
 
         indexed = summary.get("pass", 0)
-        not_indexed = summary.get("fail", 0)
         if total > 0:
             rate = round((indexed / total) * 100, 1)
             lines.append(f'  <p><strong>Index Rate:</strong> {rate}% of inspected URLs are indexed by Google.</p>')
@@ -1865,15 +1861,15 @@ def _build_recommendations(data, section_num=5):
         )
 
     if critical_items:
-        lines.append(f'  <h3><span class="priority-tag priority-critical">CRITICAL</span> '
-                     f'Fix Immediately</h3>')
+        lines.append('  <h3><span class="priority-tag priority-critical">CRITICAL</span> '
+                     'Fix Immediately</h3>')
         for title, effort, desc in critical_items:
             item_num += 1
-            lines.append(f'  <div class="action-item critical">')
+            lines.append('  <div class="action-item critical">')
             lines.append(f'    <h4>{item_num}. {title} '
                          f'<span class="effort">Effort: {effort}</span></h4>')
             lines.append(f'    <p>{desc}</p>')
-            lines.append(f'  </div>')
+            lines.append('  </div>')
         lines.append('')
 
     # High priority items
@@ -1906,15 +1902,15 @@ def _build_recommendations(data, section_num=5):
         )
 
     if high_items:
-        lines.append(f'  <h3><span class="priority-tag priority-high">HIGH</span> '
-                     f'Fix Within 1 Week</h3>')
+        lines.append('  <h3><span class="priority-tag priority-high">HIGH</span> '
+                     'Fix Within 1 Week</h3>')
         for title, effort, desc in high_items:
             item_num += 1
-            lines.append(f'  <div class="action-item high">')
+            lines.append('  <div class="action-item high">')
             lines.append(f'    <h4>{item_num}. {title} '
                          f'<span class="effort">Effort: {effort}</span></h4>')
             lines.append(f'    <p>{desc}</p>')
-            lines.append(f'  </div>')
+            lines.append('  </div>')
         lines.append('')
 
     # Medium priority items
@@ -1944,15 +1940,15 @@ def _build_recommendations(data, section_num=5):
         )
 
     if medium_items:
-        lines.append(f'  <h3><span class="priority-tag priority-medium">MEDIUM</span> '
-                     f'Fix Within 1 Month</h3>')
+        lines.append('  <h3><span class="priority-tag priority-medium">MEDIUM</span> '
+                     'Fix Within 1 Month</h3>')
         for title, effort, desc in medium_items:
             item_num += 1
-            lines.append(f'  <div class="action-item medium">')
+            lines.append('  <div class="action-item medium">')
             lines.append(f'    <h4>{item_num}. {title} '
                          f'<span class="effort">Effort: {effort}</span></h4>')
             lines.append(f'    <p>{desc}</p>')
-            lines.append(f'  </div>')
+            lines.append('  </div>')
         lines.append('')
 
     # If no recommendations were generated at all
@@ -2073,7 +2069,6 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
     charts_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%B %d, %Y")
-    timestamp_short = datetime.now().strftime("%Y-%m-%d %H:%M")
     result = {"report_type": report_type, "domain": domain, "files": [], "error": None}
 
     # ── Generate Charts ──────────────────────────────────────────────────────
@@ -2468,7 +2463,7 @@ def generate_xlsx(data, domain, report_type, output_dir):
     """
     try:
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
         from openpyxl.utils import get_column_letter
     except ImportError:
         print("Warning: openpyxl not installed. Skipping xlsx. Install: pip install openpyxl", file=sys.stderr)
@@ -2484,7 +2479,6 @@ def generate_xlsx(data, domain, report_type, output_dir):
     amber_fill = PatternFill(start_color="FFF3CD", end_color="FFF3CD", fill_type="solid")
     red_fill = PatternFill(start_color="F8D7DA", end_color="F8D7DA", fill_type="solid")
     header_font = Font(name="Calibri", bold=True, color="FFFFFF", size=11)
-    body_font = Font(name="Calibri", size=10)
     thin_border = Border(
         left=Side(style="thin", color="D6D3CC"),
         right=Side(style="thin", color="D6D3CC"),

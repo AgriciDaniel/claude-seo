@@ -6,11 +6,8 @@ Tests for v2 Checkpoint 7 (Phase G + I):
 
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
-
-import pytest
 
 _REPO = Path(__file__).resolve().parents[1]
 _SCRIPTS = _REPO / "scripts"
@@ -18,7 +15,6 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
 import portability_check as pc  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # portability_check
