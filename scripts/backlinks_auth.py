@@ -44,6 +44,7 @@ CACHE_DIR = os.path.expanduser("~/.cache/claude-seo/commoncrawl")
 SERVICE_AUTH = {
     "moz": "api_key",
     "bing": "api_key",
+    "keywordseverywhere": "api_key",
     "commoncrawl": "none",
     "verify": "none",
 }
@@ -52,6 +53,7 @@ SERVICE_AUTH = {
 SERVICE_NAMES = {
     "moz": "Moz Link Explorer API",
     "bing": "Bing Webmaster Tools API",
+    "keywordseverywhere": "Keywords Everywhere (Open PageRank)",
     "commoncrawl": "Common Crawl Web Graph",
     "verify": "Backlink Verification Crawler",
 }
@@ -72,6 +74,7 @@ def load_config() -> dict:
         "moz_api_key": None,
         "bing_api_key": None,
         "bing_verified_sites": [],
+        "keywordseverywhere_api_key": None,
         "commoncrawl_cache_dir": CACHE_DIR,
     }
 
@@ -92,6 +95,9 @@ def load_config() -> dict:
 
     if not config["bing_api_key"]:
         config["bing_api_key"] = os.environ.get("BING_WEBMASTER_API_KEY")
+
+    if not config["keywordseverywhere_api_key"]:
+        config["keywordseverywhere_api_key"] = os.environ.get("KEYWORDSEVERYWHERE_API_KEY")
 
     # Expand cache dir path
     config["commoncrawl_cache_dir"] = os.path.expanduser(
@@ -168,6 +174,23 @@ def check_credentials(service: str) -> dict:
                 "         Get free key at https://www.bing.com/webmasters"
             )
 
+    elif service == "keywordseverywhere":
+        api_key = config.get("keywordseverywhere_api_key")
+        if api_key:
+            result["available"] = True
+            result["method"] = "api_key_configured"
+            result["verified"] = False
+            result["note"] = (
+                "Keywords Everywhere credentials are configured but not live-verified by --check. "
+                "Run `python scripts/keywordseverywhere_api.py rank example.com --json` to test."
+            )
+        else:
+            result["error"] = (
+                "No Keywords Everywhere API key found. Set KEYWORDSEVERYWHERE_API_KEY "
+                f"environment variable or add 'keywordseverywhere_api_key' to {CONFIG_PATH}\n"
+                "         Get a key from your Keywords Everywhere dashboard"
+            )
+
     elif service == "commoncrawl":
         # Common Crawl is always available (public data, no auth needed)
         result["available"] = True
@@ -216,6 +239,7 @@ def detect_tier() -> dict:
 
     has_moz = bool(config.get("moz_api_key"))
     has_bing = bool(config.get("bing_api_key"))
+    has_kwe = bool(config.get("keywordseverywhere_api_key"))
 
     if has_moz and has_bing:
         return {
@@ -228,7 +252,7 @@ def detect_tier() -> dict:
                 "Bing comparison between registered properties",
                 "Common Crawl domain-level graph",
                 "Backlink verification crawler",
-            ],
+            ] + (["Keywords Everywhere Open PageRank (0-10 domain rank)"] if has_kwe else []),
             "missing": "Add DataForSEO extension for premium backlink data (paid)",
         }
     elif has_moz:
@@ -240,7 +264,7 @@ def detect_tier() -> dict:
                 "Moz referring domains and anchors",
                 "Common Crawl domain-level graph",
                 "Backlink verification crawler",
-            ],
+            ] + (["Keywords Everywhere Open PageRank (0-10 domain rank)"] if has_kwe else []),
             "missing": (
                 "Add Bing Webmaster API key for registered-property link data. "
                 "Free at https://www.bing.com/webmasters"
@@ -253,10 +277,11 @@ def detect_tier() -> dict:
             "capabilities": [
                 "Common Crawl domain-level graph (PageRank, in-degree)",
                 "Backlink verification crawler",
-            ],
+            ] + (["Keywords Everywhere Open PageRank (0-10 domain rank)"] if has_kwe else []),
             "missing": (
                 "Add Moz API key for DA/PA and spam scoring. "
-                "Free at https://moz.com/products/api (2,500 rows/month)"
+                "Free at https://moz.com/products/api (2,500 rows/month). "
+                "Or add a Keywords Everywhere key for a lightweight 0-10 domain rank fallback."
             ),
         }
 
@@ -271,6 +296,12 @@ def get_bing_api_key() -> Optional[str]:
     """Get the Bing Webmaster API key from config or environment."""
     config = load_config()
     return config.get("bing_api_key")
+
+
+def get_keywordseverywhere_api_key() -> Optional[str]:
+    """Get the Keywords Everywhere API key from config or environment."""
+    config = load_config()
+    return config.get("keywordseverywhere_api_key")
 
 
 def get_bing_verified_sites() -> list:
@@ -351,6 +382,25 @@ TIER 2: + BING WEBMASTER TOOLS API (free, verified sites)
             competitor backlink comparison (unique feature!).
   Limitation: Only works for verified sites + their competitors.
 
+OPTIONAL: KEYWORDS EVERYWHERE / OPEN PAGERANK (free signup, single-metric fallback)
+--------------------------------------------------------------------------------------
+  1. Sign in to the Keywords Everywhere dashboard (formerly OpenPageRank)
+  2. Copy your API key (format: opr_live_xxxxxxxxxxxxxxxx)
+  3. Verify current pricing/credit terms in the dashboard before relying on it --
+     not independently confirmed here.
+
+  Configure:
+    export KEYWORDSEVERYWHERE_API_KEY="opr_live_xxxxxxxxxxxxxxxx"
+
+  Or add to """ + CONFIG_PATH + """:
+    {
+      "keywordseverywhere_api_key": "opr_live_xxxxxxxxxxxxxxxx"
+    }
+
+  Provides: A single 0-10 domain rank score, up to 100 domains per request.
+  No referring domains, anchors, or top pages -- use Moz for those. A
+  lightweight Profile Overview fallback when Moz isn't configured.
+
 PREMIUM: DATAFORSEO EXTENSION (paid, most comprehensive)
 ----------------------------------------------------------
   For full commercial-grade backlink data, install the DataForSEO extension:
@@ -376,7 +426,7 @@ def main():
         nargs="?",
         const="all",
         metavar="SERVICE",
-        help="Check credentials. Optionally specify: moz, bing, commoncrawl, verify",
+        help="Check credentials. Optionally specify: moz, bing, keywordseverywhere, commoncrawl, verify",
     )
     parser.add_argument(
         "--setup",
