@@ -141,11 +141,23 @@ _AI_PATTERNS: tuple[str, ...] = (
 )
 
 
-_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z'\-]*")
+# Latin words, Hangul eojeol, and CJK/kana characters. Korean is space
+# delimited so a run of syllables is one token; Chinese and Japanese are
+# unspaced, so one ideograph or kana counts as one token.
+_TOKEN_RE = re.compile(
+    r"[A-Za-z][A-Za-z'\-]*"
+    r"|[\uac00-\ud7a3]+"
+    r"|[\u3041-\u3096\u30a1-\u30fa\u30fc]"
+    r"|[\u3400-\u4dbf\u4e00-\u9fff]"
+)
 _NUMBER_RE = re.compile(r"\b\d+(?:[.,]\d+)?(?:%|st|nd|rd|th)?\b")
 # Capitalised multi-word names: rough proper-noun heuristic. Two or more
 # capitalised tokens in a row count as one entity.
 _ENTITY_RE = re.compile(r"\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b")
+# NOTE: CJK scripts have no letter case, so this heuristic finds no entities
+# in Korean/Japanese/Chinese text. Density for those languages therefore rests
+# on _NUMBER_RE alone and skews low. Tokenisation (above) is the load-bearing
+# fix; CJK named-entity detection needs a real model, not a regex.
 
 
 def _count_phrase_hits(text: str, patterns: Iterable[str]) -> list[str]:
