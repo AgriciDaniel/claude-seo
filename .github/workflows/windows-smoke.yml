@@ -119,15 +119,38 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          ./uninstall.ps1
           $skills = Join-Path $env:USERPROFILE ".claude\skills"
           $agents = Join-Path $env:USERPROFILE ".claude\agents"
+          $expectedSkillDirs = @(Get-ChildItem -Path $skills -Directory -Filter "seo" -ErrorAction SilentlyContinue).Count + @(Get-ChildItem -Path $skills -Directory -Filter "seo-*" -ErrorAction SilentlyContinue).Count
+          $expectedAgentFiles = @(Get-ChildItem -Path $agents -File -Filter "seo-*.md" -ErrorAction SilentlyContinue).Count
+          $uninstallOutput = & ./uninstall.ps1 6>&1 | Out-String
+          $expectedSummary = "claude-seo uninstalled ($expectedSkillDirs skill dirs, $expectedAgentFiles agent files)"
+          if ($uninstallOutput -notmatch [regex]::Escape($expectedSummary)) {
+            throw "Uninstaller summary did not report all removed entries. Output: $uninstallOutput"
+          }
           if (Test-Path (Join-Path $skills "seo")) { throw "Orchestrator skill remains" }
           if (Get-ChildItem -Path $skills -Directory -Filter "seo-*" -ErrorAction SilentlyContinue) {
             throw "SEO sub-skill directories remain"
           }
           if (Get-ChildItem -Path $agents -File -Filter "seo-*.md" -ErrorAction SilentlyContinue) {
             throw "SEO agent files remain"
+          }
+
+          # A partial install can contain sub-skills and agents without the
+          # orchestrator. Its removal count must still be accurate.
+          New-Item -ItemType Directory -Force -Path (Join-Path $skills "seo-local"), (Join-Path $skills "seo-maps") | Out-Null
+          New-Item -ItemType File -Force -Path (Join-Path $agents "seo-local.md"), (Join-Path $agents "seo-maps.md") | Out-Null
+          $partialOutput = & ./uninstall.ps1 6>&1 | Out-String
+          $partialSummary = "claude-seo uninstalled (2 skill dirs, 2 agent files)"
+          if ($partialOutput -notmatch [regex]::Escape($partialSummary)) {
+            throw "Partial-install summary was incorrect. Output: $partialOutput"
+          }
+          if (Test-Path (Join-Path $skills "seo-local")) { throw "Partial sub-skill remains" }
+          if (Test-Path (Join-Path $agents "seo-local.md")) { throw "Partial agent remains" }
+
+          $emptyOutput = & ./uninstall.ps1 6>&1 | Out-String
+          if ($emptyOutput -notmatch [regex]::Escape("Nothing to remove")) {
+            throw "Second uninstall did not report an empty install. Output: $emptyOutput"
           }
 
       - name: Remove isolated user profile
