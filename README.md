@@ -143,7 +143,7 @@ claude
 
 ![Claude SEO sub-skill ecosystem: 25 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
 
-32 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 8 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
+33 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 9 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
 
 | Command | Description |
 |---------|-------------|
@@ -177,6 +177,7 @@ claude
 | `/seo ahrefs [command] <url>` | Backlinks, organic keywords, and content data via the official Ahrefs MCP (extension) |
 | `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
+| `/seo vantage [command]` | Free-tier AI-citation spot-check across ChatGPT, Perplexity, Gemini (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
 
@@ -372,7 +373,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/uninst
 
 ## Extensions
 
-Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 8 servers; the plugin core works without any of them.
+Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 9 servers; the plugin core works without any of them.
 
 ### DataForSEO
 
@@ -408,13 +409,14 @@ SEO image generation (OG previews, blog heroes, product photos, infographics) vi
 
 Full Banana docs: [extensions/banana/README.md](extensions/banana/README.md).
 
-### Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse (new in v2)
+### Ahrefs, SE Ranking, Profound, Vantage, Bing Webmaster, Unlighthouse (new in v2)
 
-Five extensions added in Phase E:
+Five extensions added in Phase E, plus Vantage:
 
 - **Ahrefs:** official `@ahrefs/mcp` server with backlink and organic data
 - **SE Ranking:** AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode
 - **Profound:** LLM citation tracker with time-series data
+- **Vantage:** free-tier (3 checks/month, no card) spot-check of whether a domain is cited by ChatGPT, Perplexity, or Gemini for a given topic, and how the winning answer is structured. A lighter first step before Profound or SE Ranking's paid continuous tracking.
 - **Bing Webmaster:** Bing Webmaster Tools plus IndexNow unified
 - **Unlighthouse:** MIT-licensed multi-page Lighthouse runner
 
