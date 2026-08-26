@@ -64,7 +64,7 @@ function Invoke-External {
 function Test-PythonCandidate {
     param(
         [Parameter(Mandatory = $true)][string]$Exe,
-        [Parameter(Mandatory = $true)][string[]]$Args
+        [string[]]$Args = @()
     )
 
     $pythonCmd = Get-Command -Name $Exe -ErrorAction SilentlyContinue
