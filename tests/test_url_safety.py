@@ -596,3 +596,55 @@ def test_load_oauth_token_remediates_legacy_0o644(tmp_path, monkeypatch) -> None
     data = google_auth._load_oauth_token()
     assert data == {"access_token": "x"}
     assert target.stat().st_mode & 0o777 == 0o600
+
+
+# ---------------------------------------------------------------------------
+# CLAUDE_SEO_ALLOW_LOCAL opt-in (auditing a local dev server)
+# ---------------------------------------------------------------------------
+
+
+def test_localhost_blocked_by_default(monkeypatch) -> None:
+    monkeypatch.delenv("CLAUDE_SEO_ALLOW_LOCAL", raising=False)
+    assert url_safety.validate_url("http://localhost:5000/nl") is False
+    with pytest.raises(url_safety.URLSafetyError, match="Blocked hostname"):
+        url_safety.validate_url_strict("http://localhost:5000/nl")
+
+
+def test_localhost_allowed_when_opted_in(monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_ALLOW_LOCAL", "1")
+    assert url_safety.validate_url("http://localhost:5000/nl") is True
+    # Strict form resolves DNS; loopback must survive the resolved-IP check too.
+    validated, pinned = url_safety.validate_url_strict("http://localhost:5000/nl")
+    assert validated == "http://localhost:5000/nl"
+    assert pinned.startswith("127.")
+
+
+def test_private_and_loopback_literals_allowed_when_opted_in(monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_ALLOW_LOCAL", "1")
+    assert url_safety.is_safe_ip("127.0.0.1") is True
+    assert url_safety.is_safe_ip("192.168.1.10") is True
+
+
+def test_opt_in_does_not_unblock_cloud_metadata_names(monkeypatch) -> None:
+    """The carve-out is loopback-only — metadata endpoints stay blocked."""
+    monkeypatch.setenv("CLAUDE_SEO_ALLOW_LOCAL", "1")
+    for hostname in ("metadata.google.internal", "metadata.goog", "metadata.azure.com"):
+        assert url_safety.validate_url(f"http://{hostname}/") is False
+        with pytest.raises(url_safety.URLSafetyError, match="Blocked hostname"):
+            url_safety.validate_url_strict(f"http://{hostname}/")
+
+
+def test_opt_in_does_not_unblock_link_local_metadata_ip(monkeypatch) -> None:
+    """169.254.169.254 is link-local, which the carve-out never forgives."""
+    monkeypatch.setenv("CLAUDE_SEO_ALLOW_LOCAL", "1")
+    assert url_safety.is_safe_ip("169.254.169.254") is False
+    assert url_safety.validate_url("http://169.254.169.254/latest/meta-data/") is False
+    with pytest.raises(url_safety.URLSafetyError):
+        url_safety.validate_url_strict("http://169.254.169.254/latest/meta-data/")
+
+
+def test_only_the_literal_value_1_opts_in(monkeypatch) -> None:
+    for value in ("", "0", "true", "yes", "TRUE"):
+        monkeypatch.setenv("CLAUDE_SEO_ALLOW_LOCAL", value)
+        assert url_safety.is_safe_ip("127.0.0.1") is False
+        assert url_safety.validate_url("http://localhost:5000/") is False

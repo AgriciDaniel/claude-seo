@@ -73,6 +73,7 @@ in SECURITY.md.
 from __future__ import annotations
 
 import ipaddress
+import os
 import re
 import socket
 import threading
@@ -180,6 +181,45 @@ def _reject_authority_confusion(url: str, parsed) -> None:
         raise URLSafetyError("URL fragment/userinfo confusion refused")
 
 
+_LOCAL_HOSTNAMES: frozenset[str] = frozenset(
+    {"localhost", "ip6-localhost", "ip6-loopback"}
+)
+
+
+def _allow_local() -> bool:
+    """True when the operator opted into auditing loopback/private hosts.
+
+    Off unless CLAUDE_SEO_ALLOW_LOCAL=1, so the default policy is unchanged.
+    """
+    return os.environ.get("CLAUDE_SEO_ALLOW_LOCAL", "") == "1"
+
+
+def _blocked(hostname: str) -> bool:
+    """Blocklist check with the opt-in loopback carve-out applied.
+
+    Only the loopback names are ever forgiven, and only when the operator
+    opted in. Cloud metadata endpoints stay blocked either way: by name here,
+    and by address in is_safe_ip, which still rejects link-local (so
+    169.254.169.254 remains unreachable).
+    """
+    if hostname not in _BLOCKED_HOSTNAMES:
+        return False
+    return not (_allow_local() and hostname in _LOCAL_HOSTNAMES)
+
+
+def _is_local_dev_ip(ip) -> bool:
+    """Loopback / RFC1918 only - never link-local.
+
+    Python's ipaddress module reports 169.254.0.0/16 as *private*, so a
+    naive "is_loopback or is_private" carve-out would hand back the cloud
+    metadata address 169.254.169.254. Link-local, reserved, multicast and
+    unspecified are therefore excluded explicitly.
+    """
+    if ip.is_link_local or ip.is_reserved or ip.is_multicast or ip.is_unspecified:
+        return False
+    return bool(ip.is_loopback or ip.is_private)
+
+
 def is_safe_ip(ip_str: str) -> bool:
     """Return True iff ``ip_str`` is a public unicast address.
 
@@ -192,6 +232,8 @@ def is_safe_ip(ip_str: str) -> bool:
         ip = ipaddress.ip_address(ip_str)
     except ValueError:
         return False
+    if _allow_local() and _is_local_dev_ip(ip):
+        return True
     return not (
         ip.is_private
         or ip.is_loopback
@@ -274,7 +316,7 @@ def validate_url(url: str) -> bool:
         hostname = normalize_hostname(parsed.hostname)
     except URLSafetyError:
         return False
-    if hostname in _BLOCKED_HOSTNAMES:
+    if _blocked(hostname):
         return False
     try:
         ipaddress.ip_address(hostname)
@@ -305,7 +347,7 @@ def validate_url_strict(url: str) -> tuple[str, str]:
         raise URLSafetyError("URL has no hostname")
 
     hostname = normalize_hostname(parsed.hostname)
-    if hostname in _BLOCKED_HOSTNAMES:
+    if _blocked(hostname):
         raise URLSafetyError(f"Blocked hostname: {hostname}")
 
     # If the hostname is an IP literal, validate it directly without DNS.
@@ -533,7 +575,7 @@ def make_safe_playwright_route_handler(
 
             # Hostname-level blocks short-circuit DNS resolution entirely
             # (e.g. attacker.example/redirect -> metadata.google.internal).
-            if normalized in _BLOCKED_HOSTNAMES:
+            if _blocked(normalized):
                 route.abort()
                 return
 
