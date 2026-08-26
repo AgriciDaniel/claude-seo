@@ -6,14 +6,14 @@
     "https://developers.google.com/search/updates",
     "https://blog.google/products/search/"
   ],
-  "last_verified": "2026-07-02",
+  "last_verified": "2026-08-25",
   "policy": "Every entry must cite a Google-owned URL. Third-party-only claims belong in unverified[]. Bump last_verified each time an entry is added or revised.",
   "_schema_doc": {
     "updates[]": {
       "date": "ISO date YYYY-MM-DD (Google's announcement date).",
       "name": "Short human-readable title.",
-      "kind": "One of: core | spam | core+spam | policy | qrg | product | schema | cwv.",
-      "source": "Required. Must resolve to a Google-owned domain (developers.google.com, web.dev, chrome.com, blog.google, support.google.com).",
+      "kind": "One of: core | spam | core+spam | policy | qrg | product | schema | cwv | discover | documentation.",
+      "source": "Required. Must use HTTPS and an approved Google-owned hostname listed by the tests.",
       "notes": "Optional. One-line summary of practitioner impact."
     },
     "unverified[]": {
@@ -44,7 +44,7 @@
       "name": "Site reputation abuse enforcement begins",
       "kind": "policy",
       "source": "https://developers.google.com/search/blog/2024/03/core-update-spam-policies",
-      "notes": "Manual actions phase begins. First wave hits Forbes Advisor, CNN Underscored, WSJ Buy Side."
+      "notes": "Google began enforcement of the site reputation abuse policy on May 5, 2024."
     },
     {
       "date": "2024-06-20",
@@ -58,7 +58,7 @@
       "name": "August 2024 Core Update",
       "kind": "core",
       "source": "https://developers.google.com/search/blog/2024/08/august-2024-core-update",
-      "notes": "Google: 'designed to surface more useful content'. Partial Helpful Content recoveries reported."
+      "notes": "Google described the update as designed to surface more useful content from small and independent publishers."
     },
     {
       "date": "2024-11-11",
@@ -72,7 +72,7 @@
       "name": "Site Reputation Abuse policy clarified",
       "kind": "policy",
       "source": "https://developers.google.com/search/blog/2024/11/site-reputation-abuse",
-      "notes": "No amount of first-party involvement changes the third-party nature. Section-level removals (CNN Underscored /reviews, Forbes /health) within hours."
+      "notes": "Google clarified that first-party involvement alone does not change the third-party nature of content when evaluating site reputation abuse."
     },
     {
       "date": "2024-12-12",
@@ -128,7 +128,7 @@
       "name": "June 2025 Core Update",
       "kind": "core",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "16-day rollout. Some Sep 2023 HCU partial recoveries."
+      "notes": "The rollout completed after 16 days."
     },
     {
       "date": "2025-08-21",
@@ -149,7 +149,7 @@
       "name": "December 2025 Core Update",
       "kind": "core",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "18-day rollout. Third core update of 2025. Reported eCommerce skew per Amsive analysis."
+      "notes": "The rollout completed after 18 days and was the third core update of 2025."
     },
     {
       "date": "2026-02-05",
@@ -163,7 +163,7 @@
       "name": "March 2026 Spam Update",
       "kind": "spam",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "Fastest spam update on record — 19h30m rollout (completed under a day), days before the March 2026 core update."
+      "notes": "The rollout completed in under one day, before the March 2026 core update."
     },
     {
       "date": "2026-03-27",
@@ -183,43 +183,43 @@
       "date": "2026-05-07",
       "name": "FAQ rich results retired",
       "kind": "schema",
-      "source": "https://developers.google.com/search/docs/appearance/structured-data/faqpage",
-      "notes": "FAQ rich results no longer shown for any site (supersedes the Aug 2023 gov/health restriction). Rich Results Test + report support drops Jun 2026; Search Console API support removed Aug 2026. Use QAPage for genuine single-question pages; FAQPage has no Google SERP benefit."
+      "source": "https://developers.google.com/search/updates",
+      "notes": "FAQ rich results stopped appearing in Google Search on May 7, 2026."
     },
     {
       "date": "2026-05-15",
-      "name": "Spam policies update (gen-AI scaled content)",
-      "kind": "policy",
-      "source": "https://developers.google.com/search/docs/essentials/spam-policies",
-      "notes": "Scaled content abuse now explicitly names 'using generative AI tools to generate many pages without adding value' (and automated transformations like translating). Expired-domain and site-reputation abuse remain."
+      "name": "Generative AI optimization guide",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/fundamentals/ai-optimization-guide",
+      "notes": "Google published guidance that existing SEO fundamentals remain relevant for generative AI features and that no special AI markup or files are required."
     },
     {
-      "date": "2026-06-29",
-      "name": "Generative AI optimization guide",
-      "kind": "product",
-      "source": "https://developers.google.com/search/docs/fundamentals/ai-optimization-guide",
-      "notes": "Official optimizing-for-generative-AI-features guidance: gen-AI optimization IS SEO; you do NOT need new AI files/markup/Markdown/chunking/AI-rewrites. Google Search ignores llms.txt."
+      "date": "2026-05-15",
+      "name": "Spam policies apply to generative AI responses",
+      "kind": "policy",
+      "source": "https://developers.google.com/search/updates",
+      "notes": "Google clarified that its spam policies apply to all Google Search surfaces, including generative AI responses."
     },
     {
       "date": "2026-05-19",
       "name": "Google I/O 2026: AI Mode updates",
       "kind": "product",
       "source": "https://blog.google/products-and-platforms/products/search/search-io-2026/",
-      "notes": "Google's last official model naming for AI Mode/AI Overviews is a custom version of Gemini 2.5. AI Mode 1B+ monthly users was reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source. New intelligent Search box; Information Agents, generative UI, and agentic checkout rolling out summer 2026."
+      "notes": "Google announced an intelligent Search box, Information Agents, generative UI, and agentic checkout capabilities for AI Mode."
     },
     {
-      "date": "2026-05-22",
+      "date": "2026-05-20",
       "name": "hasAdultConsideration property added",
       "kind": "schema",
-      "source": "https://developers.google.com/search/docs/appearance/structured-data/merchant-listing",
-      "notes": "Product variant / Merchant listing; required for adult-oriented products; only supported value https://schema.org/SexualContentConsideration."
+      "source": "https://developers.google.com/search/updates",
+      "notes": "Google added hasAdultConsideration to Merchant listing and Product variant documentation for parity with the Merchant Center adult attribute."
     },
     {
       "date": "2026-05-21",
       "name": "May 2026 Core Update",
       "kind": "core",
       "source": "https://status.search.google.com/incidents/wdAXJk6LRRihEjpzEeWE",
-      "notes": "Completed June 2, 2026 (~11d21h rollout). Second core update of 2026. Global, all languages. Google: 'a regular update designed to better surface relevant, satisfying content from all types of sites.' Superseded as most-recent by the June 2026 spam update (2026-06-24); still the most recent core update as of 2026-07-02."
+      "notes": "The global, all-language rollout completed on June 2, 2026."
     },
     {
       "date": "2026-06-03",
@@ -240,14 +240,63 @@
       "name": "June 2026 Spam Update",
       "kind": "spam",
       "source": "https://status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history",
-      "notes": "Started June 24, completed June 26 (~2d1h rollout). Normal spam update, all languages and locations. Most recent confirmed ranking update as of 2026-07-02 (dashboard-verified)."
+      "notes": "The global, all-language rollout started June 24 and completed June 26, 2026."
     },
     {
       "date": "2026-06-30",
       "name": "Merchant Center video_link serving-eligible",
       "kind": "product",
       "source": "https://support.google.com/merchants/answer/16989427",
-      "notes": "Product video_link attribute becomes serving-eligible; product videos can surface in shopping experiences."
+      "notes": "The Merchant Center video_link attribute became serving-eligible for product videos in shopping experiences."
+    },
+    {
+      "date": "2026-07-01",
+      "name": "AMP links move to publisher hosts",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/updates",
+      "notes": "Google Search began sending users directly to publisher-hosted AMP URLs and removed obsolete AMP Viewer, AMP Cache, and signed exchange guidance. AMP continues to rank like other web pages."
+    },
+    {
+      "date": "2026-07-07",
+      "name": "Merchant listing category and sale duration guidance",
+      "kind": "schema",
+      "source": "https://developers.google.com/search/docs/appearance/structured-data/merchant-listing",
+      "notes": "Product.category accepts Text or CategoryCode values, including arrays, and sale periods use validFrom plus validThrough or priceValidUntil in ISO 8601 format."
+    },
+    {
+      "date": "2026-07-10",
+      "name": "Canonicalization re-evaluation timing clarified",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/crawling-indexing/canonicalization-troubleshooting",
+      "notes": "Google may keep fixed pages in a duplicate cluster for up to two weeks while canonicalization is re-evaluated."
+    },
+    {
+      "date": "2026-07-24",
+      "name": "Review snippet transparency guideline",
+      "kind": "schema",
+      "source": "https://developers.google.com/search/docs/appearance/structured-data/review-snippet",
+      "notes": "Pages and structured data must not include fake reviews or incentivized reviews whose incentive is not clearly and prominently disclosed."
+    },
+    {
+      "date": "2026-07-29",
+      "name": "Search Console platform properties guide",
+      "kind": "product",
+      "source": "https://developers.google.com/search/docs/monitor-debug/analyze-social-video-content",
+      "notes": "Verified TikTok, Instagram, X, and YouTube accounts can be tracked as individual Search Console platform properties."
+    },
+    {
+      "date": "2026-08-18",
+      "name": "August 2026 Spam Update",
+      "kind": "spam",
+      "source": "https://status.search.google.com/incidents/LEubPCm2octf2uMqCFKE",
+      "notes": "The global, all-language rollout started August 18 and completed August 21, 2026."
+    },
+    {
+      "date": "2026-08-20",
+      "name": "Preferred Sources interactive button",
+      "kind": "product",
+      "source": "https://developers.google.com/search/docs/appearance/preferred-sources",
+      "notes": "Eligible publishers can add Google's interactive button or a deeplink so readers can select a domain or subdomain as a preferred source. This is a per-user preference, not a documented site-wide ranking signal."
     }
   ],
   "unverified": []

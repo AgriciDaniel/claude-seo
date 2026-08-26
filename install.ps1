@@ -118,7 +118,7 @@ $RepoUrl = "https://github.com/AgriciDaniel/claude-seo"
 # This default MUST be bumped on every release. CI guard
 # (tests/test_manifest_consistency.py) enforces this matches plugin.json.
 # Override: $env:CLAUDE_SEO_TAG = 'main'; .\install.ps1
-$RepoTag = if ($env:CLAUDE_SEO_TAG) { $env:CLAUDE_SEO_TAG } else { 'v2.2.4' }
+$RepoTag = if ($env:CLAUDE_SEO_TAG) { $env:CLAUDE_SEO_TAG } else { 'v2.2.5' }
 
 # Create directories
 New-Item -ItemType Directory -Force -Path $SkillDir | Out-Null
@@ -163,6 +163,15 @@ try {
         $SkillSchema = "$SkillDir\schema"
         New-Item -ItemType Directory -Force -Path $SkillSchema | Out-Null
         Copy-Item -Recurse -Force "$SchemaPath\*" $SkillSchema
+    }
+
+    # Copy deterministic data files consumed by bundled scripts such as
+    # seo_updates.py. Keep the repository-relative data\ layout intact.
+    $DataPath = "$TempDir\data"
+    if (Test-Path $DataPath) {
+        $SkillData = "$SkillDir\data"
+        New-Item -ItemType Directory -Force -Path $SkillData | Out-Null
+        Copy-Item -Recurse -Force "$DataPath\*" $SkillData
     }
 
     # Copy reference docs

@@ -85,7 +85,7 @@ Score the target page across 7 dimensions (100 points total):
 ## Pre-Delivery Checklist
 
 Before presenting results, verify:
-- [ ] URL was fetched via scripts/render_page.py --mode auto (not raw curl)
+- [ ] URL was fetched via `claude-seo run render_page.py --mode auto` (not raw curl)
 - [ ] At least 5 SERP results were analyzed
 - [ ] Page type classification uses the taxonomy reference
 - [ ] User stories cite specific SERP signals
@@ -95,7 +95,7 @@ Before presenting results, verify:
 
 ## Fetching pages (v2.0.0)
 
-Use `claude-seo run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
+Use `claude-seo run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in the bundled `url_safety.py` module, never call `requests.get` directly on user-supplied URLs.
 
 Search experience scoring needs the *rendered* DOM because users see what JS produces. Prefer `--mode always` so above-the-fold analysis matches what the persona actually encounters.
 

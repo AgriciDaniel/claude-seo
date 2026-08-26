@@ -8,7 +8,7 @@ compatibility: "Requires an Xquik API key and the Claude SEO managed runtime."
 metadata:
   author: kriptoburak
   original_author: kriptoburak
-  version: "2.2.4"
+  version: "2.2.5"
   category: seo
 ---
 

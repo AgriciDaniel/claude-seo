@@ -18,10 +18,10 @@ When delegated tasks during an SEO audit or analysis:
 
 1. Detect e-commerce signals: product schema, price elements, add-to-cart buttons,
    shopping cart, product grids, Shopify/WooCommerce/Magento markers
-2. Analyze product pages using `scripts/render_page.py --mode auto` and `scripts/parse_html.py`
+2. Analyze product pages with `claude-seo run render_page.py <URL> --mode auto` and `claude-seo run parse_html.py <URL>`
 3. Validate Product schema against Google's required and recommended fields
 4. If DataForSEO credentials available, fetch marketplace data via
-   `scripts/dataforseo_merchant.py`
+   `claude-seo run dataforseo_merchant.py`
 
 ## Cost Guardrails
 
@@ -65,7 +65,7 @@ Match existing claude-seo patterns:
 
 ## Fetching pages (v2.0.0)
 
-Use `claude-seo run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
+Use `claude-seo run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `raw_content` (pre-JS), `content` (post-JS), `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate). SSRF and DNS-rebinding protection live in the bundled `url_safety.py` module, never call `requests.get` directly on user-supplied URLs.
 
 E-commerce sites overwhelmingly inject product schema client-side (Shopify, Magento PWA, headless commerce on Next.js). Prefer `--mode always` for product page audits and compare `raw_content` vs `content` to confirm whether the JSON-LD is server-rendered.
 

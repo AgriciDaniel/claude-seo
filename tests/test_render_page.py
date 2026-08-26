@@ -32,7 +32,6 @@ if _SCRIPTS not in sys.path:
 
 import render_page  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # _is_spa: SPA shell detector
 # ---------------------------------------------------------------------------
@@ -100,6 +99,29 @@ def test_is_spa_does_not_render_complete_builder_page() -> None:
         '<html data-wf-page="page" data-wf-site="site"><body><main>'
         + ("Complete server rendered product information. " * 20)
         + "</main></body></html>"
+    )
+    assert render_page._is_spa(html) is False
+
+
+@pytest.mark.parametrize(
+    "marker",
+    (
+        '<div id="root">',
+        '<div id="__next">',
+        '<div id="app">',
+        '<div id="__nuxt">',
+        '<main data-svelte-h="abc">',
+        '<astro-island uid="x">',
+    ),
+)
+def test_is_spa_does_not_flag_complete_server_rendered_framework_page(
+    marker: str,
+) -> None:
+    html = (
+        "<html><body>"
+        + marker
+        + ("Complete server-rendered product details and specifications. " * 12)
+        + "</main></div></astro-island></body></html>"
     )
     assert render_page._is_spa(html) is False
 
@@ -285,7 +307,6 @@ class _FakeBrowserPage(_StabilityPage):
         self.navigation_timeout = navigation_timeout
         self.goto_options = None
         self.url = "https://app.example/"
-        self.accessibility = SimpleNamespace(snapshot=lambda **_kwargs: None)
 
     def on(self, *_args):
         return None
@@ -306,8 +327,40 @@ class _FakeBrowserPage(_StabilityPage):
 
 class _FakePlaywrightManager:
     def __init__(self, page):
+        class _Session:
+            def __init__(self):
+                self.commands = []
+
+            def send(self, method, params=None):
+                self.commands.append((method, params))
+                if method == "Accessibility.getFullAXTree":
+                    return {
+                        "nodes": [
+                            {
+                                "nodeId": "1",
+                                "role": {"value": "RootWebArea"},
+                                "name": {"value": "Example"},
+                                "childIds": ["2"],
+                            },
+                            {
+                                "nodeId": "2",
+                                "parentId": "1",
+                                "role": {"value": "button"},
+                                "name": {"value": "Submit"},
+                            },
+                        ]
+                    }
+                return {}
+
+            def detach(self):
+                return None
+
+        context = SimpleNamespace(
+            new_page=lambda: page,
+            new_cdp_session=lambda _page: _Session(),
+        )
         browser = SimpleNamespace(
-            new_context=lambda **_kwargs: SimpleNamespace(new_page=lambda: page),
+            new_context=lambda **_kwargs: context,
             close=lambda: None,
         )
         self.playwright = SimpleNamespace(
@@ -321,12 +374,17 @@ class _FakePlaywrightManager:
         return False
 
 
-def _render_with_fake_browser(page):
+def _render_with_fake_browser(page, *, extract_accessibility=False):
     spa_html = '<html><body><div id="root"></div></body></html>'
     with patch.object(render_page, "validate_url_strict", side_effect=_mock_validate_strict), \
          patch.object(render_page, "safe_requests_get", return_value=_fake_response(spa_html)), \
          patch.object(render_page, "sync_playwright", lambda: _FakePlaywrightManager(page)):
-        return render_page.render_page("https://app.example/", mode="auto", timeout_ms=1000)
+        return render_page.render_page(
+            "https://app.example/",
+            mode="auto",
+            timeout_ms=1000,
+            extract_accessibility=extract_accessibility,
+        )
 
 
 def test_render_uses_domcontentloaded_for_persistent_socket_pages() -> None:
@@ -346,6 +404,34 @@ def test_render_navigation_timeout_returns_degraded_dom() -> None:
     assert result["content"].startswith("<html>")
     assert result["status_code"] == 200
     assert any("DOMContentLoaded timed out" in item for item in result["render_diagnostics"])
+
+
+def test_render_captures_accessibility_tree_through_cdp() -> None:
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    result = _render_with_fake_browser(page, extract_accessibility=True)
+    assert result["accessibility_error"] is None
+    assert result["accessibility_partial"] is False
+    assert result["accessibility_tree"]["role"] == "RootWebArea"
+    assert result["accessibility_tree"]["children"][0] == {
+        "role": "button",
+        "name": "Submit",
+        "ignored": False,
+    }
+
+
+def test_render_surfaces_accessibility_capture_failure() -> None:
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    with patch.object(
+        render_page,
+        "_capture_accessibility_tree",
+        side_effect=RuntimeError("CDP unavailable"),
+    ):
+        result = _render_with_fake_browser(page, extract_accessibility=True)
+    assert result["error"] is None
+    assert result["accessibility_tree"] is None
+    assert result["accessibility_partial"] is True
+    assert "CDP unavailable" in result["accessibility_error"]
+    assert result["accessibility_error"] in result["render_diagnostics"]
 
 
 def test_render_page_auto_stays_raw_for_static_html() -> None:
@@ -457,7 +543,118 @@ def test_render_page_result_dict_has_all_documented_fields() -> None:
     expected_fields = {
         "url", "status_code", "content", "raw_content", "is_spa",
         "extracted_text", "publication_date", "accessibility_tree",
+        "accessibility_error", "accessibility_partial",
         "headers", "redirect_chain", "console_errors", "render_engine",
         "render_diagnostics", "render_ms", "mode_used", "error",
     }
     assert set(result.keys()) == expected_fields
+
+
+def test_cdp_accessibility_nodes_are_bounded_and_rebuilt(monkeypatch) -> None:
+    monkeypatch.setattr(render_page, "ACCESSIBILITY_MAX_NODES", 2)
+    nodes = [
+        {
+            "nodeId": "1",
+            "role": {"value": "RootWebArea"},
+            "name": {"value": "Page"},
+            "childIds": ["2", "3"],
+        },
+        {
+            "nodeId": "2",
+            "parentId": "1",
+            "role": {"value": "link"},
+            "name": {"value": "Home"},
+        },
+        {
+            "nodeId": "3",
+            "parentId": "1",
+            "role": {"value": "button"},
+            "name": {"value": "Buy"},
+        },
+    ]
+    tree, partial = render_page._accessibility_tree_from_cdp(nodes)
+    assert partial is True
+    assert tree["children"] == [
+        {"role": "link", "name": "Home", "ignored": False}
+    ]
+
+
+def test_cdp_detach_failure_does_not_discard_captured_tree() -> None:
+    class Session:
+        def send(self, method: str, _params: object = None) -> dict:
+            if method == "Accessibility.getFullAXTree":
+                return {
+                    "nodes": [
+                        {
+                            "nodeId": "1",
+                            "role": {"value": "RootWebArea"},
+                            "name": {"value": "Page"},
+                        }
+                    ]
+                }
+            return {}
+
+        def detach(self) -> None:
+            raise RuntimeError("already detached")
+
+    class Context:
+        def new_cdp_session(self, _page: object) -> Session:
+            return Session()
+
+    tree, partial = render_page._capture_accessibility_tree(Context(), object())
+    assert tree == {"role": "RootWebArea", "name": "Page", "ignored": False}
+    assert partial is False
+
+
+def test_json_summary_is_full_by_default_and_explicit_when_bounded() -> None:
+    result = {
+        "content": "c" * 12,
+        "raw_content": "r" * 8,
+        "extracted_text": "word " * 5,
+    }
+    full = render_page._json_summary(result)
+    assert full["content"] == result["content"]
+    assert full["truncation"]["limit"] is None
+    assert full["truncation"]["fields"]["content"]["truncated"] is False
+
+    bounded = render_page._json_summary(result, max_text=5)
+    assert bounded["content"] == "ccccc"
+    assert bounded["extracted_text"] == "word "
+    assert bounded["truncation"]["fields"]["content"] == {
+        "original_chars": 12,
+        "returned_chars": 5,
+        "truncated": True,
+    }
+
+
+def test_json_and_output_are_composable(tmp_path, monkeypatch, capsys) -> None:
+    output = tmp_path / "rendered.html"
+    result = {
+        "url": "https://example.test/",
+        "content": "<html><body>complete output</body></html>",
+        "raw_content": "<html></html>",
+        "extracted_text": "complete output",
+        "error": None,
+    }
+    monkeypatch.setattr(render_page, "render_page", lambda *_args, **_kwargs: result)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "render_page.py",
+            "https://example.test/",
+            "--json",
+            "--max-text",
+            "8",
+            "--output",
+            str(output),
+        ],
+    )
+    with pytest.raises(SystemExit) as exc:
+        render_page._cli()
+    assert exc.value.code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["output_written"] is True
+    assert payload["content"] == "<html><b"
+    assert payload["truncation"]["fields"]["content"]["truncated"] is True
+    assert output.read_text(encoding="utf-8") == result["content"]

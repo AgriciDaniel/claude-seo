@@ -15,15 +15,12 @@ import json
 import os
 import sys
 
-import pytest
-
 _SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 
-import schema_generate  # noqa: E402
 import schema_ecommerce_validate as ev  # noqa: E402
-
+import schema_generate  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # schema_generate
@@ -213,6 +210,22 @@ def test_validate_summary_counts_severities() -> None:
     assert s["high"] == 0
     assert s["critical"] >= 0
     assert sum(s.values()) == len(result["findings"])
+
+
+def test_product_template_includes_current_category_and_sale_fields() -> None:
+    from pathlib import Path
+
+    template_path = Path(__file__).resolve().parents[1] / "schema" / "templates.json"
+    payload = json.loads(template_path.read_text(encoding="utf-8"))
+    product = next(
+        item["template"]
+        for item in payload["templates"]
+        if item["type"] == "Product (Full E-commerce)"
+    )
+
+    assert "category" in product
+    assert "validFrom" in product["offers"]
+    assert "priceValidUntil" in product["offers"]
 
 
 # ---------------------------------------------------------------------------

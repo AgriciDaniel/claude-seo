@@ -121,7 +121,7 @@ Verify current rate limits in Google-owned docs before planning batch work.
 
 Do not use hard-coded pricing assumptions. Verify current pricing at
 https://ai.google.dev/gemini-api/docs/pricing and store dated values in
-`~/.banana/pricing.json` for `scripts/cost_tracker.py`.
+`~/.banana/pricing.json` via `claude-seo run --extension banana cost_tracker.py`.
 
 ## Image Output Specs
 

@@ -23,7 +23,7 @@ All page fetching goes through the project's existing scripts with SSRF protecti
 - `claude-seo run drift_report.py <file> --output report.html` -- generate HTML report
 
 Never use curl, wget, or raw HTTP requests. All fetching is handled by
-`scripts/fetch_page.py` internally, which validates URLs against private/loopback
+the bundled `fetch_page.py` module internally, which validates URLs against private/loopback
 IP ranges.
 
 ## Workflow

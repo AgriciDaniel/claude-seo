@@ -204,6 +204,15 @@ def test_radar_skips_empty_items_and_normalizes_region() -> None:
     assert result["total_returned"] == 1
 
 
+@pytest.mark.parametrize("score", [float("nan"), float("inf"), float("-inf")])
+def test_radar_rejects_non_finite_scores(score: float) -> None:
+    item = xquik._normalize_radar_item({"id": "radar-1", "score": score})
+
+    assert item is not None
+    assert item["score"] is None
+    json.dumps(item, allow_nan=False)
+
+
 def test_normalizers_reject_unsafe_generated_links() -> None:
     tweet = xquik._normalize_tweet(
         {
