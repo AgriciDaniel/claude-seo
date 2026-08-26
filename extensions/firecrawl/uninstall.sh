@@ -7,10 +7,10 @@ echo "Removing Firecrawl extension..."
 rm -rf "${HOME}/.claude/skills/seo-firecrawl"
 echo "v Removed skill files"
 
-# Remove MCP entry from settings.json
-SETTINGS_FILE="${HOME}/.claude/settings.json"
-if [ -f "${SETTINGS_FILE}" ]; then
-    python3 - "${SETTINGS_FILE}" <<'PY' || echo "  Warning: Could not update settings.json automatically."
+# Remove MCP entry from ~/.claude.json
+MCP_CONFIG_FILE="${HOME}/.claude.json"
+if [ -f "${MCP_CONFIG_FILE}" ]; then
+    python3 - "${MCP_CONFIG_FILE}" <<'PY' || echo "  Warning: Could not update ~/.claude.json automatically."
 import json, os, sys
 
 settings_path = sys.argv[1]
@@ -21,9 +21,9 @@ if 'mcpServers' in settings and 'firecrawl-mcp' in settings['mcpServers']:
     del settings['mcpServers']['firecrawl-mcp']
     with open(settings_path, 'w') as f:
         json.dump(settings, f, indent=2)
-    print('v Removed MCP server from settings.json')
+    print('v Removed MCP server from ~/.claude.json')
 else:
-    print('  MCP server not found in settings.json (already removed)')
+    print('  MCP server not found in ~/.claude.json (already removed)')
 PY
 fi
 

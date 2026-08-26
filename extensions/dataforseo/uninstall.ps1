@@ -21,8 +21,8 @@ if (Test-Path $fieldConfig) {
     Remove-Item -Force $fieldConfig
 }
 
-# Remove MCP server entry from settings.json
-$settingsFile = "$env:USERPROFILE\.claude\settings.json"
+# Remove MCP server entry from ~/.claude.json
+$settingsFile = "$env:USERPROFILE\.claude.json"
 if (Test-Path $settingsFile) {
     $python = Get-Command -Name python -ErrorAction SilentlyContinue
     if ($null -eq $python) {
@@ -46,12 +46,12 @@ if 'mcpServers' in settings and 'dataforseo' in settings['mcpServers']:
 "@
         $result = & $pyExe -c $pyScript 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "  ✓ Removed dataforseo from settings.json" -ForegroundColor Green
+            Write-Host "  ✓ Removed dataforseo from ~/.claude.json" -ForegroundColor Green
         } else {
-            Write-Host "  ⚠  Could not auto-remove MCP config. Remove 'dataforseo' from ~\.claude\settings.json manually." -ForegroundColor Yellow
+            Write-Host "  ⚠  Could not auto-remove MCP config. Remove 'dataforseo' from ~\.claude.json manually." -ForegroundColor Yellow
         }
     } else {
-        Write-Host "  ⚠  Python not found. Remove 'dataforseo' from ~\.claude\settings.json manually." -ForegroundColor Yellow
+        Write-Host "  ⚠  Python not found. Remove 'dataforseo' from ~\.claude.json manually." -ForegroundColor Yellow
     }
 }
 

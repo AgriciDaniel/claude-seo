@@ -75,7 +75,10 @@ if (Test-Path "$ScriptDir\skills\seo-dataforseo\SKILL.md") {
 # Set paths
 $SkillDir = "$env:USERPROFILE\.claude\skills\seo-dataforseo"
 $AgentDir = "$env:USERPROFILE\.claude\agents"
-$SettingsFile = "$env:USERPROFILE\.claude\settings.json"
+# MCP servers live in ~/.claude.json (the file `claude mcp add` writes).
+# NOT ~/.claude/settings.json - `mcpServers` is not a key Claude Code reads
+# there, so entries written to settings.json silently never load.
+$McpConfigFile = "$env:USERPROFILE\.claude.json"
 $FieldConfigPath = "$SeoSkillDir\dataforseo-field-config.json"
 
 # Install skill
@@ -93,7 +96,7 @@ Copy-Item -Force "$SourceDir\agents\seo-dataforseo.md" "$AgentDir\seo-dataforseo
 Write-Host "→ Installing field config..." -ForegroundColor Yellow
 Copy-Item -Force "$SourceDir\field-config.json" $FieldConfigPath
 
-# Merge MCP config into settings.json
+# Merge MCP config into ~/.claude.json
 Write-Host "→ Configuring MCP server..." -ForegroundColor Yellow
 
 $python = Get-Command -Name python -ErrorAction SilentlyContinue
@@ -139,12 +142,12 @@ except Exception:
 print('  ok')
 "@
 
-    $result = $pyScript | & $pyExe - $SettingsFile $DfseUsername $DfsePassword $FieldConfigPath 2>&1
+    $result = $pyScript | & $pyExe - $McpConfigFile $DfseUsername $DfsePassword $FieldConfigPath 2>&1
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "  ✓ MCP server configured in settings.json" -ForegroundColor Green
+        Write-Host "  ✓ MCP server configured in ~/.claude.json" -ForegroundColor Green
     } else {
         Write-Host "  ⚠  Could not auto-configure MCP server." -ForegroundColor Yellow
-        Write-Host "  Add the dataforseo server manually to ~\.claude\settings.json"
+        Write-Host "  Add the dataforseo server manually to ~\.claude.json"
     }
 } else {
     Write-Host "  ⚠  Python not found. Configure MCP server manually." -ForegroundColor Yellow

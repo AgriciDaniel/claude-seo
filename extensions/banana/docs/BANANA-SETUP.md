@@ -13,7 +13,7 @@
 ## MCP Server Configuration
 
 The installer configures this automatically. If you need to set it up manually,
-add to `~/.claude/settings.json`:
+add to `~/.claude.json`:
 
 ```json
 {
@@ -44,14 +44,14 @@ claude-seo run --extension banana validate_setup.py
 Or check manually:
 1. `ls ~/.claude/skills/seo-image-gen/SKILL.md`:skill file exists
 2. `ls ~/.claude/agents/seo-image-gen.md`:agent file exists
-3. `grep nanobanana ~/.claude/settings.json`:MCP configured
+3. `grep nanobanana ~/.claude.json`:MCP configured
 
 ## Common Issues
 
 ### "MCP tools not available"
 - Restart Claude Code after installing the extension
 - Verify your API key is valid at [aistudio.google.com](https://aistudio.google.com)
-- Check `~/.claude/settings.json` has the nanobanana-mcp entry
+- Check `~/.claude.json` has the nanobanana-mcp entry
 
 ### "Rate limited (429)"
 - Check current free-tier limits in Google AI Studio

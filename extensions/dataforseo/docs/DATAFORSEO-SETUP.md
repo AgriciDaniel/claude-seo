@@ -42,7 +42,7 @@ DataForSEO uses a credit-based system:
 
 ## 4. Manual MCP Configuration
 
-If the installer's auto-configuration fails, add this to `~/.claude/settings.json`:
+If the installer's auto-configuration fails, add this to `~/.claude.json`:
 
 ```json
 {

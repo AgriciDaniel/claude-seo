@@ -3,7 +3,7 @@
 Validate that the Claude Banana MCP server is properly configured.
 
 Checks:
-1. Claude Code settings.json has the MCP entry
+1. Claude Code ~/.claude.json has the MCP entry
 2. API key is present
 3. Node.js/npx is available
 4. Output directory exists or can be created
@@ -18,7 +18,7 @@ import shutil
 import sys
 from pathlib import Path
 
-SETTINGS_PATH = Path.home() / ".claude" / "settings.json"
+SETTINGS_PATH = Path.home() / ".claude.json"
 MCP_NAME = "nanobanana-mcp"
 OUTPUT_DIR = Path.home() / "Documents" / "nanobanana_generated"
 
@@ -48,22 +48,22 @@ def main() -> int:
 
     # 1. Settings file exists
     results.append(check(
-        "Claude Code settings.json exists",
+        "Claude Code ~/.claude.json exists",
         SETTINGS_PATH.exists(),
         str(SETTINGS_PATH),
     ))
 
     if not SETTINGS_PATH.exists():
-        print("\nCannot continue without settings.json.")
+        print("\nCannot continue without ~/.claude.json.")
         return 1
 
     # 2. Load and parse settings
     try:
         with open(SETTINGS_PATH) as f:
             settings = json.load(f)
-        results.append(check("settings.json is valid JSON", True))
+        results.append(check("~/.claude.json is valid JSON", True))
     except json.JSONDecodeError as e:
-        results.append(check("settings.json is valid JSON", False, str(e)))
+        results.append(check("~/.claude.json is valid JSON", False, str(e)))
         return 1
 
     # 3. MCP entry exists
