@@ -155,7 +155,10 @@ def run_pagespeed(
     # Lighthouse scores
     lr = data.get("lighthouseResult", {})
     for cat_key, cat_data in lr.get("categories", {}).items():
-        result["lighthouse_scores"][cat_key] = round(cat_data.get("score", 0) * 100)
+        raw_score = cat_data.get("score")
+        result["lighthouse_scores"][cat_key] = (
+            round(raw_score * 100) if raw_score is not None else None
+        )
 
     # Lab metrics from Lighthouse audits
     audits = lr.get("audits", {})
@@ -569,7 +572,8 @@ def _print_psi_summary(psi: dict):
     if scores:
         print("\nLighthouse Scores:")
         for cat, score in scores.items():
-            print(f"  {cat}: {score}/100")
+            score_display = f"{score}/100" if score is not None else "N/A (not computable)"
+            print(f"  {cat}: {score_display}")
 
     lab = psi.get("lab_metrics", {})
     if lab:
