@@ -242,7 +242,9 @@ It forwards arguments without a shell, preserves child exit codes, forces UTF-8
 child streams, and uses the same persistent Playwright browser directory created
 by setup.
 
-Extensions are opt-in add-ons that integrate external data sources via MCP servers. They live in `extensions/<name>/` and ship their own install / uninstall scripts.
+Extensions are opt-in add-ons for external data or local tools. They use pinned
+MCP servers or bounded adapters. Each lives in `extensions/<name>/` and ships
+its own install and uninstall scripts.
 
 ```
 extensions/
@@ -303,12 +305,22 @@ extensions/
 │   ├── skills/seo-bing/SKILL.md
 │   └── docs/BING-WEBMASTER-SETUP.md
 │
-└── unlighthouse/             # Multi-page Lighthouse runner (local)
+├── unlighthouse/             # Multi-page Lighthouse runner (local)
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-unlighthouse/SKILL.md
+│   └── docs/UNLIGHTHOUSE-SETUP.md
+│
+└── xquik/                   # Read-only public X research adapter
+    ├── README.md
     ├── install.sh
     ├── install.ps1
     ├── uninstall.sh
-    ├── skills/seo-unlighthouse/SKILL.md
-    └── docs/UNLIGHTHOUSE-SETUP.md
+    ├── uninstall.ps1
+    ├── adapter (extensions/xquik/scripts/xquik_research.py)
+    ├── skills/seo-xquik/SKILL.md
+    └── docs/XQUIK-SETUP.md
 ```
 
 ### Available Extensions
@@ -323,6 +335,7 @@ extensions/
 | **Profound** | Profound API | LLM citation tracking with time-series data |
 | **Bing Webmaster** | Bing Webmaster Tools API | Bing Webmaster Tools + IndexNow URL submission |
 | **Unlighthouse** | `unlighthouse@0.13.5` | Multi-page Lighthouse runner, runs locally |
+| **Xquik** | Xquik REST API | Bounded public X-post search and topic signals for the LISTEN phase |
 
 ### Extension Convention
 
@@ -331,5 +344,5 @@ extensions/
 3. Own `uninstall.sh` (and `uninstall.ps1` where present) that reverses installation
 4. Installs the sub-skill mirror to the plugin's skill directory
 5. Installs the sub-agent mirror to the plugin's agent directory (extensions that ship one; lighter extensions are skill-only)
-6. Merges MCP config into `~/.claude/settings.json` non-destructively
-7. MCP server versions are pinned (`@<version>`) for supply-chain stability
+6. Merges only its MCP or environment settings into Claude Code settings
+7. Pins every package-backed server for supply-chain stability

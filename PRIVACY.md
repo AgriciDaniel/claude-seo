@@ -25,6 +25,7 @@ Optional extensions make API calls to third-party services when you invoke their
 | **Profound** | Profound API (tryprofound.com) | Brands and domains you track | [Profound Privacy](https://tryprofound.com/privacy) |
 | **Bing Webmaster / IndexNow** | Bing Webmaster Tools API and IndexNow endpoints | Domains, submitted URLs, and key-verification URL data | [Microsoft Privacy](https://privacy.microsoft.com/) |
 | **Unlighthouse** | Local only — no third-party vendor | Runs Lighthouse locally against the target URL; only the target site is contacted (to crawl it). Nothing is sent to a third-party vendor. | N/A (runs locally) |
+| **Xquik** | xquik.com API | Public-post search queries and optional topic filters | [Xquik Privacy](https://xquik.com/privacy) |
 
 ## Backlink APIs
 

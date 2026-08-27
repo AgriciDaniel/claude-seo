@@ -143,7 +143,7 @@ claude
 
 ![Claude SEO sub-skill ecosystem: 25 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
 
-32 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 8 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
+33 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 9 optional extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
 
 | Command | Description |
 |---------|-------------|
@@ -172,6 +172,7 @@ claude
 | `/seo ecommerce <url>` | E-commerce SEO and marketplace intelligence |
 | `/seo flow [stage]` | FLOW framework prompts (CC BY 4.0, evidence-led) |
 | `/seo firecrawl [command] <url>` | Full-site crawling (extension) |
+| `/seo xquik listen <query> \| radar` | Bounded public X-post and topic research (extension) |
 | `/seo dataforseo [command]` | Live SEO data (extension) |
 | `/seo image-gen [use-case]` | AI image generation for SEO assets (extension) |
 | `/seo ahrefs [command] <url>` | Backlinks, organic keywords, and content data via the official Ahrefs MCP (extension) |
@@ -372,7 +373,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/uninst
 
 ## Extensions
 
-Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 8 servers; the plugin core works without any of them.
+Optional extensions add live data to the audit pipeline. Claude SEO ships 9 extensions; the plugin core works without any of them.
 
 ### DataForSEO
 
@@ -396,6 +397,18 @@ Full-site crawling and URL discovery via the [Firecrawl](https://www.firecrawl.d
 ```
 
 Full Firecrawl docs: [extensions/firecrawl/README.md](extensions/firecrawl/README.md).
+
+### Xquik
+
+Read-only public X-post search and topic signals for customer-language research.
+Results feed the LISTEN phase. They are research evidence, not ranking signals.
+
+```bash
+./extensions/xquik/install.sh
+/seo xquik listen "product name problem"
+```
+
+Full Xquik docs: [extensions/xquik/README.md](extensions/xquik/README.md).
 
 ### Banana: AI image generation
 

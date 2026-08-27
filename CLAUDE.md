@@ -148,6 +148,7 @@ claude-seo/
     profound/                    # Profound MCP install scripts
     seranking/                   # SE Ranking MCP install scripts
     unlighthouse/                # Unlighthouse install scripts
+    xquik/                       # Read-only public X research adapter
   docs/                            # Extended documentation
 ```
 
@@ -181,6 +182,7 @@ claude-seo/
 | `/seo dataforseo [command]` | Live SEO data (extension) |
 | `/seo image-gen [use-case] <desc>` | AI image generation (extension) |
 | `/seo firecrawl [command] <url>` | Full-site crawling (extension) |
+| `/seo xquik listen <query> \| radar` | Bounded public X-post and topic research (extension) |
 | `/seo ahrefs [command] <url>` | Backlinks, organic keywords, and content data via the official Ahrefs MCP (extension) |
 | `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
@@ -233,7 +235,7 @@ Part of the Claude Code skill family:
 1. **Progressive Disclosure**: Metadata always loaded, instructions on activation, resources on demand
 2. **Industry Detection**: Auto-detect SaaS, e-commerce, local, publisher, agency
 3. **Parallel Execution**: Full audits spawn up to 15 subagents simultaneously
-4. **Extension System**: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, and Unlighthouse extensions
+4. **Extension System**: 9 optional data, crawling, asset, visibility, and research extensions
 
 ## Repository Topology (public + private)
 
