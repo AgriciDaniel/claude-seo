@@ -119,7 +119,9 @@ Place in `<head>` section. Every page must include all alternates including itse
 
 The order doesn't matter; it can also be:
 
+```html
 <link href="https://example.com/page" hreflang="en-US" rel="alternate">
+```
 
 ### Method 2: HTTP Headers
 Best for: Non-HTML files (PDFs, documents).
