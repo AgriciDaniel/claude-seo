@@ -25,7 +25,6 @@ import lcp_subparts  # noqa: E402
 import nlp_analyze  # noqa: E402
 import pagespeed_check  # noqa: E402
 
-
 SECRET = "AI" + "zaSyDUMMYSECRET"
 QUERY_KEY = "ke" + "y"
 QUERY_KEY_ASSIGNMENT = QUERY_KEY + "="

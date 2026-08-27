@@ -1,0 +1,164 @@
+name: Windows manual installer smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/windows-smoke.yml"
+      - "install.ps1"
+      - "uninstall.ps1"
+      - "bin/claude-seo"
+      - "requirements.txt"
+      - "scripts/runtime.py"
+      - "scripts/seo_updates.py"
+      - "data/google-updates.json"
+      - "skills/**"
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: "Released tag or main branch to install"
+        required: true
+        default: "v2.2.5"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate-ref:
+    name: Validate installer source ref
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      ref: ${{ steps.ref.outputs.ref }}
+    steps:
+      - id: ref
+        name: Validate released source ref
+        env:
+          TARGET_REF: ${{ inputs.target_ref || 'v2.2.5' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$TARGET_REF" =~ ^(main|v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::target_ref must be main or a stable vX.Y.Z tag."
+            exit 1
+          fi
+          git ls-remote --exit-code --refs \
+            https://github.com/AgriciDaniel/claude-seo.git \
+            "refs/heads/$TARGET_REF" "refs/tags/$TARGET_REF" >/dev/null
+          printf 'ref=%s\n' "$TARGET_REF" >> "$GITHUB_OUTPUT"
+
+  smoke:
+    name: Windows install, runtime, uninstall
+    needs: validate-ref
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && needs.validate-ref.outputs.ref || github.sha }}
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+
+      - name: Prepare isolated user profile
+        shell: pwsh
+        run: |
+          $profileRoot = Join-Path $env:RUNNER_TEMP "claude-seo-smoke-profile"
+          $tempRoot = Join-Path $env:RUNNER_TEMP "claude-seo-smoke-temp"
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $profileRoot, $tempRoot
+          New-Item -ItemType Directory -Force -Path $profileRoot, $tempRoot | Out-Null
+          "USERPROFILE=$profileRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "LOCALAPPDATA=$profileRoot\AppData\Local" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TEMP=$tempRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "TMP=$tempRoot" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install released manual package
+        shell: pwsh
+        env:
+          CLAUDE_SEO_TAG: ${{ needs.validate-ref.outputs.ref }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          ./install.ps1
+          $skillRoot = Join-Path $env:USERPROFILE ".claude\skills\seo"
+          $required = @(
+            "SKILL.md",
+            "requirements.txt",
+            "data\google-updates.json",
+            "scripts\runtime.py",
+            "scripts\seo_updates.py"
+          )
+          foreach ($relativePath in $required) {
+            $path = Join-Path $skillRoot $relativePath
+            if (-not (Test-Path $path -PathType Leaf)) {
+              throw "Installer did not create required file: $relativePath"
+            }
+          }
+
+      - name: Verify installed runtime and Google updates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $skillRoot = Join-Path $env:USERPROFILE ".claude\skills\seo"
+          $runtime = Join-Path $skillRoot "scripts\runtime.py"
+          $doctor = & py -3 $runtime doctor --json
+          if ($LASTEXITCODE -ne 0) { throw "runtime doctor failed" }
+          $doctor | ConvertFrom-Json | Out-Null
+          $updates = & py -3 $runtime run seo_updates.py --limit 1 --json
+          if ($LASTEXITCODE -ne 0) { throw "seo_updates failed" }
+          $parsedUpdates = $updates | ConvertFrom-Json
+          if ($parsedUpdates.count -ne 1) { throw "Expected one Google update" }
+
+      - name: Uninstall manual package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $skills = Join-Path $env:USERPROFILE ".claude\skills"
+          $agents = Join-Path $env:USERPROFILE ".claude\agents"
+          $expectedSkillDirs = @(Get-ChildItem -Path $skills -Directory -Filter "seo" -ErrorAction SilentlyContinue).Count + @(Get-ChildItem -Path $skills -Directory -Filter "seo-*" -ErrorAction SilentlyContinue).Count
+          $expectedAgentFiles = @(Get-ChildItem -Path $agents -File -Filter "seo-*.md" -ErrorAction SilentlyContinue).Count
+          $uninstallOutput = & ./uninstall.ps1 6>&1 | Out-String
+          $expectedSummary = "claude-seo uninstalled ($expectedSkillDirs skill dirs, $expectedAgentFiles agent files)"
+          if ($uninstallOutput -notmatch [regex]::Escape($expectedSummary)) {
+            throw "Uninstaller summary did not report all removed entries. Output: $uninstallOutput"
+          }
+          if (Test-Path (Join-Path $skills "seo")) { throw "Orchestrator skill remains" }
+          if (Get-ChildItem -Path $skills -Directory -Filter "seo-*" -ErrorAction SilentlyContinue) {
+            throw "SEO sub-skill directories remain"
+          }
+          if (Get-ChildItem -Path $agents -File -Filter "seo-*.md" -ErrorAction SilentlyContinue) {
+            throw "SEO agent files remain"
+          }
+
+          # A partial install can contain sub-skills and agents without the
+          # orchestrator. Its removal count must still be accurate.
+          New-Item -ItemType Directory -Force -Path (Join-Path $skills "seo-local"), (Join-Path $skills "seo-maps") | Out-Null
+          New-Item -ItemType File -Force -Path (Join-Path $agents "seo-local.md"), (Join-Path $agents "seo-maps.md") | Out-Null
+          $partialOutput = & ./uninstall.ps1 6>&1 | Out-String
+          $partialSummary = "claude-seo uninstalled (2 skill dirs, 2 agent files)"
+          if ($partialOutput -notmatch [regex]::Escape($partialSummary)) {
+            throw "Partial-install summary was incorrect. Output: $partialOutput"
+          }
+          if (Test-Path (Join-Path $skills "seo-local")) { throw "Partial sub-skill remains" }
+          if (Test-Path (Join-Path $agents "seo-local.md")) { throw "Partial agent remains" }
+
+          $emptyOutput = & ./uninstall.ps1 6>&1 | Out-String
+          if ($emptyOutput -notmatch [regex]::Escape("Nothing to remove")) {
+            throw "Second uninstall did not report an empty install. Output: $emptyOutput"
+          }
+
+      - name: Remove isolated user profile
+        if: always()
+        shell: pwsh
+        run: |
+          $paths = @(
+            (Join-Path $env:RUNNER_TEMP "claude-seo-smoke-profile"),
+            (Join-Path $env:RUNNER_TEMP "claude-seo-smoke-temp")
+          )
+          Remove-Item -Recurse -Force -ErrorAction SilentlyContinue -Path $paths

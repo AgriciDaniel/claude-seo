@@ -78,3 +78,42 @@ jobs:
             exit 1
           fi
           echo "Secret scan clean: no credentials detected in tracked files."
+
+  portability:
+    name: Portability (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Report both legs independently; a failure on one platform should not
+      # hide the result on the other.
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+
+      - name: Install pytest
+        # These three modules need nothing beyond pytest -- verified on a clean
+        # virtualenv. Keeping the install minimal keeps the job from failing for
+        # reasons that have nothing to do with portability.
+        run: pip install pytest
+
+      - name: Run the platform-sensitive suites
+        # Deliberately not `pytest tests/`. The full suite has 15 tests that
+        # assert POSIX semantics directly -- the executable bit via os.access
+        # X_OK in test_parasite_risk_and_extensions.py and
+        # test_runtime_installers.py, and chmod 0o600/0o644 token permissions in
+        # test_url_safety.py -- which cannot hold on Windows. The three modules
+        # below are the ones written to be platform-neutral, so they are the
+        # ones worth running here. Widening this list means teaching those 15
+        # tests to skip on non-POSIX first.
+        run: >
+          pytest
+          tests/test_portability.py
+          tests/test_cross_platform_hooks.py
+          tests/test_drift_portability.py
+          -v

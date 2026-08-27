@@ -23,7 +23,6 @@ import os
 import sys
 import time
 from typing import Any, Optional
-from urllib.parse import urlparse
 
 # Add scripts directory to path for sibling imports
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))

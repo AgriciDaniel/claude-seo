@@ -27,7 +27,6 @@ if _SCRIPTS not in sys.path:
 
 import url_safety  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # normalize_hostname (v2 self-audit: closes obfuscated-IPv4 + FQDN bypasses)
 # ---------------------------------------------------------------------------
@@ -538,6 +537,7 @@ def test_save_oauth_token_remediates_legacy_0o644(tmp_path, monkeypatch) -> None
 def test_save_oauth_token_without_fchmod_closes_descriptor(tmp_path, monkeypatch) -> None:
     """Windows has no os.fchmod; persistence must still succeed and close fd."""
     import json
+
     import google_auth  # noqa: WPS433
 
     target = tmp_path / "config" / "oauth-token.json"
@@ -566,6 +566,7 @@ def test_save_oauth_token_without_fchmod_closes_descriptor(tmp_path, monkeypatch
 def test_save_oauth_token_ignores_fchmod_oserror(tmp_path, monkeypatch) -> None:
     """Filesystems without descriptor chmod support must still persist tokens."""
     import json
+
     import google_auth  # noqa: WPS433
 
     target = tmp_path / "config" / "oauth-token.json"

@@ -30,7 +30,6 @@ import re
 import sys
 from pathlib import Path
 
-
 # Replacements run in order. Each entry is (pattern, replacement, label).
 # Patterns are compiled with re.IGNORECASE and \b word boundaries where
 # appropriate. The replacement preserves the original case of the first

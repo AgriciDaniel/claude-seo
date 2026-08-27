@@ -15,7 +15,6 @@ import argparse
 import json
 import sys
 import time
-from typing import Optional
 
 try:
     from googleapiclient.discovery import build
@@ -292,7 +291,7 @@ def main():
     else:
         if args.batch:
             summary = result.get("summary", {})
-            print(f"=== URL Inspection Batch Results ===")
+            print("=== URL Inspection Batch Results ===")
             print(f"Property: {site_url}")
             print(f"Total: {result.get('total', 0)} | Pass: {summary.get('pass', 0)} | Fail: {summary.get('fail', 0)} | Errors: {summary.get('error', 0)}")
             print()
@@ -316,7 +315,7 @@ def main():
 
             idx = result.get("index_status", {})
             if idx:
-                print(f"\nIndex Status:")
+                print("\nIndex Status:")
                 print(f"  Coverage: {idx.get('coverage_state')}")
                 print(f"  Robots.txt: {idx.get('robots_txt_state')}")
                 print(f"  Indexing: {idx.get('indexing_state')}")
@@ -326,7 +325,7 @@ def main():
 
             canon = result.get("canonical", {})
             if canon:
-                print(f"\nCanonical:")
+                print("\nCanonical:")
                 print(f"  Google: {canon.get('google_canonical', 'N/A')}")
                 print(f"  User: {canon.get('user_canonical', 'N/A')}")
                 match = canon.get("match")

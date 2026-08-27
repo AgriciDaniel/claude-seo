@@ -1,5 +1,6 @@
 """Tests for scripts/sync_flow.py"""
 
+import importlib.util as _ilu
 import json
 import subprocess
 import sys
@@ -103,10 +104,6 @@ def test_agent_has_untrusted_webfetch_rule():
         "Missing untrusted-WebFetch security rule in agents/seo-flow.md"
     )
 
-
-# ── Module-level loader for unit tests (no network calls) ─────────────────────
-
-import importlib.util as _ilu
 
 def _load_sync_flow_module():
     path = REPO_ROOT / "scripts" / "sync_flow.py"
