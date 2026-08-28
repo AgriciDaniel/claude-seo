@@ -246,7 +246,8 @@ installer to activate (see each extension's `install.sh`/`install.ps1`):
 
 All optional extensions are reachable through `/seo` subcommands once
 installed: firecrawl, dataforseo, and image-gen, plus `/seo ahrefs`,
-`/seo bing`, `/seo profound`, `/seo seranking`, and `/seo unlighthouse`.
+`/seo bing`, `/seo profound`, `/seo seranking`, `/seo outserp`, and
+`/seo unlighthouse`.
 Each installs as its own sub-skill, so the model also auto-routes to their
 descriptions without the `/seo` prefix.
 

@@ -95,6 +95,7 @@ integration + 2 extension mirrors), and 53 Python execution scripts.
 | `/seo bing [cmd] <url>` | Bing Webmaster data and IndexNow (extension) |
 | `/seo profound [cmd]` | LLM brand-citation tracking (extension) |
 | `/seo seranking [cmd]` | AI share-of-voice tracking (extension) |
+| `/seo outserp [cmd]` | AI answer-engine visibility, drift + content engine (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse audits (extension) |
 
 ## Using with Cursor / Cursor Cloud
@@ -167,7 +168,7 @@ skills/                    # 25 sub-skills (auto-discovered)
 agents/                    # 18 subagents
 scripts/                   # 53 Python scripts, including the managed runtime
 schema/                    # JSON-LD templates
-extensions/                # 8 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse
+extensions/                # 9 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Outserp, Bing Webmaster, Unlighthouse
 ```
 
 ## Key Principles

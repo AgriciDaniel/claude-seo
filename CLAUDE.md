@@ -147,6 +147,7 @@ claude-seo/
     bing-webmaster/              # Bing Webmaster and IndexNow install scripts
     profound/                    # Profound MCP install scripts
     seranking/                   # SE Ranking MCP install scripts
+    outserp/                     # Outserp MCP install scripts
     unlighthouse/                # Unlighthouse install scripts
   docs/                            # Extended documentation
 ```
@@ -184,6 +185,7 @@ claude-seo/
 | `/seo ahrefs [command] <url>` | Backlinks, organic keywords, and content data via the official Ahrefs MCP (extension) |
 | `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
+| `/seo outserp [command]` | AI answer-engine visibility, drift + content engine via Outserp (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
 
