@@ -143,7 +143,7 @@ claude
 
 ![Claude SEO sub-skill ecosystem: 25 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
 
-32 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 8 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
+33 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 9 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
 
 | Command | Description |
 |---------|-------------|
@@ -177,6 +177,7 @@ claude
 | `/seo ahrefs [command] <url>` | Backlinks, organic keywords, and content data via the official Ahrefs MCP (extension) |
 | `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
+| `/seo outserp [command]` | AI answer-engine visibility, drift + content engine via Outserp (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
 
@@ -372,7 +373,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/uninst
 
 ## Extensions
 
-Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 8 servers; the plugin core works without any of them.
+Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 9 servers; the plugin core works without any of them.
 
 ### DataForSEO
 
@@ -419,6 +420,18 @@ Five extensions added in Phase E:
 - **Unlighthouse:** MIT-licensed multi-page Lighthouse runner
 
 Setup walkthroughs live under `extensions/<name>/docs/`; integration notes: [docs/MCP-INTEGRATION.md](docs/MCP-INTEGRATION.md).
+
+### Outserp: AI answer-engine visibility + content engine (community, vendor-contributed)
+
+Audits how a domain actually appears in ChatGPT / Perplexity answers (head-to-head competitor appearance counts, gaps, content briefs), tracks citations and mentions over time, scans template defects and SEO drift, and can generate / optimize / publish articles via the remote [Outserp](https://outserp.ai) MCP server (OAuth, no local package).
+
+```bash
+./extensions/outserp/install.sh      # requires Outserp account
+/seo outserp whoami
+/seo outserp audit example.com
+```
+
+Full Outserp docs: [extensions/outserp/README.md](extensions/outserp/README.md).
 
 ## Ecosystem
 

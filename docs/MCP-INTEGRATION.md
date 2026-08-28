@@ -72,6 +72,7 @@ The MCP ecosystem for SEO has matured significantly. These are production-ready 
 | **Google Search Console** | `mcp-server-gsc` | Community | By ahonn. Search performance, URL inspection, sitemaps. |
 | **PageSpeed Insights** | `mcp-server-pagespeed` | Community | By enemyrr. Lighthouse audits, CWV metrics, performance scoring. |
 | **DataForSEO** | `dataforseo-mcp-server` | Official extension | 9 modules, 79 tools, 23 commands. Install: `./extensions/dataforseo/install.sh`. See [extension docs](../extensions/dataforseo/README.md). |
+| **Outserp** | `https://mcp.outserp.ai/mcp` | Official extension (remote) | AI answer-engine visibility audits, citation/mention tracking, template-defect + drift scans, article generation/publishing. OAuth. Install: `./extensions/outserp/install.sh`. See [extension docs](../extensions/outserp/README.md). |
 | **kwrds.ai** | kwrds MCP server | Community | Keyword research, search volume, difficulty scoring. |
 | **SEO Review Tools** | SEO Review Tools MCP | Community | Site auditing and on-page analysis API. |
 

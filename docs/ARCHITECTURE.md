@@ -296,6 +296,14 @@ extensions/
 │   ├── skills/seo-profound/SKILL.md
 │   └── docs/PROFOUND-SETUP.md
 │
+├── outserp/                  # Outserp AI answer-engine visibility + content engine
+│   ├── README.md
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-outserp/SKILL.md
+│   └── docs/OUTSERP-SETUP.md
+│
 ├── bing-webmaster/           # Bing Webmaster Tools + IndexNow
 │   ├── install.sh
 │   ├── install.ps1
@@ -321,6 +329,7 @@ extensions/
 | **Ahrefs** | `@ahrefs/mcp@0.0.11` | Backlinks and organic keyword data via the official `@ahrefs/mcp` server |
 | **SE Ranking** | SE Ranking API | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, and AI Mode |
 | **Profound** | Profound API | LLM citation tracking with time-series data |
+| **Outserp** | `https://mcp.outserp.ai/mcp` (remote, OAuth) | AI answer-engine visibility audits (real ChatGPT/Perplexity answers, head-to-head competitor counts), citations/mentions time-series, template-defect + drift scans, article generate/optimize/publish |
 | **Bing Webmaster** | Bing Webmaster Tools API | Bing Webmaster Tools + IndexNow URL submission |
 | **Unlighthouse** | `unlighthouse@0.13.5` | Multi-page Lighthouse runner, runs locally |
 

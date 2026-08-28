@@ -676,6 +676,24 @@ AI-visibility + SERP via SE Ranking (extension). **Prerequisites:** SE Ranking e
 
 ---
 
+### `/seo outserp [command] <domain|brand>`
+
+AI answer-engine visibility + content engine via Outserp (extension, vendor-contributed). **Prerequisites:** Outserp extension installed (`./extensions/outserp/install.sh`) and OAuth completed via `/mcp`.
+```
+/seo outserp whoami                  # Account, plan, credit balance, projects
+/seo outserp audit <domain>          # AI-search visibility audit: real ChatGPT/Perplexity answers, head-to-head competitor counts, gaps, briefs
+/seo outserp visibility <brand>      # Mention rate per engine + trend
+/seo outserp citations <brand>       # URLs the engines actually cite for the tracked prompt set
+/seo outserp mentions <brand>        # Raw brand/competitor mentions per prompt per engine
+/seo outserp defects <domain>        # Template-defect scanner + hosted SEO drift
+/seo outserp context [update <note>] # Shared project memory + research log
+/seo outserp write <keyword>         # Generate a scored article draft
+/seo outserp optimize <article>      # Re-optimize an existing article
+/seo outserp publish <article>       # Publish to the connected CMS (confirms first)
+```
+
+---
+
 ### `/seo unlighthouse <url>`
 
 Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **Prerequisites:** Node 18+ and the unlighthouse npm package (`./extensions/unlighthouse/install.sh`).
@@ -720,5 +738,6 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 | `/seo ahrefs [command] <url>` | Backlinks, organic keywords, and content data via the official Ahrefs MCP (extension) |
 | `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
+| `/seo outserp [command]` | AI answer-engine visibility, drift + content engine via Outserp (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
