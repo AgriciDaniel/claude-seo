@@ -84,9 +84,14 @@ jobs:
           python-version: "3.10"
 
       - name: Install pytest + test deps
+        # Must not be tolerated with `|| true`: several test modules import
+        # scripts that call sys.exit(1) at module scope when a dependency is
+        # missing, so a swallowed install failure resurfaces later as an opaque
+        # pytest INTERNALERROR instead of the pip error that caused it. Matches
+        # ci.yml, which installs the same set without a fallback.
         run: |
           pip install pytest beautifulsoup4
-          pip install -r requirements.txt || true
+          pip install -r requirements.txt
 
       - name: Run pytest
         run: pytest tests/ -v
