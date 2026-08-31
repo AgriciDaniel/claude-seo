@@ -149,6 +149,19 @@ def test_check_credentials_probes_version(monkeypatch, tmp_path):
     assert "token_auth" not in call.kwargs.get("params", {})
 
 
+def test_check_credentials_handles_matomo5_version_object(monkeypatch, tmp_path):
+    """Matomo 5+ returns API.getMatomoVersion as {"value": "5.13.0"}."""
+    monkeypatch.setattr(matomo_auth, "CONFIG_PATH", str(tmp_path / "missing.json"))
+    monkeypatch.setenv("MATOMO_URL", "https://analytics.example.com")
+    monkeypatch.setenv("MATOMO_API_TOKEN", SECRET_TOKEN)
+
+    resp = _mock_response(200, {"value": "5.13.0"})
+    with patch.object(matomo_auth.requests, "post", return_value=resp):
+        status = matomo_auth.check_credentials()
+    assert status["available"] is True
+    assert status["version"] == "5.13.0"
+
+
 def test_check_credentials_surfaces_auth_failure(monkeypatch, tmp_path):
     monkeypatch.setattr(matomo_auth, "CONFIG_PATH", str(tmp_path / "missing.json"))
     monkeypatch.setenv("MATOMO_URL", "https://analytics.example.com")
@@ -243,7 +256,11 @@ def test_cli_errors_when_url_missing(monkeypatch):
 
 
 def test_organic_report_builds_daily_and_pages(monkeypatch):
-    """organic_traffic_report rolls daily VisitsSummary into totals + pages."""
+    """organic_traffic_report rolls daily VisitsSummary into totals + pages.
+
+    Uses the real Matomo 5 shapes: date-keyed object for the daily summary,
+    JSON array with entry_* fields for entry pages (no precomputed rate).
+    """
     daily = {
         "2026-01-01": {"nb_visits": 100, "nb_uniq_visitors": 80,
                        "nb_actions": 150, "nb_pageviews": 200,
@@ -253,10 +270,12 @@ def test_organic_report_builds_daily_and_pages(monkeypatch):
                        "bounce_count": 10, "sum_visit_length": 3000},
     }
     pages = [
-        {"label": "https://m.test/", "nb_visits": 80, "nb_uniq_visitors": 70,
-         "nb_actions": 120, "bounce_rate": 0.3},
-        {"label": "https://m.test/blog/x", "nb_visits": 40, "nb_uniq_visitors": 30,
-         "nb_actions": 60, "bounce_rate": 0.5},
+        {"label": "en", "nb_visits": 146, "nb_hits": 181,
+         "entry_nb_visits": 111, "entry_nb_actions": 583,
+         "entry_bounce_count": 23},
+        {"label": "blog", "nb_visits": 90, "nb_hits": 120,
+         "entry_nb_visits": 60, "entry_nb_actions": 240,
+         "entry_bounce_count": 6},
     ]
     responses = [
         _mock_response(200, daily),
@@ -272,84 +291,153 @@ def test_organic_report_builds_daily_and_pages(monkeypatch):
     assert data["totals"]["visits"] == 150
     assert data["totals"]["unique_visitors"] == 120
     assert len(data["daily_data"]) == 2
+    assert data["daily_data"][0]["bounce_rate"] == 30.0
     assert len(data["top_pages"]) == 2
-    assert data["top_pages"][0]["url"] == "https://m.test/"
+    top = data["top_pages"][0]
+    assert top["url"] == "en"
+    assert top["visits"] == 146
+    assert top["actions"] == 583
+    assert top["hits"] == 181
+    # 23 bounces / 111 entry visits
+    assert top["bounce_rate"] == 20.7
+    assert top["bounce_rate"] == round(23 / 111 * 100, 1)
 
 
-def test_device_breakdown_sorts_by_visits(monkeypatch):
-    raw = {
-        "desktop": {"label": "Desktop", "nb_visits": 100,
-                    "nb_uniq_visitors": 80, "bounce_rate": 0.4},
-        "smartphone": {"label": "Smartphone", "nb_visits": 200,
-                       "nb_uniq_visitors": 170, "bounce_rate": 0.5},
-        "tablet": {"label": "Tablet", "nb_visits": 20,
-                   "nb_uniq_visitors": 18, "bounce_rate": 0.3},
-    }
+def test_device_breakdown_handles_matomo5_array(monkeypatch):
+    """DevicesDetection.getType returns a JSON array with bounce_count."""
+    raw = [
+        {"label": "Desktop", "nb_visits": 672, "nb_actions": 6222,
+         "bounce_count": 250, "sum_daily_nb_uniq_visitors": 549},
+        {"label": "Smartphone", "nb_visits": 214, "nb_actions": 680,
+         "bounce_count": 81, "sum_daily_nb_uniq_visitors": 190},
+        {"label": "Tablet", "nb_visits": 20, "nb_actions": 60,
+         "bounce_count": 3, "sum_daily_nb_uniq_visitors": 18},
+    ]
     with patch.object(matomo_report.requests, "post",
                       return_value=_mock_response(200, raw)):
         env = matomo_report.device_breakdown("1", "https://m.test",
                                              SECRET_TOKEN, days=7)
     assert env["status"] == "success"
     devices = env["data"]["devices"]
-    assert [d["device_type"] for d in devices] == ["Smartphone", "Desktop", "Tablet"]
+    assert [d["device_type"] for d in devices] == ["Desktop", "Smartphone", "Tablet"]
+    assert devices[0]["unique_visitors"] == 549
+    # 250 / 672 = 37.2%
+    assert devices[0]["bounce_rate"] == round(250 / 672 * 100, 1)
 
 
-def test_country_breakdown_caps_limit(monkeypatch):
-    raw = {f"C{i}": {"label": f"Country {i}", "nb_visits": 100 - i,
-                     "nb_uniq_visitors": 50} for i in range(30)}
+def test_country_breakdown_handles_matomo5_array(monkeypatch):
+    """UserCountry.getCountry returns an array with a ``code`` field and
+    localized labels; country_code comes from ``code``, not the array index."""
+    raw = [
+        {"label": "Deutschland", "code": "de", "nb_visits": 434,
+         "sum_daily_nb_uniq_visitors": 374},
+        {"label": "Vereinigte Staaten", "code": "us", "nb_visits": 79,
+         "sum_daily_nb_uniq_visitors": 70},
+    ]
     with patch.object(matomo_report.requests, "post",
                       return_value=_mock_response(200, raw)):
         env = matomo_report.country_breakdown("1", "https://m.test",
                                               SECRET_TOKEN, days=7, limit=5)
     assert env["status"] == "success"
-    assert len(env["data"]["countries"]) == 5
-    assert env["data"]["countries"][0]["country_code"] == "C0"
+    countries = env["data"]["countries"]
+    assert [c["country_code"] for c in countries] == ["de", "us"]
+    assert countries[0]["country"] == "Deutschland"
+    assert countries[0]["unique_visitors"] == 374
+
+
+def test_referrers_report_uses_matomo5_method_and_shapes(monkeypatch):
+    """Referrers.getReferrerType (singular) is the real method name; rows
+    arrive as an array with localized labels and machine-readable segment."""
+    types = [
+        {"label": "Direkte Zugriffe", "nb_visits": 535, "nb_actions": 3991,
+         "bounce_count": 280, "sum_daily_nb_uniq_visitors": 426,
+         "segment": "referrerType==direct", "referrer_type": "1"},
+        {"label": "Suchmaschinen", "nb_visits": 314, "nb_actions": 2443,
+         "bounce_count": 51, "sum_daily_nb_uniq_visitors": 290,
+         "segment": "referrerType==search", "referrer_type": "2"},
+    ]
+    engines = [
+        {"label": "Google", "nb_visits": 142},
+        {"label": "Bing", "nb_visits": 95},
+    ]
+    with patch.object(matomo_report.requests, "post",
+                      side_effect=[_mock_response(200, types),
+                                   _mock_response(200, engines)]) as post:
+        env = matomo_report.referrers_report("1", "https://m.test",
+                                             SECRET_TOKEN, days=7)
+    assert env["status"] == "success"
+    # Correct Matomo 4/5 method name (getReferrersType does not exist).
+    first_method = post.call_args_list[0].kwargs["data"]["method"]
+    assert first_method == "Referrers.getReferrerType"
+    channels = env["data"]["channels"]
+    assert [c["channel_code"] for c in channels] == ["direct", "search"]
+    assert channels[0]["channel"] == "Direkte Zugriffe"
+    assert channels[0]["unique_visitors"] == 426
+    engines_out = env["data"]["search_engines"]
+    assert [e["search_engine"] for e in engines_out] == ["Google", "Bing"]
 
 
 def test_keywords_report_flags_anonymized_share(monkeypatch):
-    raw = {
-        "kw1": {"label": "kw1", "nb_visits": 10},
-        "kw2": {"label": "kw2", "nb_visits": 5},
-        "(not provided)": {"label": "(not provided)", "nb_visits": 80},
-        "(no keyword)": {"label": "(no keyword)", "nb_visits": 5},
-    }
+    """Anonymized keywords collapse into one "(not provided)" row.
+
+    Real Matomo 5 shape: JSON array; the localized label
+    ("Suchbegriff nicht definiert") and the locale-independent segment
+    (``referrerKeyword==``) both mark anonymized rows.
+    """
+    raw = [
+        {"label": "Suchbegriff nicht definiert", "nb_visits": 80,
+         "segment": "referrerType==search;referrerKeyword=="},
+        {"label": "(no keyword)", "nb_visits": 5,
+         "segment": "referrerType==search;referrerKeyword=="},
+        {"label": "kw1", "nb_visits": 10,
+         "segment": "referrerType==search;referrerKeyword==kw1"},
+        {"label": "kw2", "nb_visits": 5,
+         "segment": "referrerType==search;referrerKeyword==kw2"},
+    ]
     with patch.object(matomo_report.requests, "post",
                       return_value=_mock_response(200, raw)):
         env = matomo_report.keywords_report("1", "https://m.test",
                                             SECRET_TOKEN, days=7, limit=10)
     assert env["status"] == "success"
     data = env["data"]
-    assert data["anonymized_share_pct"] > 80.0
+    assert data["anonymized_share_pct"] == 85.0
     assert "anonymization" in data["note"].lower()
-    # Anonymized entries collapse to "(not provided)" but their visits are summed.
     anonymized = [k for k in data["keywords"] if k["keyword"] == "(not provided)"]
-    assert anonymized and anonymized[0]["visits"] == 85
+    assert len(anonymized) == 1
+    assert anonymized[0]["visits"] == 85
+    # Real keywords keep their own rows, sorted by visits.
+    real = [k for k in data["keywords"] if k["keyword"] != "(not provided)"]
+    assert [(k["keyword"], k["visits"]) for k in real] == [("kw1", 10), ("kw2", 5)]
 
 
-def test_referrers_report_includes_search_engines(monkeypatch):
-    types = {
-        "direct": {"label": "Direct Entry", "nb_visits": 30, "nb_uniq_visitors": 25,
-                   "nb_actions": 40},
-        "search": {"label": "Search Engines", "nb_visits": 70, "nb_uniq_visitors": 60,
-                   "nb_actions": 100},
-        "social": {"label": "Social Networks", "nb_visits": 20, "nb_uniq_visitors": 18,
-                   "nb_actions": 25},
-    }
-    engines = {
-        "Google": {"label": "Google", "nb_visits": 50},
-        "Bing": {"label": "Bing", "nb_visits": 20},
+def test_keywords_report_english_anonymized_label(monkeypatch):
+    """English instances label the row "Keyword not defined"."""
+    raw = [
+        {"label": "Keyword not defined", "nb_visits": 70,
+         "segment": "referrerType==search;referrerKeyword=="},
+        {"label": "best seo tool", "nb_visits": 30,
+         "segment": "referrerType==search;referrerKeyword==best%20seo%20tool"},
+    ]
+    with patch.object(matomo_report.requests, "post",
+                      return_value=_mock_response(200, raw)):
+        env = matomo_report.keywords_report("1", "https://m.test",
+                                            SECRET_TOKEN, days=7, limit=10)
+    data = env["data"]
+    assert data["anonymized_share_pct"] == 70.0
+
+
+def test_device_breakdown_supports_legacy_dict_shape(monkeypatch):
+    """Dict-keyed responses (older Matomo / single-row objects) still parse."""
+    raw = {
+        "desktop": {"label": "Desktop", "nb_visits": 100,
+                    "nb_uniq_visitors": 80, "bounce_rate": 0.4},
     }
     with patch.object(matomo_report.requests, "post",
-                      side_effect=[_mock_response(200, types),
-                                   _mock_response(200, engines)]):
-        env = matomo_report.referrers_report("1", "https://m.test",
+                      return_value=_mock_response(200, raw)):
+        env = matomo_report.device_breakdown("1", "https://m.test",
                                              SECRET_TOKEN, days=7)
     assert env["status"] == "success"
-    channels = env["data"]["channels"]
-    assert [c["channel"] for c in channels] == [
-        "Search Engines", "Direct Entry", "Social Networks"]
-    engines_out = env["data"]["search_engines"]
-    assert [e["search_engine"] for e in engines_out] == ["Google", "Bing"]
+    assert env["data"]["devices"][0]["device_type"] == "Desktop"
 
 
 def test_main_returns_nonzero_on_envelope_error(monkeypatch, capsys):
@@ -375,6 +463,21 @@ def test_main_json_emits_envelope(monkeypatch):
              ["matomo_report.py", "check", "--json"]):
         rc = matomo_report.main()
     assert rc == 0
+
+
+def test_check_command_honors_site_id_override(monkeypatch, tmp_path):
+    """`check --site-id N` must surface N even when config has no default."""
+    config_file = tmp_path / "matomo.json"
+    config_file.write_text(json.dumps({
+        "matomo_url": "https://m.test",
+        "matomo_token": SECRET_TOKEN,
+    }))
+    monkeypatch.setattr(matomo_auth, "CONFIG_PATH", str(config_file))
+    resp = _mock_response(200, {"value": "5.13.0"})
+    with patch.object(matomo_auth.requests, "post", return_value=resp):
+        env = matomo_report.check_command(site_id_override="5")
+    assert env["status"] == "success"
+    assert env["data"]["site_id"] == "5"
 
 
 def test_main_missing_site_id_exits_one(monkeypatch, capsys):

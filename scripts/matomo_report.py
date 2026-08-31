@@ -144,11 +144,51 @@ def _bounded_int(value: Any, default: int = 0) -> int:
         return default
 
 
-def _bounded_float(value: Any, default: float = 0.0) -> float:
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        return default
+def _rows(data: Any) -> list:
+    """
+    Normalize a Matomo DataTable into a list of row dicts.
+
+    Multi-row tables arrive as JSON arrays. Date-indexed summaries (e.g.
+    VisitsSummary.get with period=day) arrive as objects keyed by date;
+    the key is preserved on each row as ``row_key``. Non-dict values are
+    skipped so flat single-object responses yield no rows instead of
+    crashing.
+    """
+    if isinstance(data, list):
+        return [r for r in data if isinstance(r, dict)]
+    if isinstance(data, dict):
+        rows = []
+        for key, val in data.items():
+            if isinstance(val, dict):
+                row = dict(val)
+                row.setdefault("row_key", key)
+                rows.append(row)
+        return rows
+    return []
+
+
+def _uniq(row: dict) -> int:
+    """Unique visitors across either day-period or range-period field names."""
+    if "nb_uniq_visitors" in row:
+        return _bounded_int(row.get("nb_uniq_visitors"))
+    return _bounded_int(row.get("sum_daily_nb_uniq_visitors"))
+
+
+def _bounce_rate_pct(bounce_count: Any, visits: int) -> float:
+    """Matomo ships bounce counts, not rates; compute the percentage."""
+    count = _bounded_int(bounce_count)
+    if visits <= 0:
+        return 0.0
+    return round(count / visits * 100.0, 1)
+
+
+def _segment_value(row: dict, name: str) -> str:
+    """Extract the value of ``name==value`` from a row's segment string."""
+    segment = row.get("segment") or ""
+    for part in segment.split(";"):
+        if part.startswith(f"{name}=="):
+            return part[len(name) + 2:]
+    return ""
 
 
 def _resolve_site_id(args: argparse.Namespace) -> Optional[str]:
@@ -190,32 +230,29 @@ def organic_traffic_report(site_id: str, url: str, token: str,
     daily_data = []
     totals = {"visits": 0, "unique_visitors": 0, "pageviews": 0,
               "bounce_count": 0, "sum_visit_length": 0, "actions": 0}
-    if isinstance(raw, dict):
-        for date_str in sorted(raw.keys()):
-            row = raw[date_str] or {}
-            visits = _bounded_int(row.get("nb_visits"))
-            uniq = _bounded_int(row.get("nb_uniq_visitors"))
-            actions = _bounded_int(row.get("nb_actions"))
-            pageviews = _bounded_int(row.get("nb_pageviews"), actions)
-            bounce_count = _bounded_int(row.get("bounce_count"))
-            sum_visit_length = _bounded_int(row.get("sum_visit_length"))
-            bounce_rate = (bounce_count / visits * 100.0) if visits else 0.0
-            avg_time = (sum_visit_length / visits) if visits else 0.0
-            daily_data.append({
-                "date": date_str,
-                "visits": visits,
-                "unique_visitors": uniq,
-                "pageviews": pageviews,
-                "actions": actions,
-                "bounce_rate": round(bounce_rate, 1),
-                "avg_time_on_site": round(avg_time, 1),
-            })
-            totals["visits"] += visits
-            totals["unique_visitors"] += uniq
-            totals["pageviews"] += pageviews
-            totals["bounce_count"] += bounce_count
-            totals["sum_visit_length"] += sum_visit_length
-            totals["actions"] += actions
+    for row in sorted(_rows(raw), key=lambda r: r.get("row_key", "")):
+        date_str = row.get("row_key", "")
+        visits = _bounded_int(row.get("nb_visits"))
+        uniq = _uniq(row)
+        actions = _bounded_int(row.get("nb_actions"))
+        pageviews = _bounded_int(row.get("nb_pageviews"), actions)
+        bounce_count = _bounded_int(row.get("bounce_count"))
+        sum_visit_length = _bounded_int(row.get("sum_visit_length"))
+        daily_data.append({
+            "date": date_str,
+            "visits": visits,
+            "unique_visitors": uniq,
+            "pageviews": pageviews,
+            "actions": actions,
+            "bounce_rate": _bounce_rate_pct(bounce_count, visits),
+            "avg_time_on_site": round(sum_visit_length / visits, 1) if visits else 0.0,
+        })
+        totals["visits"] += visits
+        totals["unique_visitors"] += uniq
+        totals["pageviews"] += pageviews
+        totals["bounce_count"] += bounce_count
+        totals["sum_visit_length"] += sum_visit_length
+        totals["actions"] += actions
 
     if totals["visits"]:
         totals["bounce_rate"] = round(totals["bounce_count"] / totals["visits"] * 100.0, 1)
@@ -239,29 +276,21 @@ def organic_traffic_report(site_id: str, url: str, token: str,
     top_pages = []
     pages_error: Optional[str] = None
     if pages_resp["status"] == "success":
-        raw_pages = pages_resp["data"]
-        if isinstance(raw_pages, list):
-            for entry in raw_pages:
-                if not isinstance(entry, dict):
-                    continue
-                top_pages.append({
-                    "url": entry.get("label", ""),
-                    "visits": _bounded_int(entry.get("nb_visits")),
-                    "unique_visitors": _bounded_int(entry.get("nb_uniq_visitors")),
-                    "actions": _bounded_int(entry.get("nb_actions")),
-                    "bounce_rate": round(_bounded_float(entry.get("bounce_rate")) * 100, 1),
-                })
-        elif isinstance(raw_pages, dict):
-            for url_key, entry in raw_pages.items():
-                if not isinstance(entry, dict):
-                    continue
-                top_pages.append({
-                    "url": entry.get("label") or url_key,
-                    "visits": _bounded_int(entry.get("nb_visits")),
-                    "unique_visitors": _bounded_int(entry.get("nb_uniq_visitors")),
-                    "actions": _bounded_int(entry.get("nb_actions")),
-                    "bounce_rate": round(_bounded_float(entry.get("bounce_rate")) * 100, 1),
-                })
+        # Real shape (verified against Matomo 5): JSON array of rows with
+        # entry_nb_visits / entry_bounce_count / entry_nb_actions and no
+        # precomputed bounce_rate. Bounce rate is derived from the counts.
+        for row in _rows(pages_resp["data"]):
+            entry_visits = _bounded_int(row.get("entry_nb_visits"))
+            top_pages.append({
+                "url": row.get("label", ""),
+                "visits": _bounded_int(row.get("nb_visits")),
+                "unique_visitors": _uniq(row),
+                "actions": _bounded_int(row.get("entry_nb_actions")),
+                "bounce_rate": _bounce_rate_pct(
+                    row.get("entry_bounce_count"), entry_visits),
+                "hits": _bounded_int(row.get("nb_hits")),
+            })
+        top_pages.sort(key=lambda p: p["visits"], reverse=True)
     else:
         pages_error = pages_resp.get("error")
 
@@ -313,17 +342,14 @@ def device_breakdown(site_id: str, url: str, token: str,
 
     raw = resp["data"]
     devices = []
-    if isinstance(raw, dict):
-        for device_type, entry in raw.items():
-            if not isinstance(entry, dict):
-                continue
-            visits = _bounded_int(entry.get("nb_visits"))
-            devices.append({
-                "device_type": entry.get("label") or device_type,
-                "visits": visits,
-                "unique_visitors": _bounded_int(entry.get("nb_uniq_visitors")),
-                "bounce_rate": round(_bounded_float(entry.get("bounce_rate")) * 100, 1),
-            })
+    for row in _rows(raw):
+        visits = _bounded_int(row.get("nb_visits"))
+        devices.append({
+            "device_type": row.get("label") or row.get("row_key", ""),
+            "visits": visits,
+            "unique_visitors": _uniq(row),
+            "bounce_rate": _bounce_rate_pct(row.get("bounce_count"), visits),
+        })
     devices.sort(key=lambda d: d["visits"], reverse=True)
 
     return _envelope("success", {
@@ -354,16 +380,14 @@ def country_breakdown(site_id: str, url: str, token: str,
 
     raw = resp["data"]
     countries = []
-    if isinstance(raw, dict):
-        for code, entry in raw.items():
-            if not isinstance(entry, dict):
-                continue
-            countries.append({
-                "country_code": code,
-                "country": entry.get("label", code),
-                "visits": _bounded_int(entry.get("nb_visits")),
-                "unique_visitors": _bounded_int(entry.get("nb_uniq_visitors")),
-            })
+    for row in _rows(raw):
+        countries.append({
+            "country_code": row.get("code") or _segment_value(row, "countryCode") \
+                or row.get("row_key", ""),
+            "country": row.get("label", ""),
+            "visits": _bounded_int(row.get("nb_visits")),
+            "unique_visitors": _uniq(row),
+        })
     countries.sort(key=lambda c: c["visits"], reverse=True)
 
     return _envelope("success", {
@@ -379,12 +403,17 @@ def referrers_report(site_id: str, url: str, token: str,
     """
     Channel breakdown: direct, search, websites, social, campaigns.
     Plus top search engines for the search channel.
+
+    Method note: ``Referrers.getReferrerType`` (singular "Referrer") is the
+    correct Reporting API method in Matomo 4 and 5; ``getReferrersType``
+    does not exist. Labels are localized on non-English instances, so the
+    machine-readable channel code comes from the row's ``segment`` field.
     """
     start, end = _date_range(days)
     date_arg = f"{start},{end}"
 
     types_resp = _request(url, token, {
-        "method": "Referrers.getReferrersType",
+        "method": "Referrers.getReferrerType",
         "idSite": site_id,
         "period": "range",
         "date": date_arg,
@@ -392,18 +421,16 @@ def referrers_report(site_id: str, url: str, token: str,
     if types_resp["status"] != "success":
         return types_resp
 
-    raw = types_resp["data"]
     channels = []
-    if isinstance(raw, dict):
-        for key, entry in raw.items():
-            if not isinstance(entry, dict):
-                continue
-            channels.append({
-                "channel": entry.get("label") or key,
-                "visits": _bounded_int(entry.get("nb_visits")),
-                "unique_visitors": _bounded_int(entry.get("nb_uniq_visitors")),
-                "actions": _bounded_int(entry.get("nb_actions")),
-            })
+    for row in _rows(types_resp["data"]):
+        channels.append({
+            "channel_code": _segment_value(row, "referrerType") \
+                or row.get("referrer_type", ""),
+            "channel": row.get("label", ""),
+            "visits": _bounded_int(row.get("nb_visits")),
+            "unique_visitors": _uniq(row),
+            "actions": _bounded_int(row.get("nb_actions")),
+        })
     channels.sort(key=lambda c: c["visits"], reverse=True)
 
     engines_resp = _request(url, token, {
@@ -415,15 +442,11 @@ def referrers_report(site_id: str, url: str, token: str,
     engines: list = []
     engines_error: Optional[str] = None
     if engines_resp["status"] == "success":
-        raw_engines = engines_resp["data"]
-        if isinstance(raw_engines, dict):
-            for key, entry in raw_engines.items():
-                if not isinstance(entry, dict):
-                    continue
-                engines.append({
-                    "search_engine": entry.get("label") or key,
-                    "visits": _bounded_int(entry.get("nb_visits")),
-                })
+        for row in _rows(engines_resp["data"]):
+            engines.append({
+                "search_engine": row.get("label", ""),
+                "visits": _bounded_int(row.get("nb_visits")),
+            })
         engines.sort(key=lambda e: e["visits"], reverse=True)
     else:
         engines_error = engines_resp.get("error")
@@ -436,14 +459,37 @@ def referrers_report(site_id: str, url: str, token: str,
     }, engines_error, method="Referrers.getReferrersType")
 
 
+# Matomo labels anonymized keywords with localized strings; the row's
+# ``segment`` field (``referrerKeyword==`` with empty value) is the
+# locale-independent signal and takes precedence.
+_ANONYMIZED_LABELS = {
+    "",
+    "(not provided)",
+    "(no keyword)",
+    "Keyword not defined",
+    "Keyword (not defined)",
+    "Keyword nicht definiert",
+    "Suchbegriff nicht definiert",
+}
+
+
+def _is_anonymized_keyword(row: dict, label: str) -> bool:
+    if label in _ANONYMIZED_LABELS:
+        return True
+    segment = row.get("segment") or ""
+    return any(part == "referrerKeyword==" for part in segment.split(";"))
+
+
 def keywords_report(site_id: str, url: str, token: str,
                     days: int = DEFAULT_DAYS,
                     limit: int = 50) -> dict:
     """
-    Organic search keywords. Many entries will be '(not provided)' or
-    '(no keyword)' due to browser privacy and Matomo's keyword anonymization.
-    The report surfaces the raw distribution and flags when >50% of entries
-    are anonymized, which is the norm on modern browsers.
+    Organic search keywords. Most traffic surfaces as anonymized
+    ("Keyword not defined" / "Suchbegriff nicht definiert" / ...) due to
+    browser privacy and Matomo's keyword anonymization rules. The report
+    collapses all anonymized variants into one "(not provided)" row and
+    flags when >50% of visits are anonymized, which is the norm on
+    modern browsers.
     """
     start, end = _date_range(days)
     date_arg = f"{start},{end}"
@@ -459,20 +505,16 @@ def keywords_report(site_id: str, url: str, token: str,
     if resp["status"] != "success":
         return resp
 
-    raw = resp["data"]
     keywords_by_label: dict[str, dict] = {}
     anonymized_count = 0
-    if isinstance(raw, dict):
-        for kw, entry in raw.items():
-            if not isinstance(entry, dict):
-                continue
-            visits = _bounded_int(entry.get("nb_visits"))
-            label = entry.get("label") or kw
-            if label in ("", "(not provided)", "(no keyword)"):
-                anonymized_count += visits or 0
-                label = "(not provided)"
-            bucket = keywords_by_label.setdefault(label, {"keyword": label, "visits": 0})
-            bucket["visits"] += visits
+    for row in _rows(resp["data"]):
+        visits = _bounded_int(row.get("nb_visits"))
+        label = row.get("label", "")
+        if _is_anonymized_keyword(row, label):
+            anonymized_count += visits
+            label = "(not provided)"
+        bucket = keywords_by_label.setdefault(label, {"keyword": label, "visits": 0})
+        bucket["visits"] += visits
     keywords = list(keywords_by_label.values())
     keywords.sort(key=lambda k: k["visits"], reverse=True)
     total_visits = sum(k["visits"] for k in keywords)
@@ -493,14 +535,14 @@ def keywords_report(site_id: str, url: str, token: str,
     }, None, method="Referrers.getKeywords")
 
 
-def check_command() -> dict:
+def check_command(site_id_override: Optional[str] = None) -> dict:
     """Lightweight probe: who am I + version, used by --check subcommand."""
     from matomo_auth import _probe_version, _sanity_check_instance_url
 
     config = load_config()
     url = _sanity_check_instance_url(config.get("matomo_url") or "")
     token = config.get("matomo_token")
-    site_id = config.get("matomo_site_id")
+    site_id = site_id_override or config.get("matomo_site_id")
 
     if not url or not token:
         return _envelope("error", None,
@@ -550,7 +592,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "check":
-        result = check_command()
+        result = check_command(site_id_override=args.site_id)
     else:
         url = get_matomo_url()
         token = get_matomo_token()
