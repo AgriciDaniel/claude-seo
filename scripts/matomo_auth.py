@@ -151,6 +151,11 @@ def _probe_version(url: str, token: str, timeout: int = DEFAULT_TIMEOUT) -> dict
 
     if isinstance(payload, str):
         return {"ok": True, "version": payload}
+    if isinstance(payload, dict):
+        # Matomo 5+ wraps the version: {"value": "5.13.0"}
+        value = payload.get("value")
+        if isinstance(value, str):
+            return {"ok": True, "version": value}
     return {"ok": True, "version": json.dumps(payload)[:80]}
 
 
