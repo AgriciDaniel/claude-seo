@@ -56,7 +56,7 @@ in case a recipe needs a specific call.
 
 Claude SEO is a Tier 4 SEO analysis skill with 25 sub-skills (21 core + 1 orchestrator +
 1 framework integration + 2 extension mirrors), 18 sub-agents (15 core + 1 framework
-integration + 2 extension mirrors), and 53 Python execution scripts.
+integration + 2 extension mirrors), and 55 Python execution scripts.
 
 ## Quick Reference
 
@@ -95,6 +95,7 @@ integration + 2 extension mirrors), and 53 Python execution scripts.
 | `/seo bing [cmd] <url>` | Bing Webmaster data and IndexNow (extension) |
 | `/seo profound [cmd]` | LLM brand-citation tracking (extension) |
 | `/seo seranking [cmd]` | AI share-of-voice tracking (extension) |
+| `/seo matomo [cmd] [args]` | Matomo Reporting API: GA4 alternative or supplement (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse audits (extension) |
 
 ## Using with Cursor / Cursor Cloud
@@ -167,7 +168,7 @@ skills/                    # 25 sub-skills (auto-discovered)
 agents/                    # 18 subagents
 scripts/                   # 53 Python scripts, including the managed runtime
 schema/                    # JSON-LD templates
-extensions/                # 8 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse
+extensions/                # 9 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Matomo, Unlighthouse
 ```
 
 ## Key Principles

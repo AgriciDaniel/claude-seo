@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- New optional Matomo extension (`extensions/matomo/`) for self-hosted or
+  Matomo Cloud analytics. Adds `/seo matomo organic | top-pages | device
+  | country | referrers | keywords` as a GA4 alternative or complement.
+  The audit orchestrator spawns a new `seo-matomo` agent when
+  `claude-seo run matomo_auth.py --check` succeeds, writing
+  `findings/matomo.md` alongside the existing specialists. Response
+  parsing is verified live against Matomo 5.13, including array-shaped
+  DataTables, count-based bounce fields, `Referrers.getReferrerType`
+  naming, and locale-independent anonymized-keyword detection via the
+  row `segment` field.
+
 ## [2.2.5] - 2026-08-25
 
 ### Added

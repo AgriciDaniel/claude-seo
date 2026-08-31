@@ -51,6 +51,7 @@ extension is also installable (see "Optional Extensions" below).
 | `/seo drift compare <url>` | Compare current state to stored baseline |
 | `/seo drift history <url>` | Show drift history over time |
 | `/seo ecommerce <url>` | E-commerce SEO: product schema, marketplace intelligence |
+| `/seo matomo [command] [args]` | Matomo Reporting API: GA4 alternative or supplement (extension) |
 | `/seo firecrawl [command] <url>` | Full-site crawling and site mapping (extension) |
 | `/seo dataforseo [command]` | Live SEO data via DataForSEO (extension) |
 | `/seo image-gen [use-case] <description>` | AI image generation for SEO assets (extension) |
@@ -73,18 +74,19 @@ When the user invokes `/seo audit`, delegate to subagents in parallel:
 1. Detect business type (SaaS, local, ecommerce, publisher, agency, other)
 2. Spawn subagents: seo-technical, seo-content, seo-schema, seo-sitemap, seo-performance, seo-visual, seo-geo
 3. If Google API credentials detected (`claude-seo run google_auth.py --check`), also spawn seo-google agent
-4. If local business detected, also spawn seo-local agent
-5. If local business detected AND DataForSEO MCP available, also spawn seo-maps agent
-6. If backlink APIs detected (`claude-seo run backlinks_auth.py --check`), also spawn seo-backlinks agent
-7. If Firecrawl MCP available, use `firecrawl_map` to discover all site URLs before analysis
-8. If content strategy signals detected (blog, pillar pages, topic clusters), also spawn seo-cluster agent
-9. If e-commerce detected, also spawn seo-ecommerce agent
-10. If drift baseline exists for this URL (`claude-seo run drift_history.py <url>`), also spawn seo-drift agent
-11. Always include seo-sxo in full audits (search experience applies to all sites)
-12. Collect results and generate unified report with SEO Health Score (0-100)
-13. **Synthesize via the 10-principle framework** (see "Synthesis Methodology" below), walk PERCEIVE → ANALYZE → VALIDATE → ACT before bucketing findings into Critical / High / Medium / Low
-14. Create prioritized action plan with dependency sequencing + falsifiability per recommendation
-15. **Offer PDF report**: "Generate a professional PDF report? Use `/seo google report full`"
+ 4. If Matomo credentials detected (`claude-seo run matomo_auth.py --check`), also spawn seo-matomo agent (alternative or complement to seo-google's GA4 reports)
+ 5. If local business detected, also spawn seo-local agent
+ 6. If local business detected AND DataForSEO MCP available, also spawn seo-maps agent
+ 7. If backlink APIs detected (`claude-seo run backlinks_auth.py --check`), also spawn seo-backlinks agent
+ 8. If Firecrawl MCP available, use `firecrawl_map` to discover all site URLs before analysis
+ 9. If content strategy signals detected (blog, pillar pages, topic clusters), also spawn seo-cluster agent
+10. If e-commerce detected, also spawn seo-ecommerce agent
+11. If drift baseline exists for this URL (`claude-seo run drift_history.py <url>`), also spawn seo-drift agent
+12. Always include seo-sxo in full audits (search experience applies to all sites)
+13. Collect results and generate unified report with SEO Health Score (0-100)
+14. **Synthesize via the 10-principle framework** (see "Synthesis Methodology" below), walk PERCEIVE → ANALYZE → VALIDATE → ACT before bucketing findings into Critical / High / Medium / Low
+15. Create prioritized action plan with dependency sequencing + falsifiability per recommendation
+16. **Offer PDF report**: "Generate a professional PDF report? Use `/seo google report full`"
 
 For individual commands, load the relevant sub-skill directly.
 After any analysis command completes, offer to generate a PDF report via `claude-seo run google_report.py`.
@@ -246,13 +248,19 @@ installer to activate (see each extension's `install.sh`/`install.ps1`):
 
 All optional extensions are reachable through `/seo` subcommands once
 installed: firecrawl, dataforseo, and image-gen, plus `/seo ahrefs`,
-`/seo bing`, `/seo profound`, `/seo seranking`, and `/seo unlighthouse`.
-Each installs as its own sub-skill, so the model also auto-routes to their
-descriptions without the `/seo` prefix.
+`/seo bing`, `/seo matomo`, `/seo profound`, `/seo seranking`, and
+`/seo unlighthouse`. Each installs as its own sub-skill, so the model also
+auto-routes to their descriptions without the `/seo` prefix.
 
 - **seo-firecrawl** -- Full-site crawling and site mapping via Firecrawl MCP. Install
   via `extensions/firecrawl/install.sh` (Unix) or `extensions/firecrawl/install.ps1`
   (Windows). Once installed, invoke via `/seo firecrawl <command>`.
+- **seo-matomo** -- Self-hosted or Matomo Cloud Reporting API as a GA4
+  alternative or complement. Install via
+  `extensions/matomo/install.sh` (Unix) or `extensions/matomo/install.ps1`
+  (Windows). Once installed, invoke via `/seo matomo <command>` or rely
+  on the audit orchestrator to spawn the seo-matomo agent automatically
+  when credentials are present.
 
 ## Subagents
 

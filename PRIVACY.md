@@ -24,6 +24,7 @@ Optional extensions make API calls to third-party services when you invoke their
 | **SE Ranking** | seranking.com/api | Domains and keywords you analyze | [SE Ranking Privacy](https://seranking.com/privacy-policy) |
 | **Profound** | Profound API (tryprofound.com) | Brands and domains you track | [Profound Privacy](https://tryprofound.com/privacy) |
 | **Bing Webmaster / IndexNow** | Bing Webmaster Tools API and IndexNow endpoints | Domains, submitted URLs, and key-verification URL data | [Microsoft Privacy](https://privacy.microsoft.com/) |
+| **Matomo** | Your own Matomo instance URL (self-hosted) or Matomo Cloud | Site IDs, default site ID, and the configured instance URL | [Matomo Privacy](https://matomo.org/privacy-policy/) (Cloud); self-hosted = your own policy |
 | **Unlighthouse** | Local only — no third-party vendor | Runs Lighthouse locally against the target URL; only the target site is contacted (to crawl it). Nothing is sent to a third-party vendor. | N/A (runs locally) |
 
 ## Backlink APIs
@@ -37,6 +38,21 @@ When configured with backlink API credentials, these scripts transmit data to th
 | `indexnow_submit.py` | IndexNow endpoints (Bing / Yandex / Seznam / Naver) | URLs submitted and key-verification URL data | Endpoint provider policies |
 | `commoncrawl_graph.py` | Common Crawl | Domains (public dataset query) | [Common Crawl Terms](https://commoncrawl.org/terms-of-use) |
 | `verify_backlinks.py` | Target URLs directly | URLs to verify backlink existence | N/A (direct HTTP requests) |
+
+## Matomo Reporting API
+
+When configured with Matomo credentials, these scripts transmit data to the
+configured Matomo instance (self-hosted or Matomo Cloud):
+
+| Script | Endpoint | Data Sent |
+|--------|----------|-----------|
+| `matomo_auth.py` | The configured `MATOMO_URL` | `API.getMatomoVersion` probe with `token_auth` (POST body; never logged) |
+| `matomo_report.py` | The configured `MATOMO_URL` | Reporting API queries for the configured `idSite`; `token_auth` in POST body, never logged |
+
+Self-hosted Matomo instances on private networks / localhost are supported
+because the script applies a light URL sanity check rather than the strict
+SSRF protection used for arbitrary web fetches. Verify your instance's
+trust boundary if you point the script at a non-localhost address.
 
 ## Google SEO APIs
 
