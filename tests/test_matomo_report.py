@@ -31,11 +31,21 @@ SECRET_TOKEN = "abcdef0123456789abcdef0123456789"
 
 
 @pytest.fixture(autouse=True)
-def _clear_env(monkeypatch):
-    """Ensure Matomo env vars do not leak between tests."""
+def _isolated_credentials(monkeypatch, tmp_path):
+    """Isolate tests from both env vars and any real config file.
+
+    A developer machine may have ~/.config/claude-seo/matomo.json with
+    live credentials; without config isolation, CLI tests would pick it
+    up and make real network calls. CONFIG_PATH points at a missing
+    tmp file by default; tests that need a config file monkeypatch it
+    themselves (later setattr wins over this fixture).
+    """
     for k in ("MATOMO_URL", "MATOMO_API_TOKEN", "MATOMO_TOKEN",
               "MATOMO_SITE_ID", "MATOMO_IDSITE"):
         monkeypatch.delenv(k, raising=False)
+    monkeypatch.setattr(
+        matomo_auth, "CONFIG_PATH", str(tmp_path / "missing-matomo.json")
+    )
 
 
 def _mock_response(status_code: int, body) -> Mock:
