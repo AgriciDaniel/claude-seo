@@ -143,7 +143,7 @@ claude
 
 ![Claude SEO sub-skill ecosystem: 25 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
 
-32 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 8 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
+32 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 9 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
 
 | Command | Description |
 |---------|-------------|
@@ -178,6 +178,7 @@ claude
 | `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
+| `/seo matomo [command] [args]` | Matomo Reporting API: GA4 alternative or complement (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
 
 ## Features
@@ -372,7 +373,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/uninst
 
 ## Extensions
 
-Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 8 servers; the plugin core works without any of them.
+Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 9 servers; the plugin core works without any of them.
 
 ### DataForSEO
 
@@ -417,6 +418,23 @@ Five extensions added in Phase E:
 - **Profound:** LLM citation tracker with time-series data
 - **Bing Webmaster:** Bing Webmaster Tools plus IndexNow unified
 - **Unlighthouse:** MIT-licensed multi-page Lighthouse runner
+
+### Matomo (analytics without Google)
+
+Self-hosted (or Matomo Cloud) Reporting API as a GA4 alternative or
+complement. Useful for privacy-first analytics, regulated industries,
+and teams who own their analytics data. Adds organic traffic trend,
+landing pages, device / country breakdowns, and referrer analysis.
+
+```bash
+./extensions/matomo/install.sh   # requires Matomo instance URL + API token_auth
+/seo matomo organic
+/seo matomo referrers
+```
+
+Full Matomo docs: [extensions/matomo/docs/MATOMO-SETUP.md](extensions/matomo/docs/MATOMO-SETUP.md).
+The audit orchestrator spawns the `seo-matomo` agent automatically when
+credentials are present.
 
 Setup walkthroughs live under `extensions/<name>/docs/`; integration notes: [docs/MCP-INTEGRATION.md](docs/MCP-INTEGRATION.md).
 
