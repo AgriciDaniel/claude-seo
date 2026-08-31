@@ -14,7 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   | country | referrers | keywords` as a GA4 alternative or complement.
   The audit orchestrator spawns a new `seo-matomo` agent when
   `claude-seo run matomo_auth.py --check` succeeds, writing
-  `findings/matomo.md` alongside the existing specialists.
+  `findings/matomo.md` alongside the existing specialists. Response
+  parsing is verified live against Matomo 5.13, including array-shaped
+  DataTables, count-based bounce fields, `Referrers.getReferrerType`
+  naming, and locale-independent anonymized-keyword detection via the
+  row `segment` field.
 
 ## [2.2.5] - 2026-08-25
 
