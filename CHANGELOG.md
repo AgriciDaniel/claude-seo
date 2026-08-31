@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New optional Matomo extension (`extensions/matomo/`) for self-hosted or
+  Matomo Cloud analytics. Adds `/seo matomo organic | top-pages | device
+  | country | referrers | keywords` as a GA4 alternative or complement.
+  The audit orchestrator spawns a new `seo-matomo` agent when
+  `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --check`
+  succeeds, writing `findings/matomo.md` alongside the existing specialists.
+  Response parsing is verified live against Matomo 5, including array-shaped
+  DataTables, count-based bounce fields, `Referrers.getReferrerType` naming,
+  and locale-independent anonymized-keyword detection via the row `segment`
+  field. (#275)
+
 ### Changed
 
 - The five judgment-heavy agents (`seo-content`, `seo-geo`, `seo-sxo`, `seo-cluster`,
