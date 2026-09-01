@@ -34,7 +34,28 @@ import json
 import os
 import re
 import sys
-from typing import List
+from typing import Any, List
+
+BRACKET_PLACEHOLDERS = (
+    "[Business Name]",
+    "[City]",
+    "[State]",
+    "[Phone]",
+    "[Address]",
+    "[Your",
+    "[INSERT",
+    "[URL]",
+    "[Email]",
+)
+BARE_PLACEHOLDER_RE = re.compile(r"\bREPLACE(?:_[A-Z]+)*\b")
+
+
+def _configure_utf8() -> None:
+    """Keep hook diagnostics printable on legacy Windows console encodings."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure:
+            reconfigure(encoding="utf-8", errors="replace")
 
 
 def validate_jsonld(content: str) -> List[str]:
@@ -56,45 +77,49 @@ def validate_jsonld(content: str) -> List[str]:
 
         if isinstance(data, list):
             for item in data:
-                errors.extend(_validate_schema_object(item, i))
+                if isinstance(item, dict):
+                    errors.extend(_validate_schema_object(item, i))
+                else:
+                    errors.append(f"Block {i}: JSON-LD list members must be objects")
         elif isinstance(data, dict):
             errors.extend(_validate_schema_object(data, i))
+        else:
+            errors.append(f"Block {i}: JSON-LD root must be an object or list")
 
     return errors
 
 
-def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
-    """Validate a single schema object."""
+def _validate_schema_object(
+    obj: dict[str, Any], block_num: int, *, inherited_context: bool = False
+) -> List[str]:
+    """Validate one schema node, including members of a top-level ``@graph``."""
     errors = []
     prefix = f"Block {block_num}"
 
     # Check @context
-    if "@context" not in obj:
+    if "@context" not in obj and not inherited_context:
         errors.append(f"{prefix}: Missing @context")
-    elif obj["@context"] not in ("https://schema.org", "http://schema.org"):
+    elif "@context" in obj and obj["@context"] not in (
+        "https://schema.org",
+        "http://schema.org",
+    ):
         errors.append(f"{prefix}: @context should be 'https://schema.org'")
 
-    # Check @type
-    if "@type" not in obj:
+    graph = obj.get("@graph")
+    has_graph = isinstance(graph, list)
+
+    # A graph container does not need its own @type. Its object members do.
+    if "@type" not in obj and not has_graph:
         errors.append(f"{prefix}: Missing @type")
 
     # Check for placeholder text
-    placeholders = [
-        "[Business Name]",
-        "[City]",
-        "[State]",
-        "[Phone]",
-        "[Address]",
-        "[Your",
-        "[INSERT",
-        "REPLACE",
-        "[URL]",
-        "[Email]",
-    ]
-    text = json.dumps(obj)
-    for p in placeholders:
+    placeholder_scope = {key: value for key, value in obj.items() if key != "@graph"}
+    text = json.dumps(placeholder_scope, ensure_ascii=False)
+    for p in BRACKET_PLACEHOLDERS:
         if p.lower() in text.lower():
             errors.append(f"{prefix}: Contains placeholder text: {p}")
+    for placeholder in BARE_PLACEHOLDER_RE.findall(text):
+        errors.append(f"{prefix}: Contains placeholder text: {placeholder}")
 
     # Check for deprecated types
     schema_type = obj.get("@type", "")
@@ -117,6 +142,25 @@ def _validate_schema_object(obj: dict, block_num: int) -> List[str]:
     restricted: dict = {}
     if schema_type in restricted:
         errors.append(f"{prefix}: @type '{schema_type}' is {restricted[schema_type]}; verify site qualifies")
+
+    if "@graph" in obj:
+        if not isinstance(graph, list):
+            errors.append(f"{prefix}: @graph must be a list")
+        else:
+            context_is_inherited = inherited_context or "@context" in obj
+            for index, item in enumerate(graph, 1):
+                if not isinstance(item, dict):
+                    errors.append(
+                        f"{prefix}: @graph member {index} must be an object"
+                    )
+                    continue
+                errors.extend(
+                    _validate_schema_object(
+                        item,
+                        block_num,
+                        inherited_context=context_is_inherited,
+                    )
+                )
 
     return errors
 
@@ -144,6 +188,7 @@ def _resolve_filepath():
 
 
 def main():
+    _configure_utf8()
     filepath = _resolve_filepath()
     if not filepath:
         sys.exit(0)
@@ -164,7 +209,7 @@ def main():
         sys.exit(0)
 
     try:
-        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+        with open(filepath, "r", encoding="utf-8", errors="replace") as f:
             content = f.read()
     except (OSError, IOError):
         sys.exit(0)

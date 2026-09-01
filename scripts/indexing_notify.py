@@ -21,11 +21,9 @@ import argparse
 import json
 import sys
 import time
-from typing import Optional
 
 try:
     from googleapiclient.discovery import build
-    from googleapiclient.http import BatchHttpRequest
 except ImportError:
     print(
         "Error: google-api-python-client required. "
@@ -306,7 +304,7 @@ def main():
                 print("  No notifications found.")
         elif args.batch:
             summary = result.get("summary", {})
-            print(f"=== Batch Indexing Notification ===")
+            print("=== Batch Indexing Notification ===")
             print(f"Action: {args.action}")
             print(f"Total: {result.get('total', 0)} | Success: {summary.get('success', 0)} | Errors: {summary.get('error', 0)}")
             print(f"Estimated remaining daily quota: {result.get('estimated_remaining_quota', '?')}")

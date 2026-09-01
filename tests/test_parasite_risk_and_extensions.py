@@ -7,7 +7,6 @@ Tests for the v2 Checkpoint 5 deliverables:
 
 from __future__ import annotations
 
-import os
 import stat
 import sys
 from pathlib import Path
@@ -20,7 +19,6 @@ if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
 
 import parasite_risk  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # parasite_risk

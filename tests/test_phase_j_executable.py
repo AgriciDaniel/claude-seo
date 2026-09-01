@@ -17,8 +17,6 @@ import sys
 from pathlib import Path
 from unittest import mock
 
-import pytest
-
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 _SCRIPTS = _REPO_ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:
@@ -28,7 +26,6 @@ import agent_ux_check  # noqa: E402
 import iptc_ai_label  # noqa: E402
 import render_page  # noqa: E402
 import ucp_check  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # ucp_check
@@ -241,6 +238,47 @@ def test_analyze_accessibility_tree_handles_none_input():
     findings = agent_ux_check.analyze_accessibility_tree(None)
     assert findings["tree_present"] is False
     assert findings["total_nodes"] == 0
+
+
+def test_agent_ux_rejects_empty_rendered_document(monkeypatch):
+    monkeypatch.setattr(
+        agent_ux_check,
+        "render_page",
+        lambda *_args, **_kwargs: {
+            "url": "https://empty.example/",
+            "status_code": 200,
+            "error": None,
+            "content": "<html><head></head><body></body></html>",
+            "accessibility_tree": None,
+            "accessibility_error": "no nodes",
+            "accessibility_partial": True,
+        },
+    )
+    report = agent_ux_check.audit("https://empty.example/")
+    assert report["score"] is None
+    assert report["score_status"] == "unavailable"
+    assert "no meaningful body content" in report["render_error"]
+
+
+def test_agent_ux_labels_missing_accessibility_tree_as_partial(monkeypatch):
+    monkeypatch.setattr(
+        agent_ux_check,
+        "render_page",
+        lambda *_args, **_kwargs: {
+            "url": "https://partial.example/",
+            "status_code": 200,
+            "error": None,
+            "content": "<html><body><main>Useful content</main></body></html>",
+            "accessibility_tree": None,
+            "accessibility_error": "CDP unavailable",
+            "accessibility_partial": True,
+        },
+    )
+    report = agent_ux_check.audit("https://partial.example/")
+    assert report["score"] is not None
+    assert report["score_status"] == "partial"
+    assert report["partial"] is True
+    assert report["partial_reasons"] == ["CDP unavailable"]
 
 
 def test_analyze_accessibility_tree_counts_roles_and_names():

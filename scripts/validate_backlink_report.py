@@ -21,7 +21,6 @@ Input: JSON file with backlink analysis data containing keys:
 import argparse
 import json
 import sys
-from typing import Optional
 
 
 def validate_schema_claims(parsed_data: dict) -> list:

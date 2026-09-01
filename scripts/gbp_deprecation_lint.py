@@ -37,7 +37,6 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from url_safety import URLSafetyError, safe_requests_get  # noqa: E402
 
-
 # Patterns for retired GBP chat. The "Message" / "Chat" CTAs alone are
 # common on commercial sites — we only flag when they appear NEAR a
 # Google-business-related signal in the same DOM neighbourhood.

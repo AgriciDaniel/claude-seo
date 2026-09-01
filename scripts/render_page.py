@@ -36,6 +36,9 @@ A dict with::
     is_spa            True iff raw_content looks like a hydration shell
     extracted_text    trafilatura main-content extraction (or None)
     publication_date  htmldate ISO 8601 string (or None)
+    accessibility_tree Chromium accessibility-tree snapshot (or None)
+    accessibility_error capture failure detail (or None)
+    accessibility_partial True when the accessibility result is incomplete
     headers           response headers from the main document
     redirect_chain    list of {url, status_code}
     console_errors    list of browser console error strings
@@ -69,7 +72,7 @@ import os
 import re
 import sys
 import time
-from typing import Optional
+from typing import Any, Optional
 
 from bs4 import BeautifulSoup
 
@@ -77,8 +80,10 @@ from bs4 import BeautifulSoup
 # only need raw-mode (mode='never') don't pay the import cost.
 try:
     from playwright.sync_api import (
-        sync_playwright,
         TimeoutError as PlaywrightTimeout,
+    )
+    from playwright.sync_api import (
+        sync_playwright,
     )
 except ImportError:  # pragma: no cover - exercised in environments without playwright
     sync_playwright = None
@@ -105,7 +110,6 @@ from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     validate_url_strict,
 )
 
-
 VIEWPORTS: dict[str, dict[str, int]] = {
     "desktop": {"width": 1920, "height": 1080, "device_scale": 1},
     "laptop": {"width": 1366, "height": 768, "device_scale": 1},
@@ -118,9 +122,9 @@ USER_AGENT = (
     "(KHTML, like Gecko) Chrome/150.0.7871.115 Safari/537.36 ClaudeSEO/2.0"
 )
 
-# Hydration-shell signatures. Any single match flips is_spa to True. These
-# cover the dominant SPA frameworks: React (CRA, Vite, Remix), Next.js,
-# Vue, Nuxt, Svelte, Astro islands, and the "JS required" noscript pattern.
+# Hydration-shell signatures. A marker is actionable only while meaningful
+# body text is sparse, because SSR/SSG framework pages legitimately retain
+# the same root and hydration markers after serving complete HTML.
 _SPA_SHELL_PATTERNS = (
     '<div id="root"></div>',
     '<div id="__next">',
@@ -154,6 +158,8 @@ JSON_LD_MAX_BLOCK_BYTES = 256 * 1024
 JSON_LD_MAX_TOTAL_BYTES = 1024 * 1024
 JSON_LD_MAX_NODES = 10_000
 JSON_LD_MAX_DEPTH = 40
+ACCESSIBILITY_MAX_NODES = 10_000
+ACCESSIBILITY_MAX_DEPTH = 50
 
 
 def _visible_body_text(lower_html: str) -> str:
@@ -253,13 +259,16 @@ def _extract_json_ld(html: Optional[str], *, include_full: bool = False) -> dict
 
 
 def _is_spa(raw_html: Optional[str]) -> bool:
-    """Heuristic SPA detector. Conservative: any positive signal flips True."""
+    """Detect sparse hydration shells without flagging complete SSR/SSG pages."""
     if not raw_html:
         return True
     lc = raw_html.lower()
-    if any(pattern in lc for pattern in _SPA_SHELL_PATTERNS):
-        return True
     visible_text = _visible_body_text(lc)
+    if (
+        len(visible_text) < _BUILDER_SPARSE_TEXT_MAX
+        and any(pattern in lc for pattern in _SPA_SHELL_PATTERNS)
+    ):
+        return True
     if len(visible_text) < _BUILDER_SPARSE_TEXT_MAX:
         for markers in _BUILDER_FINGERPRINT_GROUPS:
             if sum(marker in lc for marker in markers) >= 2:
@@ -305,6 +314,92 @@ def _wait_for_dom_stability(page, timeout_ms: int) -> bool:  # type: ignore[no-u
     return False
 
 
+def _ax_value(node: dict[str, Any], key: str) -> str:
+    value = node.get(key)
+    if isinstance(value, dict):
+        raw = value.get("value")
+        return str(raw) if raw is not None else ""
+    return str(value) if value is not None else ""
+
+
+def _accessibility_tree_from_cdp(nodes: object) -> tuple[Optional[dict], bool]:
+    """Convert Chrome's flat AXNode array into the tree used by the auditor."""
+    if not isinstance(nodes, list) or not nodes:
+        return None, False
+
+    usable = [node for node in nodes if isinstance(node, dict)]
+    truncated = len(usable) > ACCESSIBILITY_MAX_NODES
+    usable = usable[:ACCESSIBILITY_MAX_NODES]
+    by_id = {
+        str(node["nodeId"]): node
+        for node in usable
+        if node.get("nodeId") is not None
+    }
+    if not by_id:
+        return None, truncated
+
+    known_children = {
+        str(child_id)
+        for node in by_id.values()
+        for child_id in (node.get("childIds") or [])
+        if str(child_id) in by_id
+    }
+    root_id = next((node_id for node_id in by_id if node_id not in known_children), None)
+    if root_id is None:
+        return None, True
+
+    def build(node_id: str, depth: int, ancestors: frozenset[str]) -> dict:
+        nonlocal truncated
+        node = by_id[node_id]
+        result = {
+            "role": _ax_value(node, "role"),
+            "name": _ax_value(node, "name"),
+            "ignored": bool(node.get("ignored", False)),
+        }
+        child_ids = [
+            str(child_id)
+            for child_id in (node.get("childIds") or [])
+            if str(child_id) in by_id
+        ]
+        if depth >= ACCESSIBILITY_MAX_DEPTH:
+            if child_ids:
+                truncated = True
+            return result
+        children = []
+        for child_id in child_ids:
+            if child_id in ancestors:
+                truncated = True
+                continue
+            children.append(build(child_id, depth + 1, ancestors | {child_id}))
+        if children:
+            result["children"] = children
+        return result
+
+    return build(root_id, 0, frozenset({root_id})), truncated
+
+
+def _capture_accessibility_tree(context: Any, page: Any) -> tuple[Optional[dict], bool]:
+    """Capture the Chromium AX tree through Playwright's supported CDP seam."""
+    session = context.new_cdp_session(page)
+    try:
+        session.send("Accessibility.enable")
+        payload = session.send(
+            "Accessibility.getFullAXTree", {"depth": ACCESSIBILITY_MAX_DEPTH}
+        )
+        return _accessibility_tree_from_cdp(payload.get("nodes"))
+    finally:
+        try:
+            session.send("Accessibility.disable")
+        except Exception:
+            pass
+        detach = getattr(session, "detach", None)
+        if detach:
+            try:
+                detach()
+            except Exception:
+                pass
+
+
 def render_page(
     url: str,
     *,
@@ -319,8 +414,8 @@ def render_page(
     """Render or fetch ``url`` per the chosen mode. See module docstring.
 
     ``extract_accessibility``: when True and the page is rendered (mode
-    'always' or 'auto'+SPA), the Playwright accessibility-tree snapshot is
-    captured and attached to ``result['accessibility_tree']``. Used by
+    'always' or 'auto'+SPA), the Chromium accessibility tree is captured via
+    a Playwright CDP session and attached to ``result['accessibility_tree']``. Used by
     ``agent_ux_check.py`` for agent-friendliness scoring (Google AI
     optimization guide / web.dev agent UX criteria).
     """
@@ -333,6 +428,8 @@ def render_page(
         "extracted_text": None,
         "publication_date": None,
         "accessibility_tree": None,
+        "accessibility_error": None,
+        "accessibility_partial": False,
         "headers": {},
         "redirect_chain": [],
         "console_errors": [],
@@ -440,12 +537,28 @@ def render_page(
 
                 if extract_accessibility:
                     try:
-                        result["accessibility_tree"] = page.accessibility.snapshot(
-                            interesting_only=False
-                        )
-                    except Exception:
-                        # Accessibility snapshot is best-effort; never block the audit.
+                        (
+                            result["accessibility_tree"],
+                            result["accessibility_partial"],
+                        ) = _capture_accessibility_tree(context, page)
+                        if result["accessibility_tree"] is None:
+                            result["accessibility_partial"] = True
+                            result["accessibility_error"] = (
+                                "Chromium returned no accessibility nodes"
+                            )
+                        elif result["accessibility_partial"]:
+                            result["accessibility_error"] = (
+                                "accessibility tree exceeded the capture bounds"
+                            )
+                    except Exception as exc:
                         result["accessibility_tree"] = None
+                        result["accessibility_partial"] = True
+                        result["accessibility_error"] = (
+                            f"accessibility capture failed: {type(exc).__name__}: {exc}"
+                        )
+                        result["render_diagnostics"].append(
+                            result["accessibility_error"]
+                        )
 
                 browser.close()
         except Exception as exc:
@@ -474,6 +587,40 @@ def render_page(
                 pass
 
     return result
+
+
+def _non_negative_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be zero or greater")
+    return parsed
+
+
+def _json_summary(result: dict, *, max_text: int = 0) -> dict:
+    """Return an explicit, machine-readable JSON output contract.
+
+    ``max_text=0`` preserves every textual field. Positive values truncate
+    content fields and record the original and returned character counts.
+    """
+    summary = dict(result)
+    full_content = result.get("content") or result.get("raw_content") or ""
+    summary["structured_data"] = _extract_json_ld(full_content)
+    truncation = {"limit": max_text or None, "fields": {}}
+    for field in ("content", "raw_content", "extracted_text"):
+        value = summary.get(field)
+        if not isinstance(value, str):
+            continue
+        original_chars = len(value)
+        truncated = max_text > 0 and original_chars > max_text
+        if truncated:
+            summary[field] = value[:max_text]
+        truncation["fields"][field] = {
+            "original_chars": original_chars,
+            "returned_chars": len(summary[field]),
+            "truncated": truncated,
+        }
+    summary["truncation"] = truncation
+    return summary
 
 
 def _cli() -> None:
@@ -517,7 +664,16 @@ def _cli() -> None:
     parser.add_argument(
         "--json",
         action="store_true",
-        help="emit a JSON summary (truncates content fields)",
+        help="emit JSON with full content fields unless --max-text is set",
+    )
+    parser.add_argument(
+        "--max-text",
+        type=_non_negative_int,
+        default=0,
+        help=(
+            "maximum characters returned for each JSON content field; "
+            "0 keeps full text (default: 0)"
+        ),
     )
     parser.add_argument(
         "--json-ld-output",
@@ -546,21 +702,15 @@ def _cli() -> None:
         with open(args.json_ld_output, "w", encoding="utf-8") as fh:
             json.dump(extraction, fh, indent=2, ensure_ascii=False)
 
+    output_written = False
+    if args.output and not res["error"]:
+        with open(args.output, "w", encoding="utf-8") as fh:
+            fh.write(res["content"] or "")
+        output_written = True
+
     if args.json:
-        summary = dict(res)
-        summary["structured_data"] = _extract_json_ld(full_content)
-        # JSON-safe truncation so the CLI is usable from agents without
-        # piping megabytes of HTML across stdio.
-        for field, limit in (
-            ("content", 500),
-            ("raw_content", 200),
-            ("extracted_text", 500),
-        ):
-            if summary.get(field):
-                value = summary[field]
-                summary[field] = (
-                    value[:limit] + "..." if len(value) > limit else value
-                )
+        summary = _json_summary(res, max_text=args.max_text)
+        summary["output_written"] = output_written
         print(json.dumps(summary, indent=2, default=str))
         sys.exit(1 if res["error"] else 0)
 
@@ -568,9 +718,7 @@ def _cli() -> None:
         print(f"Error: {res['error']}", file=sys.stderr)
         sys.exit(1)
 
-    if args.output:
-        with open(args.output, "w", encoding="utf-8") as fh:
-            fh.write(res["content"] or "")
+    if output_written:
         print(f"saved to {args.output}", file=sys.stderr)
     else:
         print(res["content"])

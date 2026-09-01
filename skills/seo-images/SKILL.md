@@ -12,7 +12,7 @@ argument-hint: "[url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.4"
+  version: "2.2.5"
   category: seo
 ---
 
@@ -106,7 +106,7 @@ Third-party reporting and Wikipedia describe a Rust-based JPEG XL decoder as shi
 
 #### Detected lazy-loader methods (`lazy_method` field)
 
-`scripts/parse_html.py` classifies each image's lazy-loading mechanism via the
+`claude-seo run parse_html.py` classifies each image's lazy-loading mechanism via the
 `lazy_method` field on every image entry. Five values:
 
 | `lazy_method` | Signal detected | Common stack |

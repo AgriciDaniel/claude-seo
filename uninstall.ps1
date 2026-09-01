@@ -38,19 +38,19 @@ function Main {
 
     # Remove every seo-* sub-skill directory
     if (Test-Path $SkillDir -PathType Container) {
-        Get-ChildItem -Path $SkillDir -Directory -Filter "seo-*" -ErrorAction SilentlyContinue | ForEach-Object {
-            Remove-Item -Recurse -Force $_.FullName
-            Write-Color Green "  Removed: $($_.FullName)"
-            $script:removedSkills++
+        foreach ($subSkill in @(Get-ChildItem -Path $SkillDir -Directory -Filter "seo-*" -ErrorAction SilentlyContinue)) {
+            Remove-Item -Recurse -Force $subSkill.FullName
+            Write-Color Green "  Removed: $($subSkill.FullName)"
+            $removedSkills++
         }
     }
 
     # Remove every seo-*.md agent file
     if (Test-Path $AgentDir -PathType Container) {
-        Get-ChildItem -Path $AgentDir -File -Filter "seo-*.md" -ErrorAction SilentlyContinue | ForEach-Object {
-            Remove-Item -Force $_.FullName
-            Write-Color Green "  Removed: $($_.FullName)"
-            $script:removedAgents++
+        foreach ($agentFile in @(Get-ChildItem -Path $AgentDir -File -Filter "seo-*.md" -ErrorAction SilentlyContinue)) {
+            Remove-Item -Force $agentFile.FullName
+            Write-Color Green "  Removed: $($agentFile.FullName)"
+            $removedAgents++
         }
     }
 

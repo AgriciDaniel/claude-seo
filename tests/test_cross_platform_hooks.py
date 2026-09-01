@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 HOOKS_JSON = REPO_ROOT / "hooks" / "hooks.json"
 HOOK_LAUNCHER = REPO_ROOT / "hooks" / "run-python-hook.js"

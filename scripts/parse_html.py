@@ -30,8 +30,7 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from url_safety import safe_requests_get
-
+from url_safety import safe_requests_get  # noqa: E402, I001
 
 # Lazy-loader detection — covers native + the major JS lazy-loaders found on
 # WordPress/WooCommerce sites (Perfmatters, EWWW Image Optimizer, generic

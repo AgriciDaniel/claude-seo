@@ -54,7 +54,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Iterable
 
-
 # Padding / filler phrases that QRG §4.6 flags as "little-to-no value".
 # Each phrase scores 1 hit; threshold tuned at ~3 hits per 1000 tokens.
 _FILLER_PHRASES: tuple[str, ...] = (

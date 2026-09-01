@@ -35,7 +35,6 @@ import argparse
 import json
 import os
 import sys
-from typing import Optional
 from urllib.parse import urljoin, urlparse
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -46,7 +45,6 @@ from url_safety import (  # noqa: E402
     safe_requests_get,
     validate_url_strict,
 )
-
 
 KNOWN_CAPABILITIES = {
     "dev.ucp.shopping.checkout": "Initiate checkout, return totals + payment intent",

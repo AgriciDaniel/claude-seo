@@ -21,7 +21,7 @@ claude-seo/
   CONTRIBUTORS.md                    # Community credits (Pro Hub Challenge)
   AGENTS.md                          # Multi-platform agent instructions (Cursor, Antigravity)
   .claude-plugin/
-    plugin.json                    # Plugin manifest (v2.2.4)
+    plugin.json                    # Plugin manifest (v2.2.5)
     marketplace.json               # Marketplace catalog for distribution
   skills/                            # 25 sub-skills (auto-discovered)
     seo/                           # Main orchestrator skill
@@ -272,8 +272,9 @@ Promoting to public on release:
 - **`aimh` accepts day-to-day pushes.** No release-gate ceremony required
   for the private remote.
 - **Tags push to private first.** Historical pre-release illustration: v2.0.0
-  once lived on `aimh` before `origin`. Current released tags through v2.2.4
-  are on both remotes.
+  once lived on `aimh` before `origin`. Before the authorized v2.2.5 release,
+  released tags through v2.2.4 are on both remotes. Verify v2.2.5 on both
+  remotes after publication.
 - **History stays shared.** Never rewrite history on either remote with
   force-push unless explicitly authorized for that specific operation.
 

@@ -123,10 +123,10 @@ into three buckets:
 - **WebMCP integration** — three audits, see below.
 
 **Run paths:** DevTools Lighthouse panel (Chrome 150+, default-on, no toggle);
-CLI `npx lighthouse@latest <url> --only-categories=agentic-browsing` (per-audit
-JSON for CI); PageSpeed Insights **web UI**. **The PSI REST API does NOT return
-this category** — `scripts/pagespeed_check.py` will not contain agentic results
-(disabled in Lighthouse 13.4.0); CrUX never provides these lab audits.
+CLI `npx lighthouse@latest <url> --only-categories=agentic-browsing` (Node.js
+22.19+, per-audit JSON for CI); PageSpeed Insights web UI and API. Lighthouse
+13.4.1 enabled the category through the PSI API after 13.4.0 had disabled it.
+CrUX never provides these lab audits.
 
 ## WebMCP (proposed standard; status needs recheck)
 
@@ -165,16 +165,16 @@ Chrome DevTools and look for:
 - Any `<div>` with `onclick` and no `role` / `tabindex` → custom widget that
   agents won't see.
 
-`scripts/render_page.py --mode auto` already loads pages headlessly; extending
-it with an accessibility-tree dump (`page.accessibility.snapshot()` in
-Playwright) is the natural place to land an automated agent-UX check in a
-future iteration.
+`claude-seo run render_page.py <URL> --mode auto --a11y-tree --json` loads the
+page headlessly and captures Chromium's full accessibility tree through CDP.
+Use `claude-seo run agent_ux_check.py <URL> --json` for the bounded Agent-UX
+heuristic and its explicit complete, partial, or unavailable score status.
 
 ## Last verified
 
-2026-06-21. (Google has now published an agent-UX scoring framework — the
-Lighthouse Agentic Browsing category — and WebMCP has reached a public Chrome
-149 origin trial; both are reflected above.) Update when:
+2026-08-25. Google has published the Lighthouse Agentic Browsing framework,
+Lighthouse 13.4.1 exposes it through the PSI API, and the local renderer now
+captures the Chromium accessibility tree through CDP. Update when:
 
 - WebMCP graduates from origin trial to a stable/shipped API (or W3C status changes).
 - Google adds or renames audits in the `agentic-browsing` category.

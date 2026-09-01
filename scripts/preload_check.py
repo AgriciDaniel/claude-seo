@@ -62,7 +62,6 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from url_safety import URLSafetyError, safe_requests_get  # noqa: E402
 
-
 _SPECULATION_BLOCK_RE = re.compile(
     r'<script\b[^>]*\btype\s*=\s*["\']speculationrules["\'][^>]*>(?P<body>.*?)</script>',
     re.IGNORECASE | re.DOTALL,

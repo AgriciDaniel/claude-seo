@@ -96,6 +96,8 @@ Google's documentation explicitly recommends JSON-LD over Microdata and RDFa.
 | ConferenceEvent | December 2025 | Schema.org v29.4 addition |
 | PerformingArtsEvent | December 2025 | Schema.org v29.4 addition |
 | hasAdultConsideration | 2026-05-20 | Product variant / Merchant listing; **required for adult-oriented products**; Google Search supports only `https://schema.org/SexualContentConsideration` |
+| Product.category | 2026-07-07 | Accepts `Text`, `CategoryCode`, or arrays mixing both; use Google's taxonomy URL and `codeValue` for Google Product Categories |
+| Offer sale duration | 2026-07-07 | Use `validFrom` plus `validThrough` or `priceValidUntil`, in ISO 8601 format |
 | QAPage / DiscussionForumPosting comment-thread props | 2026-03-24 | New supported properties for comment-thread structure |
 | Education Q&A (Quiz / eduQuestionType=Flashcard) | 2026 | Active rich result; carousel expanded to more languages |
 

@@ -55,9 +55,9 @@ Google evaluates the **75th percentile** of page visits, 75% of visits must meet
 
 ## Performance Tooling (2025-2026)
 
-**Lighthouse 13.4.0** (June 2026, latest stable): Lighthouse 13.0 (Oct 2025) migrated performance audits to **insight-based audits** aligned with the DevTools Performance panel and removed legacy audits (first-meaningful-paint, font-size, third-party-facades), note the performance *score* is metric-based and was NOT re-weighted. 13.2.0-13.3.0 added and default-enabled a new **Agentic Browsing** category (Chrome 150+; fractional pass-ratio, not 0-100, see `skills/seo-technical/references/agent-friendly-pages.md`); 13.4.0 disabled that category in the PSI REST API. Use Lighthouse as a lab diagnostic: always validate against CrUX field data.
+**Lighthouse 13.4.1** (July 2026, latest stable): Lighthouse 13.0 (Oct 2025) migrated performance audits to **insight-based audits** aligned with the DevTools Performance panel and removed legacy audits (first-meaningful-paint, font-size, third-party-facades), note the performance *score* is metric-based and was NOT re-weighted. 13.2.0-13.3.0 added and default-enabled a new **Agentic Browsing** category (Chrome 150+; fractional pass-ratio, not 0-100, see `skills/seo-technical/references/agent-friendly-pages.md`). Version 13.4.1 enabled that category through the PSI API and requires Node.js 22.19 or newer for the CLI. Use Lighthouse as a lab diagnostic: always validate against CrUX field data.
 
-**PageSpeed Insights / PSI API v5** run Lighthouse 13.x (updated 2025-10-20). The **PWA category was removed in Lighthouse 12**, do not expect or parse a `pwa` category. The agentic-browsing category is **not** returned by the PSI REST API (only the PSI web UI / CLI expose it).
+**PageSpeed Insights / PSI API v5** run Lighthouse 13.x. The **PWA category was removed in Lighthouse 12**, do not expect or parse a `pwa` category. Lighthouse 13.4.1 enabled the agentic-browsing category through the PSI API.
 
 **CrUX Vis** replaced the CrUX Dashboard (Looker Studio), which was shut down at end of November 2025 (October 2025 was its final dataset). Use [CrUX Vis](https://cruxvis.withgoogle.com) or the CrUX API directly.
 

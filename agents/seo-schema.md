@@ -68,7 +68,7 @@ Provide:
 
 ## Fetching pages (v2.0.0)
 
-Use `claude-seo run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes summary fields including `is_spa`, `extracted_text` (boilerplate-stripped via trafilatura), and `publication_date` (htmldate); use `--output` or import `render_page.render_page()` when full raw/rendered HTML is required. SSRF and DNS-rebinding protection live in `scripts/url_safety.py`, never call `requests.get` directly on user-supplied URLs.
+Use `claude-seo run render_page.py <URL> --mode auto --json` for page HTML. `auto` does a raw fetch and only spins up Playwright when an SPA shell is detected; use `--mode always` to force a render or `--mode never` to skip Playwright entirely. The JSON exposes `is_spa`, complete `extracted_text`, and `publication_date`; use `--output rendered.html` for the full HTML. SSRF and DNS-rebinding protection live in the bundled `url_safety.py` module, never call `requests.get` directly on user-supplied URLs.
 
 Use the JSON response's `structured_data` summary for routine JSON-LD detection. It is extracted from the full HTML before the HTML fields are truncated, but emits only bounded validity, size, and type metadata. When full blocks are necessary for validation, pass `--json-ld-output <path>` and read the bounded UTF-8 JSON artifact. Never copy unbounded page markup into an agent prompt.
 

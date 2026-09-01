@@ -9,7 +9,7 @@ argument-hint: "[url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.4"
+  version: "2.2.5"
   category: seo
 ---
 
@@ -66,7 +66,7 @@ See `schema/templates.json` for ready-to-use JSON-LD templates for these types.
 - **Dataset**: Not discontinued; consumed by Google Dataset Search, with no Google Search rich-result surface. Don't advise removal as if it were killed.
 
 ### Still supported (do not flag):
-- QAPage (expanded comment-thread properties 2026-03-24), DiscussionForumPosting, Education Q&A (Quiz / `eduQuestionType=Flashcard`). For e-commerce, **hasAdultConsideration** (added 2026-05-22; value `https://schema.org/SexualContentConsideration`) is required for adult products.
+- QAPage (expanded comment-thread properties 2026-03-24), DiscussionForumPosting, Education Q&A (Quiz / `eduQuestionType=Flashcard`). For e-commerce, **hasAdultConsideration** (added 2026-05-20; value `https://schema.org/SexualContentConsideration`) is required for adult products. `Product.category` accepts `Text`, `CategoryCode`, or arrays mixing both.
 
 ## Generation
 
@@ -76,6 +76,8 @@ When generating schema for a page:
 3. Generate valid JSON-LD with all required + recommended properties
 4. Include only truthful, verifiable data. Use placeholders clearly marked for user to fill
 5. Validate output before presenting
+6. For review markup, reject fake reviews and undisclosed incentivized reviews.
+   An incentive must be clearly and prominently disclosed on the page.
 
 ## Common Schema Templates
 

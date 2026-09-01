@@ -17,7 +17,6 @@ Usage:
 """
 
 import argparse
-import csv
 import gzip
 import io
 import json
@@ -35,7 +34,7 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, _SCRIPTS_DIR)
 try:
-    from backlinks_auth import get_cache_dir, load_config
+    from backlinks_auth import get_cache_dir
     from google_auth import validate_url
 except ImportError:
     print("Error: backlinks_auth.py and google_auth.py required in scripts/", file=sys.stderr)
@@ -421,7 +420,7 @@ def main():
             print(json.dumps(result, indent=2))
         else:
             data = result["data"]
-            print(f"Common Crawl Web Graph Info")
+            print("Common Crawl Web Graph Info")
             print(f"  Latest release: {data.get('latest_release', 'unknown')}")
             print(f"  Known releases: {', '.join(data.get('known_releases', []))}")
             print(f"  Cache dir:      {data.get('cache_dir', 'N/A')}")

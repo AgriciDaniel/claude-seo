@@ -22,8 +22,10 @@ from urllib.parse import ParseResult, urlparse
 
 try:
     from playwright.sync_api import (
-        sync_playwright,
         TimeoutError as PlaywrightTimeout,
+    )
+    from playwright.sync_api import (
+        sync_playwright,
     )
 except ImportError:
     print(
@@ -40,7 +42,6 @@ from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     make_safe_playwright_route_handler,
     validate_url_strict,
 )
-
 
 VIEWPORTS = {
     "desktop": {"width": 1920, "height": 1080},

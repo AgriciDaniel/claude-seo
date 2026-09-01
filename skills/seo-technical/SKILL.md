@@ -10,7 +10,7 @@ argument-hint: "[url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.2.4"
+  version: "2.2.5"
   category: seo
 ---
 
@@ -30,6 +30,10 @@ metadata:
 - Googlebot **fetch limits**: Googlebot fetches the first **2MB of HTML** and first **64MB of a PDF** (uncompressed; 15MB is the broader crawler-infra default). Long-standing, not a 2026 change, but inline base64 images, oversized inline CSS/JS, or bloated nav can push critical content/JSON-LD past the cap and out of the index. Keep key content + structured data within the first 2MB.
 - Crawl rate **auto-adjusts** (backs off on 5xx/slow responses); there is **no manual crawl-rate control** (the legacy Search Console setting was removed Jan 2024). Influence crawling via sitemaps, server responsiveness, and robots controls.
 - Google's canonical crawling/robots reference moved to **developers.google.com/crawling** (migrated 2025-11-20); IP-range files relocated to `/crawling/ipranges/` and `googlebot.json` was renamed `common-crawlers.json`.
+- AMP has no separate ranking advantage. Since 2026-07-01, Google Search sends
+  users directly to publisher-hosted AMP URLs, so do not recommend AMP Cache,
+  AMP Viewer, or signed exchange maintenance. Audit AMP against the same content,
+  action-parity, and quality requirements as other pages.
 
 #### AI Crawler Management
 
@@ -76,6 +80,10 @@ Allow: /
 ### 2. Indexability
 - Canonical tags: self-referencing, no conflicts with noindex
 - Duplicate content: near-duplicates, parameter URLs, www vs non-www
+- Canonicalization fixes can take time: Google may retain corrected pages in a
+  duplicate cluster for **up to two weeks** while re-evaluating them. Do not
+  interpret an unchanged canonical immediately after a fix as proof that the
+  fix failed.
 - Thin content: pages below minimum word counts per type
 - Pagination: rel=next/prev or load-more pattern
 - Hreflang: correct for multi-language/multi-region sites
@@ -159,8 +167,9 @@ Google now ships a Lighthouse **Agentic Browsing** category (default-on since
 Lighthouse 13.3.0, Chrome 150+; buckets: agent-centric accessibility, CLS +
 llms.txt, three WebMCP audits). It reports a **fractional pass-ratio (X of N),
 not a 0-100 score**, keep that distinct from this skill's own Agent-UX 0-100
-heuristic below. The PSI REST API does not expose it; run via Lighthouse CLI
-`--only-categories=agentic-browsing`, DevTools, or the PSI web UI. See
+heuristic below. Lighthouse 13.4.1 re-enabled the category through the PSI API.
+It is also available through Lighthouse CLI with
+`--only-categories=agentic-browsing`, DevTools, and the PSI web UI. See
 `references/agent-friendly-pages.md`.
 
 ### Audit command
@@ -176,9 +185,10 @@ The scanner outputs an Agent-UX score (0-100) plus itemized issues:
 - Accessibility tree findings: total nodes, interactive nodes, unnamed
   interactive elements, `role="generic"` ratio
 
-The accessibility-tree snapshot uses Playwright's
-`page.accessibility.snapshot(interesting_only=False)`. To capture the tree
-without scoring, use `claude-seo run render_page.py <url> --a11y-tree --json`.
+The accessibility-tree snapshot uses Chromium's
+`Accessibility.getFullAXTree` CDP command through Playwright. To capture the
+tree without scoring, use
+`claude-seo run render_page.py <url> --a11y-tree --json`.
 
 Surface findings as **opportunities**, not failures; don't gate audits on a
 sub-100 Agent-UX score. WebMCP origin-trial/sign-up status needs verification,

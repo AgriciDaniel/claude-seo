@@ -16,7 +16,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+from datetime import date
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import pytest
 
@@ -24,11 +26,10 @@ _SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 
-import content_quality  # noqa: E402
 import content_humanize  # noqa: E402
+import content_quality  # noqa: E402
 import content_verify  # noqa: E402
 import seo_updates  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # content_quality
@@ -230,20 +231,66 @@ def test_seo_updates_every_entry_has_google_owned_source() -> None:
     data_path = Path(__file__).resolve().parents[1] / "data" / "google-updates.json"
     with data_path.open() as fh:
         data = json.load(fh)
-    google_hosts = (
+    google_hosts = {
         "developers.google.com",
         "blog.google",
         "status.search.google.com",
         "web.dev",
         "services.google.com",
         "support.google.com",
-    )
+    }
     for entry in data["updates"]:
         url = entry.get("source", "")
-        assert any(host in url for host in google_hosts), (
+        parsed = urlsplit(url)
+        assert parsed.scheme == "https"
+        assert parsed.hostname in google_hosts, (
             f"{entry['name']!r} cites non-Google URL: {url}. "
             "Move third-party-only entries to unverified[]."
         )
+        assert parsed.username is None and parsed.password is None
+
+
+def test_seo_updates_schema_and_order_are_enforced() -> None:
+    data_path = Path(__file__).resolve().parents[1] / "data" / "google-updates.json"
+    with data_path.open(encoding="utf-8") as fh:
+        data = json.load(fh)
+
+    allowed_kinds = {
+        "core",
+        "spam",
+        "core+spam",
+        "policy",
+        "qrg",
+        "product",
+        "schema",
+        "cwv",
+        "discover",
+        "documentation",
+    }
+    updates = data["updates"]
+    dates = [entry["date"] for entry in updates]
+    names = [entry["name"] for entry in updates]
+
+    assert dates == sorted(dates), "updates[] must be chronological"
+    assert len(names) == len(set(names)), "update names must be unique"
+    assert all(entry["kind"] in allowed_kinds for entry in updates)
+    assert all(entry.get("notes", "").strip() for entry in updates)
+    assert all(date.fromisoformat(value) for value in dates)
+
+    verified = date.fromisoformat(data["last_verified"])
+    assert verified >= date.fromisoformat(dates[-1])
+    assert verified <= date.today()
+
+
+def test_seo_updates_primary_ledger_does_not_embed_third_party_sources() -> None:
+    data_path = Path(__file__).resolve().parents[1] / "data" / "google-updates.json"
+    with data_path.open(encoding="utf-8") as fh:
+        data = json.load(fh)
+
+    for entry in data["updates"]:
+        assert "third_party_sources" not in entry
+        assert "unconfirmed" not in entry["notes"].lower()
+        assert "reported" not in entry["notes"].lower()
 
 
 def test_seo_updates_unverified_entries_call_out_status() -> None:

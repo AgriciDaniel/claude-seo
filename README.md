@@ -337,6 +337,7 @@ Test coverage grew from 39 (v1.9.9) to 410 across the v2 line; the url_safety su
 - **v2.2.2 (July 2026): full-review maintenance.** Corrected GBP Q&A handling, AI Mode model naming, image-model IDs, hook input behavior, and added a strict reference-graph consistency gate.
 - **v2.2.3 (July 2026): prompt-hygiene alignment.** Normalized emphasis and punctuation across the prompt surface without changing behavior, routing, or output contracts.
 - **v2.2.4 (July 2026): community maintenance.** Added the managed cross-platform runtime and safe sitemap discovery, repaired GSC pagination and totals, replaced removed Bing endpoints, fixed extension and Windows portability gaps, and reconciled every open issue and pull request.
+- **v2.2.5 (August 2026): reliability and Google-currency hardening.** Fixed manual-install data packaging and lxml runtime imports, hardened JSON-LD graphs and rendered-page accessibility analysis, enforced managed-runtime command references, and refreshed Google Search and Lighthouse guidance through August 25.
 
 ## Limitations
 

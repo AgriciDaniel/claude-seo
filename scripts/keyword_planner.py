@@ -276,7 +276,7 @@ def main():
         print(json.dumps(result, indent=2, default=str))
     else:
         if args.command == "ideas":
-            print(f"=== Keyword Ideas ===")
+            print("=== Keyword Ideas ===")
             for i, idea in enumerate(result.get("ideas", [])[:20], 1):
                 vol = idea.get("avg_monthly_searches", "?")
                 comp = idea.get("competition", "?")
@@ -285,7 +285,7 @@ def main():
                 bid_str = f"${bid_low:.2f}-${bid_high:.2f}" if bid_low and bid_high else "N/A"
                 print(f"  {i:2d}. {idea['keyword']:40s} | Vol: {vol:>8} | Comp: {comp:8s} | CPC: {bid_str}")
         elif args.command == "volume":
-            print(f"=== Keyword Volumes ===")
+            print("=== Keyword Volumes ===")
             for kw in result.get("keywords", []):
                 vol = kw.get("avg_monthly_searches", "?")
                 comp = kw.get("competition", "?")

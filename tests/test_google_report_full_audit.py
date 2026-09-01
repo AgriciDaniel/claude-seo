@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+import builtins
 import os
 import runpy
 import sys
-import builtins
 from pathlib import Path
 from unittest.mock import patch
-
 
 _SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 if _SCRIPTS not in sys.path:
