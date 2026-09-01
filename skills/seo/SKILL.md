@@ -54,6 +54,11 @@ extension is also installable (see "Optional Extensions" below).
 | `/seo firecrawl [command] <url>` | Full-site crawling and site mapping (extension) |
 | `/seo dataforseo [command]` | Live SEO data via DataForSEO (extension) |
 | `/seo image-gen [use-case] <description>` | AI image generation for SEO assets (extension) |
+| `/seo ahrefs [command] <url>` | Backlinks, organic keywords, and content data via the official Ahrefs MCP (extension) |
+| `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
+| `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
+| `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
+| `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
 | `/seo flow [stage] [url\|topic]` | FLOW framework: evidence-led prompts for Find, Leverage, Optimize, Win, or Local stages |
 | `/seo setup` | Explicitly create or refresh the isolated Python runtime and Chromium |
 | `/seo doctor` | Check runtime readiness without changing the system |
