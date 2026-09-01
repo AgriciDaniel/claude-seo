@@ -143,7 +143,7 @@ claude
 
 ![Claude SEO sub-skill ecosystem: 25 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
 
-32 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 8 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
+33 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 9 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
 
 | Command | Description |
 |---------|-------------|
@@ -179,6 +179,7 @@ claude
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo creaitor [command] <url>` | GEO visibility, citations, audits, and recommendations via Creaitor (extension) |
 
 ## Features
 
@@ -345,7 +346,7 @@ Two real boundaries worth being upfront about.
 
 **Heavy client-side hydration timing.** Phase A's headless renderer handles most SPAs out of the box (`--render auto` detects empty `<div id="root">` shells and switches to Playwright). Edge cases that still produce noisy findings: pages with hydration tied to scroll position past the fold, pages that fetch critical content after user interaction (modal opens, tab clicks), pages with race-condition-prone third-party widget mounts. For these, manually triggering the `seo-visual` subagent and comparing its Playwright snapshot to the raw-HTML subagents' findings is the recommended workflow.
 
-**Local-only without enrichment.** The free tier makes no third-party API calls by default (audits still fetch the target URLs you point them at). Adding Google API credentials (Tier 0 through 3) unlocks real field data and live indexation status; without them, Core Web Vitals are lab estimates only and indexation is inferred from page-level signals. Adding MCP extensions (Ahrefs, DataForSEO, SE Ranking, Profound) similarly unlocks competitive and AI-citation data but requires their respective accounts.
+**Local-only without enrichment.** The free tier makes no third-party API calls by default (audits still fetch the target URLs you point them at). Adding Google API credentials (Tier 0 through 3) unlocks real field data and live indexation status; without them, Core Web Vitals are lab estimates only and indexation is inferred from page-level signals. Adding MCP extensions (Ahrefs, DataForSEO, SE Ranking, Profound, Creaitor) similarly unlocks competitive and AI-citation data but requires their respective accounts.
 
 ## Requirements
 
@@ -417,6 +418,23 @@ Five extensions added in Phase E:
 - **Profound:** LLM citation tracker with time-series data
 - **Bing Webmaster:** Bing Webmaster Tools plus IndexNow unified
 - **Unlighthouse:** MIT-licensed multi-page Lighthouse runner
+
+### Creaitor
+
+GEO visibility for a domain you track in [Creaitor](https://app.creaitor.ai):
+which prompts surface it, which LLMs cite it, which sources they cite instead,
+plus stored audits and prioritized recommendations. Wires Creaitor's remote MCP
+endpoint into `~/.claude.json` as `creaitor-geo`.
+
+```bash
+./extensions/creaitor/install.sh
+/seo creaitor overview https://example.com
+```
+
+Needs a Creaitor personal access token ([app.creaitor.ai/user/api-tokens](https://app.creaitor.ai/user/api-tokens)).
+`geo:read` covers every default read command; `geo:execute` is only needed for
+explicit runs, generation, or exports. The skill never invokes execute-tier
+tools as a follow-up to a read command. Setup: [extensions/creaitor/docs/CREAITOR-SETUP.md](extensions/creaitor/docs/CREAITOR-SETUP.md).
 
 Setup walkthroughs live under `extensions/<name>/docs/`; integration notes: [docs/MCP-INTEGRATION.md](docs/MCP-INTEGRATION.md).
 

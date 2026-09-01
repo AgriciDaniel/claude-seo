@@ -1,0 +1,100 @@
+"""Regression: the /seo orchestrator Quick Reference must list every extension command.
+
+Optional extensions ship in ``extensions/<name>/skills/seo-<token>/`` and are
+activated by a separate installer, so they are easy to document everywhere
+(README, CLAUDE.md, AGENTS.md, docs/COMMANDS.md) while being forgotten in the
+one table the model actually routes from. ``scripts/consistency_check.py``
+matches ``/seo <cmd>`` anywhere in the file, so a prose mention alone satisfies
+it; this test asserts the command has a row in the Quick Reference table itself.
+"""
+import re
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+ORCHESTRATOR = REPO / "skills" / "seo" / "SKILL.md"
+
+COMMAND_CELL = re.compile(r"`/seo\s+([a-z][a-z0-9-]*)")
+
+
+def quick_reference_commands():
+    """Command tokens appearing in the first column of the Quick Reference table."""
+    lines = ORCHESTRATOR.read_text(encoding="utf-8").splitlines()
+    commands = set()
+    in_section = False
+    for line in lines:
+        if line.startswith("## "):
+            if in_section:
+                break
+            in_section = line.strip() == "## Quick Reference"
+            continue
+        if in_section and line.startswith("|"):
+            first_cell = line.split("|")[1]
+            match = COMMAND_CELL.search(first_cell)
+            if match:
+                commands.add(match.group(1))
+    return commands
+
+
+def extension_commands():
+    """Commands whose extension skill name and own routing table agree."""
+    commands = set()
+    for path in REPO.glob("extensions/*/skills/seo-*/SKILL.md"):
+        command = path.parent.name.removeprefix("seo-")
+        declared = {
+            match.group(1)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.startswith("|")
+            for match in [COMMAND_CELL.search(line.split("|")[1])]
+            if match
+        }
+        assert command in declared, (
+            f"{path.relative_to(REPO)} names /seo {command} but its command table "
+            f"declares: {', '.join(sorted(declared)) or 'nothing'}"
+        )
+        commands.add(command)
+    return commands
+
+
+def test_extension_discovery_covers_the_shipped_extensions():
+    """Canary for the discovery glob itself.
+
+    ``extension_commands()`` derives the expected set from directory names, so a
+    layout slip (``extensions/creaitor/skills/creaitor/`` instead of
+    ``skills/seo-creaitor/``) would silently shrink that set and make the table
+    test below pass vacuously for the missing extension.
+    """
+    expected = {
+        "ahrefs", "bing", "creaitor", "dataforseo", "firecrawl",
+        "image-gen", "profound", "seranking", "unlighthouse",
+    }
+    missing = sorted(expected - extension_commands())
+    assert missing == [], f"extension sub-skills not discovered on disk: {missing}"
+
+
+def test_quick_reference_table_parses():
+    commands = quick_reference_commands()
+    assert {"audit", "page", "technical"} <= commands, (
+        "Quick Reference table not found or not parseable in skills/seo/SKILL.md"
+    )
+
+
+def test_every_extension_command_has_a_quick_reference_row():
+    expected = extension_commands()
+    assert expected, "no extension sub-skills discovered under extensions/*/skills/"
+    missing = sorted(expected - quick_reference_commands())
+    assert missing == [], (
+        "extension commands missing from the /seo Quick Reference table: "
+        + ", ".join(f"/seo {cmd}" for cmd in missing)
+    )
+
+
+def test_extension_rows_are_marked_as_extensions():
+    text = ORCHESTRATOR.read_text(encoding="utf-8")
+    unmarked = []
+    for cmd in sorted(extension_commands()):
+        row = re.search(rf"^\|\s*`/seo {re.escape(cmd)}\b.*$", text, re.MULTILINE)
+        if row and "(extension)" not in row.group(0):
+            unmarked.append(cmd)
+    assert unmarked == [], (
+        "extension rows must be labelled `(extension)`: " + ", ".join(unmarked)
+    )
