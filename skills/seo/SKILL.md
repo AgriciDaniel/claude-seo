@@ -59,6 +59,7 @@ extension is also installable (see "Optional Extensions" below).
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo creaitor [command] <url>` | GEO visibility, citations, audits, and recommendations via Creaitor (extension) |
 | `/seo flow [stage] [url\|topic]` | FLOW framework: evidence-led prompts for Find, Leverage, Optimize, Win, or Local stages |
 | `/seo setup` | Explicitly create or refresh the isolated Python runtime and Chromium |
 | `/seo doctor` | Check runtime readiness without changing the system |
@@ -251,7 +252,8 @@ installer to activate (see each extension's `install.sh`/`install.ps1`):
 
 All optional extensions are reachable through `/seo` subcommands once
 installed: firecrawl, dataforseo, and image-gen, plus `/seo ahrefs`,
-`/seo bing`, `/seo profound`, `/seo seranking`, and `/seo unlighthouse`.
+`/seo bing`, `/seo creaitor`, `/seo profound`, `/seo seranking`, and
+`/seo unlighthouse`.
 Each installs as its own sub-skill, so the model also auto-routes to their
 descriptions without the `/seo` prefix.
 

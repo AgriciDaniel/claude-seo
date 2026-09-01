@@ -61,6 +61,39 @@ Use `mcp-server-pagespeed` by [enemyrr](https://github.com/enemyrr/mcp-server-pa
 }
 ```
 
+### Creaitor (remote MCP)
+
+GEO visibility, LLM citations, cited sources, audits, and recommendations for
+domains configured in a [Creaitor](https://app.creaitor.ai) workspace. Unlike the
+other extensions, this is a **remote** MCP server: there is no local process, so
+the entry goes in `~/.claude.json` (the Claude user config, where remote MCP
+servers live) rather than `settings.json`.
+
+**Configuration** (written by `./extensions/creaitor/install.sh`):
+
+```json
+{
+  "mcpServers": {
+    "creaitor-geo": {
+      "type": "http",
+      "url": "https://app.creaitor.ai/api/v2/mcp",
+      "headers": {
+        "Authorization": "Bearer <creaitor-pat>",
+        "Content-Type": "application/json"
+      }
+    }
+  }
+}
+```
+
+The token is a personal access token from
+https://app.creaitor.ai/user/api-tokens. Its abilities gate the tool surface:
+`geo:read` for every read tool, `geo:write` for prompt and recommendation
+mutations, `geo:execute` for execute-tier operations (`run_audit`, `run_query`,
+`generate_llms_txt`, `export_citations`). Set `CREAITOR_MCP_URL` before running the installer to
+point at a self-hosted or staging endpoint. Full walkthrough:
+[extensions/creaitor/docs/CREAITOR-SETUP.md](../extensions/creaitor/docs/CREAITOR-SETUP.md).
+
 ### Official SEO MCP Servers (2025-2026)
 
 The MCP ecosystem for SEO has matured significantly. These are production-ready integrations:
@@ -72,6 +105,7 @@ The MCP ecosystem for SEO has matured significantly. These are production-ready 
 | **Google Search Console** | `mcp-server-gsc` | Community | By ahonn. Search performance, URL inspection, sitemaps. |
 | **PageSpeed Insights** | `mcp-server-pagespeed` | Community | By enemyrr. Lighthouse audits, CWV metrics, performance scoring. |
 | **DataForSEO** | `dataforseo-mcp-server` | Official extension | 9 modules, 79 tools, 23 commands. Install: `./extensions/dataforseo/install.sh`. See [extension docs](../extensions/dataforseo/README.md). |
+| **Creaitor** | `https://app.creaitor.ai/api/v2/mcp` | Official extension (remote) | GEO visibility, LLM citations, sources, audits, recommendations. Install: `./extensions/creaitor/install.sh`. See [setup](../extensions/creaitor/docs/CREAITOR-SETUP.md). |
 | **kwrds.ai** | kwrds MCP server | Community | Keyword research, search volume, difficulty scoring. |
 | **SEO Review Tools** | SEO Review Tools MCP | Community | Site auditing and on-page analysis API. |
 

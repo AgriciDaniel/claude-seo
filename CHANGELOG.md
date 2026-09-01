@@ -7,10 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Creaitor extension** (`extensions/creaitor/`, 9th optional extension): the
+  `seo-creaitor` skill reads GEO visibility, LLM citations, cited sources,
+  tracked prompts, audits, recommendations, competitors, and health scores for a
+  domain configured in a [Creaitor](https://app.creaitor.ai) workspace, via
+  `/seo creaitor [command] <url>`. URLs resolve through `list_domains` (scheme /
+  `www.` / trailing-slash normalized) and fail closed rather than guessing.
+  Read commands never trigger a paid run; `audit --run`, `prompts --run`,
+  citations `--export`, and `llms-txt` execute only on explicit invocation and
+  require the token's `geo:execute` ability.
+- Creaitor installers (`install.sh`, `install.ps1`, `uninstall.sh`) register the
+  remote MCP server `creaitor-geo` (`type: http`) in the Claude user config
+  `~/.claude.json` — not `settings.json`, which holds local-process servers. The
+  token is prompted without echo, passed to the config writer through the
+  environment rather than argv or interpolated source, and written atomically at
+  mode `0600` with the rest of the config preserved; a `~/.claude.json` that is
+  not a readable JSON object aborts the install instead of being replaced.
+  `CREAITOR_MCP_URL` overrides the endpoint for self-hosted or staging use.
+
 ### Fixed
 
 - The main `/seo` Quick Reference now exposes all separately installed optional
-  extension commands: Ahrefs, SE Ranking, Profound, Bing, and Unlighthouse.
+  extension commands: Ahrefs, SE Ranking, Profound, Bing, Unlighthouse, and
+  Creaitor.
 
 ## [2.2.5] - 2026-08-25
 

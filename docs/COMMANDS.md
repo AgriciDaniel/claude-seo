@@ -687,6 +687,43 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 
 ---
 
+### `/seo creaitor [command] <url>`
+
+GEO visibility, LLM citations, audits, and recommendations via the Creaitor remote MCP server (extension). **Prerequisites:** Creaitor extension installed (`./extensions/creaitor/install.sh`) and a Creaitor personal access token from https://app.creaitor.ai/user/api-tokens. The URL is resolved to a domain already configured in your Creaitor workspace; the command fails with the list of configured domains if there is no match.
+
+**Read commands** (`geo:read`, no run quota consumed):
+```
+/seo creaitor domains                          # Domains configured in the workspace
+/seo creaitor overview <url>                   # Health score + analytics + open recommendations
+/seo creaitor visibility <url>                 # AI-answer visibility and per-prompt results
+/seo creaitor citations <url>                  # Where the domain is cited, by prompt and model
+/seo creaitor sources <url>                    # Sources the LLMs cited (yours and others')
+/seo creaitor prompts <url>                    # Tracked prompts/queries for the domain
+/seo creaitor audit <url>                      # Latest stored audit (no new run)
+/seo creaitor recommendations <url>            # Open recommendations with priority
+/seo creaitor competitors <url>                # Competitors cited for the same prompts
+/seo creaitor health <url>                     # Health score only
+```
+
+**Mutations** (`geo:write`, confirmed before sending):
+```
+/seo creaitor prompts <url> --add "best crm for agencies" --topic <topic-id>
+/seo creaitor prompts <url> --edit <query-id>               # Edit a tracked prompt
+/seo creaitor recommendations <url> --set <id> completed    # Update recommendation status
+```
+
+**Runs** (`geo:execute`, consumes workspace quota, only on explicit invocation):
+```
+/seo creaitor audit <url> --run              # Run a fresh GEO audit, then read the result
+/seo creaitor prompts <url> --run <query-id> # Re-run a single tracked prompt
+/seo creaitor citations <url> --export       # Export citations (execute-tier API)
+/seo creaitor llms-txt <url>                 # Queue generation; retrieve result in Creaitor
+```
+
+Read commands never trigger a run: if stored data is empty or stale, the skill says so and offers the matching run command instead of spending quota. Every live figure is cited with its retrieval timestamp and the period/model filters used.
+
+---
+
 ## Quick Reference
 
 | Command | Use Case |
@@ -722,3 +759,4 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo creaitor [command] <url>` | GEO visibility, citations, audits, and recommendations via Creaitor (extension) |

@@ -1,7 +1,7 @@
 """
 Tests for the v2 Checkpoint 5 deliverables:
     scripts/parasite_risk.py
-    extensions/<name>/  (structure check for all 5 new extensions)
+    extensions/<name>/  (structure check for each optional extension)
     skills/seo-geo/references/llmstxt-evidence.md  (evidence file exists)
 """
 
@@ -104,6 +104,7 @@ def test_audit_page_counts_pattern_hits() -> None:
         ("profound", "seo-profound"),
         ("bing-webmaster", "seo-bing"),
         ("unlighthouse", "seo-unlighthouse"),
+        ("creaitor", "seo-creaitor"),
     ],
 )
 def test_extension_has_install_skill_and_docs(name: str, skill_dir: str) -> None:
@@ -123,7 +124,8 @@ def test_extension_has_install_skill_and_docs(name: str, skill_dir: str) -> None
 
 
 @pytest.mark.parametrize(
-    "name", ["ahrefs", "seranking", "profound", "bing-webmaster", "unlighthouse"],
+    "name",
+    ["ahrefs", "seranking", "profound", "bing-webmaster", "unlighthouse", "creaitor"],
 )
 def test_extension_install_script_is_executable(name: str) -> None:
     install = _REPO_ROOT / "extensions" / name / "install.sh"
@@ -157,6 +159,7 @@ def test_every_extension_install_and_uninstall_is_executable() -> None:
         ("profound", "seo-profound"),
         ("bing-webmaster", "seo-bing"),
         ("unlighthouse", "seo-unlighthouse"),
+        ("creaitor", "seo-creaitor"),
     ],
 )
 def test_extension_skillmd_has_required_frontmatter(

@@ -55,6 +55,22 @@ def extension_commands():
     return commands
 
 
+def test_extension_discovery_covers_the_shipped_extensions():
+    """Canary for the discovery glob itself.
+
+    ``extension_commands()`` derives the expected set from directory names, so a
+    layout slip (``extensions/creaitor/skills/creaitor/`` instead of
+    ``skills/seo-creaitor/``) would silently shrink that set and make the table
+    test below pass vacuously for the missing extension.
+    """
+    expected = {
+        "ahrefs", "bing", "creaitor", "dataforseo", "firecrawl",
+        "image-gen", "profound", "seranking", "unlighthouse",
+    }
+    missing = sorted(expected - extension_commands())
+    assert missing == [], f"extension sub-skills not discovered on disk: {missing}"
+
+
 def test_quick_reference_table_parses():
     commands = quick_reference_commands()
     assert {"audit", "page", "technical"} <= commands, (
