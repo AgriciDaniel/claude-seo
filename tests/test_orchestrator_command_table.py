@@ -36,9 +36,23 @@ def quick_reference_commands():
 
 
 def extension_commands():
-    """Command tokens for every optional extension that installs its own sub-skill."""
-    return {path.parent.name[len("seo-"):]
-            for path in REPO.glob("extensions/*/skills/seo-*/SKILL.md")}
+    """Commands whose extension skill name and own routing table agree."""
+    commands = set()
+    for path in REPO.glob("extensions/*/skills/seo-*/SKILL.md"):
+        command = path.parent.name.removeprefix("seo-")
+        declared = {
+            match.group(1)
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.startswith("|")
+            for match in [COMMAND_CELL.search(line.split("|")[1])]
+            if match
+        }
+        assert command in declared, (
+            f"{path.relative_to(REPO)} names /seo {command} but its command table "
+            f"declares: {', '.join(sorted(declared)) or 'nothing'}"
+        )
+        commands.add(command)
+    return commands
 
 
 def test_quick_reference_table_parses():
