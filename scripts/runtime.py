@@ -24,7 +24,7 @@ RUNTIME_SCHEMA = 1
 LOCK_STALE_SECONDS = 30 * 60
 SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*\.py$")
 EXTENSION_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
-MANUAL_EXTENSION_SKILLS = {"banana": "seo-image-gen"}
+MANUAL_EXTENSION_SKILLS = {"banana": "seo-image-gen", "creaitor": "seo-creaitor"}
 ALLOWED_CORE_SCRIPTS = frozenset(
     {
         "agent_ux_check.py", "analyze_visual.py", "backlinks_auth.py",

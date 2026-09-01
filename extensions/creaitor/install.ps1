@@ -5,14 +5,18 @@ param()
 
 $ErrorActionPreference = "Stop"
 
-if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+$Python = if (Get-Command python3 -ErrorAction SilentlyContinue) {
+    (Get-Command python3).Source
+} elseif (Get-Command python -ErrorAction SilentlyContinue) {
+    (Get-Command python).Source
+} else {
     throw "Python 3 is required."
 }
 
 $SkillDir = Join-Path $HOME ".claude/skills"
 # Remote MCP servers live in the Claude user config, not settings.json.
 $ClaudeJson = Join-Path $HOME ".claude.json"
-$McpUrl = if ($env:CREAITOR_MCP_URL) { $env:CREAITOR_MCP_URL } else { "https://app.creaitor.ai/api/v2/mcp" }
+$McpUrl = "https://app.creaitor.ai/api/v2/mcp"
 
 if (-not (Test-Path (Join-Path $SkillDir "seo"))) {
     throw "claude-seo base plugin not installed."
@@ -26,10 +30,6 @@ if (-not $Token) { throw "No token provided." }
 
 $SourceDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $SkillTarget = Join-Path $SkillDir "seo-creaitor"
-New-Item -ItemType Directory -Path $SkillTarget -Force | Out-Null
-Copy-Item -Path (Join-Path $SourceDir "skills/seo-creaitor/SKILL.md") `
-          -Destination (Join-Path $SkillTarget "SKILL.md") -Force
-Write-Host "Installed skill: $SkillTarget"
 
 # The token travels in the environment, never in argv and never interpolated
 # into the Python source (this is a literal here-string: no $ expansion).
@@ -37,7 +37,7 @@ $pyScript = @'
 import json, os, sys, tempfile
 path = sys.argv[1]
 token = os.environ["CREAITOR_TOKEN"]
-url = os.environ["CREAITOR_MCP_URL"]
+url = "https://app.creaitor.ai/api/v2/mcp"
 data = {}
 if os.path.exists(path):
     with open(path, encoding="utf-8") as fh:
@@ -75,14 +75,32 @@ print(f"Wrote mcpServers.creaitor-geo -> {url} in {path}")
 
 try {
     $env:CREAITOR_TOKEN = $Token
-    $env:CREAITOR_MCP_URL = $McpUrl
-    $pyScript | python - $ClaudeJson
+    $pyScript | & $Python - $ClaudeJson
     if ($LASTEXITCODE -ne 0) {
         throw "Failed to update $ClaudeJson (Python exit code $LASTEXITCODE)."
     }
 } finally {
     Remove-Item Env:CREAITOR_TOKEN -ErrorAction SilentlyContinue
 }
+
+# Stage a complete tree first so reinstall cannot nest references/references or
+# destroy the previous skill when a source copy fails.
+$StageTarget = Join-Path $SkillDir (".seo-creaitor." + [guid]::NewGuid().ToString("N"))
+try {
+    New-Item -ItemType Directory -Path $StageTarget -Force | Out-Null
+    Copy-Item -Path (Join-Path $SourceDir "skills/seo-creaitor/*") `
+              -Destination $StageTarget -Recurse -Force
+    $ScriptTarget = Join-Path $StageTarget "scripts"
+    New-Item -ItemType Directory -Path $ScriptTarget -Force | Out-Null
+    Copy-Item -Path (Join-Path $SourceDir "scripts/resolve_domain.py") `
+              -Destination (Join-Path $ScriptTarget "resolve_domain.py") -Force
+} catch {
+    Remove-Item -Path $StageTarget -Recurse -Force -ErrorAction SilentlyContinue
+    throw
+}
+if (Test-Path $SkillTarget) { Remove-Item -Path $SkillTarget -Recurse -Force }
+Move-Item -Path $StageTarget -Destination $SkillTarget
+Write-Host "Installed skill: $SkillTarget"
 
 Write-Host ""
 Write-Host "Done. Open a new Claude Code session and run /seo creaitor overview <url>."

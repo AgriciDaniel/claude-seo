@@ -1,0 +1,24 @@
+{
+  "source": "Creaitor GEO API v2 MCP tool contract (app/docs/geo-api-v2.md, MCP Tools section)",
+  "endpoint": "https://app.creaitor.ai/api/v2/mcp",
+  "tools": {
+    "list_domains": "geo:read",
+    "list_queries": "geo:read",
+    "create_query": "geo:write",
+    "update_query": "geo:write",
+    "run_query": "geo:execute",
+    "get_results": "geo:read",
+    "get_analytics": "geo:read",
+    "get_citations": "geo:read",
+    "get_sources": "geo:read",
+    "export_citations": "geo:execute",
+    "list_audits": "geo:read",
+    "run_audit": "geo:execute",
+    "get_audit": "geo:read",
+    "list_recommendations": "geo:read",
+    "update_recommendation": "geo:write",
+    "list_competitors": "geo:read",
+    "get_health_score": "geo:read",
+    "generate_llms_txt": "geo:execute"
+  }
+}

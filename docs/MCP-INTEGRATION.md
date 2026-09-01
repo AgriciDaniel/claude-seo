@@ -90,8 +90,9 @@ The token is a personal access token from
 https://app.creaitor.ai/user/api-tokens. Its abilities gate the tool surface:
 `geo:read` for every read tool, `geo:write` for prompt and recommendation
 mutations, `geo:execute` for execute-tier operations (`run_audit`, `run_query`,
-`generate_llms_txt`, `export_citations`). Set `CREAITOR_MCP_URL` before running the installer to
-point at a self-hosted or staging endpoint. Full walkthrough:
+`generate_llms_txt`, `export_citations`). The installer pins the official
+production endpoint; it does not accept an endpoint override that could receive
+the bearer token. Full walkthrough:
 [extensions/creaitor/docs/CREAITOR-SETUP.md](../extensions/creaitor/docs/CREAITOR-SETUP.md).
 
 ### Official SEO MCP Servers (2025-2026)

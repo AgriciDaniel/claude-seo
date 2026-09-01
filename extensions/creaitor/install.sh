@@ -14,7 +14,7 @@ main() {
     SKILL_DIR="${HOME}/.claude/skills"
     # Remote MCP servers live in the Claude user config, not settings.json.
     CLAUDE_JSON="${HOME}/.claude.json"
-    MCP_URL="${CREAITOR_MCP_URL:-https://app.creaitor.ai/api/v2/mcp}"
+    MCP_URL="https://app.creaitor.ai/api/v2/mcp"
 
     echo "════════════════════════════════════════"
     echo "║   Claude SEO — Creaitor extension    ║"
@@ -28,8 +28,7 @@ main() {
         exit 1
     fi
 
-    # Locate this script's directory so the call works for both
-    # `./install.sh` and `curl | bash` invocations.
+    # Locate the checked-out extension directory.
     SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 && pwd)"
 
     echo "→ MCP endpoint: ${MCP_URL}"
@@ -40,15 +39,12 @@ main() {
         echo "✗ No token provided."; exit 1;
     fi
 
-    mkdir -p "${SKILL_DIR}/seo-creaitor"
-    cp "${SOURCE_DIR}/skills/seo-creaitor/SKILL.md" "${SKILL_DIR}/seo-creaitor/SKILL.md"
-    echo "✓ Installed skill: ${SKILL_DIR}/seo-creaitor/SKILL.md"
 
     # Merge the MCP entry into ~/.claude.json atomically. The token travels in
     # the environment, never in argv (visible in `ps`) and never interpolated
     # into the Python source below (the heredoc is quoted, so the shell does
     # not expand anything inside it).
-    export CREAITOR_TOKEN CREAITOR_MCP_URL="${MCP_URL}"
+    export CREAITOR_TOKEN
     python3 - "${CLAUDE_JSON}" <<'PY'
 import json
 import os
@@ -57,7 +53,7 @@ import tempfile
 
 path = sys.argv[1]
 token = os.environ["CREAITOR_TOKEN"]
-url = os.environ["CREAITOR_MCP_URL"]
+url = "https://app.creaitor.ai/api/v2/mcp"
 
 # ~/.claude.json holds the whole Claude Code user config. If it exists but is
 # unreadable as a JSON object, abort rather than replace it with our one key.
@@ -100,6 +96,19 @@ except Exception:
 print(f"✓ Wrote mcpServers.creaitor-geo -> {url} in {path}")
 PY
     unset CREAITOR_TOKEN
+
+    # Stage a complete skill tree, then replace atomically enough for upgrades:
+    # a copy failure leaves the previous installed skill untouched.
+    mkdir -p "${SKILL_DIR}"
+    STAGE_DIR="$(mktemp -d "${SKILL_DIR}/.seo-creaitor.XXXXXX")"
+    trap 'rm -rf "${STAGE_DIR}"' EXIT
+    cp -R "${SOURCE_DIR}/skills/seo-creaitor/." "${STAGE_DIR}/"
+    mkdir -p "${STAGE_DIR}/scripts"
+    cp "${SOURCE_DIR}/scripts/resolve_domain.py" "${STAGE_DIR}/scripts/resolve_domain.py"
+    rm -rf "${SKILL_DIR}/seo-creaitor"
+    mv "${STAGE_DIR}" "${SKILL_DIR}/seo-creaitor"
+    trap - EXIT
+    echo "✓ Installed skill: ${SKILL_DIR}/seo-creaitor/SKILL.md"
 
     echo
     echo "Done. Open a new Claude Code session and run:"

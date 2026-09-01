@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -100,6 +101,17 @@ def _creaitor_config(**extra: object) -> dict:
     return config
 
 
+def _clean_env(**extra: str) -> dict[str, str]:
+    """Minimal subprocess environment: never leak unrelated CI/user secrets."""
+    env = {
+        "PATH": os.environ.get("PATH", ""),
+        "TMPDIR": os.environ.get("TMPDIR", "/tmp"),
+        "LANG": os.environ.get("LANG", "C.UTF-8"),
+    }
+    env.update(extra)
+    return env
+
+
 def test_creaitor_installer_keeps_the_token_out_of_source_and_argv() -> None:
     text = (ROOT / CREAITOR_INSTALL).read_text(encoding="utf-8")
     writer = _extract_writer(text)
@@ -115,9 +127,8 @@ def test_creaitor_installer_keeps_the_token_out_of_source_and_argv() -> None:
     assert 'CLAUDE_JSON="${HOME}/.claude.json"' in text, (
         "remote MCP servers are configured in ~/.claude.json, not settings.json"
     )
-    assert "CREAITOR_MCP_URL:-https://app.creaitor.ai/api/v2/mcp" in text, (
-        "installer must default to the production endpoint and allow an override"
-    )
+    assert 'url = "https://app.creaitor.ai/api/v2/mcp"' in writer
+    assert "CREAITOR_MCP_URL" not in text, "token endpoint must not be environment-overridable"
 
 
 def test_creaitor_windows_installer_checks_native_python_exit() -> None:
@@ -142,11 +153,7 @@ def test_creaitor_config_writer_injection_is_inert_and_preserves_config(
 
     proc = subprocess.run(
         [sys.executable, str(script), str(config)],
-        env={
-            **os.environ,
-            "CREAITOR_TOKEN": payload,
-            "CREAITOR_MCP_URL": CREAITOR_MCP_URL,
-        },
+        env=_clean_env(CREAITOR_TOKEN=payload),
         cwd=tmp_path,
         capture_output=True,
         text=True,
@@ -187,11 +194,7 @@ def test_creaitor_installer_refuses_to_overwrite_unparseable_config(
 
     proc = subprocess.run(
         [sys.executable, str(script), str(config)],
-        env={
-            **os.environ,
-            "CREAITOR_TOKEN": "tok",
-            "CREAITOR_MCP_URL": CREAITOR_MCP_URL,
-        },
+        env=_clean_env(CREAITOR_TOKEN="tok"),
         cwd=tmp_path,
         capture_output=True,
         text=True,
@@ -228,3 +231,92 @@ def test_creaitor_uninstaller_removes_only_its_own_entry(tmp_path: Path) -> None
     assert data["projects"] == _creaitor_config()["projects"]
     assert (config.stat().st_mode & 0o777) == 0o600
     assert "secret" not in proc.stdout + proc.stderr
+
+
+def test_creaitor_full_installer_invalid_config_leaves_no_skill(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    (home / ".claude/skills/seo").mkdir(parents=True)
+    config = home / ".claude.json"
+    config.write_text('{"broken":', encoding="utf-8")
+
+    proc = subprocess.run(
+        ["bash", str(ROOT / CREAITOR_INSTALL)],
+        input="dummy-token\n",
+        env=_clean_env(HOME=str(home)),
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode != 0
+    assert config.read_text(encoding="utf-8") == '{"broken":'
+    assert not (home / ".claude/skills/seo-creaitor").exists()
+    assert "dummy-token" not in proc.stdout + proc.stderr
+
+
+def test_creaitor_full_installer_reinstall_has_no_nested_skill_dirs(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    (home / ".claude/skills/seo").mkdir(parents=True)
+    for token in ("first-token", "second-token"):
+        subprocess.run(
+            ["bash", str(ROOT / CREAITOR_INSTALL)],
+            input=token + "\n",
+            env=_clean_env(HOME=str(home)),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    skill = home / ".claude/skills/seo-creaitor"
+    assert (skill / "references/mcp-tools.json").is_file()
+    assert (skill / "scripts" / "resolve_domain.py").is_file()
+    assert not (skill / "references/references").exists()
+    config = json.loads((home / ".claude.json").read_text(encoding="utf-8"))
+    assert config["mcpServers"]["creaitor-geo"]["headers"]["Authorization"] == (
+        "Bearer second-token"
+    )
+
+
+def test_creaitor_full_uninstaller_invalid_config_keeps_skill(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    skill = home / ".claude/skills/seo-creaitor"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("installed", encoding="utf-8")
+    config = home / ".claude.json"
+    config.write_text('{"broken":', encoding="utf-8")
+
+    proc = subprocess.run(
+        ["bash", str(ROOT / CREAITOR_UNINSTALL)],
+        env=_clean_env(HOME=str(home)),
+        capture_output=True,
+        text=True,
+    )
+    assert proc.returncode != 0
+    assert config.read_text(encoding="utf-8") == '{"broken":'
+    assert (skill / "SKILL.md").is_file()
+
+
+@pytest.mark.skipif(shutil.which("pwsh") is None, reason="PowerShell not installed")
+def test_creaitor_windows_uninstaller_removes_config_then_skill(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    skill = home / ".claude/skills/seo-creaitor"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("installed", encoding="utf-8")
+    config = home / ".claude.json"
+    existing = _creaitor_config()
+    existing["mcpServers"]["creaitor-geo"] = {
+        "type": "http",
+        "url": CREAITOR_MCP_URL,
+        "headers": {"Authorization": "Bearer windows-secret"},
+    }
+    config.write_text(json.dumps(existing), encoding="utf-8")
+
+    proc = subprocess.run(
+        ["pwsh", "-NoProfile", "-File", str(ROOT / "extensions/creaitor/uninstall.ps1")],
+        env=_clean_env(HOME=str(home)),
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    data = json.loads(config.read_text(encoding="utf-8"))
+    assert "creaitor-geo" not in data["mcpServers"]
+    assert "unrelated" in data["mcpServers"]
+    assert not skill.exists()
+    assert "windows-secret" not in proc.stdout + proc.stderr

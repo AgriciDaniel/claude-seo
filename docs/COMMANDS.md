@@ -714,7 +714,7 @@ GEO visibility, LLM citations, audits, and recommendations via the Creaitor remo
 
 **Runs** (`geo:execute`, consumes workspace quota, only on explicit invocation):
 ```
-/seo creaitor audit <url> --run              # Run a fresh GEO audit, then read the result
+/seo creaitor audit <url> --run              # Queue a fresh GEO audit
 /seo creaitor prompts <url> --run <query-id> # Re-run a single tracked prompt
 /seo creaitor citations <url> --export       # Export citations (execute-tier API)
 /seo creaitor llms-txt <url>                 # Queue generation; retrieve result in Creaitor

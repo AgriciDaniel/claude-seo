@@ -34,7 +34,8 @@ The installer:
 1. Verifies Python 3 is on `PATH` and that the claude-seo base plugin is installed.
 2. Prompts for the token with the input hidden — it is never echoed, never
    written to your shell history, and never printed back.
-3. Copies `skills/seo-creaitor/SKILL.md` into `~/.claude/skills/seo-creaitor/`.
+3. Copies the `seo-creaitor` skill, checked-in MCP contract, and deterministic
+   domain resolver into `~/.claude/skills/seo-creaitor/`.
 4. Merges this entry into `~/.claude.json` (the Claude user config, where remote
    MCP servers live — not `settings.json`):
 
@@ -58,13 +59,9 @@ Unix, matching how claude-seo stores OAuth tokens. Everything else in
 `~/.claude.json` is preserved; if the file is not readable as a JSON object the
 installer aborts rather than replacing it.
 
-### Self-hosted / staging endpoint
-
-```bash
-CREAITOR_MCP_URL=https://staging.example.com/api/v2/mcp ./extensions/creaitor/install.sh
-```
-
-The same variable works for `install.ps1` (`$env:CREAITOR_MCP_URL`).
+The endpoint is pinned to `https://app.creaitor.ai/api/v2/mcp`. The installers
+intentionally reject endpoint overrides so an inherited environment variable or
+copied command cannot redirect your bearer token to another host.
 
 ## 3. Verify
 
@@ -88,7 +85,8 @@ rest of `~/.claude.json` intact. Revoke the old token in the Creaitor app.
 ## Uninstall
 
 ```bash
-./extensions/creaitor/uninstall.sh
+./extensions/creaitor/uninstall.sh            # macOS / Linux
+.\extensions\creaitor\uninstall.ps1          # Windows PowerShell
 ```
 
 Removes `~/.claude/skills/seo-creaitor/` and the `mcpServers.creaitor-geo` key.

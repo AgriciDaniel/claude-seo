@@ -7,11 +7,6 @@ set -euo pipefail
 SKILL_DIR="${HOME}/.claude/skills/seo-creaitor"
 CLAUDE_JSON="${HOME}/.claude.json"
 
-if [ -d "${SKILL_DIR}" ]; then
-    rm -rf "${SKILL_DIR}"
-    echo "✓ Removed ${SKILL_DIR}"
-fi
-
 if [ -f "${CLAUDE_JSON}" ]; then
     python3 - "${CLAUDE_JSON}" <<'PY'
 import json
@@ -45,6 +40,12 @@ except Exception:
     raise
 print(f"✓ Removed mcpServers.creaitor-geo from {path}")
 PY
+fi
+
+# Remove the skill only after config validation/removal succeeds.
+if [ -d "${SKILL_DIR}" ]; then
+    rm -rf "${SKILL_DIR}"
+    echo "✓ Removed ${SKILL_DIR}"
 fi
 
 echo "Done. Revoke the token at https://app.creaitor.ai/user/api-tokens if it is no longer needed."

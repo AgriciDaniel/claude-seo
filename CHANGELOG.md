@@ -22,10 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   remote MCP server `creaitor-geo` (`type: http`) in the Claude user config
   `~/.claude.json` — not `settings.json`, which holds local-process servers. The
   token is prompted without echo, passed to the config writer through the
-  environment rather than argv or interpolated source, and written atomically at
-  mode `0600` with the rest of the config preserved; a `~/.claude.json` that is
-  not a readable JSON object aborts the install instead of being replaced.
-  `CREAITOR_MCP_URL` overrides the endpoint for self-hosted or staging use.
+  environment rather than argv or interpolated source, and written atomically;
+  Unix writes use mode `0600` while Windows inherits the user-profile ACL. The
+  rest of the config is preserved; a `~/.claude.json` that is not a readable
+  JSON object aborts the install instead of being replaced.
+  The endpoint is pinned to Creaitor production so a pre-set environment
+  variable cannot redirect the entered bearer token to another host.
 
 ### Fixed
 
