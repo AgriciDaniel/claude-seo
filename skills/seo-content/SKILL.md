@@ -1,9 +1,11 @@
 ---
 name: seo-content
 description: >
-  Content quality and E-E-A-T analysis with AI citation readiness assessment.
-  Use when user says "content quality", "E-E-A-T", "content analysis",
-  "readability check", "thin content", or "content audit".
+  Content quality and E-E-A-T analysis with AI citation readiness assessment,
+  plus last-mile draft cleanup (AI-typical phrasing and invisible Unicode
+  watermark characters). Use when user says "content quality", "E-E-A-T",
+  "content analysis", "readability check", "thin content", "content audit",
+  "humanize", "AI phrasing", "remove watermarks", or "invisible characters".
 user-invocable: true
 argument-hint: "[url]"
 license: MIT
@@ -135,6 +137,32 @@ Google's raters assess low-quality, scaled, copied, or AI-generated main content
 > **Gen-AI optimization is SEO (Google docs, 2026-06-29):** the official "optimizing for generative AI features" guide states you do **not** need new AI files, markup, Markdown, content chunking, or AI-specific rewrites; chasing inauthentic "mentions" is unhelpful. AEO/GEO is rebranded SEO rooted in core ranking/quality.
 
 > **Honest scoping (Google docs, 2026-06-05):** per "Using third-party SEO tools, services, and advice," no tool guarantees rankings and third-party tools have no access to Google's internal ranking data. claude-seo's scores are **heuristics**, not Google-internal signals, so say so in reports, and validate GEO/AEO findings against Google's official guidance (Search Console is the first-party source).
+
+## Draft Cleanup: AI Phrasing & Invisible Watermarks
+
+For "humanize this", "remove watermarks", or "clean up this draft", run the
+bundled cleanup script on the user's own content:
+
+```bash
+claude-seo run content_humanize.py draft.md -o cleaned.md
+cat draft.md | claude-seo run content_humanize.py --json
+```
+
+Two deterministic passes, both logged in the JSON output:
+
+1. **Invisible characters** (`invisible_removed`): strips zero-width
+   codepoints, directional marks/overrides, Unicode tag characters (hidden
+   text smuggling), and normalizes exotic spaces. Emoji sequences (ZWJ,
+   variation selectors next to emoji) are preserved.
+2. **AI-typical phrasing** (`changes`): conservative 1:1 swaps from the
+   replacement table ("delve into" → "explore", etc.). Nothing is
+   paraphrased or added.
+
+Scope honesty: statistical watermarks (SynthID-style token-probability
+schemes) live in word choice, not codepoints. No tool reliably detects or
+removes them; do not claim otherwise in reports. This cleanup is for
+editing the user's own drafts, not for laundering third-party content —
+decline requests to strip provenance from content the user doesn't own.
 
 ## AI Citation Readiness (GEO signals)
 

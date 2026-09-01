@@ -1,8 +1,18 @@
 #!/usr/bin/env python3
 """
 AI-pattern remover. Rewrites filler / AI-typical phrasings into
-direct prose. Conservative by design: only replaces phrases listed in
-``_REPLACEMENTS``. Unknown idiom? Leave it alone.
+direct prose, and strips invisible Unicode artifacts ("text
+watermarks") that AI tools and copy-paste pipelines leave behind:
+zero-width characters, directional marks, exotic spaces, and Unicode
+tag characters. Conservative by design: only replaces phrases listed
+in ``_REPLACEMENTS``, and keeps zero-width joiners / variation
+selectors that are part of real emoji sequences. Unknown idiom?
+Leave it alone.
+
+Statistical watermarks (e.g. SynthID-style token-probability
+watermarks) live in word choice, not codepoints; nothing here — or
+anywhere — reliably detects or strips those, so this tool does not
+claim to.
 
 Use case: a content editor running last-mile cleanup on a draft. This
 is NOT a paraphraser or a translation tool; it does not introduce new
@@ -93,6 +103,98 @@ _PATTERNS = [
 ]
 
 
+# Invisible / format characters deleted outright. They render as
+# nothing, break regex word boundaries, inflate diffs, and are the
+# codepoints used to fingerprint or smuggle hidden text in AI output.
+_INVISIBLE_DELETE = {
+    "\u00ad": "soft-hyphen",
+    "\u180e": "mongolian-vowel-separator",
+    "\u200b": "zero-width-space",
+    "\u200e": "left-to-right-mark",
+    "\u200f": "right-to-left-mark",
+    "\u202a": "lre-embedding",
+    "\u202b": "rle-embedding",
+    "\u202c": "pop-directional",
+    "\u202d": "lro-override",
+    "\u202e": "rlo-override",
+    "\u2060": "word-joiner",
+    "\u2061": "function-application",
+    "\u2062": "invisible-times",
+    "\u2063": "invisible-separator",
+    "\u2064": "invisible-plus",
+    "\u2066": "lri-isolate",
+    "\u2067": "rli-isolate",
+    "\u2068": "fsi-isolate",
+    "\u2069": "pop-isolate",
+    "\u3164": "hangul-filler",
+    "\ufeff": "zero-width-no-break-space",
+    "\uffa0": "halfwidth-hangul-filler",
+}
+
+# Exotic whitespace normalised to a plain equivalent instead of deleted.
+_INVISIBLE_SPACE = {
+    "\u00a0": ("space", " "),   # no-break space
+    "\u2000": ("space", " "),   # en quad
+    "\u2001": ("space", " "),   # em quad
+    "\u2002": ("space", " "),   # en space
+    "\u2003": ("space", " "),   # em space
+    "\u2004": ("space", " "),   # three-per-em space
+    "\u2005": ("space", " "),   # four-per-em space
+    "\u2006": ("space", " "),   # six-per-em space
+    "\u2007": ("space", " "),   # figure space
+    "\u2008": ("space", " "),   # punctuation space
+    "\u2009": ("space", " "),   # thin space
+    "\u200a": ("space", " "),   # hair space
+    "\u202f": ("space", " "),   # narrow no-break space
+    "\u205f": ("space", " "),   # medium mathematical space
+    "\u2028": ("newline", "\n"),    # line separator
+    "\u2029": ("newline", "\n\n"),  # paragraph separator
+}
+
+# Legitimate inside emoji sequences (family/warning/keycap emoji);
+# stripped only when nothing emoji-like sits next to them.
+_EMOJI_GLUE = {
+    "\u200c": "zero-width-non-joiner",
+    "\u200d": "zero-width-joiner",
+    "\ufe0e": "variation-selector-15",
+    "\ufe0f": "variation-selector-16",
+}
+
+
+def _emoji_adjacent(prev: str, nxt: str) -> bool:
+    """True when either neighbour is plausibly part of an emoji sequence."""
+    for ch in (prev, nxt):
+        if ch and (ord(ch) >= 0x2100 or ch == "\u20e3"):
+            return True
+    return False
+
+
+def strip_invisible(text: str) -> tuple[str, dict]:
+    """Remove invisible watermark characters; return (cleaned, counts)."""
+    removed: dict[str, int] = {}
+    out: list[str] = []
+    for i, ch in enumerate(text):
+        if ch in _INVISIBLE_DELETE:
+            label = _INVISIBLE_DELETE[ch]
+        elif ch in _INVISIBLE_SPACE:
+            label, replacement = _INVISIBLE_SPACE[ch]
+            out.append(replacement)
+        elif ch in _EMOJI_GLUE:
+            prev = text[i - 1] if i else ""
+            nxt = text[i + 1] if i + 1 < len(text) else ""
+            if _emoji_adjacent(prev, nxt):
+                out.append(ch)
+                continue
+            label = _EMOJI_GLUE[ch]
+        elif 0xE0000 <= ord(ch) <= 0xE007F:
+            label = "unicode-tag-character"
+        else:
+            out.append(ch)
+            continue
+        removed[label] = removed.get(label, 0) + 1
+    return "".join(out), removed
+
+
 def _preserve_case(match_text: str, replacement: str) -> str:
     """If the original starts uppercase, capitalise the replacement."""
     if not replacement:
@@ -105,7 +207,9 @@ def _preserve_case(match_text: str, replacement: str) -> str:
 def humanize(text: str) -> dict:
     """Apply every replacement; return the cleaned text plus a change log."""
     changes: list[dict] = []
-    cleaned = text
+    # Strip invisible characters first: zero-width codepoints inside
+    # words would otherwise defeat the \b boundaries below.
+    cleaned, invisible_removed = strip_invisible(text)
 
     for pattern, replacement, label in _PATTERNS:
         def _repl(match):
@@ -128,6 +232,8 @@ def humanize(text: str) -> dict:
         "cleaned": cleaned,
         "changes": changes,
         "change_count": len(changes),
+        "invisible_removed": invisible_removed,
+        "invisible_count": sum(invisible_removed.values()),
     }
 
 
@@ -164,6 +270,14 @@ def main() -> int:
         )
     else:
         sys.stdout.write(result["cleaned"])
+
+    if result["invisible_count"]:
+        print(
+            f"\n--- {result['invisible_count']} invisible characters removed ---",
+            file=sys.stderr,
+        )
+        for label, count in sorted(result["invisible_removed"].items()):
+            print(f"  {label}: {count}", file=sys.stderr)
 
     if result["change_count"]:
         print(f"\n--- {result['change_count']} replacements ---", file=sys.stderr)
