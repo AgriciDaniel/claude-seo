@@ -1,17 +1,16 @@
 # Modern AI Extension
 
-AI Recommendation Rate lookups via Modern AI's free, public, known-entity endpoint.
+Run one command, get a brand's real AI Recommendation Rate, or a clear
+"not yet published" answer. Free, no API key.
 
 ## What this does
 
-Looks up a brand's **Recommendation Rate** (percentage of buyer-intent
-questions where AI models pick it as the #1 answer, not just mention it)
-and **Recommendation Inclusion Rate** (percentage where it's mentioned at
-all), plus source-class counts, via a single free API call.
+Returns a brand's real AI Recommendation Rate (how often it is the AI's
+#1 pick on buyer-intent questions) and Recommendation Inclusion Rate (how
+often it is mentioned at all), plus source-class counts. One free lookup.
 
-Single-brand lookups only -- this is not a bulk data export, and the
-endpoint's anti-scrape design hard-blocks anything shaped like an
-enumeration attempt.
+Single-brand lookups only. This is not a bulk data export; the endpoint
+blocks anything shaped like a scripted list-all request.
 
 ## Install
 
@@ -37,8 +36,5 @@ rate ceiling; registered/paid access raises the ceiling.
 
 ## Status
 
-The lookup gate is live and its rate-limiting/anti-scrape logic is real
-and tested. The underlying data-publishing pipeline that populates real
-Recommendation Rate figures for a given brand is still being built out, so
-some lookups may currently return "brand not yet published" rather than a
-score -- the skill surfaces that plainly rather than guessing at a number.
+The endpoint is live. A brand with a published measurement returns its
+real score. A brand not yet measured returns "brand not yet published."

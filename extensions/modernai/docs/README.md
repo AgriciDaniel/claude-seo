@@ -1,4 +1,4 @@
-# Modern AI Extension -- Setup
+# Modern AI Extension: Setup
 
 ## Install
 
@@ -18,7 +18,7 @@ free ceiling per rolling 30-day window; registered/paid access lifts it).
 
 Returns the brand's AI Recommendation Rate (first-choice %) and Recommendation
 Inclusion Rate (appears-anywhere %), both clearly labeled and distinguished, plus
-source-class counts. One brand per call -- this is a lookup tool, not a bulk data
+source-class counts. One brand per call; this is a lookup tool, not a bulk data
 export.
 
 ## Uninstall

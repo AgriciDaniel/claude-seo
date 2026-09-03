@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude SEO -- Modern AI Extension Uninstaller
+# Claude SEO: Modern AI Extension Uninstaller
 
 set -euo pipefail
 

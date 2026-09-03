@@ -1,6 +1,6 @@
-# Claude SEO -- Modern AI Extension Installer (Windows)
+# Claude SEO: Modern AI Extension Installer (Windows)
 #
-# No API key needed -- the endpoint is free/anonymous up to a rolling rate
+# No API key needed. The endpoint is free/anonymous up to a rolling rate
 # ceiling.
 
 $ErrorActionPreference = "Stop"
@@ -8,7 +8,7 @@ $ErrorActionPreference = "Stop"
 $ExtensionName = "modernai"
 $SkillDir = Join-Path $HOME ".claude\skills\seo-$ExtensionName"
 
-Write-Host "Claude SEO -- Modern AI Extension"
+Write-Host "Claude SEO: Modern AI Extension"
 Write-Host "=================================="
 Write-Host ""
 
@@ -25,7 +25,7 @@ Copy-Item -Path (Join-Path $ScriptDir "skills\seo-modernai\SKILL.md") -Destinati
 
 Write-Host "Installed: $SkillDir\SKILL.md"
 Write-Host ""
-Write-Host "No API key required -- this extension queries Modern AI's free, gated"
+Write-Host "No API key required. This extension queries Modern AI's free, gated"
 Write-Host "known-entity lookup endpoint directly (anonymous access, rate-limited"
 Write-Host "per a published anti-scrape policy)."
 Write-Host ""
