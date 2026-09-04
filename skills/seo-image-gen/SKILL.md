@@ -38,6 +38,10 @@ is connected by checking if `gemini_generate_image` or `set_aspect_ratio` tools 
 available. If tools are not available, inform the user the extension is not installed
 and provide install instructions.
 
+Environments where no MCP server can be installed (CI runners, containers) have an
+optional HTTP-only path documented in `references/atlas-cloud.md`. It is a fallback,
+not a default — prefer the banana MCP whenever it is available.
+
 ## Quick Reference
 
 | Command | What it does |
@@ -143,7 +147,7 @@ Approximate costs:
 | API key invalid | New key at https://aistudio.google.com/apikey |
 | Rate limited (429) | Wait 60s, retry. Free tier: ~10 RPM / ~500 RPD |
 | `IMAGE_SAFETY` | Rephrase prompt - see `references/prompt-engineering.md` Safety section |
-| MCP unavailable | Configure MCP with `./extensions/banana/install.sh`; claude-seo does not vendor a local generation fallback script |
+| MCP unavailable | Configure MCP with `./extensions/banana/install.sh`. claude-seo vendors no local generation script; where an MCP server cannot be installed at all (CI, containers), `references/atlas-cloud.md` documents an optional HTTP-only provider |
 | Extension not installed | Show install instructions: `./extensions/banana/install.sh` |
 
 ## Cross-Skill Integration
@@ -162,6 +166,7 @@ Load on-demand. Do NOT load all at startup:
 - `references/cost-tracking.md`:Pricing, usage tracking
 - `references/presets.md`:Brand preset management
 - `references/seo-image-presets.md`:SEO-specific preset templates
+- `references/atlas-cloud.md`:optional HTTP-only provider for MCP-less environments
 
 ## Response Format
 
