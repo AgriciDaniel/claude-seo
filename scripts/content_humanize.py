@@ -60,13 +60,18 @@ _REPLACEMENTS: tuple[tuple[str, str, str], ...] = (
     (r"\bleverage\s+the\s+power\s+of\b", "use", "leverage-power"),
     (r"\bleveraging\s+the\s+power\s+of\b", "using", "leveraging-power"),
     (r"\bharness\s+the\s+power\s+of\b", "use", "harness-power"),
-    (r"\bunlock\s+(?:the\s+(?:full\s+)?)?potential\b", "use", "unlock-potential"),
+    (r"\bunlock\s+(?:the\s+(?:full\s+)?)?potential\s+of\b", "get more from",
+     "unlock-potential-of"),
+    (r"\bunlock\s+(?:the\s+(?:full\s+)?)?potential\b", "do more", "unlock-potential"),
     (r"\bopen\s+up\s+a\s+world\s+of\b", "enable", "open-world"),
     (r"\ba\s+world\s+of\s+possibilities\b", "options", "world-possibilities"),
     (r"\belevate\s+your\b", "improve your", "elevate-your"),
     (r"\btransform\s+your\b", "improve your", "transform-your"),
     (r"\brevolutionize\s+the\s+way\b", "change how", "revolutionize-the-way"),
-    (r"\bgame-?changer\b", "important", "game-changer"),
+    # "game-changer" is a noun; replacing it with the adjective "important"
+    # produced "this is a important". Replace a noun with a noun.
+    (r"\bgame-?changers\b", "big changes", "game-changers"),
+    (r"\bgame-?changer\b", "big change", "game-changer"),
     (r"\bcutting-?edge\b", "modern", "cutting-edge"),
     (r"\bstate-of-the-art\b", "modern", "state-of-the-art"),
     (r"\bin\s+summary,\s*", "", "in-summary"),
@@ -79,8 +84,8 @@ _REPLACEMENTS: tuple[tuple[str, str, str], ...] = (
     (r"\bneedless\s+to\s+say,?\s*", "", "needless-to-say"),
     (r"\bat\s+the\s+end\s+of\s+the\s+day\b", "ultimately", "end-of-the-day"),
     (r"\bwhen\s+it\s+comes\s+to\b", "for", "when-it-comes-to"),
-    (r"\bfirst\s+and\s+foremost,?\s*", "first,", "first-and-foremost"),
-    (r"\blast\s+but\s+not\s+least,?\s*", "finally,", "last-but-not-least"),
+    (r"\bfirst\s+and\s+foremost,?\s*", "first, ", "first-and-foremost"),
+    (r"\blast\s+but\s+not\s+least,?\s*", "finally, ", "last-but-not-least"),
     (r"\blet'?s\s+dive\s+(in|into)\b", "starting with", "let-us-dive"),
     (r"\blet'?s\s+take\s+a\s+(closer|deeper)\s+look\b", "look at", "let-us-take-look"),
 )
@@ -122,12 +127,63 @@ def humanize(text: str) -> dict:
     # newlines and intentional spacing alone.
     cleaned = re.sub(r"  +", " ", cleaned)
     cleaned = re.sub(r" ([,.;:!?])", r"\1", cleaned)
+    cleaned = _fix_articles(cleaned)
+    if any(c["to"] == "" for c in changes):
+        cleaned = _recapitalise(cleaned)
 
     return {
         "cleaned": cleaned,
         "changes": changes,
         "change_count": len(changes),
     }
+
+
+
+_CODE_OR_URL_RE = re.compile(r"```.*?```|`[^`\n]*`|https?://\S+", re.S)
+_SENTENCE_START_RE = re.compile(r"(^|[.!?]\s+|\n)([a-z])", re.M)
+_ARTICLE_RE = re.compile(r"\b(a|an)\s+([A-Za-z])", re.IGNORECASE)
+
+
+def _recapitalise(text: str) -> str:
+    """Restore the capital a deleted sentence-opener took with it.
+
+    ``"In conclusion, this is X."`` becomes ``"this is X."`` once the opener is
+    dropped. Only real sentence starts are touched, and code spans, fenced blocks
+    and URLs are masked out first because an uppercase letter changes their meaning.
+    """
+    spans: list[str] = []
+
+    def _mask(match: re.Match) -> str:
+        spans.append(match.group(0))
+        return f"\x00{len(spans) - 1}\x00"
+
+    masked = _CODE_OR_URL_RE.sub(_mask, text)
+    masked = _SENTENCE_START_RE.sub(
+        lambda m: m.group(1) + m.group(2).upper(), masked
+    )
+    return re.sub(r"\x00(\d+)\x00", lambda m: spans[int(m.group(1))], masked)
+
+
+def _fix_articles(text: str) -> str:
+    """Repair a/an after a replacement changed the following word.
+
+    ``game-changer -> important`` turns "a game-changer" into "a important".
+    The article is only corrected when the replacement actually broke it.
+    """
+    vowels = "aeiou"
+
+    def _swap(match: re.Match) -> str:
+        article, first = match.group(1), match.group(2)
+        needs_an = first.lower() in vowels
+        if needs_an and article.lower() == "a":
+            fixed = "An" if article[0].isupper() else "an"
+        elif not needs_an and article.lower() == "an":
+            fixed = "A" if article[0].isupper() else "a"
+        else:
+            return match.group(0)
+        return f"{fixed} {first}"
+
+    return _ARTICLE_RE.sub(_swap, text)
 
 
 def main() -> int:
