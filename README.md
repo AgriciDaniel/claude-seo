@@ -2,7 +2,7 @@
 
 # Claude SEO: SEO Skill for Claude Code
 
-**Claude SEO is an open-source SEO analysis plugin for [Claude Code](https://claude.ai/claude-code).** It runs 25 sub-skills and 18 specialist agents in parallel across technical SEO, content quality (E-E-A-T), Schema.org markup, AI search optimization (GEO), local SEO, e-commerce, and international SEO. Every audit produces a prioritized action plan with testable recommendations grounded in primary-source guidance from Google.
+**Claude SEO is an open-source SEO analysis plugin for [Claude Code](https://claude.ai/claude-code).** It runs 26 sub-skills and 18 specialist agents in parallel across technical SEO, content quality (E-E-A-T), Schema.org markup, AI search optimization (GEO), local SEO, e-commerce, and international SEO. Every audit produces a prioritized action plan with testable recommendations grounded in primary-source guidance from Google.
 
 [![CI](https://github.com/AgriciDaniel/claude-seo/actions/workflows/ci.yml/badge.svg)](https://github.com/AgriciDaniel/claude-seo/actions/workflows/ci.yml)
 [![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue)](https://claude.ai/claude-code)
@@ -143,7 +143,7 @@ claude
 
 ![Claude SEO sub-skill ecosystem: 25 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
 
-32 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 8 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
+34 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 9 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
 
 | Command | Description |
 |---------|-------------|
@@ -157,6 +157,7 @@ claude
 | `/seo schema <url>` | Detect, validate, and generate Schema.org markup |
 | `/seo geo <url>` | AI Overviews / Generative Engine Optimization |
 | `/seo sitemap <url \| generate>` | Analyze or generate XML sitemaps |
+| `/seo redirects <url>` | Redirect chain, loop, and status-code (301/302/307/308) audit |
 | `/seo images <url>` | Image optimization analysis |
 | `/seo plan <type>` | Strategic SEO planning (saas, local, ecommerce, publisher, agency) |
 | `/seo programmatic <url>` | Programmatic SEO analysis and planning |
@@ -179,6 +180,7 @@ claude
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo gsc [command] <url>` | Live Search Console data via OAuth MCP: analytics, URL inspection, sitemaps (extension) |
 
 ## Features
 
@@ -338,6 +340,7 @@ Test coverage grew from 39 (v1.9.9) to 410 across the v2 line; the url_safety su
 - **v2.2.3 (July 2026): prompt-hygiene alignment.** Normalized emphasis and punctuation across the prompt surface without changing behavior, routing, or output contracts.
 - **v2.2.4 (July 2026): community maintenance.** Added the managed cross-platform runtime and safe sitemap discovery, repaired GSC pagination and totals, replaced removed Bing endpoints, fixed extension and Windows portability gaps, and reconciled every open issue and pull request.
 - **v2.2.5 (August 2026): reliability and Google-currency hardening.** Fixed manual-install data packaging and lxml runtime imports, hardened JSON-LD graphs and rendered-page accessibility analysis, enforced managed-runtime command references, and refreshed Google Search and Lighthouse guidance through August 25.
+- **v2.3.0 (September 2026): redirect audits and OAuth Google Search Console.** Added the `seo-redirects` skill (redirect chain, loop, and status-code auditing with canonical-drift reconciliation) and a ninth MCP extension, Google Search Console via `google-searchconsole-mcp`, an OAuth-only alternative to the `seo-google` credential wizard.
 
 ## Limitations
 
@@ -372,7 +375,7 @@ curl -fsSL https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/uninst
 
 ## Extensions
 
-Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 8 servers; the plugin core works without any of them.
+Optional MCP servers add live data to the audit pipeline. Claude SEO ships extensions for 9 servers; the plugin core works without any of them.
 
 ### DataForSEO
 
@@ -420,6 +423,17 @@ Five extensions added in Phase E:
 
 Setup walkthroughs live under `extensions/<name>/docs/`; integration notes: [docs/MCP-INTEGRATION.md](docs/MCP-INTEGRATION.md).
 
+### Google Search Console
+
+Live Search Console data (search analytics, URL inspection, sitemap status) via the [`google-searchconsole-mcp`](https://www.npmjs.com/package/google-searchconsole-mcp) server. Authenticates with a one-time OAuth browser sign-in, no Google Cloud project or service account required, as a lighter-weight alternative to the credential wizard in `seo-google`.
+
+```bash
+./extensions/google-search-console/install.sh
+/seo gsc analytics https://example.com
+```
+
+Full Google Search Console docs: [extensions/google-search-console/README.md](extensions/google-search-console/README.md).
+
 ## Ecosystem
 
 Claude SEO is part of a family of Claude Code skills that interoperate cleanly:
@@ -455,7 +469,7 @@ Claude SEO is part of a family of Claude Code skills that interoperate cleanly:
 
 ### What is Claude SEO?
 
-Claude SEO is an open-source SEO analysis plugin for Claude Code. It runs 25 sub-skills and 18 specialist agents in parallel across technical SEO, content quality, Schema.org markup, AI search optimization, local SEO, e-commerce, and international SEO. Audits produce a prioritized action plan where each recommendation carries the first-principle observation it rests on, its dependency relationship to other recommendations, a "how would we know this failed?" check, and a leading indicator. The plugin is MIT-licensed, ships zero proprietary tracking, and works without third-party API enrichment; audits still contact the target URLs you analyze. Aligned with [Google's AI Optimization Guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide) and the September 2025 Quality Rater Guidelines.
+Claude SEO is an open-source SEO analysis plugin for Claude Code. It runs 26 sub-skills and 18 specialist agents in parallel across technical SEO, content quality, Schema.org markup, AI search optimization, local SEO, e-commerce, and international SEO. Audits produce a prioritized action plan where each recommendation carries the first-principle observation it rests on, its dependency relationship to other recommendations, a "how would we know this failed?" check, and a leading indicator. The plugin is MIT-licensed, ships zero proprietary tracking, and works without third-party API enrichment; audits still contact the target URLs you analyze. Aligned with [Google's AI Optimization Guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide) and the September 2025 Quality Rater Guidelines.
 
 ### How is Claude SEO different from Screaming Frog or Ahrefs Site Audit?
 
@@ -467,11 +481,11 @@ Yes. Phase A of v2 shipped a shared headless renderer (`scripts/render_page.py`)
 
 ### What Google APIs does Claude SEO use, and are they required?
 
-None are required. Claude SEO is fully functional with zero API keys. A 4-tier credential system lets you upgrade gradually: Tier 0 (API key only) unlocks PageSpeed Insights, CrUX, and CrUX History (25-week trend data). Tier 1 (+ OAuth or service account) adds Search Console with queries, URL Inspection, sitemap status, and the Indexing API for eligible JobPosting pages or BroadcastEvent in VideoObject pages; the API does not guarantee indexing. Tier 2 (+ GA4 property config) adds organic traffic, top landing pages, and device / country breakdowns. Tier 3 (+ Ads developer token) adds Keyword Planner search volume and competition data. The credential setup wizard runs via `/seo google setup`. All credentials live under `~/.config/claude-seo/` with `0o600` file permissions; nothing is checked into the repo and nothing is transmitted beyond Google's own endpoints.
+None are required. Claude SEO is fully functional with zero API keys. A 4-tier credential system lets you upgrade gradually: Tier 0 (API key only) unlocks PageSpeed Insights, CrUX, and CrUX History (25-week trend data). Tier 1 (+ OAuth or service account) adds Search Console with queries, URL Inspection, sitemap status, and the Indexing API for eligible JobPosting pages or BroadcastEvent in VideoObject pages; the API does not guarantee indexing. Tier 2 (+ GA4 property config) adds organic traffic, top landing pages, and device / country breakdowns. Tier 3 (+ Ads developer token) adds Keyword Planner search volume and competition data. The credential setup wizard runs via `/seo google setup`. All credentials live under `~/.config/claude-seo/` with `0o600` file permissions; nothing is checked into the repo and nothing is transmitted beyond Google's own endpoints. Alternatively, the `google-search-console` extension covers Search Console alone via a one-time OAuth sign-in with no Google Cloud setup at all.
 
 ### Is Claude SEO free?
 
-Yes. MIT licensed, fully open source, no per-domain pricing, no telemetry, no API quotas imposed by the plugin itself. The core plugin and all 25 sub-skills work without any paid service. Some optional MCP extensions wrap paid services (DataForSEO, Ahrefs, Profound, SE Ranking) where you bring your own account credentials; their use is opt-in and the plugin works fully without them. Google APIs (PageSpeed Insights, Search Console, Indexing, GA4) are free from Google with normal account quota limits and require your own credentials. If you want commercial support or enterprise features beyond the open-source plugin, that is not part of this project.
+Yes. MIT licensed, fully open source, no per-domain pricing, no telemetry, no API quotas imposed by the plugin itself. The core plugin and all 26 sub-skills work without any paid service. Some optional MCP extensions wrap paid services (DataForSEO, Ahrefs, Profound, SE Ranking) where you bring your own account credentials; their use is opt-in and the plugin works fully without them. Google APIs (PageSpeed Insights, Search Console, Indexing, GA4) are free from Google with normal account quota limits and require your own credentials. If you want commercial support or enterprise features beyond the open-source plugin, that is not part of this project.
 
 ### How is Claude SEO different from regular SEO tools when it comes to AI search?
 
