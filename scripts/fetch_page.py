@@ -9,6 +9,7 @@ SPA-aware fetching.
 Usage:
     python fetch_page.py https://example.com
     python fetch_page.py https://example.com --output page.html
+    python fetch_page.py https://example.com --json
     python fetch_page.py https://example.com --render auto    # SPA-aware
     python fetch_page.py https://example.com --render always  # force render
 """
@@ -16,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -195,10 +197,22 @@ def fetch_page(
     return result
 
 
+def _emit_json(result: dict, output: Optional[str]) -> None:
+    """Emit a fetch result, optionally saving successful HTML separately."""
+    output_written = False
+    if output and not result["error"]:
+        with open(output, "w", encoding="utf-8") as f:
+            f.write(result["content"] or "")
+        output_written = True
+    print(json.dumps({**result, "output_written": output_written}, indent=2))
+    sys.exit(1 if result["error"] else 0)
+
+
 def main():
     parser = argparse.ArgumentParser(description="Fetch a web page for SEO analysis")
     parser.add_argument("url", help="URL to fetch")
     parser.add_argument("--output", "-o", help="Output file path")
+    parser.add_argument("--json", action="store_true", help="Emit full fetch result as JSON")
     parser.add_argument("--timeout", "-t", type=int, default=30, help="Timeout in seconds")
     parser.add_argument("--no-redirects", action="store_true", help="Don't follow redirects")
     parser.add_argument("--user-agent", help="Custom User-Agent string")
@@ -237,6 +251,8 @@ def main():
             timeout_ms=args.timeout * 1000,
             user_agent=ua,
         )
+        if args.json:
+            _emit_json(rendered, args.output)
         if rendered["error"]:
             print(f"Error: {rendered['error']}", file=sys.stderr)
             sys.exit(1)
@@ -260,6 +276,9 @@ def main():
         follow_redirects=not args.no_redirects,
         user_agent=ua,
     )
+
+    if args.json:
+        _emit_json(result, args.output)
 
     if result["error"]:
         print(f"Error: {result['error']}", file=sys.stderr)

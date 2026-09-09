@@ -4,6 +4,20 @@
 
 All Claude SEO commands start with `/seo` followed by a subcommand.
 
+## Page-fetching script
+
+Use `./bin/claude-seo run fetch_page.py https://example.com --json` for structured
+retrieval. JSON includes `url`, `status_code`, `content`, `headers`,
+`redirect_chain`, and `error`. Raw fetches also include `redirect_details`;
+`--render auto` or `--render always` includes the renderer's additional fields.
+Content is returned in full. Fetch errors still emit JSON and exit 1; successful
+fetches exit 0. HTTP status codes are reported without changing this behavior.
+
+Combine `--json --output page.html` to save successful HTML while keeping JSON
+on stdout. `output_written` indicates whether HTML was saved. On fetch errors,
+the output file is left untouched. Without `--json`, existing text output is
+unchanged.
+
 ## Command List
 
 ### `/seo setup`
