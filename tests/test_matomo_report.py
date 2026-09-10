@@ -4,7 +4,9 @@ Covers:
 - Envelope shape (status / data / error / metadata)
 - Auth probe (HTTP error classes mapped to friendly error messages)
 - Token never appears in output / URL parameters
-- URL sanity check (allows self-hosted, rejects malformed)
+- URL shape check (allows self-hosted, rejects malformed)
+- SSRF: every request goes through url_safety's pinned helpers; a private
+  instance needs CLAUDE_SEO_LOCAL_TARGETS; redirects off the instance refused
 - Env-var and config-file credential loading (env wins over file when both set)
 - Args / CLI error paths surface a structured error envelope
 - Token redaction of incoming Matomo ``result=error`` messages
@@ -12,7 +14,9 @@ Covers:
 
 from __future__ import annotations
 
+import contextlib
 import json
+import socket
 import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -24,8 +28,10 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import matomo_auth  # noqa: E402
 import matomo_report  # noqa: E402
+import url_safety  # noqa: E402
 
 SECRET_TOKEN = "abcdef0123456789abcdef0123456789"
+PUBLIC_IP = "93.184.216.34"
 
 
 @pytest.fixture(autouse=True)
@@ -46,10 +52,66 @@ def _isolated_credentials(monkeypatch, tmp_path):
     )
 
 
-def _mock_response(status_code: int, body) -> Mock:
+def _mock_response(status_code: int, body, headers=None) -> Mock:
     resp = Mock(status_code=status_code, text=json.dumps(body))
     resp.json.return_value = body
+    resp.headers = headers or {}
     return resp
+
+
+@contextlib.contextmanager
+def _patch_session(response=None, side_effect=None):
+    """Stub the DNS-pinned session so transport tests stay offline.
+
+    Patches ``matomo_auth.safe_requests_session``, the single seam every
+    Matomo request passes through. The SSRF behaviour of that seam is covered
+    separately by the tests that let the real ``url_safety`` run.
+    """
+    session = Mock()
+    if side_effect is not None:
+        session.post.side_effect = side_effect
+    else:
+        session.post.return_value = response
+
+    @contextlib.contextmanager
+    def fake_session(url):
+        fake_session.url = url
+        yield session
+
+    with patch.object(matomo_auth, "safe_requests_session", fake_session):
+        yield session, fake_session
+
+
+@contextlib.contextmanager
+def _real_guard(monkeypatch, resolved_ip=PUBLIC_IP, response=None):
+    """Let ``url_safety`` run for real, with DNS and the socket write stubbed.
+
+    ``requests.Session.post`` is patched at the class level so the pinned
+    session is genuinely constructed and ``validate_url_strict`` genuinely
+    decides, but nothing leaves the machine.
+    """
+    for var in ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy",
+                "ALL_PROXY", "all_proxy", "NO_PROXY", "no_proxy"):
+        monkeypatch.delenv(var, raising=False)
+
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "",
+                 (resolved_ip, port or 80))]
+
+    monkeypatch.setattr(url_safety.socket, "getaddrinfo", fake_getaddrinfo)
+    post = Mock(return_value=response if response is not None
+                else _mock_response(200, {"value": "5.13.0"}))
+
+    def _unguarded(*args, **kwargs):
+        raise AssertionError(
+            "a Matomo request bypassed url_safety: module-level requests.post "
+            "was called instead of the pinned session"
+        )
+
+    with patch.object(matomo_report.requests.Session, "post", post), \
+            patch.object(matomo_report.requests, "post", _unguarded), \
+            patch.object(matomo_auth.requests, "post", _unguarded):
+        yield post
 
 
 def _ok_envelope(data=None, method=None):
@@ -76,21 +138,21 @@ def test_envelope_shape_and_metadata_source():
     assert "timestamp" in env["metadata"]
 
 
-def test_url_sanity_allows_self_hosted_https():
-    assert matomo_auth._sanity_check_instance_url("https://analytics.example.com") \
+def test_url_shape_check_allows_self_hosted_https():
+    assert matomo_auth._normalize_instance_url("https://analytics.example.com") \
         == "https://analytics.example.com"
-    assert matomo_auth._sanity_check_instance_url("http://localhost:8080/") \
+    assert matomo_auth._normalize_instance_url("http://localhost:8080/") \
         == "http://localhost:8080"
-    assert matomo_auth._sanity_check_instance_url("https://10.0.0.5/matomo/") \
+    assert matomo_auth._normalize_instance_url("https://10.0.0.5/matomo/") \
         == "https://10.0.0.5/matomo"
 
 
-def test_url_sanity_rejects_malformed():
-    assert matomo_auth._sanity_check_instance_url("") is None
-    assert matomo_auth._sanity_check_instance_url("not-a-url") is None
-    assert matomo_auth._sanity_check_instance_url("ftp://example.com") is None
+def test_url_shape_check_rejects_malformed():
+    assert matomo_auth._normalize_instance_url("") is None
+    assert matomo_auth._normalize_instance_url("not-a-url") is None
+    assert matomo_auth._normalize_instance_url("ftp://example.com") is None
     # Userinfo in URL would leak credentials if accidentally configured.
-    assert matomo_auth._sanity_check_instance_url(
+    assert matomo_auth._normalize_instance_url(
         "https://user:pass@example.com") is None
 
 
@@ -143,7 +205,7 @@ def test_check_credentials_probes_version(monkeypatch, tmp_path):
     monkeypatch.setenv("MATOMO_SITE_ID", "1")
 
     resp = _mock_response(200, "5.1.2")
-    with patch.object(matomo_auth.requests, "post", return_value=resp) as post:
+    with _patch_session(resp) as (post_session, _):
         status = matomo_auth.check_credentials()
 
     assert status["available"] is True
@@ -152,7 +214,7 @@ def test_check_credentials_probes_version(monkeypatch, tmp_path):
     assert status["verified"] is True
     assert status["version"] == "5.1.2"
     # Token must be in POST body, never in URL.
-    call = post.call_args
+    call = post_session.post.call_args
     assert call.kwargs["data"]["token_auth"] == SECRET_TOKEN
     assert "token_auth" not in call.kwargs.get("params", {})
 
@@ -164,7 +226,7 @@ def test_check_credentials_handles_matomo5_version_object(monkeypatch, tmp_path)
     monkeypatch.setenv("MATOMO_API_TOKEN", SECRET_TOKEN)
 
     resp = _mock_response(200, {"value": "5.13.0"})
-    with patch.object(matomo_auth.requests, "post", return_value=resp):
+    with _patch_session(resp):
         status = matomo_auth.check_credentials()
     assert status["available"] is True
     assert status["version"] == "5.13.0"
@@ -175,7 +237,7 @@ def test_check_credentials_surfaces_auth_failure(monkeypatch, tmp_path):
     monkeypatch.setenv("MATOMO_URL", "https://analytics.example.com")
     monkeypatch.setenv("MATOMO_API_TOKEN", SECRET_TOKEN)
     resp = _mock_response(401, {"result": "error", "message": "no access"})
-    with patch.object(matomo_auth.requests, "post", return_value=resp):
+    with _patch_session(resp):
         status = matomo_auth.check_credentials()
     assert status["available"] is False
     assert "authentication" in status["error"].lower() or "auth" in status["error"].lower()
@@ -187,10 +249,9 @@ def test_check_credentials_surfaces_connection_error(monkeypatch, tmp_path):
     monkeypatch.setattr(matomo_auth, "CONFIG_PATH", str(tmp_path / "missing.json"))
     monkeypatch.setenv("MATOMO_URL", "https://analytics.example.com")
     monkeypatch.setenv("MATOMO_API_TOKEN", SECRET_TOKEN)
-    with patch.object(
-        matomo_auth.requests, "post",
-        side_effect=matomo_auth.requests.exceptions.ConnectionError("refused"),
-    ):
+    with _patch_session(side_effect=matomo_auth.requests.exceptions.ConnectionError(
+        "refused"
+    )):
         status = matomo_auth.check_credentials()
     assert status["available"] is False
     assert "connection" in status["error"].lower()
@@ -208,7 +269,7 @@ def test_token_redaction_strips_query_params():
 def test_request_maps_matomo_result_error_to_envelope():
     resp = _mock_response(200, {"result": "error",
                                 "message": "No data available"})
-    with patch.object(matomo_report.requests, "post", return_value=resp):
+    with _patch_session(resp):
         env = matomo_report._request("https://m.test", "tok", {"method": "X"})
     assert env["status"] == "error"
     assert "No data available" in env["error"]
@@ -218,24 +279,23 @@ def test_request_maps_matomo_result_error_to_envelope():
 def test_request_redacts_token_in_matomo_error():
     leaked = "Bad token_auth=" + SECRET_TOKEN + " for site"
     resp = _mock_response(200, {"result": "error", "message": leaked})
-    with patch.object(matomo_report.requests, "post", return_value=resp):
+    with _patch_session(resp):
         env = matomo_report._request("https://m.test", "tok", {"method": "X"})
     assert SECRET_TOKEN not in (env.get("error") or "")
 
 
 def test_request_maps_401_to_friendly_error():
     resp = _mock_response(401, {})
-    with patch.object(matomo_report.requests, "post", return_value=resp):
+    with _patch_session(resp):
         env = matomo_report._request("https://m.test", "tok", {"method": "X"})
     assert env["status"] == "error"
     assert "authentication" in env["error"].lower() or "token" in env["error"].lower()
 
 
 def test_request_maps_timeout_to_friendly_error():
-    with patch.object(
-        matomo_report.requests, "post",
-        side_effect=matomo_report.requests.exceptions.Timeout("read timeout"),
-    ):
+    with _patch_session(side_effect=matomo_report.requests.exceptions.Timeout(
+        "read timeout"
+    )):
         env = matomo_report._request("https://m.test", "tok", {"method": "X"})
     assert env["status"] == "error"
     assert "timed out" in env["error"].lower() or "timeout" in env["error"].lower()
@@ -243,12 +303,14 @@ def test_request_maps_timeout_to_friendly_error():
 
 def test_request_does_not_echo_token_in_call_args():
     resp = _mock_response(200, "5.1.2")
-    with patch.object(matomo_report.requests, "post", return_value=resp) as post:
+    with _patch_session(resp) as (session, _):
         matomo_report._request("https://m.test", SECRET_TOKEN, {"method": "X"})
-    call = post.call_args
+    call = session.post.call_args
     assert call.kwargs["data"]["token_auth"] == SECRET_TOKEN
     # No query params; token is POST body only.
     assert "params" not in call.kwargs or not call.kwargs["params"]
+    # And never in the URL either.
+    assert SECRET_TOKEN not in call.args[0]
 
 
 def test_cli_errors_when_url_missing(monkeypatch):
@@ -256,11 +318,11 @@ def test_cli_errors_when_url_missing(monkeypatch):
     for k in ("MATOMO_URL", "MATOMO_API_TOKEN", "MATOMO_SITE_ID",
               "MATOMO_TOKEN", "MATOMO_IDSITE"):
         monkeypatch.delenv(k, raising=False)
-    with patch.object(matomo_auth.requests, "post") as post:
+    with _patch_session(_mock_response(200, {"value": "5.13.0"})) as (post_session, _):
         env = matomo_auth.check_credentials()
     assert env["available"] is False
     assert "url" in env["error"].lower()
-    post.assert_not_called()
+    post_session.post.assert_not_called()
 
 
 def test_organic_report_builds_daily_and_pages(monkeypatch):
@@ -289,8 +351,7 @@ def test_organic_report_builds_daily_and_pages(monkeypatch):
         _mock_response(200, daily),
         _mock_response(200, pages),
     ]
-    with patch.object(matomo_report.requests, "post",
-                      side_effect=responses):
+    with _patch_session(side_effect=responses):
         env = matomo_report.organic_traffic_report("1", "https://m.test",
                                                     SECRET_TOKEN, days=2)
     assert env["status"] == "success"
@@ -321,8 +382,7 @@ def test_device_breakdown_handles_matomo5_array(monkeypatch):
         {"label": "Tablet", "nb_visits": 20, "nb_actions": 60,
          "bounce_count": 3, "sum_daily_nb_uniq_visitors": 18},
     ]
-    with patch.object(matomo_report.requests, "post",
-                      return_value=_mock_response(200, raw)):
+    with _patch_session(_mock_response(200, raw)):
         env = matomo_report.device_breakdown("1", "https://m.test",
                                              SECRET_TOKEN, days=7)
     assert env["status"] == "success"
@@ -342,8 +402,7 @@ def test_country_breakdown_handles_matomo5_array(monkeypatch):
         {"label": "Vereinigte Staaten", "code": "us", "nb_visits": 79,
          "sum_daily_nb_uniq_visitors": 70},
     ]
-    with patch.object(matomo_report.requests, "post",
-                      return_value=_mock_response(200, raw)):
+    with _patch_session(_mock_response(200, raw)):
         env = matomo_report.country_breakdown("1", "https://m.test",
                                               SECRET_TOKEN, days=7, limit=5)
     assert env["status"] == "success"
@@ -368,14 +427,13 @@ def test_referrers_report_uses_matomo5_method_and_shapes(monkeypatch):
         {"label": "Google", "nb_visits": 142},
         {"label": "Bing", "nb_visits": 95},
     ]
-    with patch.object(matomo_report.requests, "post",
-                      side_effect=[_mock_response(200, types),
-                                   _mock_response(200, engines)]) as post:
+    with _patch_session(side_effect=[_mock_response(200, types),
+                                     _mock_response(200, engines)]) as (post_session, _):
         env = matomo_report.referrers_report("1", "https://m.test",
                                              SECRET_TOKEN, days=7)
     assert env["status"] == "success"
     # Correct Matomo 4/5 method name (getReferrersType does not exist).
-    first_method = post.call_args_list[0].kwargs["data"]["method"]
+    first_method = post_session.post.call_args_list[0].kwargs["data"]["method"]
     assert first_method == "Referrers.getReferrerType"
     channels = env["data"]["channels"]
     assert [c["channel_code"] for c in channels] == ["direct", "search"]
@@ -402,8 +460,7 @@ def test_keywords_report_flags_anonymized_share(monkeypatch):
         {"label": "kw2", "nb_visits": 5,
          "segment": "referrerType==search;referrerKeyword==kw2"},
     ]
-    with patch.object(matomo_report.requests, "post",
-                      return_value=_mock_response(200, raw)):
+    with _patch_session(_mock_response(200, raw)):
         env = matomo_report.keywords_report("1", "https://m.test",
                                             SECRET_TOKEN, days=7, limit=10)
     assert env["status"] == "success"
@@ -426,8 +483,7 @@ def test_keywords_report_english_anonymized_label(monkeypatch):
         {"label": "best seo tool", "nb_visits": 30,
          "segment": "referrerType==search;referrerKeyword==best%20seo%20tool"},
     ]
-    with patch.object(matomo_report.requests, "post",
-                      return_value=_mock_response(200, raw)):
+    with _patch_session(_mock_response(200, raw)):
         env = matomo_report.keywords_report("1", "https://m.test",
                                             SECRET_TOKEN, days=7, limit=10)
     data = env["data"]
@@ -440,8 +496,7 @@ def test_device_breakdown_supports_legacy_dict_shape(monkeypatch):
         "desktop": {"label": "Desktop", "nb_visits": 100,
                     "nb_uniq_visitors": 80, "bounce_rate": 0.4},
     }
-    with patch.object(matomo_report.requests, "post",
-                      return_value=_mock_response(200, raw)):
+    with _patch_session(_mock_response(200, raw)):
         env = matomo_report.device_breakdown("1", "https://m.test",
                                              SECRET_TOKEN, days=7)
     assert env["status"] == "success"
@@ -464,10 +519,7 @@ def test_main_json_emits_envelope(monkeypatch):
     monkeypatch.setenv("MATOMO_URL", "https://m.test")
     monkeypatch.setenv("MATOMO_API_TOKEN", SECRET_TOKEN)
     monkeypatch.setenv("MATOMO_SITE_ID", "1")
-    with patch.object(
-        matomo_auth.requests, "post",
-        return_value=_mock_response(200, "5.1.2"),
-    ), patch("sys.argv",
+    with _patch_session(_mock_response(200, "5.1.2")), patch("sys.argv",
              ["matomo_report.py", "check", "--json"]):
         rc = matomo_report.main()
     assert rc == 0
@@ -482,7 +534,7 @@ def test_check_command_honors_site_id_override(monkeypatch, tmp_path):
     }))
     monkeypatch.setattr(matomo_auth, "CONFIG_PATH", str(config_file))
     resp = _mock_response(200, {"value": "5.13.0"})
-    with patch.object(matomo_auth.requests, "post", return_value=resp):
+    with _patch_session(resp):
         env = matomo_report.check_command(site_id_override="5")
     assert env["status"] == "success"
     assert env["data"]["site_id"] == "5"
@@ -497,3 +549,141 @@ def test_main_missing_site_id_exits_one(monkeypatch, capsys):
     assert rc == 1
     captured = capsys.readouterr()
     assert "--site-id" in captured.err or "MATOMO_SITE_ID" in captured.err
+
+
+# --------------------------------------------------------------------------
+# SSRF: every request to the Matomo instance goes through url_safety.
+# These let the real guard run; only DNS and the socket write are stubbed.
+# --------------------------------------------------------------------------
+
+
+def test_public_instance_goes_through_the_pinned_helpers(monkeypatch):
+    """A public MATOMO_URL is validated, pinned, and reached."""
+    with _real_guard(monkeypatch) as post:
+        env = matomo_report._request("https://analytics.example.com",
+                                     SECRET_TOKEN, {"method": "API.getX"})
+    assert env["status"] == "success"
+    assert env["data"] == {"value": "5.13.0"}
+    # Went out through the pinned session, not a bare requests.post.
+    assert post.call_count == 1
+    assert post.call_args.args[0] == "https://analytics.example.com/index.php"
+    assert post.call_args.kwargs["allow_redirects"] is False
+
+
+def test_private_instance_is_refused_without_the_allowlist(monkeypatch):
+    """A self-hosted instance on a private address fails closed by default."""
+    monkeypatch.delenv(matomo_auth.LOCAL_TARGETS_ENV, raising=False)
+    with _real_guard(monkeypatch, resolved_ip="10.0.0.5") as post:
+        env = matomo_report._request("http://10.0.0.5:8080", SECRET_TOKEN,
+                                     {"method": "API.getX"})
+    assert env["status"] == "error"
+    assert post.call_count == 0
+    assert matomo_auth.LOCAL_TARGETS_ENV in env["error"]
+    assert "10.0.0.5:8080" in env["error"]
+    assert SECRET_TOKEN not in env["error"]
+
+
+def test_private_instance_is_accepted_with_the_allowlist(monkeypatch):
+    """CLAUDE_SEO_LOCAL_TARGETS is the supported route to a private instance."""
+    monkeypatch.setenv(matomo_auth.LOCAL_TARGETS_ENV, "10.0.0.5:8080")
+    with _real_guard(monkeypatch, resolved_ip="10.0.0.5") as post:
+        env = matomo_report._request("http://10.0.0.5:8080", SECRET_TOKEN,
+                                     {"method": "API.getX"})
+    assert env["status"] == "success"
+    assert post.call_count == 1
+    assert post.call_args.args[0] == "http://10.0.0.5:8080/index.php"
+
+
+def test_allowlist_entry_does_not_open_a_different_private_host(monkeypatch):
+    """The allowlist matches exactly; a neighbour on the same subnet stays closed."""
+    monkeypatch.setenv(matomo_auth.LOCAL_TARGETS_ENV, "10.0.0.5:8080")
+    with _real_guard(monkeypatch, resolved_ip="10.0.0.6") as post:
+        env = matomo_report._request("http://10.0.0.6:8080", SECRET_TOKEN,
+                                     {"method": "API.getX"})
+    assert env["status"] == "error"
+    assert post.call_count == 0
+
+
+def test_redirect_off_the_instance_is_refused(monkeypatch):
+    """A 30x to another host is refused, not followed: the pin does not cover it."""
+    redirect = _mock_response(
+        302, {}, headers={"Location": "https://attacker.example.com/index.php"}
+    )
+    with _real_guard(monkeypatch, response=redirect) as post:
+        env = matomo_report._request("https://analytics.example.com",
+                                     SECRET_TOKEN, {"method": "API.getX"})
+    assert env["status"] == "error"
+    assert "attacker.example.com" in env["error"]
+    assert "redirect" in env["error"].lower()
+    assert post.call_args.kwargs["allow_redirects"] is False
+    assert SECRET_TOKEN not in env["error"]
+
+
+def test_auth_probe_also_goes_through_the_guard(monkeypatch, tmp_path):
+    """matomo_auth --check uses the same pinned path, not a bare requests.post."""
+    monkeypatch.setattr(matomo_auth, "CONFIG_PATH", str(tmp_path / "missing.json"))
+    monkeypatch.setenv("MATOMO_URL", "http://10.0.0.5:8080")
+    monkeypatch.setenv("MATOMO_API_TOKEN", SECRET_TOKEN)
+    monkeypatch.delenv(matomo_auth.LOCAL_TARGETS_ENV, raising=False)
+    with _real_guard(monkeypatch, resolved_ip="10.0.0.5") as post:
+        status = matomo_auth.check_credentials()
+    assert status["available"] is False
+    assert post.call_count == 0
+    assert matomo_auth.LOCAL_TARGETS_ENV in status["error"]
+    assert SECRET_TOKEN not in status["error"]
+
+
+def test_token_never_reaches_an_error_string_or_stderr(monkeypatch, capsys):
+    """The token stays out of every error path, envelope, and stream.
+
+    Three shapes at once: a Matomo error payload that echoes the token back,
+    a transport exception whose message carries it, and the CLI's own stderr.
+    """
+    leaked = f"Invalid token_auth={SECRET_TOKEN}&idSite=1"
+    resp = _mock_response(200, {"result": "error", "message": leaked})
+    with _patch_session(resp):
+        env = matomo_report._request("https://m.test", SECRET_TOKEN,
+                                     {"method": "API.getX"})
+    assert SECRET_TOKEN not in json.dumps(env)
+    assert "<redacted>" in env["error"]
+
+    boom = matomo_report.requests.exceptions.ConnectionError(
+        f"failed to POST token_auth={SECRET_TOKEN}"
+    )
+    with _patch_session(side_effect=boom):
+        env = matomo_report._request("https://m.test", SECRET_TOKEN,
+                                     {"method": "API.getX"})
+    assert SECRET_TOKEN not in json.dumps(env)
+
+    assert matomo_auth.redact(leaked) == "Invalid token_auth=<redacted>&idSite=1"
+
+    monkeypatch.setenv("MATOMO_URL", "http://10.0.0.5:8080")
+    monkeypatch.setenv("MATOMO_API_TOKEN", SECRET_TOKEN)
+    monkeypatch.setenv("MATOMO_SITE_ID", "1")
+    monkeypatch.delenv(matomo_auth.LOCAL_TARGETS_ENV, raising=False)
+    with _real_guard(monkeypatch, resolved_ip="10.0.0.5"), patch(
+        "sys.argv", ["matomo_report.py", "organic"]
+    ):
+        rc = matomo_report.main()
+    assert rc == 1
+    captured = capsys.readouterr()
+    assert SECRET_TOKEN not in captured.out
+    assert SECRET_TOKEN not in captured.err
+    assert matomo_auth.LOCAL_TARGETS_ENV in captured.err
+
+
+def test_resolves_to_private_address_drives_the_installer_hint(monkeypatch):
+    """The installers use this to decide whether to print the allowlist hint."""
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        ip = "10.1.2.3" if host == "matomo.internal" else PUBLIC_IP
+        return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "",
+                 (ip, port or 80))]
+
+    monkeypatch.setattr(matomo_auth.socket, "getaddrinfo", fake_getaddrinfo)
+    assert matomo_auth.resolves_to_private_address("http://matomo.internal:8080")
+    assert not matomo_auth.resolves_to_private_address("https://analytics.example.com")
+    # IP literals need no DNS at all.
+    assert matomo_auth.resolves_to_private_address("http://127.0.0.1:8080")
+    assert not matomo_auth.resolves_to_private_address("https://93.184.216.34")
+    # A malformed URL is not a private address.
+    assert not matomo_auth.resolves_to_private_address("not-a-url")

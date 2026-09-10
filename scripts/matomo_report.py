@@ -36,10 +36,13 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 try:
     from matomo_auth import (
+        MatomoRequestRefused,
         get_matomo_site_id,
         get_matomo_token,
         get_matomo_url,
+        instance_endpoint,
         load_config,
+        post_to_instance,
     )
 except ImportError:
     print("Error: matomo_auth.py required in scripts/", file=sys.stderr)
@@ -77,10 +80,13 @@ def _envelope(status: str, data: Any = None, error: Optional[str] = None,
 
 def _request(url: str, token: str, params: dict, timeout: int = DEFAULT_TIMEOUT) -> dict:
     """
-    POST to Matomo with token_auth in body.
+    POST to Matomo with token_auth in body, through the url_safety pinned helpers.
 
     Matomo accepts both GET and POST. POST keeps the token out of URLs and
-    access logs.
+    access logs. ``matomo_auth.post_to_instance`` applies the SSRF guard: the
+    endpoint is validated and DNS-pinned, ``CLAUDE_SEO_LOCAL_TARGETS`` is the
+    only way a private instance is reached, and a redirect off the instance is
+    refused rather than followed.
 
     Returns:
         Standard response envelope; on Matomo API ``result=error`` payloads,
@@ -91,14 +97,11 @@ def _request(url: str, token: str, params: dict, timeout: int = DEFAULT_TIMEOUT)
     body["format"] = "JSON"
     body["token_auth"] = token
 
-    headers = {"User-Agent": "ClaudeSEO/2.2.5"}
     try:
-        resp = requests.post(
-            f"{url.rstrip('/')}/index.php",
-            data=body,
-            headers=headers,
-            timeout=timeout,
-        )
+        resp = post_to_instance(instance_endpoint(url), body, timeout=timeout)
+    except MatomoRequestRefused as e:
+        return _envelope("error", None, _redact(str(e)),
+                         method=params.get("method"))
     except requests.exceptions.Timeout:
         return _envelope("error", None,
                          f"Matomo request timed out after {timeout}s")
@@ -537,10 +540,10 @@ def keywords_report(site_id: str, url: str, token: str,
 
 def check_command(site_id_override: Optional[str] = None) -> dict:
     """Lightweight probe: who am I + version, used by --check subcommand."""
-    from matomo_auth import _probe_version, _sanity_check_instance_url
+    from matomo_auth import _normalize_instance_url, _probe_version
 
     config = load_config()
-    url = _sanity_check_instance_url(config.get("matomo_url") or "")
+    url = _normalize_instance_url(config.get("matomo_url") or "")
     token = config.get("matomo_token")
     site_id = site_id_override or config.get("matomo_site_id")
 

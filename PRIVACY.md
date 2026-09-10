@@ -24,7 +24,7 @@ Optional extensions make API calls to third-party services when you invoke their
 | **SE Ranking** | seranking.com/api | Domains and keywords you analyze | [SE Ranking Privacy](https://seranking.com/privacy-policy) |
 | **Profound** | Profound API (tryprofound.com) | Brands and domains you track | [Profound Privacy](https://tryprofound.com/privacy) |
 | **Bing Webmaster / IndexNow** | Bing Webmaster Tools API and IndexNow endpoints | Domains, submitted URLs, and key-verification URL data | [Microsoft Privacy](https://privacy.microsoft.com/) |
-| **Matomo** | Your own Matomo instance URL (self-hosted) or Matomo Cloud | Site IDs, default site ID, and the configured instance URL | [Matomo Privacy](https://matomo.org/privacy-policy/) (Cloud); self-hosted = your own policy |
+| **Matomo** | Your own Matomo instance (self-hosted or Matomo Cloud) — no claude-seo vendor is contacted | `idSite`, the report parameters (method, period, date range, segment, row limit), and `token_auth` in the POST body | [Matomo Privacy](https://matomo.org/privacy-policy/) (Cloud); self-hosted = your own policy |
 | **Unlighthouse** | Local only — no third-party vendor | Runs Lighthouse locally against the target URL; only the target site is contacted (to crawl it). Nothing is sent to a third-party vendor. | N/A (runs locally) |
 
 ## Backlink APIs
@@ -46,13 +46,19 @@ configured Matomo instance (self-hosted or Matomo Cloud):
 
 | Script | Endpoint | Data Sent |
 |--------|----------|-----------|
-| `matomo_auth.py` | The configured `MATOMO_URL` | `API.getMatomoVersion` probe with `token_auth` (POST body; never logged) |
-| `matomo_report.py` | The configured `MATOMO_URL` | Reporting API queries for the configured `idSite`; `token_auth` in POST body, never logged |
+| `matomo_auth.py` | The configured `MATOMO_URL` | `API.getMatomoVersion` probe; `token_auth` in the POST body, never in a URL, never logged |
+| `matomo_report.py` | The configured `MATOMO_URL` | Reporting API queries for the configured `idSite`: method name, period, date range, segment, and row limit; `token_auth` in the POST body, never in a URL, never logged |
 
-Self-hosted Matomo instances on private networks / localhost are supported
-because the script applies a light URL sanity check rather than the strict
-SSRF protection used for arbitrary web fetches. Verify your instance's
-trust boundary if you point the script at a non-localhost address.
+The endpoint is the instance you configured and nothing else. No claude-seo
+vendor, telemetry endpoint, or third party sees any of it, and the URLs of the
+site you analyze are read back from your own Matomo, not sent to it.
+
+Both scripts reach the instance through `scripts/url_safety.py`, the same
+SSRF-guarded, DNS-pinned path as every other outbound request in claude-seo.
+A self-hosted instance on a private address is reached by naming it in the
+`CLAUDE_SEO_LOCAL_TARGETS` allowlist; redirects away from the instance are
+refused rather than followed. See SECURITY.md and
+`extensions/matomo/docs/MATOMO-SETUP.md`.
 
 ## Google SEO APIs
 

@@ -59,8 +59,35 @@ All commands accept `--days` (default 28), `--limit`, `--site-id`, and
   --check` succeeds. Both agents can be active simultaneously when the
   user has both GA4 and Matomo configured.
 
+## Self-hosted instance on a private address
+
+Every Matomo request goes through claude-seo's SSRF guard: the instance URL
+is validated and DNS-pinned, and a redirect off the instance is refused.
+Private, loopback, and link-local addresses are refused by default. When the
+user's instance lives on one (`http://matomo.internal:8080`,
+`http://192.168.1.20`, `http://localhost:8080`), tell them to name it in the
+`CLAUDE_SEO_LOCAL_TARGETS` allowlist:
+
+```bash
+export CLAUDE_SEO_LOCAL_TARGETS="matomo.internal:8080"
+```
+
+Entries are `host` or `host:port`, comma-separated, matched exactly. The
+allowlist covers only the top-level instance URL; redirect targets and every
+other host stay fail-closed, and cloud metadata addresses are refused even
+when listed. Never suggest disabling the guard or editing `url_safety.py`:
+the allowlist is the supported route. Details in
+`extensions/matomo/docs/MATOMO-SETUP.md` and SECURITY.md.
+
 ## Error Handling
 
+- Refused by the SSRF guard (error names `CLAUDE_SEO_LOCAL_TARGETS`): the
+  instance is on a private address that has not been allowlisted. Give the
+  user the exact export line from the error, which already carries the right
+  `host:port`.
+- Refused redirect: the instance answered a 30x pointing at another host.
+  `MATOMO_URL` is pointing at a redirector rather than at the Reporting API.
+  Ask the user for the URL their instance actually serves the API from.
 - Missing credentials: report which env vars / config keys are unset and
   remind the user to run `extensions/matomo/install.sh` or
   `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --setup`.

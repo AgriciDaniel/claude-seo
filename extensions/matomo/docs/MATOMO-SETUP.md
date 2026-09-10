@@ -40,13 +40,41 @@ with `0o600` permissions.
 4. Copy the generated `token_auth` (32 hex chars) — Matomo only shows
    it once at creation
 
-## Self-hosted instance notes
+## Self-hosted instance on a private address
 
-`MATOMO_URL` may point at `http://analytics.internal`,
-`https://matomo.lan.example.com`, or behind a reverse proxy on a private
-network. The script applies a light URL sanity check (scheme + host only)
-rather than the strict SSRF protection used for arbitrary web fetches,
-because self-hosted Matomo frequently lives outside the public internet.
+Every request to your Matomo instance goes through claude-seo's shared SSRF
+guard, the `url_safety` module: the instance URL is validated, its hostname is
+pinned to the validated address for the life of the request, and a redirect
+away from the instance is refused rather than followed.
+
+That guard refuses private, loopback, and link-local addresses by default, so
+an instance at `http://matomo.internal:8080`, `http://192.168.1.20`, or
+`http://localhost:8080` is refused until you say it is yours. Name it in the
+`CLAUDE_SEO_LOCAL_TARGETS` allowlist:
+
+```bash
+export CLAUDE_SEO_LOCAL_TARGETS="matomo.internal:8080"
+```
+
+Entries are `host` or `host:port`, comma-separated, matched exactly. A bare
+`host` matches any port on that host; `host:port` matches that port only.
+There is no wildcard, no range, and no "allow private" mode. To make it
+permanent, put the export in your shell profile or the `env` block of
+`~/.claude/settings.json`.
+
+The allowlist is deliberately narrow, and the narrowness is the point:
+
+- It is consulted only for the top-level instance URL. A redirect target or
+  any other host stays fail-closed, so a compromised or misconfigured Matomo
+  cannot use the allowlist to reach the rest of your network.
+- Cloud metadata endpoints (169.254.169.254, `metadata.google.internal`,
+  100.100.100.200, and their siblings) are refused even when listed.
+- Unset, claude-seo behaves exactly as it does without the feature.
+
+`extensions/matomo/install.sh` and `install.ps1` detect a private instance
+address at install time and print the exact line to add.
+
+Full semantics: [SECURITY.md](../../../SECURITY.md).
 
 If your Matomo instance requires a self-signed certificate, install its
 CA into the system trust store. The script uses `requests` defaults; it

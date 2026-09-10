@@ -22,9 +22,24 @@ main() {
     [ ! -d "${SKILL_DIR}/seo" ] && { echo "✗ claude-seo base not installed."; exit 1; }
 
     SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" >/dev/null 2>&1 && pwd)"
+    REPO_ROOT="$(cd "${SOURCE_DIR}/../.." >/dev/null 2>&1 && pwd)"
+    MATOMO_AUTH="${REPO_ROOT}/scripts/matomo_auth.py"
 
     read -rp "Matomo instance URL (e.g. https://analytics.example.com): " MATOMO_URL
     [ -z "${MATOMO_URL}" ] && { echo "✗ Matomo URL required."; exit 1; }
+
+    # Every Matomo request goes through the SSRF guard, which refuses private
+    # addresses unless they are named in CLAUDE_SEO_LOCAL_TARGETS. Tell the
+    # user now, with the exact host:port, rather than at the first failed call.
+    if [ -f "${MATOMO_AUTH}" ]; then
+        HINT="$(python3 "${MATOMO_AUTH}" --local-target-hint "${MATOMO_URL}" 2>/dev/null || true)"
+        if [ -n "${HINT}" ]; then
+            echo
+            echo "! ${MATOMO_URL} is on a private address."
+            echo "  ${HINT}"
+            echo
+        fi
+    fi
 
     read -rsp "Matomo API token_auth (32-char hex): " MATOMO_TOKEN
     echo

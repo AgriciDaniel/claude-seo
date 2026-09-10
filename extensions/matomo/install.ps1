@@ -11,6 +11,20 @@ $TokenPlain = [System.Net.NetworkCredential]::new("", $TokenSecure).Password
 if (-not $TokenPlain) { throw "Matomo token_auth required" }
 $SiteId = Read-Host "Default site ID (idSite, optional, e.g. 1)"
 $SourceDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$RepoRoot = Split-Path -Parent (Split-Path -Parent $SourceDir)
+$MatomoAuth = Join-Path $RepoRoot "scripts/matomo_auth.py"
+# Every Matomo request goes through the SSRF guard, which refuses private
+# addresses unless they are named in CLAUDE_SEO_LOCAL_TARGETS. Tell the user
+# now, with the exact host:port, rather than at the first failed call.
+if (Test-Path $MatomoAuth) {
+    $Hint = & python $MatomoAuth --local-target-hint $MatomoUrl 2>$null
+    if ($Hint) {
+        Write-Host ""
+        Write-Host "! $MatomoUrl is on a private address."
+        Write-Host "  $Hint"
+        Write-Host ""
+    }
+}
 $SkillTarget = Join-Path $SkillDir "seo-matomo"
 New-Item -ItemType Directory -Path $SkillTarget -Force | Out-Null
 Copy-Item (Join-Path $SourceDir "skills/seo-matomo/SKILL.md") (Join-Path $SkillTarget "SKILL.md") -Force

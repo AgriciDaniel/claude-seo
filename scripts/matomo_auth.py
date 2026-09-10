@@ -13,10 +13,14 @@ Usage:
 """
 
 import argparse
+import ipaddress
 import json
 import os
+import re
+import socket
 import sys
 from typing import Optional
+from urllib.parse import urlparse
 
 try:
     import requests
@@ -29,8 +33,28 @@ _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
+from url_safety import (  # noqa: E402  (path bootstrap must run first)
+    URLSafetyError,
+    is_safe_ip,
+    safe_requests_session,
+)
+
 CONFIG_PATH = os.path.expanduser("~/.config/claude-seo/matomo.json")
 DEFAULT_TIMEOUT = 15
+USER_AGENT = "ClaudeSEO/2.3.0"
+LOCAL_TARGETS_ENV = "CLAUDE_SEO_LOCAL_TARGETS"
+
+_SECRET_RE = re.compile(r"(token_auth|token|password)=[^\s&\"']+", re.IGNORECASE)
+
+
+def redact(text: str) -> str:
+    """Strip any ``token_auth=``/``token=``/``password=`` value from a string.
+
+    Applied to every message this module emits. The token travels in the POST
+    body, so it should never reach an exception string in the first place;
+    this is the belt to that braces.
+    """
+    return _SECRET_RE.sub(r"\1=<redacted>", str(text))
 
 
 def load_config() -> dict:
@@ -75,56 +99,157 @@ def load_config() -> dict:
     return config
 
 
-def _sanity_check_instance_url(url: str) -> Optional[str]:
-    """
-    Light sanity check for a user-configured Matomo instance URL.
+def _normalize_instance_url(url: str) -> Optional[str]:
+    """Shape-check and normalize a configured Matomo instance URL.
 
-    Intentionally does NOT use scripts/url_safety.validate_url(): self-hosted
-    Matomo instances frequently live on private networks, localhost, or
-    behind reverse proxies on internal IPs. Forcing SSRF protection would
-    block legitimate analytics setups. Instead we only enforce:
-
-    - non-empty
-    - http or https scheme
-    - non-empty host
-    - no userinfo in URL
+    Shape only: scheme, host, no userinfo, no trailing slash. Whether the
+    instance may actually be contacted is decided by ``url_safety`` at request
+    time (see :func:`instance_endpoint` and :func:`post_to_instance`), which is
+    the single place in claude-seo that reads
+    ``CLAUDE_SEO_LOCAL_TARGETS``. Deciding it here as well would put a second,
+    divergent SSRF policy in the tree.
 
     Returns:
-        Normalized URL (trailing slash trimmed) or None if invalid.
+        Normalized URL (trailing slash trimmed) or None if malformed.
     """
     if not url:
         return None
     url = url.strip()
     if not (url.startswith("http://") or url.startswith("https://")):
         return None
-    if "@" in url.split("//", 1)[-1].split("/", 1)[0]:
-        return None
-    host = url.split("//", 1)[-1].split("/", 1)[0]
-    if not host:
+    authority = url.split("//", 1)[-1].split("/", 1)[0]
+    if not authority or "@" in authority:
         return None
     return url.rstrip("/")
 
 
+def instance_endpoint(url: str) -> str:
+    """The Reporting API endpoint for a normalized instance URL."""
+    return f"{url.rstrip('/')}/index.php"
+
+
+def _local_targets_hint(endpoint: str) -> str:
+    """The one-line remedy for a self-hosted instance on a private address."""
+    parsed = urlparse(endpoint)
+    host = parsed.hostname or ""
+    port = parsed.port
+    target = f"{host}:{port}" if port else host
+    return (
+        f"A self-hosted Matomo on a private address is supported: add it to the "
+        f"{LOCAL_TARGETS_ENV} allowlist, for example "
+        f"{LOCAL_TARGETS_ENV}={target}. The allowlist is consulted only for this "
+        f"first, top-level URL; redirects and subresources stay fail-closed, and "
+        f"cloud metadata addresses are refused even when listed. See SECURITY.md."
+    )
+
+
+def resolves_to_private_address(url: str) -> bool:
+    """True when the instance URL's host resolves to a non-public address.
+
+    Used by the installers to decide whether to print the
+    ``CLAUDE_SEO_LOCAL_TARGETS`` hint. Best-effort: a host that does not
+    resolve at all is not reported as private.
+    """
+    normalized = _normalize_instance_url(url)
+    if not normalized:
+        return False
+    host = urlparse(normalized).hostname or ""
+    if not host:
+        return False
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        return not is_safe_ip(host)
+    try:
+        addrinfo = socket.getaddrinfo(host, None, family=socket.AF_INET,
+                                      type=socket.SOCK_STREAM)
+    except (OSError, UnicodeError):
+        return False
+    return any(not is_safe_ip(info[4][0]) for info in addrinfo)
+
+
+class MatomoRequestRefused(Exception):
+    """A request to the configured Matomo instance was refused before it left.
+
+    Raised for a URL ``url_safety`` will not allow (private address without the
+    allowlist, blocked hostname, failed DNS) and for a redirect away from the
+    instance. The message is always redacted.
+    """
+
+
+def post_to_instance(endpoint: str, data: dict,
+                     timeout: int = DEFAULT_TIMEOUT) -> "requests.Response":
+    """POST to a Matomo instance through url_safety's DNS-pinned session.
+
+    Every outbound request to the user's Matomo instance goes through here.
+    ``safe_requests_session`` validates the endpoint with
+    ``validate_url_strict`` (which consults ``CLAUDE_SEO_LOCAL_TARGETS`` for
+    this top-level URL) and pins the hostname to the validated address for the
+    life of the session, so the address cannot be re-bound between validation
+    and connect.
+
+    Redirects are refused rather than followed. The Reporting API answers a
+    POST with a JSON body; a 30x is either a misconfigured ``MATOMO_URL`` or an
+    attempt to pivot the pinned session onto another host, and the pin does not
+    extend to a redirect target. The error names the redirect target's host so
+    the user can point ``MATOMO_URL`` at the final URL themselves.
+
+    Raises:
+        MatomoRequestRefused: refused before or instead of a response.
+        requests.exceptions.RequestException: transport failures, which the
+            callers already map to their own error envelopes.
+    """
+    headers = {"User-Agent": USER_AGENT}
+    try:
+        with safe_requests_session(endpoint) as session:
+            resp = session.post(
+                endpoint,
+                data=data,
+                headers=headers,
+                timeout=timeout,
+                allow_redirects=False,
+            )
+    except URLSafetyError as exc:
+        message = redact(exc)
+        if resolves_to_private_address(endpoint):
+            message = f"{message}. {_local_targets_hint(endpoint)}"
+        raise MatomoRequestRefused(message) from None
+
+    if 300 <= resp.status_code < 400:
+        location = resp.headers.get("Location", "")
+        target_host = urlparse(location).hostname or "an unnamed target"
+        raise MatomoRequestRefused(
+            f"Matomo answered HTTP {resp.status_code} with a redirect to "
+            f"{target_host}. Redirects are not followed: the DNS pin covers "
+            f"only the configured instance. Set MATOMO_URL to the URL your "
+            f"instance actually serves the Reporting API from."
+        )
+    return resp
+
+
 def _probe_version(url: str, token: str, timeout: int = DEFAULT_TIMEOUT) -> dict:
     """
-    Light probe: hit ``API.getMatomoVersion`` over HTTPS POST.
+    Light probe: POST ``API.getMatomoVersion`` through the pinned helpers.
 
     Returns one of:
         {"ok": True, "version": "x.y.z"}
         {"ok": False, "status_code": int, "error": str}
     """
     try:
-        resp = requests.post(
-            f"{url}/index.php",
-            data={
+        resp = post_to_instance(
+            instance_endpoint(url),
+            {
                 "module": "API",
                 "method": "API.getMatomoVersion",
                 "format": "JSON",
                 "token_auth": token,
             },
             timeout=timeout,
-            headers={"User-Agent": "ClaudeSEO/2.2.5"},
         )
+    except MatomoRequestRefused as e:
+        return {"ok": False, "error": redact(e)}
     except requests.exceptions.Timeout:
         return {"ok": False, "error": f"timeout after {timeout}s"}
     except requests.exceptions.SSLError as e:
@@ -172,7 +297,7 @@ def check_credentials() -> dict:
     token = config.get("matomo_token")
     site_id = config.get("matomo_site_id")
 
-    url = _sanity_check_instance_url(raw_url)
+    url = _normalize_instance_url(raw_url)
     if not url:
         return {
             "available": False,
@@ -256,7 +381,7 @@ def detect_tier() -> dict:
 def get_matomo_url() -> Optional[str]:
     """Get the configured Matomo URL."""
     config = load_config()
-    return _sanity_check_instance_url(config.get("matomo_url"))
+    return _normalize_instance_url(config.get("matomo_url"))
 
 
 def get_matomo_token() -> Optional[str]:
@@ -313,11 +438,17 @@ TIER 1: MATOMO REPORTING API (one token, your own instance)
             organic search keywords (often "(not provided)" due to browser
             privacy headers and Matomo's keyword anonymization rules).
 
-  Note on self-hosted instances: MATOMO_URL may point to localhost, an
-  internal IP, or behind a reverse proxy on a private network. The script
-  applies a light URL sanity check (scheme + host only) rather than the
-  strict SSRF protection used for arbitrary web fetches, because self-hosted
-  Matomo instances frequently live outside the public internet.
+  Note on self-hosted instances: every request to your Matomo instance goes
+  through claude-seo's SSRF guard, which refuses private and loopback
+  addresses by default. If your instance lives on such an address, name it in
+  the CLAUDE_SEO_LOCAL_TARGETS allowlist:
+
+    export CLAUDE_SEO_LOCAL_TARGETS="matomo.internal:8080"
+
+  Entries are host or host:port, comma-separated, matched exactly. The
+  allowlist is consulted only for the top-level instance URL; redirects and
+  subresources stay fail-closed, and cloud metadata addresses are refused even
+  when listed. See SECURITY.md.
 
 VERIFY CONFIGURATION:
   "${{CLAUDE_PLUGIN_ROOT}}/scripts/claude-seo" run matomo_auth.py --check
@@ -349,8 +480,23 @@ def main() -> int:
         action="store_true",
         help="Output as JSON",
     )
+    parser.add_argument(
+        "--local-target-hint",
+        metavar="URL",
+        help=(
+            "Print the CLAUDE_SEO_LOCAL_TARGETS line needed to reach URL when it "
+            "resolves to a private address, and nothing otherwise. Used by the "
+            "extension installers."
+        ),
+    )
 
     args = parser.parse_args()
+
+    if args.local_target_hint:
+        url = _normalize_instance_url(args.local_target_hint)
+        if url and resolves_to_private_address(url):
+            print(_local_targets_hint(instance_endpoint(url)))
+        return 0
 
     if args.setup:
         print_setup_instructions()
