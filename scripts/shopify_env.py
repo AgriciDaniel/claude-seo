@@ -20,14 +20,14 @@ settings shared by every shop in the file:
     Signature       = sig1=:...:
     Signature-Agent = "https://shopify.com"      # optional, this is the default
 
-Lookup order: $SHOPIFY_ENV, then `.shopify-env` in the current directory and
-up to five parents. The file holds client credentials; keep it out of git.
+Lookup order: the file named by $SHOPIFY_ENV (any path), then `.shopify-env`
+in the current directory and up to five parents. The file holds client
+credentials; keep it out of git. No command prints the signature values.
 
 Usage:
     python shopify_env.py list [--json]
     python shopify_env.py check <url> [--json]
     python shopify_env.py precheck <url>
-    python shopify_env.py headers <url>
 """
 
 from __future__ import annotations
@@ -364,16 +364,6 @@ def cmd_precheck(args) -> int:
     return 0
 
 
-def cmd_headers(args) -> int:
-    """Print the three headers as JSON, or an empty object when none apply."""
-    _, entry, _ = lookup(args.url)
-    if not entry or not days_left(entry.get("expires")) > 0:
-        print("{}")
-        return 3
-    print(json.dumps(signature_headers(entry)))
-    return 0
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -391,10 +381,6 @@ def main(argv: list[str] | None = None) -> int:
     pre = sub.add_parser("precheck", help="decide signed vs fallback for an audit (always JSON, exit 0)")
     pre.add_argument("url")
     pre.set_defaults(func=cmd_precheck)
-
-    hdr = sub.add_parser("headers", help="print the signature headers for a URL as JSON")
-    hdr.add_argument("url")
-    hdr.set_defaults(func=cmd_headers)
 
     args = parser.parse_args(argv)
     return args.func(args)

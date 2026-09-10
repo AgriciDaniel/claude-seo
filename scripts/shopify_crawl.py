@@ -7,11 +7,13 @@ set comes from sitemap.xml instead of link following and no page cap is
 needed. When `.shopify-env` (see shopify_env.py) holds a Crawler Access
 signature for the target host, its three headers are attached to every
 request and the storefront lifts its rate limit. The signature is sent to
-that one host only.
+that one origin only.
 
 Every request goes through url_safety: the root is validated with
-validate_url_strict, the session is DNS-pinned, and redirects are recorded
-but never followed.
+validate_url_strict, DNS is pinned for the crawl, only URLs on the root's
+scheme and host are fetched, response bodies are read up to a byte limit,
+and redirects are recorded but never followed. The sitemap walk is bounded
+in depth, sitemap count and URL count.
 
 Outputs in --out:
     pages.jsonl   one record per URL (machine input; never hand this to a model)
@@ -40,6 +42,7 @@ import time
 from collections import Counter, defaultdict
 from html import unescape
 from pathlib import Path
+from typing import Callable
 from urllib.parse import urlparse
 from urllib.robotparser import RobotFileParser
 
@@ -64,6 +67,16 @@ BASE_HEADERS = {
     "Accept-Encoding": "gzip, deflate",
 }
 RATE_LIMIT_STATUSES = (429, 430, 503)
+
+# Bounds on what one crawl will read. Shopify's own sitemap index nests two
+# levels deep; the depth cap leaves room for a store that puts a proxy in
+# front of it without letting a hostile chain run forever.
+MAX_SITEMAP_DEPTH = 5
+MAX_SITEMAPS = 500
+MAX_DISCOVERED_URLS = 250_000
+MAX_ROBOTS_BYTES = 1024 * 1024
+MAX_SITEMAP_BYTES = 50 * 1024 * 1024
+MAX_PAGE_BYTES = 10 * 1024 * 1024
 
 # Shopify storefront URL shapes, in match order. Everything else is "page".
 TEMPLATE_PATTERNS = [
@@ -114,6 +127,19 @@ class RateLimitGovernor:
             time.sleep(self.delay)
 
 
+class Origin:
+    """The one scheme and host this crawl talks to."""
+
+    def __init__(self, scheme: str, authority: str):
+        self.scheme = scheme
+        self.authority = authority.lower()
+        self.root = f"{scheme}://{self.authority}"
+
+    def owns(self, url: str) -> bool:
+        parsed = urlparse(url)
+        return parsed.scheme == self.scheme and parsed.netloc.lower() == self.authority
+
+
 def classify(url: str) -> str:
     for name, pattern in TEMPLATE_PATTERNS:
         if pattern.search(url):
@@ -121,17 +147,46 @@ def classify(url: str) -> str:
     return "page"
 
 
-def headers_for(url: str, authority: str, sig_headers: dict | None) -> dict:
-    """Base headers, plus the signature only for the host it was issued for."""
+def headers_for(url: str, origin: Origin, sig_headers: dict | None) -> dict:
+    """Base headers, plus the signature only for the origin it was issued for.
+
+    Scheme is part of the check: an http:// entry for an https:// store would
+    otherwise carry the signature in cleartext."""
     headers = dict(BASE_HEADERS)
-    if sig_headers and urlparse(url).netloc.lower() == authority:
+    if sig_headers and origin.owns(url):
         headers.update(sig_headers)
     return headers
 
 
-def same_authority(url: str, authority: str) -> bool:
-    parsed = urlparse(url)
-    return parsed.scheme in ("http", "https") and parsed.netloc.lower() == authority
+def read_bounded(response, max_bytes: int) -> tuple[bytes, bool]:
+    """Read a streamed response up to max_bytes after decompression.
+
+    Returns (content, too_large). Mirrors sitemap_discovery._bounded_fetch so
+    a multi-megabyte body never lands in memory in full, times the crawl's
+    concurrency."""
+    chunks: list[bytes] = []
+    size = 0
+    too_large = False
+    try:
+        for chunk in response.iter_content(chunk_size=65536):
+            if not chunk:
+                continue
+            size += len(chunk)
+            if size > max_bytes:
+                too_large = True
+                break
+            chunks.append(chunk)
+    finally:
+        response.close()
+    return b"".join(chunks), too_large
+
+
+def decode_body(content: bytes, response) -> str:
+    encoding = response.encoding or "utf-8"
+    try:
+        return content.decode(encoding, errors="replace")
+    except LookupError:
+        return content.decode("utf-8", errors="replace")
 
 
 def sitemap_locs(content: bytes) -> tuple[str, list[str]]:
@@ -157,64 +212,86 @@ def sitemap_locs(content: bytes) -> tuple[str, list[str]]:
     return kind, locs
 
 
-def fetch_sitemap_urls(session, root: str, authority: str, governor: RateLimitGovernor,
+def fetch_sitemap_urls(session, origin: Origin, governor: RateLimitGovernor,
                        sig_headers: dict | None = None, target: int = 0,
-                       robots_text: str | None = None, log=print) -> list[str]:
-    """Walk sitemap.xml and sitemap indexes recursively, same authority only.
+                       robots_text: str | None = None, log=print) -> tuple[list[str], dict]:
+    """Walk sitemap.xml and sitemap indexes recursively, same origin only.
 
     `target` > 0 stops the walk once that many URLs are collected so a capped
-    crawl does not open every child sitemap of a large store.
+    crawl does not open every child sitemap of a large store. Independently
+    of `target`, the walk stops at MAX_SITEMAP_DEPTH, MAX_SITEMAPS and
+    MAX_DISCOVERED_URLS. Returns (urls, stats).
     """
     seen_maps: set[str] = set()
-    queue: list[str] = []
+    queue: list[tuple[str, int]] = []
     urls: list[str] = []
-    skipped_foreign = 0
+    stats = {"sitemaps_fetched": 0, "skipped_foreign": 0, "discovery_capped": None}
 
     if robots_text:
-        queue += re.findall(r"(?im)^\s*sitemap:\s*(\S+)", robots_text)
-    queue.append(f"{root}/sitemap.xml")
+        queue += [(loc, 1) for loc in re.findall(r"(?im)^\s*sitemap:\s*(\S+)", robots_text)]
+    queue.append((f"{origin.root}/sitemap.xml", 1))
 
     while queue:
         if target and len(urls) >= target:
             log(f"  stopping sitemap walk at {len(urls)} URLs ({len(queue)} sitemaps not opened)")
             break
-        current = queue.pop(0)
+        if stats["sitemaps_fetched"] >= MAX_SITEMAPS:
+            stats["discovery_capped"] = f"more than {MAX_SITEMAPS} sitemaps"
+            break
+        if len(urls) >= MAX_DISCOVERED_URLS:
+            stats["discovery_capped"] = f"more than {MAX_DISCOVERED_URLS} URLs"
+            break
+        current, depth = queue.pop(0)
         if current in seen_maps:
             continue
-        seen_maps.add(current)
-        if not same_authority(current, authority):
-            skipped_foreign += 1
+        if not origin.owns(current):
+            stats["skipped_foreign"] += 1
             continue
+        if depth > MAX_SITEMAP_DEPTH:
+            stats["discovery_capped"] = f"sitemap index nested deeper than {MAX_SITEMAP_DEPTH}"
+            break
+        seen_maps.add(current)
         try:
-            response = session.get(current, timeout=30, allow_redirects=False,
-                                   headers=headers_for(current, authority, sig_headers))
+            response = session.get(current, timeout=30, allow_redirects=False, stream=True,
+                                   headers=headers_for(current, origin, sig_headers))
         except requests.RequestException as exc:
             log(f"  sitemap failed {current}: {exc}")
             continue
+        stats["sitemaps_fetched"] += 1
         if response.status_code in RATE_LIMIT_STATUSES:
-            queue.append(current)
+            response.close()
+            queue.append((current, depth))
             seen_maps.discard(current)
             time.sleep(governor.penalize())
             continue
-        if response.status_code != 200 or not response.content.strip():
+        if response.status_code != 200:
+            response.close()
+            continue
+        content, too_large = read_bounded(response, MAX_SITEMAP_BYTES)
+        if too_large:
+            log(f"  sitemap skipped, larger than {MAX_SITEMAP_BYTES} bytes: {current}")
+            continue
+        if not content.strip():
             continue
         try:
-            kind, locs = sitemap_locs(response.content)
+            kind, locs = sitemap_locs(content)
         except (etree.XMLSyntaxError, ValueError):
             continue
         if kind == "sitemapindex":
-            queue += locs
+            queue += [(loc, depth + 1) for loc in locs]
         else:
             for loc in locs:
-                if same_authority(loc, authority):
+                if origin.owns(loc):
                     urls.append(loc)
                 else:
-                    skipped_foreign += 1
+                    stats["skipped_foreign"] += 1
         log(f"  {current}: {len(locs)} entries ({kind})")
 
-    if skipped_foreign:
-        log(f"  skipped {skipped_foreign} sitemap entries outside {authority}")
-    return list(dict.fromkeys(urls))
+    if stats["skipped_foreign"]:
+        log(f"  skipped {stats['skipped_foreign']} sitemap entries outside {origin.root}")
+    if stats["discovery_capped"]:
+        log(f"  discovery stopped: {stats['discovery_capped']}")
+    return list(dict.fromkeys(urls)), stats
 
 
 TAG_RE = re.compile(r"<(script|style|noscript|template)[^>]*>.*?</\1>", re.S | re.I)
@@ -270,15 +347,18 @@ def analyze_html(html: str) -> dict:
     }
 
 
-def crawl_one(session, url: str, authority: str, sig_headers: dict | None,
-              governor: RateLimitGovernor, timeout: int, save_html_dir: Path | None) -> dict:
-    headers = headers_for(url, authority, sig_headers)
+def crawl_one(session_for: Callable[[], requests.Session], url: str, origin: Origin,
+              sig_headers: dict | None, governor: RateLimitGovernor, timeout: int,
+              save_html_dir: Path | None) -> dict:
+    session = session_for()
+    headers = headers_for(url, origin, sig_headers)
     record: dict = {"url": url, "template": classify(url), "signed": bool(sig_headers)}
     for attempt in range(4):
         governor.wait()
         started = time.time()
         try:
-            response = session.get(url, headers=headers, timeout=timeout, allow_redirects=False)
+            response = session.get(url, headers=headers, timeout=timeout,
+                                   allow_redirects=False, stream=True)
         except requests.RequestException as exc:
             record["error"] = str(exc)
             time.sleep(1 + attempt)
@@ -290,6 +370,7 @@ def crawl_one(session, url: str, authority: str, sig_headers: dict | None,
             record["redirect_to"] = response.headers.get("Location")
 
         if response.status_code in RATE_LIMIT_STATUSES:
+            response.close()
             record["rate_limited"] = True
             time.sleep(governor.penalize())
             continue
@@ -300,10 +381,18 @@ def crawl_one(session, url: str, authority: str, sig_headers: dict | None,
         record["content_type"] = content_type
         record["html"] = response.status_code == 200 and "html" in content_type
         if record["html"]:
-            record.update(analyze_html(response.text))
+            content, too_large = read_bounded(response, MAX_PAGE_BYTES)
+            if too_large:
+                record["html"] = False
+                record["too_large"] = True
+                return record
+            text = decode_body(content, response)
+            record.update(analyze_html(text))
             if save_html_dir:
                 name = re.sub(r"[^A-Za-z0-9]+", "_", urlparse(url).path)[:120] or "index"
-                (save_html_dir / f"{name}.html").write_text(response.text, encoding="utf-8")
+                (save_html_dir / f"{name}.html").write_text(text, encoding="utf-8")
+        else:
+            response.close()
         return record
 
     record["failed"] = True
@@ -334,6 +423,7 @@ def summarize(records: list[dict]) -> dict:
         "html_documents": len(html_pages),
         "non_html_resources": len(ok) - len(html_pages),
         "redirects": sum(1 for r in records if r.get("redirect_to")),
+        "too_large": sum(1 for r in records if r.get("too_large")),
         "content_types": {str(k): v for k, v in Counter(r.get("content_type") for r in ok).most_common()},
         "status_distribution": {str(k): v for k, v in statuses.most_common()},
         "template_distribution": dict(by_template.most_common()),
@@ -390,6 +480,32 @@ def resolve_settings(args: argparse.Namespace, env: dict, entry: dict | None, si
             setattr(args, field, value)
 
 
+class ThreadSessions:
+    """One requests.Session per worker thread. Sessions are not documented as
+    thread-safe; DNS pinning is process-wide, so every session stays pinned."""
+
+    def __init__(self):
+        self._local = threading.local()
+        self._all: list[requests.Session] = []
+        self._lock = threading.Lock()
+
+    def get(self) -> requests.Session:
+        session = getattr(self._local, "session", None)
+        if session is None:
+            session = requests.Session()
+            session.headers.update(BASE_HEADERS)
+            self._local.session = session
+            with self._lock:
+                self._all.append(session)
+        return session
+
+    def close(self) -> None:
+        with self._lock:
+            for session in self._all:
+                session.close()
+            self._all.clear()
+
+
 def _log(message: str) -> None:
     print(message, file=sys.stderr)
 
@@ -421,8 +537,8 @@ def main(argv: list[str] | None = None) -> int:
         _log(f"Error: {exc}")
         return 1
     parsed = urlparse(norm_url)
-    root = f"{parsed.scheme}://{parsed.netloc}"
-    authority = parsed.netloc.lower()
+    origin = Origin(parsed.scheme, parsed.netloc)
+    authority = origin.authority
 
     env = shopify_env.load()
     if env["path"]:
@@ -457,21 +573,27 @@ def main(argv: list[str] | None = None) -> int:
         html_dir.mkdir(exist_ok=True)
 
     governor = RateLimitGovernor(args.delay)
-    with safe_requests_session(root) as session:
+    sessions = ThreadSessions()
+    with safe_requests_session(origin.root) as session:
         session.headers.update(BASE_HEADERS)
 
         robots_text = None
         try:
-            robots_response = session.get(f"{root}/robots.txt", timeout=15, allow_redirects=False,
-                                          headers=headers_for(f"{root}/robots.txt", authority, sig_headers))
+            robots_url = f"{origin.root}/robots.txt"
+            robots_response = session.get(robots_url, timeout=15, allow_redirects=False, stream=True,
+                                          headers=headers_for(robots_url, origin, sig_headers))
             if robots_response.status_code == 200:
-                robots_text = robots_response.text
+                content, too_large = read_bounded(robots_response, MAX_ROBOTS_BYTES)
+                if not too_large:
+                    robots_text = content.decode("utf-8", errors="replace")
+            else:
+                robots_response.close()
         except requests.RequestException:
             pass
 
-        _log(f"Discovering URLs from sitemaps of {root} ...")
-        urls = fetch_sitemap_urls(session, root, authority, governor, sig_headers=sig_headers,
-                                  target=args.max_pages, robots_text=robots_text, log=_log)
+        _log(f"Discovering URLs from sitemaps of {origin.root} ...")
+        urls, discovery = fetch_sitemap_urls(session, origin, governor, sig_headers=sig_headers,
+                                             target=args.max_pages, robots_text=robots_text, log=_log)
         if not urls:
             _log("Error: no sitemap URLs found. Shopify storefronts always expose /sitemap.xml; "
                  "check the host, or whether the store is password-protected.")
@@ -513,21 +635,24 @@ def main(argv: list[str] | None = None) -> int:
         write_lock = threading.Lock()
         mode = "a" if (args.resume and pages_file.exists()) else "w"
 
-        with pages_file.open(mode, encoding="utf-8") as sink:
-            with futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-                pending = {pool.submit(crawl_one, session, url, authority, sig_headers,
-                                       governor, args.timeout, html_dir): url for url in urls}
-                for index, future in enumerate(futures.as_completed(pending), 1):
-                    record = future.result()
-                    with write_lock:
-                        sink.write(json.dumps(record, ensure_ascii=False) + "\n")
-                        sink.flush()
-                    records.append(record)
-                    if index % progress_every == 0 or index == len(urls):
-                        elapsed = time.time() - started_at
-                        eta = elapsed / (index / len(urls)) - elapsed
-                        _log(f"  {index}/{len(urls)} ({index / len(urls):.0%}) ETA {eta / 60:.0f} min, "
-                             f"delay {governor.delay:.2f}s, {governor.hits} rate-limit hits")
+        try:
+            with pages_file.open(mode, encoding="utf-8") as sink:
+                with futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+                    pending = {pool.submit(crawl_one, sessions.get, url, origin, sig_headers,
+                                           governor, args.timeout, html_dir): url for url in urls}
+                    for index, future in enumerate(futures.as_completed(pending), 1):
+                        record = future.result()
+                        with write_lock:
+                            sink.write(json.dumps(record, ensure_ascii=False) + "\n")
+                            sink.flush()
+                        records.append(record)
+                        if index % progress_every == 0 or index == len(urls):
+                            elapsed = time.time() - started_at
+                            eta = elapsed / (index / len(urls)) - elapsed
+                            _log(f"  {index}/{len(urls)} ({index / len(urls):.0%}) ETA {eta / 60:.0f} min, "
+                                 f"delay {governor.delay:.2f}s, {governor.hits} rate-limit hits")
+        finally:
+            sessions.close()
 
     if args.resume and done:
         for line in pages_file.read_text(encoding="utf-8").splitlines():
@@ -542,7 +667,9 @@ def main(argv: list[str] | None = None) -> int:
     summary["authority"] = authority
     summary["signed"] = bool(sig_headers)
     summary["urls_discovered"] = discovered
-    summary["truncated"] = bool(args.max_pages) and discovered > summary["pages_crawled"]
+    summary["discovery_capped"] = discovery["discovery_capped"]
+    summary["truncated"] = bool(discovery["discovery_capped"]) or (
+        bool(args.max_pages) and discovered > summary["pages_crawled"])
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     (out_dir / "sample.json").write_text(
         json.dumps(stratified_sample(records, args.sample_per_template), indent=2, ensure_ascii=False),
