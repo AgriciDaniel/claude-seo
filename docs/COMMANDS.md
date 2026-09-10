@@ -678,7 +678,7 @@ Bing Webmaster Tools + IndexNow (extension). **Prerequisites:** Bing extension i
 
 ### `/seo matomo [command] [site-id]`
 
-Matomo Reporting API (extension). **Prerequisites:** Matomo extension installed (`./extensions/matomo/install.sh`) with `MATOMO_URL`, `MATOMO_API_TOKEN`, and optionally `MATOMO_SITE_ID`. Works against self-hosted Matomo or Matomo Cloud.
+Matomo Reporting API (extension). **Prerequisites:** Matomo extension installed (`./extensions/matomo/install.sh`), which writes the instance URL, API token, and optional default site ID to `~/.config/claude-seo/matomo.json` (0600). `MATOMO_URL`, `MATOMO_API_TOKEN`, and `MATOMO_SITE_ID` in the environment override the file. Works against self-hosted Matomo or Matomo Cloud; an instance on a private address must be named in `CLAUDE_SEO_LOCAL_TARGETS`.
 
 Use as a GA4 alternative or supplement when you want full data ownership, no Google dependency, or privacy-first analytics.
 ```

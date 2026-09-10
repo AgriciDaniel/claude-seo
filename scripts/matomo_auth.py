@@ -18,7 +18,9 @@ import json
 import os
 import re
 import socket
+import subprocess
 import sys
+import tempfile
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -39,6 +41,17 @@ from url_safety import (  # noqa: E402  (path bootstrap must run first)
     safe_requests_session,
 )
 
+try:
+    # Reuse the shared legacy-permission remediation helper rather than
+    # duplicating it. It is path/mode-generic, as backlinks_auth.py already
+    # relies on.
+    from google_auth import _chmod_quiet  # noqa: E402
+except ImportError as _import_exc:  # pragma: no cover - hard dependency
+    raise RuntimeError(
+        "scripts/google_auth.py is required alongside matomo_auth.py. "
+        "Install with: pip install -r requirements.txt"
+    ) from _import_exc
+
 CONFIG_PATH = os.path.expanduser("~/.config/claude-seo/matomo.json")
 DEFAULT_TIMEOUT = 15
 USER_AGENT = "ClaudeSEO/2.3.0"
@@ -55,6 +68,99 @@ def redact(text: str) -> str:
     this is the belt to that braces.
     """
     return _SECRET_RE.sub(r"\1=<redacted>", str(text))
+
+
+def _restrict_to_current_user_windows(path: str) -> None:
+    """Best-effort Windows ACL restriction to the current user (issue #290).
+
+    POSIX mode bits are meaningless on NTFS, so ``icacls`` is the closest
+    equivalent. Mirrors ``backlinks_auth._restrict_to_current_user_windows``;
+    failures are warnings, never fatal, and POSIX never reaches this function.
+    """
+    if os.name != "nt":
+        return
+    user = os.environ.get("USERNAME", "").strip()
+    if not user:
+        print(
+            f"Warning: USERNAME is not set; could not restrict {path} to the current user",
+            file=sys.stderr,
+        )
+        return
+    try:
+        result = subprocess.run(
+            ["icacls", path, "/inheritance:r", "/grant:r", f"{user}:F"],
+            check=False, capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout or "").strip()
+            print(
+                f"Warning: icacls could not restrict {path} to {user} "
+                f"(exit {result.returncode}): {detail}",
+                file=sys.stderr,
+            )
+    except Exception as exc:  # best-effort hardening only; never fatal
+        print(
+            f"Warning: could not restrict {path} to the current user via icacls: {exc}",
+            file=sys.stderr,
+        )
+
+
+def _write_secure_json(path: str, data: dict) -> None:
+    """Write ``data`` to ``path`` as 0600 JSON, atomically.
+
+    The permission half is ``backlinks_auth._write_secure_json``'s pattern:
+    pre-chmod an existing file (closes a legacy umask=022 window), create with
+    an explicit 0600 mode, then ``fchmod`` the open fd to force 0600 even if
+    the file pre-existed, which defeats the exists()/open() TOCTOU race. On
+    Windows, a best-effort ``icacls`` pass, since the mode bits are a no-op
+    there.
+
+    The atomic half is this file's addition: the token is written to a
+    same-directory temp file and ``os.replace``d into position, so a crash or
+    a concurrent reader never sees a half-written credential file, and a
+    failed write leaves the previous credentials intact rather than truncated.
+    The temp file is 0600 from creation, so the token is never world-readable
+    even for the instant it exists under the temp name.
+    """
+    directory = os.path.dirname(path) or "."
+    os.makedirs(directory, exist_ok=True)
+    if os.path.exists(path):
+        _chmod_quiet(path, 0o600)
+
+    fd, tmp = tempfile.mkstemp(dir=directory, prefix=".matomo.", suffix=".json")
+    try:
+        fchmod = getattr(os, "fchmod", None)
+        if fchmod is not None:
+            try:
+                fchmod(fd, 0o600)
+            except OSError:
+                pass  # FS may not support fchmod (some Windows filesystems)
+        with os.fdopen(fd, "w") as fh:
+            json.dump(data, fh, indent=2)
+            fh.flush()
+            os.fsync(fh.fileno())
+        _chmod_quiet(tmp, 0o600)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+    _restrict_to_current_user_windows(path)
+
+
+def save_config(config: dict) -> None:
+    """Persist Matomo credentials to CONFIG_PATH with hardened permissions.
+
+    Only the keys this module reads are written, and empty values are dropped
+    so an optional field left blank at install time does not shadow an
+    environment variable later.
+    """
+    payload = {k: v for k, v in config.items()
+               if k in ("matomo_url", "matomo_token", "matomo_site_id")
+               and v not in (None, "")}
+    _write_secure_json(CONFIG_PATH, payload)
 
 
 def load_config() -> dict:
@@ -74,6 +180,10 @@ def load_config() -> dict:
     }
 
     if os.path.exists(CONFIG_PATH):
+        # A file written by an older installer (or copied in by hand) may be
+        # world-readable; tighten it before reading the token out of it.
+        _chmod_quiet(CONFIG_PATH, 0o600)
+        _restrict_to_current_user_windows(CONFIG_PATH)
         try:
             with open(CONFIG_PATH, "r") as f:
                 file_config = json.load(f)

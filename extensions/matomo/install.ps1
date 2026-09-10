@@ -2,7 +2,6 @@ $ErrorActionPreference = "Stop"
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) { throw "Python 3 required" }
 $SkillDir = Join-Path $HOME ".claude/skills"
 $AgentsDir = Join-Path $HOME ".claude/agents"
-$SettingsJson = Join-Path $HOME ".claude/settings.json"
 if (-not (Test-Path (Join-Path $SkillDir "seo"))) { throw "claude-seo not installed" }
 $MatomoUrl  = Read-Host "Matomo instance URL (e.g. https://analytics.example.com)"
 if (-not $MatomoUrl) { throw "Matomo URL required" }
@@ -31,22 +30,32 @@ Copy-Item (Join-Path $SourceDir "skills/seo-matomo/SKILL.md") (Join-Path $SkillT
 $AgentTarget = Join-Path $AgentsDir "seo-matomo.md"
 New-Item -ItemType Directory -Path $AgentsDir -Force | Out-Null
 Copy-Item (Join-Path $SourceDir "agents/seo-matomo.md") $AgentTarget -Force
+# Credentials go to ~/.config/claude-seo/matomo.json (0600 on POSIX, an
+# icacls-restricted ACL on Windows), written atomically via os.replace, not
+# into ~/.claude/settings.json: settings.json is a general-purpose config file
+# that tooling reads, prints, and syncs, and an API token has no business in
+# it. matomo_auth.py still falls back to the MATOMO_* environment variables.
+if (-not (Test-Path $MatomoAuth)) { throw "$MatomoAuth not found" }
 $py = @"
-import json, os, sys, tempfile
-path, url, token, site = sys.argv[1:5]
-data = {}
-if os.path.exists(path):
-    try: data = json.load(open(path))
-    except: data = {}
-env = data.setdefault('env', {})
-env['MATOMO_URL'] = url
-env['MATOMO_API_TOKEN'] = token
-if site:
-    env['MATOMO_SITE_ID'] = site
-fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or '.', prefix='.settings.', suffix='.json')
-with os.fdopen(fd, 'w') as fh:
-    json.dump(data, fh, indent=2)
-os.replace(tmp, path)
+import importlib.util, sys
+
+# PowerShell 5.1 drops an empty string argument to a native command, so the
+# optional site ID may simply not arrive. Tolerate that rather than crashing
+# the installer after the token has already been typed.
+args = sys.argv[1:]
+auth_path, url, token = args[0], args[1], args[2]
+site = args[3] if len(args) > 3 else ""
+spec = importlib.util.spec_from_file_location('matomo_auth', auth_path)
+matomo_auth = importlib.util.module_from_spec(spec)
+sys.modules['matomo_auth'] = matomo_auth
+spec.loader.exec_module(matomo_auth)
+
+matomo_auth.save_config({
+    'matomo_url': url,
+    'matomo_token': token,
+    'matomo_site_id': site,
+})
+print('Wrote Matomo credentials to ' + matomo_auth.CONFIG_PATH)
 "@
-$py | python - $SettingsJson $MatomoUrl $TokenPlain $SiteId
-Write-Host "Done."
+$py | python - $MatomoAuth $MatomoUrl $TokenPlain $SiteId
+Write-Host "Done. MATOMO_URL / MATOMO_API_TOKEN / MATOMO_SITE_ID still override the file."

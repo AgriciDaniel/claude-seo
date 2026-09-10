@@ -12,7 +12,6 @@ set -euo pipefail
 main() {
     SKILL_DIR="${HOME}/.claude/skills"
     AGENTS_DIR="${HOME}/.claude/agents"
-    SETTINGS_JSON="${HOME}/.claude/settings.json"
 
     echo "════════════════════════════════════════"
     echo "║ Claude SEO — Matomo extension       ║"
@@ -56,30 +55,40 @@ main() {
     cp "${SOURCE_DIR}/agents/seo-matomo.md" "${AGENTS_DIR}/seo-matomo.md"
     echo "✓ Installed agent: ${AGENTS_DIR}/seo-matomo.md"
 
-    python3 - "${SETTINGS_JSON}" "${MATOMO_URL}" "${MATOMO_TOKEN}" "${MATOMO_SITE_ID}" <<'PY'
-import json, os, sys, tempfile
-path, url, token, site = sys.argv[1:5]
-data = {}
-if os.path.exists(path):
-    try: data = json.load(open(path))
-    except json.JSONDecodeError: data = {}
-env = data.setdefault("env", {})
-env["MATOMO_URL"] = url
-env["MATOMO_API_TOKEN"] = token
-if site:
-    env["MATOMO_SITE_ID"] = site
-fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=".settings.", suffix=".json")
-with os.fdopen(fd, "w") as fh:
-    json.dump(data, fh, indent=2)
-os.chmod(tmp, 0o600)
-os.replace(tmp, path)
-print(f"✓ Wrote MATOMO_* env to {path}")
+    # Credentials go to ~/.config/claude-seo/matomo.json (0600, atomic), not
+    # into ~/.claude/settings.json: settings.json is a general-purpose config
+    # file that tooling reads, prints, and syncs, and an API token has no
+    # business in it. matomo_auth.py still falls back to the MATOMO_*
+    # environment variables, which stays the right choice on a shared machine.
+    [ -f "${MATOMO_AUTH}" ] || { echo "✗ ${MATOMO_AUTH} not found."; exit 1; }
+    python3 - "${MATOMO_AUTH}" "${MATOMO_URL}" "${MATOMO_TOKEN}" "${MATOMO_SITE_ID}" <<'PY'
+import importlib.util, sys
+
+# PowerShell 5.1 drops an empty string argument to a native command, so the
+# optional site ID may simply not arrive. Tolerate that rather than crashing
+# the installer after the token has already been typed.
+args = sys.argv[1:]
+auth_path, url, token = args[0], args[1], args[2]
+site = args[3] if len(args) > 3 else ""
+spec = importlib.util.spec_from_file_location("matomo_auth", auth_path)
+matomo_auth = importlib.util.module_from_spec(spec)
+sys.modules["matomo_auth"] = matomo_auth
+spec.loader.exec_module(matomo_auth)
+
+matomo_auth.save_config({
+    "matomo_url": url,
+    "matomo_token": token,
+    "matomo_site_id": site,
+})
+print("✓ Wrote Matomo credentials to " + matomo_auth.CONFIG_PATH + " (0600)")
 PY
 
     echo
     echo "Done. Verify with:"
     echo "  \"\${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo\" run matomo_auth.py --check"
     echo "  \"\${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo\" run matomo_report.py check --json"
+    echo "Credentials live in ~/.config/claude-seo/matomo.json (0600)."
+    echo "MATOMO_URL / MATOMO_API_TOKEN / MATOMO_SITE_ID still override the file."
     echo "Full docs: extensions/matomo/docs/MATOMO-SETUP.md"
 }
 main "$@"

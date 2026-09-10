@@ -18,7 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Response parsing is verified live against Matomo 5, including array-shaped
   DataTables, count-based bounce fields, `Referrers.getReferrerType` naming,
   and locale-independent anonymized-keyword detection via the row `segment`
-  field. (#275)
+  field. Credentials live in `~/.config/claude-seo/matomo.json` (0600, written
+  atomically), with the `MATOMO_URL` / `MATOMO_API_TOKEN` / `MATOMO_SITE_ID`
+  environment variables still taking precedence. Every request to the instance
+  goes through `url_safety`'s DNS-pinned helpers; a self-hosted instance on a
+  private address is reached by naming it in `CLAUDE_SEO_LOCAL_TARGETS`, which
+  both installers print at install time, and a redirect away from the instance
+  is refused rather than followed. (#275)
 
 ### Changed
 

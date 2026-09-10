@@ -3,7 +3,7 @@ name: seo-matomo
 description: Matomo Reporting API extension. Self-hosted or Matomo Cloud analytics as a GA4 alternative or complement. Organic traffic, landing pages, device / country breakdowns, referrers, search keywords. Triggers on "Matomo", "self-hosted analytics", "analytics ohne Google", "GA4 alternative", "Matomo Reporting", "Piwik".
 metadata:
   version: "2.3.0"
-compatibility: "Requires MATOMO_URL, MATOMO_API_TOKEN, and (optionally) MATOMO_SITE_ID in ~/.claude/settings.json env. Run extensions/matomo/install.sh to configure."
+compatibility: "Requires a Matomo instance URL and API token in ~/.config/claude-seo/matomo.json (0600), or MATOMO_URL / MATOMO_API_TOKEN / MATOMO_SITE_ID in the environment. Run extensions/matomo/install.sh to configure."
 ---
 
 # seo-matomo

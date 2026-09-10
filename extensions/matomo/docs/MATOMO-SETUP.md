@@ -26,9 +26,21 @@ You'll be prompted for:
 - Default `idSite` (optional, e.g. `1`) — saves having to pass
   `--site-id` on every call
 
-The installer writes `MATOMO_URL`, `MATOMO_API_TOKEN`, and
-`MATOMO_SITE_ID` (if set) to `~/.claude/settings.json` under `env`
-with `0o600` permissions.
+The installer writes them to `~/.config/claude-seo/matomo.json` with `0600`
+permissions, atomically (temp file plus rename, so a crash never leaves a
+half-written or truncated credential file). This is the same location and the
+same guarded write pattern the `backlinks_auth` module uses for the Moz and
+Bing keys. The token is deliberately kept out of `~/.claude/settings.json`,
+which is a general-purpose config file that tooling reads, prints, and syncs.
+
+Environment variables still take precedence for any field the file does not
+supply, and remain the right choice on a shared machine or in CI:
+
+```bash
+export MATOMO_URL="https://analytics.example.com"
+export MATOMO_API_TOKEN="...32 hex..."
+export MATOMO_SITE_ID="1"
+```
 
 ## Token setup checklist
 
@@ -108,13 +120,18 @@ have both GA4 and Matomo configured.
 ./extensions/matomo/uninstall.sh
 ```
 
+This removes the skill, the agent, and
+`~/.config/claude-seo/matomo.json`, and clears any `MATOMO_*` entries a
+pre-v2.4.0 installer had left in `~/.claude/settings.json`.
+
 PowerShell manual removal:
 
 ```powershell
 Remove-Item -Recurse -Force "$HOME\.claude\skills\seo-matomo"
 Remove-Item -Force "$HOME\.claude\agents\seo-matomo.md"
-notepad "$HOME\.claude\settings.json"
+Remove-Item -Force "$HOME\.config\claude-seo\matomo.json"
 ```
 
-In `settings.json`, remove `MATOMO_URL`, `MATOMO_API_TOKEN`, and
-`MATOMO_SITE_ID` from the top-level `env` object.
+If you installed a pre-v2.4.0 build, also open `~/.claude/settings.json` and
+remove `MATOMO_URL`, `MATOMO_API_TOKEN`, and `MATOMO_SITE_ID` from the
+top-level `env` object.
