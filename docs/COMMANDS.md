@@ -676,6 +676,27 @@ Bing Webmaster Tools + IndexNow (extension). **Prerequisites:** Bing extension i
 
 ---
 
+### `/seo matomo [command] [site-id]`
+
+Matomo Reporting API (extension). **Prerequisites:** Matomo extension installed (`./extensions/matomo/install.sh`), which writes the instance URL, API token, and optional default site ID to `~/.config/claude-seo/matomo.json` (0600). `MATOMO_URL`, `MATOMO_API_TOKEN`, and `MATOMO_SITE_ID` in the environment override the file. Works against self-hosted Matomo or Matomo Cloud; an instance on a private address must be named in `CLAUDE_SEO_LOCAL_TARGETS`.
+
+Use as a GA4 alternative or supplement when you want full data ownership, no Google dependency, or privacy-first analytics.
+```
+/seo matomo check                  # Probe credentials and confirm Matomo version
+/seo matomo organic [site-id]      # Organic traffic trend (28d) + top landing pages
+/seo matomo top-pages              # Top organic landing pages only
+/seo matomo device                 # Visits by device type
+/seo matomo country                # Visits by country
+/seo matomo referrers              # Channel + search-engine breakdown
+/seo matomo keywords               # Organic search keywords (often "(not provided)")
+```
+
+All commands accept `--days` (default 28), `--limit` (default 50),
+`--site-id`, and `--json`. The audit orchestrator spawns the
+`seo-matomo` agent automatically when credentials are present.
+
+---
+
 ### `/seo profound [command] <brand>`
 
 LLM brand-citation tracking via Profound (extension). **Prerequisites:** Profound extension installed.
@@ -745,4 +766,5 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 | `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
+| `/seo matomo [command] [args]` | Matomo Reporting API: GA4 alternative or complement (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |

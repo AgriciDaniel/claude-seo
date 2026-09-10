@@ -87,3 +87,31 @@ def test_flow_lock_still_detects_content_change(tmp_path, monkeypatch):
     assert consistency_check.check_flow_lock(locked) == [
         f"flow lock: hash mismatch {locked[0]}"
     ]
+
+
+def test_agent_refs_resolve_inside_an_extension_tree():
+    """An extension-supplied agent is a live reference, not a dead one.
+
+    ``seo-matomo`` ships only at ``extensions/matomo/agents/seo-matomo.md``
+    (no core mirror, unlike ``seo-dataforseo``). Its installer copies it into
+    ``~/.claude/agents/``, so the installers' ``agents/seo-matomo.md``
+    mentions must resolve. Before this rule was path-aware, all three Matomo
+    installer scripts were reported as dead agent refs.
+    """
+    files = ["agents/seo-technical.md", "extensions/matomo/agents/seo-matomo.md"]
+    texts = ["extensions/matomo/install.sh"]
+    assert consistency_check.check_agent_refs(files, texts) == []
+
+
+def test_agent_refs_still_catch_a_genuinely_missing_agent():
+    files = ["agents/seo-technical.md", "extensions/matomo/agents/seo-matomo.md"]
+    errors = consistency_check.check_agent_refs(files, ["extensions/matomo/uninstall.sh"])
+    assert errors == []
+    # A name that exists in neither tree is still an error.
+    original = consistency_check.read
+    try:
+        consistency_check.read = lambda rel, **kw: "see agents/seo-nonexistent.md"
+        errors = consistency_check.check_agent_refs(files, ["docs/COMMANDS.md"])
+    finally:
+        consistency_check.read = original
+    assert errors == ["docs/COMMANDS.md: dead agent ref agents/seo-nonexistent.md"]

@@ -24,6 +24,7 @@ Optional extensions make API calls to third-party services when you invoke their
 | **SE Ranking** | seranking.com/api | Domains and keywords you analyze | [SE Ranking Privacy](https://seranking.com/privacy-policy) |
 | **Profound** | Profound API (tryprofound.com) | Brands and domains you track | [Profound Privacy](https://tryprofound.com/privacy) |
 | **Bing Webmaster / IndexNow** | Bing Webmaster Tools API and IndexNow endpoints | Domains, submitted URLs, and key-verification URL data | [Microsoft Privacy](https://privacy.microsoft.com/) |
+| **Matomo** | Your own Matomo instance (self-hosted or Matomo Cloud) — no claude-seo vendor is contacted | `idSite`, the report parameters (method, period, date range, segment, row limit), and `token_auth` in the POST body | [Matomo Privacy](https://matomo.org/privacy-policy/) (Cloud); self-hosted = your own policy |
 | **Unlighthouse** | Local only — no third-party vendor | Runs Lighthouse locally against the target URL; only the target site is contacted (to crawl it). Nothing is sent to a third-party vendor. | N/A (runs locally) |
 
 ## Backlink APIs
@@ -38,6 +39,27 @@ When configured with backlink API credentials, these scripts transmit data to th
 | `indexnow_submit.py` | IndexNow endpoints (Bing / Yandex / Seznam / Naver) | URLs submitted and key-verification URL data | Endpoint provider policies |
 | `commoncrawl_graph.py` | Common Crawl | Domains (public dataset query) | [Common Crawl Terms](https://commoncrawl.org/terms-of-use) |
 | `verify_backlinks.py` | Target URLs directly | URLs to verify backlink existence | N/A (direct HTTP requests) |
+
+## Matomo Reporting API
+
+When configured with Matomo credentials, these scripts transmit data to the
+configured Matomo instance (self-hosted or Matomo Cloud):
+
+| Script | Endpoint | Data Sent |
+|--------|----------|-----------|
+| `matomo_auth.py` | The configured `MATOMO_URL` | `API.getMatomoVersion` probe; `token_auth` in the POST body, never in a URL, never logged |
+| `matomo_report.py` | The configured `MATOMO_URL` | Reporting API queries for the configured `idSite`: method name, period, date range, segment, and row limit; `token_auth` in the POST body, never in a URL, never logged |
+
+The endpoint is the instance you configured and nothing else. No claude-seo
+vendor, telemetry endpoint, or third party sees any of it, and the URLs of the
+site you analyze are read back from your own Matomo, not sent to it.
+
+Both scripts reach the instance through `scripts/url_safety.py`, the same
+SSRF-guarded, DNS-pinned path as every other outbound request in claude-seo.
+A self-hosted instance on a private address is reached by naming it in the
+`CLAUDE_SEO_LOCAL_TARGETS` allowlist; redirects away from the instance are
+refused rather than followed. See SECURITY.md and
+`extensions/matomo/docs/MATOMO-SETUP.md`.
 
 ## Google SEO APIs
 

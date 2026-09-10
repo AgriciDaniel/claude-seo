@@ -20,6 +20,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 AUDIT_SKILL = ROOT / "skills" / "seo-audit" / "SKILL.md"
 AGENTS_DIR = ROOT / "agents"
+EXTENSION_AGENTS_GLOB = "extensions/*/agents"
 
 EARLY_WRITE_SENTENCE = (
     "write a partial findings\nfile after the first analysis pass and overwrite it with the complete findings\nbefore finishing, so a turn-budget stop never loses completed work"
@@ -34,6 +35,21 @@ def _discover_audit_agents() -> set[str]:
     return set(re.findall(r"`(seo-[a-z-]+)`", text))
 
 
+def _agent_path(name: str) -> Path:
+    """Resolve an audit subagent to its file, core tree first, then extensions.
+
+    Extension-supplied agents (``seo-matomo``) ship under
+    ``extensions/<name>/agents/`` and are installed into ``~/.claude/agents/``
+    by the extension installer, so they carry the same turn-budget and
+    early-write obligations as the core agents the orchestrator spawns.
+    """
+    core = AGENTS_DIR / f"{name}.md"
+    if core.is_file():
+        return core
+    matches = sorted(ROOT.glob(f"{EXTENSION_AGENTS_GLOB}/{name}.md"))
+    return matches[0] if matches else core
+
+
 def test_audit_skill_still_names_the_known_subagent_set():
     # Locks the known set so a future addition/removal to seo-audit's
     # delegation list is a deliberate, reviewed change.
@@ -41,7 +57,7 @@ def test_audit_skill_still_names_the_known_subagent_set():
         "seo-technical", "seo-content", "seo-schema", "seo-sitemap",
         "seo-performance", "seo-visual", "seo-geo", "seo-local", "seo-maps",
         "seo-google", "seo-backlinks", "seo-cluster", "seo-sxo", "seo-drift",
-        "seo-ecommerce", "seo-dataforseo",
+        "seo-ecommerce", "seo-dataforseo", "seo-matomo",
     }
 
 
@@ -55,7 +71,7 @@ def test_every_audit_agent_has_a_turn_budget_at_least_30():
     assert agents, "expected at least one audit subagent"
     failures = []
     for name in sorted(agents):
-        path = AGENTS_DIR / f"{name}.md"
+        path = _agent_path(name)
         assert path.is_file(), f"missing agent file for {name}"
         turns = _max_turns(path.read_text(encoding="utf-8"))
         if turns is None or turns < MIN_MAX_TURNS:
@@ -75,7 +91,7 @@ def test_named_reporters_agents_have_at_least_40_turns():
 def test_every_audit_agent_has_the_early_write_instruction():
     missing = []
     for name in sorted(_discover_audit_agents()):
-        text = (AGENTS_DIR / f"{name}.md").read_text(encoding="utf-8")
+        text = _agent_path(name).read_text(encoding="utf-8")
         if EARLY_WRITE_SENTENCE not in text:
             missing.append(name)
     assert not missing, f"agents missing the early-write instruction: {missing}"
