@@ -1,10 +1,8 @@
 ---
 name: seo-page
 description: >
-  Deep single-page SEO analysis covering on-page elements, content quality,
-  technical meta tags, schema, images, and performance. Use when user says
-  "analyze this page", "check page SEO", "single URL", "check this page",
-  "page analysis", or provides a single URL for review.
+  Analyze one supplied URL across on-page, content, technical metadata, schema,
+  images, and performance. Use only for a single-page review.
 user-invocable: true
 argument-hint: "[url]"
 license: MIT

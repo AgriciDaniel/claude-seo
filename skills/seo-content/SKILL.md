@@ -1,11 +1,10 @@
 ---
 name: seo-content
 description: >
-  Content quality and E-E-A-T analysis with AI citation readiness assessment,
-  plus last-mile draft cleanup (AI-typical phrasing and invisible Unicode
-  watermark characters). Use when user says "content quality", "E-E-A-T",
-  "content analysis", "readability check", "thin content", "content audit",
-  "humanize", "AI phrasing", "remove watermarks", or "invisible characters".
+  Evaluate page content for usefulness, E-E-A-T, readability, thinness, and AI
+  citation readiness, plus last-mile draft cleanup (AI-typical phrasing and
+  invisible Unicode watermark characters). Use for content-only analysis, not
+  full-page technical checks.
 user-invocable: true
 argument-hint: "[url]"
 license: MIT

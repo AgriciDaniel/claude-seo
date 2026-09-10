@@ -1,13 +1,9 @@
 ---
 name: seo-local
 description: >
-  Local SEO analysis covering Google Business Profile optimization, NAP
-  consistency, citation health, review signals, local schema markup,
-  location page quality, multi-location SEO, and industry-specific
-  recommendations. Detects business type (brick-and-mortar, SAB, hybrid)
-  and industry vertical. Use when user says "local SEO", "Google Business
-  Profile", "GBP", "map pack", "local pack", "citations", "NAP
-  consistency", "service area", or "multi-location".
+  Audit local SEO, including Google Business Profile, NAP consistency,
+  citations, reviews, local schema, location pages, and multi-location
+  structure.
 user-invocable: true
 argument-hint: "[url]"
 license: MIT

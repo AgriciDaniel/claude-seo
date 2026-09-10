@@ -1,9 +1,8 @@
 ---
 name: seo-schema
 description: >
-  Detect, validate, and generate Schema.org structured data. JSON-LD format
-  preferred. Use when user says "schema", "structured data", "rich results",
-  "JSON-LD", or "markup".
+  Detect, validate, or generate Schema.org JSON-LD for a supplied page or
+  entity. Use only when structured data or rich-result markup is requested.
 user-invocable: true
 argument-hint: "[url]"
 license: MIT

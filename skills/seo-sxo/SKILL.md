@@ -1,12 +1,9 @@
 ---
 name: seo-sxo
 description: >
-  Search Experience Optimization: reads Google SERPs backwards to detect page-type
-  mismatches, derives user stories from search intent signals, and scores pages
-  from multiple persona perspectives. Identifies why well-optimized pages fail
-  to rank by analyzing what Google rewards for each keyword. Use when user says
-  "SXO", "search experience", "page type mismatch", "SERP analysis", "user story",
-  "persona scoring", "why isn't my page ranking", "intent mismatch", or "wireframe".
+  Diagnose search-experience and intent mismatches using SERP page types, user
+  stories, and persona scoring. Use when ranking problems appear intent- or
+  layout-driven.
 user-invocable: true
 argument-hint: "<url> [keyword]"
 license: MIT
