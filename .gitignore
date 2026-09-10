@@ -40,6 +40,7 @@ env/
 **/service_account*.json
 **/oauth-token.json
 **/.google-token.json
+**/.shopify-env
 
 # Node (if any)
 node_modules/
