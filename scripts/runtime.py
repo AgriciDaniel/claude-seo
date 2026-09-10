@@ -43,6 +43,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "parasite_risk.py", "parse_html.py", "preload_check.py", "render_page.py",
         "portability_check.py", "consistency_check.py",
         "schema_ecommerce_validate.py", "schema_generate.py", "seo_updates.py",
+        "shopify_crawl.py", "shopify_env.py",
         "sitemap_discovery.py", "sync_flow.py", "ucp_check.py", "unlighthouse_run.py",
         "url_safety.py", "validate_backlink_report.py", "verify_backlinks.py",
         "youtube_search.py",

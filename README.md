@@ -179,6 +179,7 @@ claude
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo shopify [crawl\|check] <url>` | Uncapped signed crawl of a Shopify store you administer via Crawler Access (extension) |
 
 ## Features
 
@@ -421,6 +422,16 @@ Five extensions added in Phase E:
 - **Unlighthouse:** MIT-licensed multi-page Lighthouse runner
 
 Setup walkthroughs live under `extensions/<name>/docs/`; integration notes: [docs/MCP-INTEGRATION.md](docs/MCP-INTEGRATION.md).
+
+### Shopify Crawler Access
+
+Shopify rate-limits storefront crawling and `seo-audit` caps its link crawl at 500
+pages. For a store you administer, mint a Crawler Access signature in the Shopify
+admin (Online Store > Preferences > Crawler access), put it in a project-local
+`.shopify-env`, and `/seo shopify <url>` crawls the complete sitemap with no page cap and
+no storefront rate limiting before handing the artifacts to the audit pipeline. No API
+keys; the credential stays in your project folder and is git-ignored.
+Setup: [extensions/shopify/docs/SHOPIFY-SETUP.md](extensions/shopify/docs/SHOPIFY-SETUP.md).
 
 ## Ecosystem
 

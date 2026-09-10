@@ -59,6 +59,7 @@ extension is also installable (see "Optional Extensions" below).
 | `/seo firecrawl [command] <url>` | Full-site crawling and site mapping (extension) |
 | `/seo dataforseo [command]` | Live SEO data via DataForSEO (extension) |
 | `/seo image-gen [use-case] <description>` | AI image generation for SEO assets (extension) |
+| `/seo shopify [crawl\|check] <url>` | Uncapped signed crawl of a Shopify store you administer, then the audit pipeline (extension) |
 | `/seo flow [stage] [url\|topic]` | FLOW framework: evidence-led prompts for Find, Leverage, Optimize, Win, or Local stages |
 | `/seo setup` | Explicitly create or refresh the isolated Python runtime and Chromium |
 | `/seo doctor` | Check runtime readiness without changing the system |
@@ -254,7 +255,7 @@ installer to activate (see each extension's `install.sh`/`install.ps1`):
 
 All optional extensions are reachable through `/seo` subcommands once
 installed: firecrawl, dataforseo, and image-gen, plus `/seo ahrefs`,
-`/seo bing`, `/seo profound`, `/seo seranking`, and `/seo unlighthouse`.
+`/seo bing`, `/seo profound`, `/seo seranking`, `/seo shopify`, and `/seo unlighthouse`.
 Each installs as its own sub-skill, so the model also auto-routes to their
 descriptions without the `/seo` prefix.
 

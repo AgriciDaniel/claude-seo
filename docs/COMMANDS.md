@@ -711,11 +711,23 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 
 ---
 
+### `/seo shopify [crawl|check] <url>`
+
+Uncapped, sitemap-complete crawl of a Shopify store you administer, signed with the store's Crawler Access signature from a project-local `.shopify-env`, then the `seo-audit` pipeline on the crawl artifacts (extension, no API keys). Without a valid signature for the host, `seo-audit` runs unchanged. **Prerequisites:** a signature from the Shopify admin (Online Store > Preferences > Crawler access) in `.shopify-env` (`./extensions/shopify/install.sh`, see `extensions/shopify/docs/SHOPIFY-SETUP.md`).
+```
+/seo shopify https://shop.example              # precheck, signed crawl, full audit
+/seo shopify crawl https://shop.example        # crawl only, artifacts in ./crawl
+/seo shopify check https://shop.example        # is there a valid signature for this host?
+```
+
+---
+
 ## Quick Reference
 
 | Command | Use Case |
 |---------|----------|
 | `/seo audit <url>` | Full website audit with parallel subagents |
+| `/seo shopify <url>` | Uncapped signed crawl of a Shopify store you administer, then the audit (extension) |
 | `/seo page <url>` | Single page analysis |
 | `/seo technical <url>` | Technical SEO across 9 categories |
 | `/seo content <url>` | E-E-A-T and content quality |

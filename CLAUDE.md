@@ -149,6 +149,7 @@ claude-seo/
     profound/                    # Profound MCP install scripts
     seranking/                   # SE Ranking MCP install scripts
     unlighthouse/                # Unlighthouse install scripts
+    shopify/                     # Shopify Crawler Access crawl extension (no MCP)
   docs/                            # Extended documentation
 ```
 
