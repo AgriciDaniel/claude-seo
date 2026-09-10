@@ -16,7 +16,7 @@ metadata:
 
 1. **Render homepage**: use `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run render_page.py <url> --mode auto --json` to capture raw HTML, rendered HTML, extracted text, SPA status, and accessibility data when needed
 2. **Detect business type**: analyze homepage signals per seo orchestrator
-3. **Crawl site**: follow internal links up to 500 pages, respect robots.txt
+3. **Crawl site**: follow internal links up to 500 pages, respect robots.txt. For a Shopify storefront whose host has a Crawler Access signature in `.shopify-env` (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run shopify_env.py precheck <url>` reports `"mode": "signed"`), crawl with the `seo-shopify` extension instead: uncapped, sitemap-complete, and its `summary.json` and `sample.json` replace the link crawl as subagent input
 4. **Delegate to subagents** (if available, otherwise run inline sequentially):
    - `seo-technical` -- robots.txt, sitemaps, canonicals, Core Web Vitals, security headers
    - `seo-content` -- E-E-A-T, readability, thin content, AI citation readiness
