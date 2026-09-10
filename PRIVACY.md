@@ -26,6 +26,7 @@ Optional extensions make API calls to third-party services when you invoke their
 | **Bing Webmaster / IndexNow** | Bing Webmaster Tools API and IndexNow endpoints | Domains, submitted URLs, and key-verification URL data | [Microsoft Privacy](https://privacy.microsoft.com/) |
 | **Matomo** | Your own Matomo instance (self-hosted or Matomo Cloud); no claude-seo vendor is contacted | `idSite`, the report parameters (method, period, date range, segment, row limit), and `token_auth` in the POST body | [Matomo Privacy](https://matomo.org/privacy-policy/) (Cloud); self-hosted = your own policy |
 | **Unlighthouse** | Local only — no third-party vendor | Runs Lighthouse locally against the target URL; only the target site is contacted (to crawl it). Nothing is sent to a third-party vendor. | N/A (runs locally) |
+| **Shopify Crawler Access** | Local only — no third-party vendor | Crawls the target Shopify storefront directly. The merchant's Crawler Access signature from `.shopify-env` is sent only to the storefront host it was issued for and is never written to the crawl artifacts or printed. Nothing is sent to a third-party vendor. | N/A (runs locally) |
 
 ## Backlink APIs
 

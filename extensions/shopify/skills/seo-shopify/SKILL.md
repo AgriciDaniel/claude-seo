@@ -2,7 +2,7 @@
 name: seo-shopify
 description: "Uncapped, sitemap-complete crawl of a Shopify storefront using the merchant's Crawler Access signature from a project-local .shopify-env, feeding the standard seo-audit pipeline. Use when the user says 'Shopify audit', 'crawl the whole store', 'Crawler access', 'signature-agent', 'web-bot-auth', 'rate limited while crawling', or audits a host listed in .shopify-env."
 metadata:
-  version: "2.2.6"
+  version: "2.3.0"
 compatibility: "Requires a Shopify store the user administers (the signature is minted in the store's admin) and a .shopify-env file in the folder the audit runs from. Without it, seo-audit runs unchanged."
 ---
 
@@ -80,7 +80,9 @@ Large stores: the crawl is resumable (`--resume`). If it was interrupted, resume
 instead of auditing a partial crawl.
 
 Defaults: no page limit; concurrency 6 and a 0.2 s delay when signed, 2 and 1 s
-unsigned; robots.txt respected; redirects recorded, not followed. Precedence is
+unsigned; robots.txt respected; redirects recorded, not followed; bodies read up to
+10 MiB per page and the sitemap walk bounded at 5 levels, 500 sitemaps and 250,000
+URLs (`discovery_capped` in `summary.json` names the cap that was hit). Precedence is
 command line > domain block > global keys > these defaults. Useful flags:
 `--include`/`--exclude` (regex), `--save-html`, `--sample-per-template N`,
 `--no-signature` to measure the unsigned baseline.
