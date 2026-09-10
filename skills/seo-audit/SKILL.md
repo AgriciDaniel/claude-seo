@@ -175,7 +175,7 @@ If Google API credentials are configured (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude
 
 ## Matomo Integration (Optional)
 
-If Matomo credentials are configured (`claude-seo run matomo_auth.py --check`), spawn the `seo-matomo` agent to enrich the audit with self-hosted analytics: organic visits trend, top landing pages, device and country breakdowns, channel / search-engine split, and organic keywords. Works as a GA4 alternative (when only Matomo is configured) or as a complement (when both GA4 and Matomo are present). Matomo numbers will not match GA4 exactly because of segmentation differences (`referrerType==search` vs `sessionDefaultChannelGroup == "Organic Search"`) and attribution-window rules.
+If Matomo credentials are configured (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --check`), spawn the `seo-matomo` agent to enrich the audit with self-hosted analytics: organic visits trend, top landing pages, device and country breakdowns, channel / search-engine split, and organic keywords. Works as a GA4 alternative (when only Matomo is configured) or as a complement (when both GA4 and Matomo are present). Matomo numbers will not match GA4 exactly because of segmentation differences (`referrerType==search` vs `sessionDefaultChannelGroup == "Organic Search"`) and attribution-window rules.
 
 ## Error Handling
 

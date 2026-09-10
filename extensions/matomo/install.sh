@@ -63,8 +63,8 @@ PY
 
     echo
     echo "Done. Verify with:"
-    echo "  claude-seo run matomo_auth.py --check"
-    echo "  claude-seo run matomo_report.py check --json"
+    echo "  \"\${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo\" run matomo_auth.py --check"
+    echo "  \"\${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo\" run matomo_report.py check --json"
     echo "Full docs: extensions/matomo/docs/MATOMO-SETUP.md"
 }
 main "$@"

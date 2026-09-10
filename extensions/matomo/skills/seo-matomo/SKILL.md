@@ -2,7 +2,7 @@
 name: seo-matomo
 description: Matomo Reporting API extension. Self-hosted or Matomo Cloud analytics as a GA4 alternative or complement. Organic traffic, landing pages, device / country breakdowns, referrers, search keywords. Triggers on "Matomo", "self-hosted analytics", "analytics ohne Google", "GA4 alternative", "Matomo Reporting", "Piwik".
 metadata:
-  version: "2.2.5"
+  version: "2.3.0"
 compatibility: "Requires MATOMO_URL, MATOMO_API_TOKEN, and (optionally) MATOMO_SITE_ID in ~/.claude/settings.json env. Run extensions/matomo/install.sh to configure."
 ---
 
@@ -24,13 +24,13 @@ against Matomo Cloud and self-hosted instances.
 
 | Command | Underlying script |
 |---|---|
-| `/seo matomo check` | `claude-seo run matomo_auth.py --check` |
-| `/seo matomo organic [site-id]` | `claude-seo run matomo_report.py organic --site-id <id>` |
-| `/seo matomo top-pages` | `claude-seo run matomo_report.py top-pages` |
-| `/seo matomo device` | `claude-seo run matomo_report.py device` |
-| `/seo matomo country` | `claude-seo run matomo_report.py country` |
-| `/seo matomo referrers` | `claude-seo run matomo_report.py referrers` |
-| `/seo matomo keywords` | `claude-seo run matomo_report.py keywords` |
+| `/seo matomo check` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --check` |
+| `/seo matomo organic [site-id]` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_report.py organic --site-id <id>` |
+| `/seo matomo top-pages` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_report.py top-pages` |
+| `/seo matomo device` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_report.py device` |
+| `/seo matomo country` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_report.py country` |
+| `/seo matomo referrers` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_report.py referrers` |
+| `/seo matomo keywords` | `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_report.py keywords` |
 
 All commands accept `--days` (default 28), `--limit`, `--site-id`, and
 `--json`. The site ID falls back to `MATOMO_SITE_ID` from settings.
@@ -55,7 +55,7 @@ All commands accept `--days` (default 28), `--limit`, `--site-id`, and
 - For AI Overview / GEO citability work, route to `seo-geo`. Matomo
   offers no LLM-specific signals.
 - During `/seo audit`, the orchestrator spawns the `seo-matomo` agent
-  (analogous to `seo-google`) whenever `claude-seo run matomo_auth.py
+  (analogous to `seo-google`) whenever `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py
   --check` succeeds. Both agents can be active simultaneously when the
   user has both GA4 and Matomo configured.
 
@@ -63,7 +63,7 @@ All commands accept `--days` (default 28), `--limit`, `--site-id`, and
 
 - Missing credentials: report which env vars / config keys are unset and
   remind the user to run `extensions/matomo/install.sh` or
-  `python scripts/matomo_auth.py --setup`.
+  `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --setup`.
 - HTTP 401/403 from Matomo: the token lacks view access for the given
   site. Verify the token scope in Matomo Administration -> Personal ->
   Security -> API Tokens. The skill never logs the token.

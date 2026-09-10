@@ -166,7 +166,7 @@ skills/                    # 25 sub-skills (auto-discovered)
   seo-dataforseo/         # DataForSEO (extension)
   seo-image-gen/          # AI images (extension)
 agents/                    # 18 subagents
-scripts/                   # 54 Python scripts, including the managed runtime
+scripts/                   # 56 Python scripts, including the managed runtime
 schema/                    # JSON-LD templates
 extensions/                # 9 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Matomo, Unlighthouse
 ```

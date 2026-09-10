@@ -143,7 +143,7 @@ claude
 
 ![Claude SEO sub-skill ecosystem: 25 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
 
-32 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 9 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
+33 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 9 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
 
 | Command | Description |
 |---------|-------------|

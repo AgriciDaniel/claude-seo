@@ -4,8 +4,8 @@
 
 1. **Matomo Reporting API** for organic traffic, landing pages, devices,
    countries, referrers, and search keywords via
-   `claude-seo run matomo_report.py`.
-2. **Live credential probe** via `claude-seo run matomo_auth.py --check`
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_report.py`.
+2. **Live credential probe** via `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --check`
    used by the `/seo matomo` skill and by the audit orchestrator to
    decide whether to spawn the `seo-matomo` agent.
 3. A unified `seo-matomo` skill that routes the right command at the
@@ -55,9 +55,9 @@ will fail with `SSLError` on untrusted certificates.
 ## Verify
 
 ```bash
-claude-seo run matomo_auth.py --check
-claude-seo run matomo_report.py check --json
-claude-seo run matomo_report.py organic --json
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --check
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_report.py check --json
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_report.py organic --json
 ```
 
 `--check` runs `API.getMatomoVersion` against your instance and reports

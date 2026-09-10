@@ -320,8 +320,8 @@ TIER 1: MATOMO REPORTING API (one token, your own instance)
   Matomo instances frequently live outside the public internet.
 
 VERIFY CONFIGURATION:
-  python scripts/matomo_auth.py --check
-  python scripts/matomo_auth.py --tier
+  "${{CLAUDE_PLUGIN_ROOT}}/scripts/claude-seo" run matomo_auth.py --check
+  "${{CLAUDE_PLUGIN_ROOT}}/scripts/claude-seo" run matomo_auth.py --tier
 """)
 
 
