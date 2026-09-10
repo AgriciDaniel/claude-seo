@@ -133,7 +133,20 @@ def test_precheck_never_raises_on_an_unreadable_file(
     assert result["reason"] == "env_unreadable"
 
 
-def test_headers_cli_prints_the_three_headers_or_nothing(
+def test_signature_headers_are_the_three_verbatim_values(tmp_path: Path) -> None:
+    path = _write_env(tmp_path, f"""
+        Domain = shop.example
+        Signature-Input = {_signature_input(FUTURE)}
+        Signature = sig1=:ok:
+    """)
+    entry = shopify_env.parse_env_file(path)["authorities"]["shop.example"]
+    headers = shopify_env.signature_headers(entry)
+    assert set(headers) == {"Signature-Agent", "Signature-Input", "Signature"}
+    assert headers["Signature-Agent"] == '"https://shopify.com"'
+    assert headers["Signature"] == "sig1=:ok:"
+
+
+def test_no_cli_command_prints_signature_values(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     monkeypatch.delenv(shopify_env.ENV_PATH_VAR, raising=False)
@@ -141,14 +154,15 @@ def test_headers_cli_prints_the_three_headers_or_nothing(
     _write_env(tmp_path, f"""
         Domain = shop.example
         Signature-Input = {_signature_input(FUTURE)}
-        Signature = sig1=:ok:
+        Signature = sig1=:SECRETVALUE:
     """)
-    assert shopify_env.main(["headers", "https://shop.example/collections/all"]) == 0
-    headers = json.loads(capsys.readouterr().out)
-    assert set(headers) == {"Signature-Agent", "Signature-Input", "Signature"}
-    assert headers["Signature-Agent"] == '"https://shopify.com"'
-    assert shopify_env.main(["headers", "https://other.example"]) == 3
-    assert capsys.readouterr().out.strip() == "{}"
+    for argv in (["list"], ["list", "--json"], ["check", "https://shop.example"],
+                 ["check", "https://shop.example", "--json"], ["precheck", "https://shop.example"]):
+        shopify_env.main(argv)
+        captured = capsys.readouterr()
+        assert "SECRETVALUE" not in captured.out + captured.err, argv
+    with pytest.raises(SystemExit):
+        shopify_env.main(["headers", "https://shop.example"])
 
 
 def test_list_json_never_prints_signature_values(

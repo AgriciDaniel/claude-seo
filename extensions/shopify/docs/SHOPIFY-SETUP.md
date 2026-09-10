@@ -40,8 +40,9 @@ bound to exactly one host, and it expires after roughly 90 days.
 
 ## 2. Write `.shopify-env`
 
-Create `.shopify-env` in the folder you run audits from (the file is also found
-up to five parent folders up, and `$SHOPIFY_ENV` points at an explicit path). One
+Create `.shopify-env` in the folder you run audits from; it is also found up to
+five parent folders up. Alternatively `$SHOPIFY_ENV` names a file anywhere on disk,
+for credentials shared across several audit folders. One
 block per shop; a new `Domain=` line starts the next block. Keys before the first
 `Domain=` are crawl settings shared by every shop in the file.
 
@@ -86,8 +87,15 @@ Or in Claude Code: `/seo shopify https://shop.example`.
 - The crawler validates the root with `url_safety.validate_url_strict`, pins DNS
   for the session, crawls the signed host only, and records redirects without
   following them.
-- The signature is attached only to requests whose host equals the authority
-  it was issued for. Sitemap entries on other hosts are skipped.
+- The signature is attached only to requests whose scheme and host equal the
+  origin it was issued for; an `http://` entry for an `https://` store is skipped
+  rather than signed in cleartext. Sitemap entries on other hosts are skipped.
+- No command prints the signature values; `list` and `check` report key id and
+  expiry only.
+- The sitemap walk stops at 5 index levels, 500 sitemaps or 250,000 URLs, and
+  every body is read up to a byte limit (1 MiB robots.txt, 50 MiB sitemap, 10 MiB
+  page). A crawl that hit one of those caps reports `discovery_capped` in
+  `summary.json`.
 - On `429`, `430` or `503` the crawler backs off exponentially. If that happens
   on a signed request, it exits with code 5 after finishing, because Shopify's
   documented meaning of a rate-limit response to a signed request is that the
