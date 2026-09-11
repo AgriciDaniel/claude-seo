@@ -179,6 +179,7 @@ claude
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo mentionagent [command] <site>` | Link building outreach: review MentionAgent's drafts, send the batch, answer publisher replies (extension) |
 
 ## Features
 
@@ -428,6 +429,17 @@ Five extensions added in Phase E:
 - **Unlighthouse:** MIT-licensed multi-page Lighthouse runner
 
 Setup walkthroughs live under `extensions/<name>/docs/`; integration notes: [docs/MCP-INTEGRATION.md](docs/MCP-INTEGRATION.md).
+
+### MentionAgent (community)
+
+Link building outreach from Claude Code. `seo-backlinks` measures the link profile; this one grows it: review the outreach drafts [MentionAgent](https://mentionagent.ai) wrote, send the batch, answer the publishers who replied and record placements, over its remote MCP server (bearer key, nothing runs locally). Two tools send email and the skill shows you the text before either.
+
+```bash
+./extensions/mentionagent/install.sh   # requires a MentionAgent account key
+/seo mentionagent status
+```
+
+Full MentionAgent docs: [extensions/mentionagent/docs/MENTIONAGENT-SETUP.md](extensions/mentionagent/docs/MENTIONAGENT-SETUP.md).
 
 ## Ecosystem
 

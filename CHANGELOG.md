@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **MentionAgent extension** (`extensions/mentionagent/`, community): link building outreach from Claude Code over the MentionAgent remote MCP server. `/seo mentionagent status|drafts|send|inbox|reply|deal|health|pause|resume`. Bearer key, nothing runs locally; the skill refuses to call the two sending tools before the operator has seen the text.
+
 ## [2.3.1] - 2026-09-10
 
 ### Added

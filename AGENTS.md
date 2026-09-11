@@ -96,6 +96,7 @@ integration + 2 extension mirrors), and 54 Python execution scripts.
 | `/seo profound [cmd]` | LLM brand-citation tracking (extension) |
 | `/seo seranking [cmd]` | AI share-of-voice tracking (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse audits (extension) |
+| `/seo mentionagent [cmd] <site>` | Link building outreach review and sending (extension) |
 
 ## Using with Cursor / Cursor Cloud
 

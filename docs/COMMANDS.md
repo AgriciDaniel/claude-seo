@@ -688,6 +688,22 @@ LLM brand-citation tracking via Profound (extension). **Prerequisites:** Profoun
 
 ---
 
+### `/seo mentionagent [command] <site>`
+
+Link building outreach via MentionAgent (extension). **Prerequisites:** MentionAgent extension installed and an account key.
+```
+/seo mentionagent status              # Sites, drafts waiting, open threads, credits
+/seo mentionagent drafts <site>       # Read every pending draft, flag the ones that look wrong
+/seo mentionagent send <site>         # Approve the batch you were just shown (sends real email, asks first)
+/seo mentionagent inbox <site>        # Threads that need a reply, with draft answers
+/seo mentionagent reply <thread>      # Send the reply you approved (address comes from the thread)
+/seo mentionagent deal <thread>       # Record a placement as live
+/seo mentionagent health <site>       # Warmup, daily cap, bounce rate, automatic pauses
+/seo mentionagent pause|resume <site> # Stop or restart new outreach
+```
+
+---
+
 ### `/seo seranking [command] <brand|keyword|url>`
 
 AI-visibility + SERP via SE Ranking (extension). **Prerequisites:** SE Ranking extension installed.
@@ -746,3 +762,4 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo mentionagent [command] <site>` | Link building outreach via the MentionAgent remote MCP (extension) |
