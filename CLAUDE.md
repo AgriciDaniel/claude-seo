@@ -187,6 +187,7 @@ claude-seo/
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo mentionagent [command] <site>` | Link building outreach: review drafts, send, answer publisher replies via the MentionAgent remote MCP (extension) |
 
 ## Development Rules
 

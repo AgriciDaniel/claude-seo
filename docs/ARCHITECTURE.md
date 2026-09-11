@@ -294,6 +294,13 @@ extensions/
 │   ├── skills/seo-ahrefs/SKILL.md
 │   └── docs/AHREFS-SETUP.md
 │
+├── mentionagent/             # MentionAgent remote MCP for link building outreach
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-mentionagent/SKILL.md
+│   └── docs/MENTIONAGENT-SETUP.md
+│
 ├── seranking/                # SE Ranking AI Share-of-Voice tracking
 │   ├── install.sh
 │   ├── install.ps1
