@@ -30,6 +30,23 @@ unchanged.
 
 ## Command List
 
+### `/seo glasser [setup|serp|volume|maps] [query]`
+
+Use the bundled [Glasser skill](../skills/seo-glasser/SKILL.md) for optional live
+SERP, keyword volume, and local listing data. For example:
+
+```text
+/seo glasser serp coffee subscription in the US
+/seo glasser volume coffee subscription, coffee delivery in the US
+/seo glasser maps coffee shops in Singapore
+```
+
+`/seo glasser setup` configures CLI or MCP access. A Glasser account and balance
+are required for data calls. Existing suitable free tools and integrations take
+precedence unless the user explicitly chooses Glasser. The skill checks live
+contracts and prices, then executes within the authorized scope.
+
+
 ### `/seo setup`
 
 Explicitly create or refresh the isolated Python runtime and Playwright Chromium.
