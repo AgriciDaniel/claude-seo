@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional `seo-glasser` skill for SERP results, keyword search volume, and local
+  business listings through Glasser CLI or MCP. Includes `/seo glasser` routing,
+  setup, spending controls, and Provider-specific examples.
+
 ## [2.3.1] - 2026-09-10
 
 ### Added
