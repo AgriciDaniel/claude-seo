@@ -419,7 +419,7 @@ def format_agent_tree_check(result: AgentTreeCheck) -> list[str]:
 
 def agent_dir_for_doctor(root: Path) -> Path:
     for candidate in (root / ".claude" / "agents", root / "agents"):
-        if candidate.is_dir():
+        if candidate.exists() or candidate.is_symlink():
             return candidate
     return Path.home() / ".claude" / "agents"
 

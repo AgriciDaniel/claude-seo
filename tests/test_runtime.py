@@ -138,6 +138,20 @@ def test_agent_dir_for_doctor_prefers_project_claude_agents(tmp_path: Path) -> N
     assert runtime.agent_dir_for_doctor(root) == project_agents
 
 
+def test_agent_dir_for_doctor_keeps_broken_project_agent_symlink(tmp_path: Path) -> None:
+    if os.name != "posix":
+        return
+
+    root = tmp_path / "repo"
+    package_agents = root / "agents"
+    broken_project_agents = root / ".claude" / "agents"
+    package_agents.mkdir(parents=True)
+    broken_project_agents.parent.mkdir()
+    broken_project_agents.symlink_to(tmp_path / "missing-agents")
+
+    assert runtime.agent_dir_for_doctor(root) == broken_project_agents
+
+
 def test_agent_dir_for_doctor_uses_packaged_agents(tmp_path: Path) -> None:
     root = tmp_path / "plugin"
     package_agents = root / "agents"
