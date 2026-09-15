@@ -417,8 +417,16 @@ def format_agent_tree_check(result: AgentTreeCheck) -> list[str]:
     return lines
 
 
+def agent_dir_for_doctor(root: Path) -> Path:
+    for candidate in (root / ".claude" / "agents", root / "agents"):
+        if candidate.is_dir():
+            return candidate
+    return Path.home() / ".claude" / "agents"
+
+
 def command_doctor(args: argparse.Namespace) -> int:
-    status = _status(_root())
+    root = _root()
+    status = _status(root)
     public = {
         "ready": status["ready"],
         "mode": status["mode"],
@@ -436,7 +444,7 @@ def command_doctor(args: argparse.Namespace) -> int:
         print(f"Chromium: {'ready' if public['browser_ready'] else 'not installed'}")
         for reason in public["reasons"]:
             print(f"Reason: {reason}")
-        agent_result = check_agent_tree(Path.home() / ".claude" / "agents")
+        agent_result = check_agent_tree(agent_dir_for_doctor(root))
         for line in format_agent_tree_check(agent_result):
             print(line)
     return 0 if status["ready"] else 3

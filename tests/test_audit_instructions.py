@@ -76,3 +76,13 @@ def test_seo_audit_requires_agent_preflight_before_full_claim() -> None:
     assert "Before claiming a full subagent audit" in text
     assert "reduced independence" in text
     assert "Do not describe that fallback as the full subagent pipeline" in text
+
+
+def test_seo_orchestrator_requires_agent_preflight_before_delegation() -> None:
+    text = (REPO_ROOT / "skills" / "seo" / "SKILL.md").read_text(encoding="utf-8")
+    orchestration = text[text.index("## Orchestration Logic"):text.index("For individual commands")]
+
+    assert "Before claiming or starting a full subagent audit" in orchestration
+    assert "project-local symlink is broken" in orchestration
+    assert "Do not describe that fallback as the full subagent pipeline" in orchestration
+    assert orchestration.index("Before claiming") < orchestration.index("delegate to subagents")

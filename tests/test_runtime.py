@@ -128,6 +128,34 @@ def test_format_agent_tree_check_incomplete() -> None:
     ) in lines
 
 
+def test_agent_dir_for_doctor_prefers_project_claude_agents(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    project_agents = root / ".claude" / "agents"
+    package_agents = root / "agents"
+    project_agents.mkdir(parents=True)
+    package_agents.mkdir()
+
+    assert runtime.agent_dir_for_doctor(root) == project_agents
+
+
+def test_agent_dir_for_doctor_uses_packaged_agents(tmp_path: Path) -> None:
+    root = tmp_path / "plugin"
+    package_agents = root / "agents"
+    package_agents.mkdir(parents=True)
+
+    assert runtime.agent_dir_for_doctor(root) == package_agents
+
+
+def test_agent_dir_for_doctor_falls_back_to_home_agents(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    root = tmp_path / "skills" / "seo"
+    home = tmp_path / "home"
+    monkeypatch.setattr(runtime.Path, "home", classmethod(lambda cls: home))
+
+    assert runtime.agent_dir_for_doctor(root) == home / ".claude" / "agents"
+
+
 def test_doctor_text_reports_agent_check(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
