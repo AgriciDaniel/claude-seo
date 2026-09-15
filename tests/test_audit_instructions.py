@@ -68,3 +68,11 @@ def test_audit_agents_document_output_dir_findings_contract() -> None:
 def test_seo_audit_report_command_keeps_outputs_in_audit_dir() -> None:
     text = (REPO_ROOT / "skills" / "seo-audit" / "SKILL.md").read_text(encoding="utf-8")
     assert "--output-dir {domain}-audit/" in text
+
+
+def test_seo_audit_requires_agent_preflight_before_full_claim() -> None:
+    text = (REPO_ROOT / "skills" / "seo-audit" / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "Before claiming a full subagent audit" in text
+    assert "reduced independence" in text
+    assert "Do not describe that fallback as the full subagent pipeline" in text
