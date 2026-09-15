@@ -13,6 +13,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from scripts.doctor_agents import AgentTreeCheck
+
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("claude_seo_runtime", ROOT / "scripts/runtime.py")
 assert SPEC and SPEC.loader
@@ -98,6 +100,56 @@ def test_doctor_json_omits_paths_and_environment_values(
     assert set(payload) == {
         "browser_ready", "mode", "plugin_version", "python_version", "ready", "reasons"
     }
+
+
+def test_format_agent_tree_check_ok() -> None:
+    lines = runtime.format_agent_tree_check(
+        AgentTreeCheck(ok=True, missing=[], broken_symlinks=[])
+    )
+
+    assert lines == ["Audit subagent check: ok"]
+
+
+def test_format_agent_tree_check_incomplete() -> None:
+    lines = runtime.format_agent_tree_check(
+        AgentTreeCheck(
+            ok=False,
+            missing=["seo-content.md"],
+            broken_symlinks=["seo-technical.md"],
+        )
+    )
+
+    assert "Audit subagent check: incomplete" in lines
+    assert "Missing agents: seo-content.md" in lines
+    assert "Broken agent symlinks: seo-technical.md" in lines
+    assert (
+        "/seo audit will fall back to inline analysis with reduced independence "
+        "until these agents resolve."
+    ) in lines
+
+
+def test_doctor_text_reports_agent_check(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    root = _fixture_root(tmp_path)
+    monkeypatch.setattr(runtime, "_root", lambda: root)
+    monkeypatch.setattr(
+        runtime,
+        "check_agent_tree",
+        lambda _: AgentTreeCheck(
+            ok=False,
+            missing=["seo-content.md"],
+            broken_symlinks=["seo-technical.md"],
+        ),
+    )
+
+    rc = runtime.command_doctor(SimpleNamespace(json=False))
+    output = capsys.readouterr().out
+
+    assert rc == 3
+    assert "Audit subagent check: incomplete" in output
+    assert "Missing agents: seo-content.md" in output
+    assert "Broken agent symlinks: seo-technical.md" in output
 
 
 def test_child_environment_forces_utf8_and_persistent_browser_path(tmp_path: Path) -> None:
