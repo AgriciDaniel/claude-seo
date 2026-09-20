@@ -3,10 +3,11 @@ name: seo-google
 description: >
   Google SEO APIs: Search Console (Search Analytics, URL Inspection, Sitemaps),
   PageSpeed Insights v5, CrUX field data with 25-week history, Indexing API v3,
-  and GA4 organic traffic. Provides real Google field data for Core Web Vitals,
-  indexation status, search performance, and organic traffic trends. Use when
+  Provides real Google field data for Core Web Vitals, indexation status, and
+  search performance. For this WordPress workspace, traffic analytics comes
+  from Umami, not GA4. Use when
   user says "search console", "GSC", "PageSpeed", "CrUX", "field data",
-  "indexing API", "GA4 organic", "URL inspection", or "real CWV data".
+  "indexing API", "URL inspection", or "real CWV data".
 user-invocable: true
 argument-hint: "[command] [url|property]"
 license: MIT
@@ -42,6 +43,8 @@ Config file: `~/.config/claude-seo/google-api.json`
 }
 ```
 
+The `ga4_property_id` field and GA4 commands are upstream compatibility only. In this WordPress workspace GA4 configuration is stale: use `using-umami` and `umami-query` for traffic analytics and do not query GA4 during audits.
+
 If missing, read `references/auth-setup.md` and walk the user through setup.
 
 ### Credential Tiers
@@ -50,7 +53,7 @@ If missing, read `references/auth-setup.md` and walk the user through setup.
 |------|-----------|-------------------|
 | **0** (API Key) | `api_key` present | `pagespeed`, `crux`, `crux-history`, `youtube`, `nlp` |
 | **1** (OAuth/SA) | + OAuth token or service account | Tier 0 + `gsc`, `inspect`, `sitemaps`, `index` |
-| **2** (Full) | + `ga4_property_id` configured | Tier 1 + `ga4`, `ga4-pages` |
+| **2** (Upstream GA4 compatibility; not used in this workspace) | + `ga4_property_id` configured | Tier 1 + upstream `ga4`, `ga4-pages` commands |
 | **3** (Ads) | + `ads_developer_token` + `ads_customer_id` | Tier 2 + `keywords`, `volume` |
 
 Always communicate the detected tier before running commands.
@@ -187,6 +190,8 @@ Batch submit URLs from a file. Tracks quota usage.
 ---
 
 ## GA4 Traffic
+
+> **Workspace override:** Do not use this section for the WordPress workspace. GA4 settings are stale and Umami is authoritative. Load `using-umami` and `umami-query` instead. The commands below remain documented only for upstream compatibility outside this workspace.
 
 ### `/seo google ga4 [property-id]`
 
@@ -348,6 +353,8 @@ Generate a professional PDF report with charts and analytics.
 - CLS values from CrUX are string-encoded (e.g., "0.05"). Scripts handle parsing.
 - CrUX 404 = insufficient traffic, not an auth error.
 - Search Analytics data has 2-3 day lag.
+- For reusable monitoring, pass explicit `--start-date` and `--end-date` and compute inclusive windows in Pacific Time with a three-day lag. Validate saved JSON `date_range` boundaries instead of trusting filenames such as `90d`; CLI defaults can yield a shorter actual interval. Keep historical snapshots separate from fresh release evidence.
+- Read-only URL Inspection uses `gsc_inspect.py --site-url <property>` (not `--property`); Search Analytics and sitemap listing use `gsc_query.py --property <property>`. Persist API-level JSON errors even when the subprocess exits zero.
 - `round_trip_time` replaced `effectiveConnectionType` in CrUX (Feb 2025).
 - Custom Search JSON API is closed to new customers (2025).
 

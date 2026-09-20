@@ -26,15 +26,24 @@ across 9 API modules with 79+ MCP tools.
 
 ## Prerequisites
 
-This skill requires the DataForSEO extension to be installed:
+This skill requires the DataForSEO extension to be installed. In Hermes, use the native MCP configuration rather than relying on Claude Code's `.mcp.json`:
 ```bash
-./extensions/dataforseo/install.sh
+hermes mcp list
+hermes mcp test dataforseo
 ```
 
 **Check availability:** Before using any DataForSEO tool, verify the MCP server
 is connected by checking if `serp_organic_live_advanced` or any DataForSEO tool
-is available. If tools are not available, inform the user the extension is not
-installed and provide install instructions.
+is available. A Claude/project `.mcp.json` entry is not proof that Hermes loaded
+the server. Hermes credentials belong in the active profile's `.env`, while the
+MCP config should contain `${DATAFORSEO_USERNAME}` and
+`${DATAFORSEO_PASSWORD}` placeholders rather than literal credentials.
+
+The field configuration bundled with extension version 2.2.4 uses an older
+schema and is incompatible with `dataforseo-mcp-server@2.8.10`. Do not set
+`FIELD_CONFIG_PATH` unless its JSON has the server's current
+`{"supported_fields": {"tool_name": ["field"]}}` shape. An invalid field
+config logs an error and silently disables response filtering.
 
 ## API Credit Awareness
 
@@ -385,7 +394,8 @@ When DataForSEO MCP tools are available, other claude-seo skills can leverage li
 
 ## Error Handling
 
-- **MCP server not connected**: Report that DataForSEO extension is not installed or MCP server is unreachable. Suggest running `./extensions/dataforseo/install.sh`
+- **MCP server not connected**: Run `hermes mcp list` and `hermes mcp test dataforseo`. Configure the Hermes-native server; do not rely on Claude Code's `.mcp.json`.
+- **Invalid field configuration**: Remove the incompatible `FIELD_CONFIG_PATH` override or migrate it to the current `supported_fields` schema, then re-test a utility endpoint.
 - **API authentication failed**: Report invalid credentials. Suggest checking DataForSEO API login/password in MCP config
 - **Rate limit exceeded**: Report the limit hit and suggest waiting before retrying
 - **No results returned**: Report "no data found" for the query rather than guessing. Suggest broadening the query or checking location/language codes

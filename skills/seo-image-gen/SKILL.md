@@ -162,6 +162,8 @@ Load on-demand. Do NOT load all at startup:
 - `references/cost-tracking.md`:Pricing, usage tracking
 - `references/presets.md`:Brand preset management
 - `references/seo-image-presets.md`:SEO-specific preset templates
+- `references/klarc-photorealistic-events.md`: Klarc-specific Pro-model photorealistic direction and publication QA gate
+- `references/klarc-topic-specific-image-system.md`: Klarc topic-to-object visual system, palette, composition, and scoring guidance
 
 ## Response Format
 
