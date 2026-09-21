@@ -14,6 +14,7 @@ No network: socket.create_connection is stubbed throughout.
 from __future__ import annotations
 
 import os
+import socket
 import sys
 
 import pytest
@@ -83,6 +84,29 @@ def test_hostile_referral_is_never_dialled(monkeypatch, hostile):
     # IANA's own answer is still returned -- a bad referral degrades the
     # lookup, it does not blank it.
     assert "refer:" in (result or "")
+
+
+def test_allowlist_never_applies_to_whois_referrals(monkeypatch):
+    """The operator exemption belongs to the selected audit target, not to a
+    plaintext referral returned by a remote WHOIS server."""
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "*.test")
+    attempts = _stub_chain(
+        monkeypatch,
+        b"refer: attacker.test\n",
+        b"LOCAL SERVICE RESPONSE\n",
+    )
+
+    def loopback_referral(host, port, *args, **kwargs):
+        if host == "attacker.test":
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port))]
+        raise socket.gaierror(socket.EAI_NONAME, host)
+
+    monkeypatch.setattr(dh.socket, "getaddrinfo", loopback_referral)
+    result = dh._socket_whois("example.com")
+
+    assert attempts == [("whois.iana.org", 43)]
+    assert "LOCAL SERVICE RESPONSE" not in (result or "")
+    assert "refer: attacker.test" in (result or "")
 
 
 def test_legitimate_referral_is_still_followed(monkeypatch):

@@ -295,6 +295,15 @@ def test_pin_dns_validates_non_pinned_host_resolutions() -> None:
                 socket.getaddrinfo("redirected.example", 443)
 
 
+def test_pin_dns_refuses_same_host_redirect_to_another_port() -> None:
+    """A host:port exemption must not become all ports through a redirect."""
+    with url_safety._pin_dns("demo.test", "127.0.0.1", 8443):
+        with pytest.raises(socket.gaierror, match="port 9443 refused"):
+            socket.getaddrinfo("demo.test", 9443)
+        result = socket.getaddrinfo("demo.test", 8443)
+        assert result[0][4] == ("127.0.0.1", 8443)
+
+
 def test_pin_dns_passes_through_public_redirect_targets() -> None:
     """Public redirect targets keep working normally."""
     original_getaddrinfo = socket.getaddrinfo
@@ -346,7 +355,9 @@ def test_safe_requests_head_uses_strict_validation_and_dns_pin() -> None:
             allow_redirects=True,
         )
 
-    validate.assert_called_once_with("https://safe.example/path")
+    validate.assert_called_once_with(
+        "https://safe.example/path", allow_local_target=True
+    )
     request_head.assert_called_once_with(
         "https://safe.example/path",
         timeout=7,
@@ -1079,13 +1090,125 @@ def test_local_target_entries_are_normalized(monkeypatch) -> None:
     assert url_safety.validate_url("http://127.0.0.1:8080/") is True
 
 
+def test_test_suffix_wildcard_allows_reserved_test_hosts_at_top_level(
+    monkeypatch,
+) -> None:
+    """*.test covers all RFC-reserved local-development names, including
+    nested names, while retaining the existing top-level-only boundary."""
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "*.test")
+    resolver = _loopback_resolver(
+        {
+            "klarc.test": "127.0.0.1",
+            "preview.klarc.test": "127.0.0.1",
+        }
+    )
+    with patch.object(url_safety.socket, "getaddrinfo", side_effect=resolver):
+        assert url_safety.validate_url_strict("https://klarc.test/")[1] == (
+            "127.0.0.1"
+        )
+        assert url_safety.validate_url_strict("https://preview.klarc.test/")[1] == (
+            "127.0.0.1"
+        )
+
+
+def test_test_suffix_wildcard_respects_ports_and_label_boundaries(monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "*.test:8443")
+    resolver = _loopback_resolver(
+        {
+            "klarc.test": "127.0.0.1",
+            "test": "127.0.0.1",
+            "eviltest": "127.0.0.1",
+            "klarc.test.evil": "127.0.0.1",
+        }
+    )
+    with patch.object(url_safety.socket, "getaddrinfo", side_effect=resolver):
+        assert url_safety.validate_url_strict("https://klarc.test:8443/")[1] == (
+            "127.0.0.1"
+        )
+        for url in (
+            "https://klarc.test/",
+            "https://test:8443/",
+            "https://eviltest:8443/",
+            "https://klarc.test.evil:8443/",
+        ):
+            with pytest.raises(
+                url_safety.URLSafetyError, match="DNS rebinding refused"
+            ):
+                url_safety.validate_url_strict(url)
+
+
+def test_only_test_suffix_wildcard_is_accepted(monkeypatch) -> None:
+    """Broad or malformed patterns are dropped rather than widening access."""
+    monkeypatch.setenv(
+        "CLAUDE_SEO_LOCAL_TARGETS",
+        ",".join(
+            (
+                "*",
+                "*.*",
+                "*.com",
+                "*.internal",
+                "*.evil@test",
+                "*.user:pass@test:8443",
+                "*.test/ignored",
+                "*.test:8443/path",
+                "*.test?ignored",
+                "*.test#ignored",
+                "*.test:",
+                "*.teſt",
+                "*.teſt:443",
+                "*.test:" + "9" * 5000,
+                "*.test",
+                "*.TEST:8443",
+            )
+        ),
+    )
+    assert url_safety._local_targets() == (("*.test", None), ("*.test", 8443))
+
+
+def test_test_suffix_wildcard_rejects_invalid_dns_boundaries(monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "*.test")
+    invalid_hosts = (
+        ".test",
+        "foo..test",
+        "-foo.test",
+        "foo-.test",
+        f"{'x' * 64}.test",
+    )
+    resolver = _loopback_resolver({host: "127.0.0.1" for host in invalid_hosts})
+    with patch.object(url_safety.socket, "getaddrinfo", side_effect=resolver):
+        for host in invalid_hosts:
+            with pytest.raises(
+                url_safety.URLSafetyError, match="DNS rebinding refused"
+            ):
+                url_safety.validate_url_strict(f"https://{host}/")
+
+
 def test_malformed_entries_are_dropped_not_widened(monkeypatch) -> None:
     monkeypatch.setenv(
-        "CLAUDE_SEO_LOCAL_TARGETS", "localhost:notaport,,:8080,localhost:3000"
+        "CLAUDE_SEO_LOCAL_TARGETS",
+        ",".join(
+            (
+                "localhost:notaport",
+                "",
+                ":8080",
+                "localhost:",
+                "user@localhost",
+                "user:pass@localhost:8443",
+                "localhost/path",
+                "localhost?query",
+                "localhost#fragment",
+                "http://localhost:8080",
+                "[localhost]",
+                "[127.0.0.1]",
+                "[example.com]:443",
+                "localhost:3000",
+            )
+        ),
     )
     assert url_safety._local_targets() == (("localhost", 3000),)
     assert url_safety.validate_url("http://localhost:3000/") is True
     assert url_safety.validate_url("http://localhost:8080/") is False
+    assert url_safety.validate_url("http://localhost:54321/") is False
 
 
 def test_ipv6_entries_parse_in_both_spellings(monkeypatch) -> None:

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import sys
+from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -32,8 +34,29 @@ def response(status=200, content=b"", url="https://example.com/", error=None, to
     }
 
 
+def test_declared_test_sitemap_cannot_inherit_operator_allowlist(monkeypatch):
+    """A robots.txt declaration is remote input, not the selected audit target."""
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "*.test")
+    seen = []
+
+    @contextmanager
+    def fake_session(url, *, allow_local_target=True):
+        seen.append((url, allow_local_target))
+        if url == "https://attacker.test/sitemap.xml":
+            raise discovery.URLSafetyError("local target exemption disabled")
+        yield SimpleNamespace()
+
+    monkeypatch.setattr(discovery, "safe_requests_session", fake_session)
+    fetched = discovery._bounded_fetch(
+        "https://attacker.test/sitemap.xml", discovery.MAX_SITEMAP_BYTES
+    )
+
+    assert fetched["error"] == "URL safety validation failed"
+    assert seen == [("https://attacker.test/sitemap.xml", False)]
+
+
 def test_wordpress_index_is_found_after_default_path_fails():
-    def fake_fetch(url, _limit):
+    def fake_fetch(url, _limit, **_kwargs):
         if url.endswith("robots.txt"):
             return response(content=b"User-agent: *\n")
         if url.endswith("sitemap_index.xml"):
@@ -48,7 +71,7 @@ def test_wordpress_index_is_found_after_default_path_fails():
 def test_stale_declared_sitemap_does_not_suppress_working_fallback():
     stale = "https://example.com/old.xml"
 
-    def fake_fetch(url, _limit):
+    def fake_fetch(url, _limit, **_kwargs):
         if url.endswith("robots.txt"):
             return response(content=f"Sitemap: {stale}\n".encode())
         if url == stale:
@@ -70,7 +93,7 @@ def test_multiple_directives_are_deduplicated_and_cross_host_is_recorded():
         b"Sitemap: https://example.com/b.xml\n"
     )
 
-    def fake_fetch(url, _limit):
+    def fake_fetch(url, _limit, **_kwargs):
         if url.endswith("robots.txt"):
             return response(content=robots)
         if url.endswith(("a.xml", "b.xml")):
@@ -87,7 +110,7 @@ def test_multiple_directives_are_deduplicated_and_cross_host_is_recorded():
 def test_unsafe_declared_target_is_not_treated_as_found():
     unsafe = "http://127.0.0.1/private.xml"
 
-    def fake_fetch(url, _limit):
+    def fake_fetch(url, _limit, **_kwargs):
         if url.endswith("robots.txt"):
             return response(content=f"Sitemap: {unsafe}\n".encode())
         if url == unsafe:
@@ -120,7 +143,7 @@ def test_text_sitemap_entries_are_syntax_checked_without_dns_resolution():
 def test_doctype_and_oversized_sitemap_are_rejected():
     assert discovery._sitemap_kind(b"<!DOCTYPE x><urlset/>", "application/xml", "https://example.com/sitemap.xml")[0] is None
 
-    def fake_fetch(url, _limit):
+    def fake_fetch(url, _limit, **_kwargs):
         if url.endswith("robots.txt"):
             return response(content=b"Sitemap: https://example.com/huge.xml\n")
         if url.endswith("huge.xml"):
@@ -136,7 +159,7 @@ def test_doctype_and_oversized_sitemap_are_rejected():
 def test_query_values_are_never_returned_in_discovery_output():
     declared = "https://example.com/private.xml?token=not-for-output"
 
-    def fake_fetch(url, _limit):
+    def fake_fetch(url, _limit, **_kwargs):
         if url.endswith("robots.txt"):
             return response(content=f"Sitemap: {declared}\n".encode())
         if url == declared:

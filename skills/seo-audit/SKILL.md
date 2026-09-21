@@ -27,7 +27,8 @@ metadata:
    - `seo-geo` -- AI crawler access, llms.txt, citability, brand mention signals
    - `seo-local` -- GBP signals, NAP consistency, reviews, local schema, industry-specific local factors (spawn when Local Service industry detected: brick-and-mortar, SAB, or hybrid business type)
    - `seo-maps` -- Geo-grid rank tracking, GBP audit, review intelligence, competitor radius mapping (spawn when Local Service detected AND DataForSEO MCP available)
-   - `seo-google` -- CWV field data (CrUX), URL indexation (GSC), organic traffic (GA4) (spawn when Google API credentials detected via `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_auth.py --check`)
+   - `seo-google` -- CWV field data (CrUX), URL indexation and search performance (GSC) (spawn when Google API credentials detected via `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_auth.py --check`)
+   - `umami-query` -- current traffic, visitors, visits, paths, referrers, devices, countries, events, conversions, and AI-assistant referrals (spawn when Umami is configured; use a safe site-specific probe or existing authenticated read-only connection). Umami is the analytics authority for this workspace; never query or report GA4 here.
    - `seo-backlinks` -- Backlink profile data: DA/PA, referring domains, anchor text, toxic links (spawn when Moz or Bing API credentials detected via `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run backlinks_auth.py --check`, or always include Common Crawl domain-level metrics)
    - `seo-cluster` -- Semantic clustering analysis (spawn when content strategy signals detected: blog, pillar pages, topic clusters)
    - `seo-sxo` -- Search experience analysis: page-type mismatch, user stories, persona scoring (always include in full audits)
@@ -166,11 +167,15 @@ Write `{domain}-audit/audit-data.json` with this shape so `"${CLAUDE_PLUGIN_ROOT
 
 ## DataForSEO Integration (Optional)
 
-If DataForSEO MCP tools are available, spawn the `seo-dataforseo` agent alongside existing subagents to enrich the audit with live data: real SERP positions, backlink profiles with spam scores, on-page analysis (Lighthouse), business listings, and AI visibility checks (ChatGPT scraper, LLM mentions).
+Check Hermes-native MCP availability with `hermes mcp list` and `hermes mcp test dataforseo`; do not infer availability from Claude Code's `.mcp.json`. When DataForSEO MCP tools are connected, spawn the `seo-dataforseo` agent alongside existing subagents to enrich the audit with live data: real SERP positions, backlink profiles with spam scores, on-page analysis (Lighthouse), business listings, and AI visibility checks (ChatGPT scraper, LLM mentions). Run the documented cost check before every paid call and log actual cost afterward. If the server is unavailable, state that limitation rather than inventing provider data.
 
 ## Google API Integration (Optional)
 
-If Google API credentials are configured (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_auth.py --check`), spawn the `seo-google` agent to enrich the audit with real Google field data: CrUX Core Web Vitals (replaces lab-only estimates), GSC URL indexation status, search performance (clicks, impressions, CTR), and GA4 organic traffic trends. The Performance (CWV) category score benefits most from field data.
+If Google API credentials are configured (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_auth.py --check`), spawn the `seo-google` agent to enrich the audit with real Google field data: CrUX Core Web Vitals (replaces lab-only estimates), GSC URL indexation status, and search performance (clicks, impressions, CTR, position). Do not use GA4 for this workspace. The Performance (CWV) category score benefits most from field data.
+
+## Umami Analytics Integration
+
+Load `using-umami` and `umami-query`. Query only read-only analytics endpoints, state the exact UTC range, and report aggregate metrics plus non-sensitive labels. Never expose tokens or Umami website IDs, never send test events to production, and never add a duplicate tracker. Include traffic trends, top paths, referrers/search and AI-assistant referrals, devices/countries when useful, event names, and conversion/outcome events where available. If event destination properties are absent or an endpoint fails, report the limitation explicitly.
 
 ## Error Handling
 

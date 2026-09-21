@@ -144,12 +144,17 @@ def probe_endpoint(url: str, *, timeout: int = 10) -> dict:
     """HEAD-probe a declared capability endpoint via url_safety."""
     out: dict = {"url": url, "reachable": False, "status_code": None, "error": None}
     try:
-        validate_url_strict(url)
+        validate_url_strict(url, allow_local_target=False)
     except URLSafetyError as exc:
         out["error"] = f"ssrf-blocked: {exc}"
         return out
     try:
-        resp = safe_requests_get(url, timeout=timeout, allow_redirects=True)
+        resp = safe_requests_get(
+            url,
+            timeout=timeout,
+            allow_redirects=True,
+            allow_local_target=False,
+        )
         out["status_code"] = resp.status_code
         out["reachable"] = 200 <= resp.status_code < 500
     except Exception as exc:
