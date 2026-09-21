@@ -71,8 +71,14 @@ def _origin(url: str) -> str:
     return urlunparse((parsed.scheme, netloc, "", "", "", ""))
 
 
-def _bounded_fetch(url: str, max_bytes: int) -> dict:
-    """Fetch at most max_bytes after decompression without exposing response text."""
+def _bounded_fetch(
+    url: str, max_bytes: int, *, allow_local_target: bool = False
+) -> dict:
+    """Fetch at most max_bytes after decompression without exposing response text.
+
+    Only the operator-derived origin paths may opt into local-target access.
+    URLs discovered in robots.txt remain untrusted and use the default False.
+    """
     result = {
         "status_code": None,
         "content": b"",
@@ -82,7 +88,9 @@ def _bounded_fetch(url: str, max_bytes: int) -> dict:
         "error": None,
     }
     try:
-        with safe_requests_session(url) as session:
+        with safe_requests_session(
+            url, allow_local_target=allow_local_target
+        ) as session:
             response = session.get(
                 url,
                 headers={"User-Agent": USER_AGENT, "Accept": "application/xml,text/xml,text/plain,*/*"},
@@ -199,7 +207,9 @@ def discover_sitemaps(target_url: str) -> dict:
     result["target"] = origin
     robots_url = f"{origin}/robots.txt"
     result["robots_url"] = robots_url
-    robots = _bounded_fetch(robots_url, MAX_ROBOTS_BYTES)
+    robots = _bounded_fetch(
+        robots_url, MAX_ROBOTS_BYTES, allow_local_target=True
+    )
     declared_raw = []
     if robots["error"]:
         result["warnings"].append("robots.txt could not be fetched safely")
@@ -244,7 +254,11 @@ def discover_sitemaps(target_url: str) -> dict:
         if urlparse(candidate).hostname != target_host and candidate in declared_raw:
             entry["cross_host"] = True
 
-        fetched = _bounded_fetch(candidate, MAX_SITEMAP_BYTES)
+        fetched = _bounded_fetch(
+            candidate,
+            MAX_SITEMAP_BYTES,
+            allow_local_target=candidate not in declared_raw,
+        )
         entry["status_code"] = fetched["status_code"]
         if fetched["error"]:
             entry["error"] = fetched["error"]

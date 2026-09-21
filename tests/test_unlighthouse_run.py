@@ -24,6 +24,7 @@ no subprocess execution.
 from __future__ import annotations
 
 import json
+import socket
 import sys
 from pathlib import Path
 
@@ -153,6 +154,34 @@ def test_normalize_tolerates_garbage_input():
     assert ul.normalize_ci_result([1, 2, "not-a-dict"]) == {
         "routes": [], "route_count": 0, "aggregate_scores": {},
     }
+
+
+def test_run_rejects_allowlisted_local_target_before_spawning_unlighthouse(
+    monkeypatch, tmp_path,
+):
+    """The external Chromium crawler has no pinned-DNS or safe-route boundary,
+    so the top-level local-target exemption must not cross into it."""
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "*.test")
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda host, port, *args, **kwargs: [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", port))
+        ],
+    )
+    spawned = False
+
+    def record_spawn(*args, **kwargs):
+        nonlocal spawned
+        spawned = True
+        raise AssertionError("Unlighthouse must not start for a local target")
+
+    monkeypatch.setattr(ul.subprocess, "run", record_spawn)
+    result = ul.run("https://attacker.test/", output_dir=str(tmp_path))
+
+    assert result["ok"] is False
+    assert "url_safety" in result["error"]
+    assert spawned is False
 
 
 # --------------------------------------------------------------------------

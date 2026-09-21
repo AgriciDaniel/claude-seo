@@ -139,7 +139,9 @@ def _socket_whois(domain: str) -> Optional[str]:
     # the pinned address so the answer cannot be re-pointed after the check.
     # WHOIS is plaintext with no SNI, so dialling the IP directly is lossless.
     try:
-        _, pinned_ip = validate_url_strict(f"https://{referral}/")
+        _, pinned_ip = validate_url_strict(
+            f"https://{referral}/", allow_local_target=False
+        )
     except URLSafetyError:
         # A referral we cannot vouch for is not worth following. IANA's own
         # answer is still useful, so return that rather than nothing.

@@ -192,7 +192,7 @@ def run(
     page_timeout: int = 60,
 ) -> dict:
     try:
-        target, _ = validate_url_strict(target)
+        target, _ = validate_url_strict(target, allow_local_target=False)
     except URLSafetyError as exc:
         return {"ok": False, "error": f"url_safety: {exc}"}
 

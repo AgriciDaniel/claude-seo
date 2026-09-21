@@ -52,6 +52,22 @@ def test_discovery_url_for_normalizes_to_well_known():
     )
 
 
+def test_capability_probe_does_not_inherit_local_target_allowlist(monkeypatch):
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "*.test")
+    seen = []
+
+    def strict(url, *, allow_local_target=True):
+        seen.append((url, allow_local_target))
+        raise ucp_check.URLSafetyError("non-public target")
+
+    monkeypatch.setattr(ucp_check, "validate_url_strict", strict)
+    result = ucp_check.probe_endpoint("https://attacker.test/checkout")
+
+    assert result["reachable"] is False
+    assert result["error"].startswith("ssrf-blocked:")
+    assert seen == [("https://attacker.test/checkout", False)]
+
+
 def test_parse_profile_rejects_malformed_json():
     report = ucp_check.parse_profile("{ not json")
     assert report["valid_json"] is False
