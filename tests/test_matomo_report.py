@@ -893,7 +893,7 @@ def test_installer_writer_survives_a_dropped_optional_argument(tmp_path):
          str(ROOT / "scripts" / "matomo_auth.py"),
          "https://analytics.example.com"],   # no site-ID argument
         capture_output=True, text=True,
-        env={**os.environ, "HOME": str(home), "CLAUDE_SEO_SECRET": SECRET_TOKEN},
+        env={**os.environ, "HOME": str(home), "USERPROFILE": str(home), "CLAUDE_SEO_SECRET": SECRET_TOKEN},
     )
     assert proc.returncode == 0, proc.stderr
     stored = json.loads((home / ".config" / "claude-seo" / "matomo.json").read_text())
