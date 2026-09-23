@@ -58,50 +58,55 @@ def test_parse_profile_rejects_malformed_json():
     assert any("invalid-json" in issue for issue in report["issues"])
 
 
-def test_parse_profile_valid_minimal_profile():
-    payload = json.dumps({
-        "version": "1.0",
-        "merchant": {"name": "Example Co.", "id": "MC-42"},
-        "capabilities": [
-            {
-                "id": "dev.ucp.shopping.checkout",
-                "version": "1.0",
-                "endpoint": "https://api.example.com/ucp/checkout",
-            }
-        ],
-    })
+def test_parse_profile_valid_spec_profile():
+    """Shape from ucp.dev (2026-08-25) and a live Shopify profile."""
+    payload = json.dumps({"ucp": {
+        "version": "2026-08-25",
+        "supported_versions": {"2026-04-08": "https://s.example/.well-known/ucp/2026-04-08"},
+        "services": {"dev.ucp.shopping": [
+            {"version": "2026-08-25", "spec": "https://ucp.dev/x", "transport": "mcp",
+             "endpoint": "https://s.example/api/ucp/mcp", "schema": "https://ucp.dev/y"}]},
+        "capabilities": {"dev.ucp.shopping.checkout": [
+            {"version": "2026-08-25", "spec": "https://ucp.dev/c", "schema": "https://ucp.dev/s"}]},
+    }})
     report = ucp_check.parse_profile(payload)
-    assert report["valid_json"] is True
-    assert report["version"] == "1.0"
-    assert report["merchant"] == {"name": "Example Co.", "id": "MC-42"}
-    assert len(report["capabilities"]) == 1
+    assert report["valid_json"] is True and report["issues"] == []
+    assert report["version"] == "2026-08-25"
     assert report["capabilities"][0]["id"] == "dev.ucp.shopping.checkout"
-    assert report["issues"] == []
+    assert report["capabilities"][0]["issues"] == []
+    assert report["services"][0]["endpoint"] == "https://s.example/api/ucp/mcp"
+    assert report["unknown_capabilities"] == []
+
+
+def test_parse_profile_flags_a_flat_non_spec_profile():
+    payload = json.dumps({"version": "1.0", "merchant": {"name": "X"},
+                          "capabilities": [{"id": "dev.ucp.shopping.checkout"}]})
+    report = ucp_check.parse_profile(payload)
+    assert "missing-ucp-root" in report["issues"]
+    assert any(i.startswith("flat-profile") for i in report["issues"])
+
+
+def test_parse_profile_flags_missing_capability_fields():
+    payload = json.dumps({"ucp": {"version": "2026-08-25",
+                                  "services": {"dev.ucp.shopping": [{"version": "2026-08-25", "transport": "rest"}]},
+                                  "capabilities": {"dev.ucp.shopping.cart": [{"version": "2026-08-25"}]}}})
+    report = ucp_check.parse_profile(payload)
+    assert report["capabilities"][0]["issues"] == ["missing-spec", "missing-schema"]
+    assert report["services"][0]["issues"] == ["missing-endpoint"]
 
 
 def test_parse_profile_flags_missing_fields_and_unknown_capability():
-    payload = json.dumps({
-        "capabilities": [
-            {
-                "id": "dev.ucp.unknown.thing",
-                # missing version, missing endpoint
-            },
-            {
-                # missing id
-                "version": "1.0",
-                "endpoint": "https://api.example.com/x",
-            },
-        ],
-    })
+    payload = json.dumps({"ucp": {
+        "services": {"dev.ucp.shopping": [{"transport": "carrier-pigeon"}]},
+        "capabilities": {"dev.ucp.unknown.thing": [{"spec": "https://ucp.dev/x"}]},
+    }})
     report = ucp_check.parse_profile(payload)
-    assert "missing-version" in report["issues"]
-    assert "missing-merchant" in report["issues"]
+    assert "version-missing-or-not-a-date" in report["issues"]
     assert "dev.ucp.unknown.thing" in report["unknown_capabilities"]
     cap0 = report["capabilities"][0]
-    assert "missing-version" in cap0["issues"]
-    assert "missing-endpoint" in cap0["issues"]
-    cap1 = report["capabilities"][1]
-    assert "missing-id" in cap1["issues"]
+    assert "missing-version" in cap0["issues"] and "missing-schema" in cap0["issues"]
+    svc0 = report["services"][0]
+    assert "unknown-transport" in svc0["issues"] and "missing-version" in svc0["issues"]
 
 
 def test_parse_profile_rejects_non_object_root():

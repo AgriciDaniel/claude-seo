@@ -1,4 +1,4 @@
-# UCP — Universal Commerce Protocol (June 2026)
+# UCP: Universal Commerce Protocol (September 2026)
 
 UCP is a Google-initiated open standard, co-developed with Shopify, Etsy,
 Wayfair, Target, and Walmart (20+ endorsers), plus payment partners (Stripe,
@@ -16,9 +16,9 @@ in Search; broader Universal Cart rollout details are reported from Google I/O
 **Primary sources (canonical, stable):**
 - Google merchant developer guide: https://developers.google.com/merchant/ucp
   (and /merchant/ucp/guides/ucp-profile)
-- Spec / overview: https://ucp.dev. ucp.dev lists **2026-04-08** as the latest
-  release in its **date-based versioning** scheme (YYYY-MM-DD); revalidate
-  before using it as a hard validator.
+- Spec / overview: https://ucp.dev. Versions are dates (YYYY-MM-DD). ucp.dev lists **2026-08-25** as the latest spec release; Google's merchant
+  implementation guide still documents **2026-04-08**, and live profiles list
+  older releases under `supported_versions` (checked 2026-09-23).
 
 ## What UCP is and isn't
 
@@ -34,40 +34,40 @@ relationships and post-purchase ownership.
 
 ## How to declare a UCP profile
 
-Publish a profile at `/.well-known/ucp` describing capabilities and versions.
-The general shape (consult the live spec for exact field names):
+Publish a business profile at `/.well-known/ucp`. Everything sits under a root
+`ucp` object; `services` and `capabilities` are keyed by reverse-domain name,
+each holding a list of version variants (shape from
+https://ucp.dev/latest/specification/overview/, checked 2026-09-23 against a
+live Shopify profile):
 
-```jsonc
+```json
 {
-  "version": "2026-04-08",
-  "capabilities": [
-    {
-      "id": "dev.ucp.shopping.checkout",
-      "version": "2026-04-08",
-      "endpoint": "https://api.example.com/ucp/checkout"
+  "ucp": {
+    "version": "2026-08-25",
+    "supported_versions": {"2026-04-08": "https://shop.example/.well-known/ucp/2026-04-08"},
+    "services": {
+      "dev.ucp.shopping": [
+        {"version": "2026-08-25", "spec": "https://ucp.dev/2026-08-25/specification/overview/",
+         "transport": "mcp", "endpoint": "https://shop.example/api/ucp/mcp",
+         "schema": "https://ucp.dev/2026-08-25/services/shopping/mcp.openrpc.json"}
+      ]
     },
-    {
-      "id": "dev.ucp.shopping.fulfillment",
-      "version": "2026-04-08",
-      "endpoint": "https://api.example.com/ucp/fulfillment"
-    },
-    {
-      "id": "dev.ucp.shopping.discount",
-      "version": "2026-04-08",
-      "endpoint": "https://api.example.com/ucp/discount"
+    "capabilities": {
+      "dev.ucp.shopping.checkout": [
+        {"version": "2026-08-25",
+         "spec": "https://ucp.dev/2026-08-25/specification/shopping/checkout/",
+         "schema": "https://ucp.dev/2026-08-25/schemas/shopping/checkout.json"}
+      ]
     }
-  ],
-  "merchant": {
-    "name": "Example Co.",
-    "id": "merchant-center-id-here"
   }
 }
 ```
 
-UCP uses **date-based versioning** (`YYYY-MM-DD`), current release **2026-04-08**
-— a literal `"1.0"` does not match any real UCP release and will fail the spec's
-version negotiation. Platforms (AI Mode in Search, Gemini, and eventually
-others) auto-discover the profile and negotiate.
+A capability variant needs `version`, `spec` and `schema` (optional `extends`,
+`config`); a service variant also needs a `transport` (`rest`, `mcp`, `a2a` or
+`embedded`) and usually an `endpoint`. There is no `merchant` field. A literal
+`"1.0"` is not a UCP release. Platforms (AI Mode in Search, Gemini) discover the
+profile and negotiate a version.
 
 ### Integration paths
 
@@ -75,7 +75,7 @@ others) auto-discover the profile and negotiate.
 - **Embedded checkout** (optional, iframe-based) — for specific Google-approved
   merchants with complex/bespoke checkout.
 
-Merchants join a **waitlist** and must be Google-approved before going live.
+Merchants join a **waitlist** (interest form linked from developers.google.com/merchant/ucp) before going live.
 
 ## Common capabilities to declare
 
@@ -97,12 +97,11 @@ Exact identifiers are governed by the live spec. The namespace pattern is
 2. **Capability coverage:** which capabilities are declared? Flag missing
    checkout / fulfillment / discount as opportunities, not failures (the
    protocol is early).
-3. **Endpoint reachability:** are declared endpoints HTTPS, valid TLS, not
-   returning 5xx?
-4. **Version coherence:** is the declared `version` a valid **date-based**
-   (`YYYY-MM-DD`) UCP release? ucp.dev lists 2026-04-08 as latest; revalidate
-   before flagging a version as invalid. Flag a literal `"1.0"` or unrecognized
-   version as invalid.
+3. **Endpoint reachability:** are declared service endpoints HTTPS, valid TLS,
+   not returning 5xx? (`ucp_check.py --probe-endpoints`)
+4. **Version coherence:** is `ucp.version` a date (`YYYY-MM-DD`) UCP release?
+   2026-08-25 is the latest spec, and 2026-04-08 is what Google's merchant guide
+   documents; both are valid. Flag a literal `"1.0"` or a non-date version.
 5. **Integration path:** does the profile imply Native (default) or Embedded
    (approved-merchant) checkout?
 
@@ -114,7 +113,7 @@ Center. (UCP itself is live; what's "early" is broad merchant adoption.)
 
 | Existing surface | Relationship to UCP |
 |---|---|
-| Google Merchant Center feed | Required upstream — UCP capabilities reference Merchant Center products by ID |
+| Google Merchant Center feed | Google's guide builds on existing Merchant Center shopping feeds for discovery |
 | Google Business Profile | Independent — UCP is product / order; GBP is store / location |
 | Product schema (`hasMerchantReturnPolicy`, `shippingDetails`) | Complementary — UCP exposes the same data at the API layer; schema exposes it at the page layer |
 | AP2 (Agent Payments Protocol) | Pair. UCP handles discovery + checkout structure; AP2 handles cryptographic proof of user consent. Treat FIDO governance, v0.2, and Mastercard Verifiable Intent details as secondary-source context, not canonical audit guidance until primary sources verify them. |
@@ -149,8 +148,8 @@ schema, and a checkout API can declare a UCP profile in a sprint.
 
 ## Last verified
 
-2026-06-21. Re-check when:
+2026-09-23. Re-check when:
 
-- A new dated UCP spec supersedes 2026-04-08.
+- A new dated UCP spec supersedes 2026-08-25, or Google's merchant guide moves past 2026-04-08.
 - AP2 advances past v0.2 / FIDO governance milestones change.
 - UCP expands to new verticals or new surfaces (beyond Search, Gemini, YouTube, Gmail).

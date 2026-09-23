@@ -14,7 +14,7 @@ Announced at
 | Type | Retired | Notes |
 |---|---|---|
 | **Vehicle Listing** (`@type: VehicleListing` / `Vehicle`) | June 2025 | No replacement. Google no longer renders dealer inventory rich cards. Use regular `Product` schema if the listing is sold online. |
-| **Claim Review** (`@type: ClaimReview`) | June 2025 | No replacement. The fact-check rich result was the main consumer of ClaimReview; without it, the markup has no SERP effect. ClaimReview *the vocabulary* is still in schema.org, but Google ignores it. |
+| **Claim Review** (`@type: ClaimReview`) | June 2025 | No Search replacement. The fact-check rich result is gone, so the markup has no SERP effect, but Google's Fact Check Explorer still uses it; fact-checking publishers may keep it. |
 | **Estimated Salary** (`@type: EstimatedSalary` / `OccupationalAggregateRating`) | June 2025 | No replacement. `JobPosting` remains live for individual jobs. |
 | **Learning Video** | June 2025 | No replacement. The generic `VideoObject` rich result still renders. |
 | **Course Info** (detailed single-course rich result) | June 2025 | Retired; docs removed 2025-09-09. The separate **Course list** rich result (Course + ItemList carousel) is still supported. When asked for "Course Info", redirect to Course list markup. |

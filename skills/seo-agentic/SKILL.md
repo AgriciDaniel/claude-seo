@@ -83,7 +83,7 @@ Run the steps in this order and keep every tool's JSON for the report.
 | P1 | Markdown via `.md` URLs or `Accept: text/markdown` with `Vary: Accept` | `markdown-delivery` |
 | P1 | Stable, visible confirmation states; no hover-only menus or focus traps | manual review (no script evidence; say so if not checked) |
 | P1 (transactional) / P2 | Imperative WebMCP tools bound to existing handlers | `webmcp-tools`, Lighthouse `webmcp-registered-tools` |
-| P1 if tools exist | Tool safety: annotations, confirmation, logging | manual review of the page source against `references/webmcp.md` |
+| P1 if tools exist | Tool safety: annotations, confirmation, logging, and no tool description that tells agents to skip confirmation | review the tool list and descriptions from Lighthouse `webmcp-registered-tools` (it sees tools registered by third-party scripts that the page source does not show) against `references/webmcp.md` |
 | P2 | WebMCP registered on `document.modelContext`, not only the legacy `navigator` entry point | `webmcp-entry-point` |
 | P2 | API Catalog, OAuth metadata (only if you run APIs) | `well-known:api-catalog`, `well-known:oauth-*` |
 | P3 | A2A agent card, UCP profile (only if you run them) | `well-known:agent-card.json`, `well-known:ucp` |

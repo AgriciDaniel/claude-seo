@@ -68,7 +68,7 @@ Fetch and parse any product page for on-page SEO quality.
 - [ ] File names are descriptive (not `IMG_001.jpg`)
 - [ ] WebP format served (with JPEG fallback)
 - [ ] At least 3 images per product (hero, detail, lifestyle)
-- [ ] Image dimensions >= 800px for Google Shopping eligibility
+- [ ] High-resolution images: Google recommends at least 50K pixels (width x height) for merchant listings; larger (for example 800px+) is common practice, not a rule
 - [ ] Lazy loading on below-fold images only
 
 #### Internal Linking
@@ -232,7 +232,7 @@ Validate and generate Product schema following Google's current requirements.
 
 ### Confirmed Required Properties (Google Merchant)
 
-Confirmed required fields are `name`, `image`, and `offers`; use `Offer`, not `AggregateOffer`, for merchant listings.
+Confirmed required fields are `name`, `image`, and `offers`; use `Offer`, not `AggregateOffer`, for merchant listings. Merchant listings require a `price` greater than zero, and `priceCurrency` whenever `price` is set.
 
 ```json
 {
@@ -244,7 +244,7 @@ Confirmed required fields are `name`, `image`, and `offers`; use `Offer`, not `A
     "@type": "Offer",
     "url": "",
     "priceCurrency": "USD",
-    "price": "0.00",
+    "price": "49.00",
     "availability": "https://schema.org/InStock"
   }
 }
@@ -274,7 +274,7 @@ Confirmed required fields are `name`, `image`, and `offers`; use `Offer`, not `A
 5. If `brand` is present, `brand.name` must not be empty or "N/A"
 6. Sale periods use `validFrom` plus either `validThrough` or
    `priceValidUntil`, in ISO 8601 format. Include time and timezone when known.
-7. If `aggregateRating` present: `ratingValue` and `reviewCount` required
+7. If `aggregateRating` present: `ratingValue` and `reviewCount` required (the merchant-listing docs list `reviewCount`; the review-snippet docs also accept `ratingCount`)
 8. Do not include fake reviews or undisclosed incentivized reviews in visible
    content or structured data. Clearly and prominently disclose incentives.
 
@@ -311,8 +311,8 @@ letting AI agents discover, negotiate, and transact with merchants without
 one-off integrations. Google confirms a first reference implementation for
 conversational buying in AI Mode in Search. Broader Universal Cart rollout
 details are reported from Google I/O 2026 keynote coverage; not confirmed on a
-Google-owned source. ucp.dev lists **2026-04-08** as the latest release in its
-**date-based versioning** scheme, not `1.0`; two integration paths: **Native**
+Google-owned source. ucp.dev lists **2026-08-25** as the latest spec release (Google's merchant
+guide still documents 2026-04-08) in its **date-based versioning** scheme, not `1.0`; two integration paths: **Native**
 (default) and **Embedded** (approved merchants). Pairs with **AP2** (reportedly
 moving toward FIDO governance). Canonical: developers.google.com/merchant/ucp
 and ucp.dev.
@@ -352,7 +352,7 @@ UCP itself is live; what's early is broad merchant adoption. Flag a literal
 | Empty Shopping results | No products for keyword | Suggest broader keyword, check location settings |
 | Amazon API timeout | Network/rate limit | Retry with backoff, fall back to Google-only |
 | Invalid URL | Malformed input | Validate via `google_auth.validate_url()`, show error |
-| Non-product page | URL is category/homepage | Detect page type, suggest `/seo ecommerce schema` instead |
+| Non-product page | URL is category/homepage | Run the store-level checks (UCP profile, category structure, feeds) and ask for a product URL for the product-level checks |
 
 ---
 

@@ -16,7 +16,10 @@ metadata:
 
 ## Detection
 
-1. Scan page source for JSON-LD `<script type="application/ld+json">`
+1. Extract JSON-LD with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run parse_html.py --url <url> --json`
+   (or scan `<script type="application/ld+json">` in the page source). Flag any
+   block without `@context` or `@type`: Google cannot attach it to an entity (a
+   rating in such a block does not reach the Product).
 2. Check for Microdata (`itemscope`, `itemprop`)
 3. Check for RDFa (`typeof`, `property`)
 4. Always recommend JSON-LD as primary format (Google's stated preference)
@@ -55,11 +58,13 @@ See `schema/templates.json` for ready-to-use JSON-LD templates for these types.
 - **HowTo**: Rich results removed September 2023
 - **SpecialAnnouncement**: Deprecated July 31, 2025
 - **CourseInfo, EstimatedSalary, LearningVideo**: Retired June 2025
-- **ClaimReview**: Retired from rich results June 2025
+- **ClaimReview**: No Search rich result since June 2025. Google's Fact Check Explorer still uses the markup, so fact-checking publishers may keep it; never recommend it for SERP features
 - **VehicleListing**: Retired from rich results June 2025
 - **Practice Problem**: Deprecation notice 2025-11-05; tooling support removed starting January 2026; documentation removed 2026-01-06
-- **Book Actions**: NOT deprecated. The June 2025 phase-out banner was removed on 2025-11-05 because a Search feature still uses the markup.
 - Search Console / Rich Results Test / appearance-filter support for CourseInfo, ClaimReview, EstimatedSalary, LearningVideo, SpecialAnnouncement, VehicleListing was removed 2025-09-09 (Search Console API through December 2025).
+
+### Still supported (despite earlier phase-out notices):
+- **Book Actions**: NOT deprecated. The June 2025 phase-out banner was removed on 2025-11-05 because a Search feature still uses the markup.
 
 ### Supported for Dataset Search only:
 - **Dataset**: Not discontinued; consumed by Google Dataset Search, with no Google Search rich-result surface. Don't advise removal as if it were killed.

@@ -95,6 +95,10 @@ form's own submit handler.
 6. Session-bound tools run with the user's real privileges (OpenAI's cloud
    browser can keep a signed-in session). Scope them accordingly.
 7. For API or MCP access use OAuth (RFC 9728 metadata), not session scraping.
+8. A tool description must never tell the agent to skip or bypass user
+   confirmation (for example "no need to confirm with the user"). Treat that
+   wording as a P1 safety finding: it is an instruction to the agent that a
+   person never sees.
 
 ## Audit posture
 

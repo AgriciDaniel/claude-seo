@@ -2,10 +2,10 @@
 """
 UCP (Universal Commerce Protocol) profile auditor.
 
-Fetches a site's ``/.well-known/ucp`` document, validates its structure
-against the early UCP spec (Google + Shopify + Etsy + Walmart + payment
-partners), enumerates declared capabilities, and probes each declared
-endpoint for reachability. Output is JSON.
+Fetches a site's ``/.well-known/ucp`` business profile, validates it against
+the UCP specification (ucp.dev; profile shape verified 2026-09-23 against the
+2026-08-25 spec and a live Shopify profile), enumerates declared services and
+capabilities, and optionally probes each service endpoint. Output is JSON.
 
 Audit posture
 =============
@@ -19,7 +19,7 @@ SSRF
 ====
 Both the discovery fetch and every endpoint probe go through
 ``url_safety.safe_requests_get`` / ``url_safety.validate_url_strict``.
-Capability endpoints declared as private-IP, loopback, or metadata-IP
+Service endpoints declared as private-IP, loopback, or metadata-IP
 URLs are rejected at validation time and reported as ``ssrf-blocked``.
 
 CLI
@@ -34,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 from urllib.parse import urljoin, urlparse
 
@@ -53,6 +54,9 @@ KNOWN_CAPABILITIES = {
     "dev.ucp.shopping.discount": "Apply promo codes / loyalty discounts",
     "dev.ucp.shopping.cart": "Add / remove / update items in agent-managed carts",
     "dev.ucp.shopping.catalog": "Search / list products via agent queries",
+    "dev.ucp.shopping.catalog.search": "Catalog search",
+    "dev.ucp.shopping.catalog.lookup": "Catalog lookup by product ID",
+    "dev.ucp.common.identity_linking": "Account and identity linking",
     "dev.ucp.shopping.order": "Order status, lookup, history",
     "dev.ucp.shopping.returns": "Return initiation + status",
 }
@@ -68,13 +72,26 @@ def discovery_url_for(site: str) -> str:
     return urljoin(base, ".well-known/ucp")
 
 
+UCP_TRANSPORTS = {"rest", "mcp", "a2a", "embedded"}
+UCP_VERSION_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
 def parse_profile(payload: str) -> dict:
-    """Parse a UCP profile JSON document and report structural findings."""
+    """Parse a UCP business profile and report structural findings.
+
+    Shape (https://ucp.dev/latest/specification/overview/, verified 2026-09-23):
+    everything sits under a root ``ucp`` object with a date ``version``;
+    ``services`` and ``capabilities`` are objects keyed by reverse-domain name,
+    each holding a list of version variants. A capability variant needs
+    ``version``, ``spec`` and ``schema``; a service variant also needs a
+    ``transport`` (rest, mcp, a2a or embedded) and usually an ``endpoint``.
+    """
     report: dict = {
         "valid_json": False,
         "version": None,
+        "supported_versions": [],
+        "services": [],
         "capabilities": [],
-        "merchant": None,
         "issues": [],
         "unknown_capabilities": [],
     }
@@ -88,61 +105,71 @@ def parse_profile(payload: str) -> dict:
         return report
     report["valid_json"] = True
 
-    version = data.get("version")
-    if version is None:
-        report["issues"].append("missing-version")
-    elif not isinstance(version, str):
-        report["issues"].append("version-not-string")
+    ucp = data.get("ucp")
+    if not isinstance(ucp, dict):
+        report["issues"].append("missing-ucp-root")
+        if "capabilities" in data or "merchant" in data:
+            report["issues"].append(
+                "flat-profile: not the UCP spec shape (fields must sit under a root 'ucp' object)")
+        return report
+
+    version = ucp.get("version")
+    if not isinstance(version, str) or not UCP_VERSION_RE.match(version):
+        report["issues"].append("version-missing-or-not-a-date")
     else:
         report["version"] = version
+    supported = ucp.get("supported_versions")
+    if isinstance(supported, dict):
+        report["supported_versions"] = sorted(supported)
 
-    merchant = data.get("merchant")
-    if merchant is None:
-        report["issues"].append("missing-merchant")
-    elif isinstance(merchant, dict):
-        report["merchant"] = {
-            "name": merchant.get("name"),
-            "id": merchant.get("id"),
-        }
-        if not merchant.get("name"):
-            report["issues"].append("merchant-name-empty")
+    services = ucp.get("services")
+    if not isinstance(services, dict) or not services:
+        report["issues"].append("missing-services")
     else:
-        report["issues"].append("merchant-not-object")
-
-    caps = data.get("capabilities")
-    if caps is None:
-        report["issues"].append("missing-capabilities")
-    elif not isinstance(caps, list):
-        report["issues"].append("capabilities-not-array")
-    else:
-        for idx, cap in enumerate(caps):
-            if not isinstance(cap, dict):
-                report["issues"].append(f"capability-{idx}-not-object")
+        for name, variants in services.items():
+            if not isinstance(variants, list):
+                report["issues"].append(f"service-{name}-not-a-list")
                 continue
-            cap_id = cap.get("id")
-            cap_version = cap.get("version")
-            cap_endpoint = cap.get("endpoint")
-            entry = {
-                "id": cap_id,
-                "version": cap_version,
-                "endpoint": cap_endpoint,
-                "issues": [],
-            }
-            if not cap_id:
-                entry["issues"].append("missing-id")
-            elif cap_id not in KNOWN_CAPABILITIES:
-                report["unknown_capabilities"].append(cap_id)
-            if not cap_version:
-                entry["issues"].append("missing-version")
-            if not cap_endpoint:
-                entry["issues"].append("missing-endpoint")
-            report["capabilities"].append(entry)
+            for variant in variants:
+                if not isinstance(variant, dict):
+                    report["issues"].append(f"service-{name}-variant-not-object")
+                    continue
+                entry = {"id": name, "version": variant.get("version"),
+                         "transport": variant.get("transport"),
+                         "endpoint": variant.get("endpoint"), "issues": []}
+                if variant.get("transport") not in UCP_TRANSPORTS:
+                    entry["issues"].append("unknown-transport")
+                if not variant.get("version"):
+                    entry["issues"].append("missing-version")
+                if variant.get("transport") in ("rest", "mcp", "a2a") and not variant.get("endpoint"):
+                    entry["issues"].append("missing-endpoint")
+                report["services"].append(entry)
 
+    caps = ucp.get("capabilities")
+    if not isinstance(caps, dict) or not caps:
+        report["issues"].append("missing-capabilities")
+    else:
+        for name, variants in caps.items():
+            if name not in KNOWN_CAPABILITIES:
+                report["unknown_capabilities"].append(name)
+            if not isinstance(variants, list):
+                report["issues"].append(f"capability-{name}-not-a-list")
+                continue
+            for variant in variants:
+                if not isinstance(variant, dict):
+                    report["issues"].append(f"capability-{name}-variant-not-object")
+                    continue
+                entry = {"id": name, "version": variant.get("version"),
+                         "extends": variant.get("extends"), "issues": []}
+                for field in ("version", "spec", "schema"):
+                    if not variant.get(field):
+                        entry["issues"].append(f"missing-{field}")
+                report["capabilities"].append(entry)
     return report
 
 
 def probe_endpoint(url: str, *, timeout: int = 10) -> dict:
-    """HEAD-probe a declared capability endpoint via url_safety."""
+    """GET-probe a declared service endpoint via url_safety (any status below 500 counts as reachable)."""
     out: dict = {"url": url, "reachable": False, "status_code": None, "error": None}
     try:
         validate_url_strict(url)
@@ -196,15 +223,17 @@ def audit_site(
     parsed = parse_profile(decode_response_text(resp))
     report["parse"] = parsed
 
-    if probe_endpoints and parsed.get("capabilities"):
-        for cap in parsed["capabilities"]:
-            endpoint = cap.get("endpoint")
-            if endpoint:
-                report["endpoint_probes"].append(probe_endpoint(endpoint, timeout=timeout))
+    if probe_endpoints:
+        for endpoint in sorted({svc["endpoint"] for svc in parsed.get("services") or []
+                                if svc.get("endpoint")}):
+            report["endpoint_probes"].append(probe_endpoint(endpoint, timeout=timeout))
 
-    n_caps = len(parsed.get("capabilities") or [])
-    n_issues = len(parsed.get("issues") or [])
-    report["summary"] = f"profile-found: {n_caps} capabilities, {n_issues} structural issues"
+    n_caps = len({cap["id"] for cap in parsed.get("capabilities") or []})
+    n_issues = len(parsed.get("issues") or []) + sum(
+        len(item["issues"]) for item in (parsed.get("capabilities") or [])
+        + (parsed.get("services") or []))
+    report["summary"] = (f"profile-found: UCP {parsed.get('version')}, {n_caps} capabilities, "
+                         f"{n_issues} structural issues")
     return report
 
 
@@ -214,7 +243,7 @@ def _cli() -> None:
     parser.add_argument(
         "--probe-endpoints",
         action="store_true",
-        help="HEAD-probe each declared capability endpoint",
+        help="Probe each declared service endpoint",
     )
     parser.add_argument(
         "--timeout", type=int, default=10, help="Per-request timeout (seconds)"
@@ -236,9 +265,11 @@ def _cli() -> None:
     if report.get("parse"):
         parsed = report["parse"]
         print(f"Version: {parsed.get('version')}")
+        for svc in parsed.get("services") or []:
+            print(f"  service {svc.get('id')} (v{svc.get('version')}, {svc.get('transport')}) -> {svc.get('endpoint')}")
         print(f"Capabilities ({len(parsed.get('capabilities') or [])}):")
         for cap in parsed.get("capabilities") or []:
-            print(f"  - {cap.get('id')} (v{cap.get('version')}) -> {cap.get('endpoint')}")
+            print(f"  - {cap.get('id')} (v{cap.get('version')})")
         if parsed.get("issues"):
             print(f"Structural issues: {', '.join(parsed['issues'])}")
 
