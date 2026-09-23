@@ -11,7 +11,7 @@
     {
       "name": "claude-seo",
       "source": "./",
-      "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 8 optional MCP extensions. v2.3.1 runs the judgment-heavy agents on Opus, adds a free Keywords Everywhere backlinks fallback, surfaces setup failures with their own output, and makes every extension installer write ~/.claude.json atomically.",
+      "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions. v2.3.1 runs the judgment-heavy agents on Opus, adds a free Keywords Everywhere backlinks fallback, surfaces setup failures with their own output, and makes every extension installer write ~/.claude.json atomically.",
       "author": {
         "name": "AgriciDaniel",
         "url": "https://github.com/AgriciDaniel"

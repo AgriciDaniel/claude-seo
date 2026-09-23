@@ -141,7 +141,7 @@ claude
 
 ## Commands
 
-![Claude SEO sub-skill ecosystem: 25 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
+![Claude SEO sub-skill ecosystem: 26 modules grouped into 8 categories (audit, content, schema, technical, AI search, local + maps, commerce + intl, extensions) around the central orchestrator](assets/sub-skills.svg)
 
 34 user-invocable `/seo` commands across the orchestrator, its sub-skills, and 9 MCP extensions. Full reference in [docs/COMMANDS.md](docs/COMMANDS.md).
 
@@ -299,7 +299,7 @@ Other audit outputs follow the same shape: `FULL-AUDIT-REPORT.md` (umbrella audi
 
 ## Architecture
 
-![Claude SEO audit signal flow: /seo audit enters the orchestrator, fans out to 25 sub-skills and up to 15 parallel audit agents, and converges through the scoring engine into a prioritized report](assets/signal-flow.svg)
+![Claude SEO audit signal flow: /seo audit enters the orchestrator, fans out to 26 sub-skills and up to 16 parallel audit agents, and converges through the scoring engine into a prioritized report](assets/signal-flow.svg)
 
 The plugin follows the [Agent Skills standard](https://docs.claude.com/en/docs/claude-code/skills) with a 3-layer architecture (directive, orchestration, execution). Skills and agents are auto-discovered from `skills/seo-*/` and `agents/seo-*.md`. The orchestrator (`skills/seo/SKILL.md`) handles industry detection (SaaS, local, ecommerce, publisher, agency), parallel sub-agent dispatch up to 16 simultaneously, and synthesis through the [10-principle framework](#methodology) before emitting the action plan. Full architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

@@ -150,17 +150,18 @@ Check `robots.txt` for these AI crawlers:
 |---------|-------|---------|---|
 | GPTBot | OpenAI | **Model training only** (NOT ChatGPT Search) | yes |
 | OAI-SearchBot | OpenAI | **ChatGPT Search citability** (the crawler that decides it) | yes |
-| ChatGPT-User | OpenAI | ChatGPT browsing (user-triggered) | no (user-triggered) |
+| ChatGPT-User | OpenAI | ChatGPT browsing (user-triggered) | "may not apply" per OpenAI (user-triggered) |
 | ClaudeBot | Anthropic | **Model training only** (NOT Claude's search features) | yes |
 | Claude-SearchBot | Anthropic | **Claude/Claude.ai search-result citability** (the crawler that decides it) | yes |
-| Claude-User | Anthropic | Claude browsing on a user's behalf (user-triggered) | no (user-triggered) |
-| PerplexityBot | Perplexity | Perplexity AI search | yes |
+| Claude-User | Anthropic | Claude browsing on a user's behalf (user-triggered) | **yes** (Anthropic: all three bots honor robots.txt) |
+| PerplexityBot | Perplexity | Perplexity AI search (not used to crawl for foundation-model training) | yes |
+| Perplexity-User | Perplexity | Fetches for a user's question (user-triggered) | generally ignores |
 | CCBot | Common Crawl | Training data (often blocked) | yes |
 | Bytespider | ByteDance | TikTok/Douyin AI | yes |
 | cohere-ai | Cohere | Cohere models | yes |
 | Google-Extended | Google | **Gemini/Vertex training & grounding only** (NOT Google Search) | yes |
 | Google-CloudVertexBot | Google | Site-owner-requested Vertex AI Agent crawls | yes |
-| Google-Agent | Google | Agentic browsing (Project Mariner), acts for a user | **no (user-triggered)** |
+| Google-Agent | Google | User-triggered agent fetches (agentic browsing for a user) | **no (user-triggered)** |
 | Google-NotebookLM | Google | Fetches individual user-added source URLs | **no (user-triggered)** |
 | Google Messages | Google | User-triggered fetch | **no (user-triggered)** |
 | Applebot-Extended | Apple | **Apple Intelligence / generative-AI training data opt-out only** (NOT Siri, Spotlight, or Safari search; does not itself crawl, it labels content already fetched by Applebot) | yes |

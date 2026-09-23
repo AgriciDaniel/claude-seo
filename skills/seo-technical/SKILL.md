@@ -38,7 +38,7 @@ metadata:
 
 As of 2025-2026, AI companies actively crawl the web to train models and power AI search. Managing these crawlers via robots.txt is a critical technical SEO consideration.
 
-**Known AI crawlers:**
+**Known AI crawlers** (the authoritative table, with robots.txt behaviour per crawler, is in `seo-geo`):
 
 | Crawler | Company | robots.txt token | Purpose |
 |---------|---------|-----------------|---------|
@@ -47,7 +47,7 @@ As of 2025-2026, AI companies actively crawl the web to train models and power A
 | ChatGPT-User | OpenAI | `ChatGPT-User` | Real-time browsing (user-triggered) |
 | ClaudeBot | Anthropic | `ClaudeBot` | Model training (NOT Claude search citability) |
 | Claude-SearchBot | Anthropic | `Claude-SearchBot` | Claude search-result citability |
-| PerplexityBot | Perplexity | `PerplexityBot` | Search index + training |
+| PerplexityBot | Perplexity | `PerplexityBot` | Perplexity search index (not model training) |
 | Bytespider | ByteDance | `Bytespider` | Model training |
 | Google-Extended | Google | `Google-Extended` | Gemini training (NOT search) |
 | Applebot-Extended | Apple | `Applebot-Extended` | Apple Intelligence training opt-out (NOT Siri/Spotlight/Safari) |
@@ -89,7 +89,7 @@ Allow: /
 
 **Recommendation:** Consider your AI visibility strategy before blocking. Being cited by AI systems drives brand awareness and referral traffic. Cross-reference the `seo-geo` skill for the full AI crawler/fetcher taxonomy.
 
-> **User-triggered fetchers ignore robots.txt by design.** Google now documents **Google-Agent** (Project Mariner, agentic browsing) plus **Google-NotebookLM** and **Google Messages** as *user-triggered* fetchers that **cannot be blocked via robots.txt**. Use server-side access controls instead. By contrast, `Google-Extended` and `Google-CloudVertexBot` obey robots.txt. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate cryptographically via a `Signature-Agent` header + key directory at `agent.bot.goog` (used by Google-Agent); reverse-DNS verification remains the fallback.
+> **Google's user-triggered fetchers ignore robots.txt by design** (other vendors differ: Anthropic's Claude-User honors it). Google now documents **Google-Agent** (user-triggered agentic browsing) plus **Google-NotebookLM** and **Google Messages** as *user-triggered* fetchers that **cannot be blocked via robots.txt**. Use server-side access controls instead. By contrast, `Google-Extended` and `Google-CloudVertexBot` obey robots.txt. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate cryptographically via a `Signature-Agent` header + key directory at `agent.bot.goog` (used by Google-Agent); reverse-DNS verification remains the fallback.
 
 ### 2. Indexability
 - Canonical tags: self-referencing, no conflicts with noindex

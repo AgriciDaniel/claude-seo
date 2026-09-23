@@ -146,3 +146,32 @@ def test_geo_skill_cites_the_four_vendor_crawler_docs() -> None:
         "https://support.apple.com/en-us/119829",
     ):
         assert url in text, f"missing citation: {url}"
+
+
+def test_claude_user_is_documented_as_honoring_robots_txt() -> None:
+    """Anthropic: all three bots, including Claude-User, honor robots.txt."""
+    geo = (REPO_ROOT / "skills/seo-geo/SKILL.md").read_text(encoding="utf-8")
+    row = next(line for line in geo.splitlines() if line.startswith("| Claude-User |"))
+    assert "yes" in row.lower() and "no (user-triggered)" not in row
+    policy = (REPO_ROOT / "skills/seo-agentic/references/access-policy.md").read_text(encoding="utf-8")
+    assert "| Claude-User | Anthropic | user-initiated fetches | honoured |" in policy
+
+
+def test_perplexitybot_is_never_described_as_a_training_crawler() -> None:
+    """Perplexity: PerplexityBot "is not used to crawl content for AI foundation models"."""
+    for rel in ("skills/seo-geo/SKILL.md", "skills/seo-technical/SKILL.md"):
+        text = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        row = next(line for line in text.splitlines() if line.startswith("| PerplexityBot |"))
+        assert "+ training" not in row, rel
+
+
+def test_no_live_project_mariner_claims() -> None:
+    """Mariner's status is secondary-only; describe Google-Agent by what it does."""
+    for rel in ("skills/seo-geo/SKILL.md", "skills/seo-technical/SKILL.md"):
+        assert "Mariner" not in (REPO_ROOT / rel).read_text(encoding="utf-8"), rel
+
+
+def test_ttfb_guidance_matches_web_dev_threshold() -> None:
+    """web.dev: good TTFB is 0.8s or less; no file may call >200ms a TTFB problem."""
+    for rel in ("skills/seo/references/cwv-thresholds.md", "agents/seo-performance.md"):
+        assert "TTFB >200ms" not in (REPO_ROOT / rel).read_text(encoding="utf-8"), rel
