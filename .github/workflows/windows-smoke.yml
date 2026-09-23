@@ -13,6 +13,7 @@ on:
       - "scripts/seo_updates.py"
       - "data/google-updates.json"
       - "skills/**"
+      - "extensions/**/*.ps1"
   workflow_dispatch:
     inputs:
       target_ref:
@@ -65,6 +66,24 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && needs.validate-ref.outputs.ref || github.sha }}
+
+      - name: Parse every extension PowerShell script
+        shell: pwsh
+        run: |
+          # The extension installers are interactive, so CI cannot run them end
+          # to end; parsing them with this PowerShell catches syntax errors,
+          # including in the secret-handling blocks changed for v2.4.0.
+          $failed = $false
+          Get-ChildItem -Path extensions -Recurse -Filter *.ps1 | ForEach-Object {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              $errors | ForEach-Object { Write-Host "::error file=$($_.Extent.File),line=$($_.Extent.StartLineNumber)::$($_.Message)" }
+            }
+          }
+          if ($failed) { exit 1 }
+          Write-Host "All extension PowerShell scripts parse."
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v7
@@ -178,6 +197,24 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && needs.validate-ref.outputs.ref || github.sha }}
+
+      - name: Parse every extension PowerShell script
+        shell: powershell
+        run: |
+          # The extension installers are interactive, so CI cannot run them end
+          # to end; parsing them with this PowerShell catches syntax errors,
+          # including in the secret-handling blocks changed for v2.4.0.
+          $failed = $false
+          Get-ChildItem -Path extensions -Recurse -Filter *.ps1 | ForEach-Object {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              $failed = $true
+              $errors | ForEach-Object { Write-Host "::error file=$($_.Extent.File),line=$($_.Extent.StartLineNumber)::$($_.Message)" }
+            }
+          }
+          if ($failed) { exit 1 }
+          Write-Host "All extension PowerShell scripts parse."
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v7
