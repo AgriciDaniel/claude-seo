@@ -18,7 +18,7 @@
 ### Why Claude SEO
 
 - **AI-search first.** Aligned with [Google's AI Optimization Guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide). Question-based citability scoring, primary-source evidence on llms.txt, IPTC `TrainedAlgorithmicMedia` for AI-generated product images, agent-friendly page checks per [web.dev](https://web.dev/), and `/seo agentic` for agent readiness scored the way Lighthouse's Agentic Browsing category counts it.
-- **Parallel execution.** Full site audits spawn up to 16 specialist agents simultaneously. Site-level audits complete in minutes rather than hours.
+- **Parallel execution.** Full site audits spawn up to 17 specialist agents simultaneously. Site-level audits complete in minutes rather than hours.
 - **Falsifiable, not promotional.** Every recommendation carries the first-principle observation it rests on, its dependency relationships, an explicit "how would we know this failed?" check, and a leading indicator. See [Methodology](#methodology).
 
 ### Real results
@@ -299,9 +299,9 @@ Other audit outputs follow the same shape: `FULL-AUDIT-REPORT.md` (umbrella audi
 
 ## Architecture
 
-![Claude SEO audit signal flow: /seo audit enters the orchestrator, fans out to 26 sub-skills and up to 16 parallel audit agents, and converges through the scoring engine into a prioritized report](assets/signal-flow.svg)
+![Claude SEO audit signal flow: /seo audit enters the orchestrator, fans out to 26 sub-skills and up to 17 parallel audit agents, and converges through the scoring engine into a prioritized report](assets/signal-flow.svg)
 
-The plugin follows the [Agent Skills standard](https://docs.claude.com/en/docs/claude-code/skills) with a 3-layer architecture (directive, orchestration, execution). Skills and agents are auto-discovered from `skills/seo-*/` and `agents/seo-*.md`. The orchestrator (`skills/seo/SKILL.md`) handles industry detection (SaaS, local, ecommerce, publisher, agency), parallel sub-agent dispatch up to 16 simultaneously, and synthesis through the [10-principle framework](#methodology) before emitting the action plan. Full architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+The plugin follows the [Agent Skills standard](https://docs.claude.com/en/docs/claude-code/skills) with a 3-layer architecture (directive, orchestration, execution). Skills and agents are auto-discovered from `skills/seo-*/` and `agents/seo-*.md`. The orchestrator (`skills/seo/SKILL.md`) handles industry detection (SaaS, local, ecommerce, publisher, agency), parallel sub-agent dispatch up to 17 simultaneously, and synthesis through the [10-principle framework](#methodology) before emitting the action plan. Full architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Methodology
 

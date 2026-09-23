@@ -124,7 +124,22 @@ def get_rank(domains: list, api_key: str) -> dict:
                 "metadata": {"source": "keywordseverywhere"},
             }
 
-        body = response.json()
+        if response.status_code >= 300:
+            return {
+                "status": "error",
+                "data": None,
+                "error": f"HTTP {response.status_code}: unexpected redirect from the API",
+                "metadata": {"source": "keywordseverywhere"},
+            }
+        try:
+            body = response.json()
+        except ValueError:
+            return {
+                "status": "error",
+                "data": None,
+                "error": f"HTTP {response.status_code}: response was not JSON",
+                "metadata": {"source": "keywordseverywhere"},
+            }
         results = body.get("results") or []
         ranks = [
             {

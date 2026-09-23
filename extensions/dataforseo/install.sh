@@ -112,7 +112,7 @@ main() {
     echo "→ Configuring MCP server..."
     FIELD_CONFIG_PATH="${SEO_SKILL_DIR}/dataforseo-field-config.json"
 
-    # Credentials are passed as argv (never interpolated into the source string)
+    # Credentials travel in the environment (never argv, never interpolated into the source string)
     # and the settings file is written atomically with 0600 permissions.
     CLAUDE_SEO_USERNAME="${DFSE_USERNAME}" CLAUDE_SEO_SECRET="${DFSE_PASSWORD}" python3 - "${MCP_CONFIG_FILE}" "${FIELD_CONFIG_PATH}" <<'PY'
 import json, os, sys, tempfile

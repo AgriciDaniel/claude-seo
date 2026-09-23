@@ -99,3 +99,59 @@ def test_no_installer_passes_a_secret_on_the_command_line(rel: Path) -> None:
             args = line.split("python3 -", 1)[1]
             for word in ("KEY", "TOKEN", "PASSWORD", "SECRET"):
                 assert word not in args.split("<<")[0].replace("CONFIG", ""), (rel, line)
+
+
+# PowerShell installers that feed a Python writer through a here-string.
+PS1_WRITERS = {
+    "extensions/profound/install.ps1": ([], "CLAUDE_SEO_SECRET"),
+    "extensions/seranking/install.ps1": ([], "CLAUDE_SEO_SECRET"),
+    "extensions/bing-webmaster/install.ps1": (["https://e.test/key.txt"], "CLAUDE_SEO_SECRET"),
+}
+
+
+def _ps1_writer(rel: str) -> str:
+    text = (ROOT / rel).read_text(encoding="utf-8")
+    match = re.search(r'@"\n(.*?)\n"@', text, re.DOTALL)
+    assert match, f"{rel}: no here-string writer"
+    assert "$" not in match.group(1), f"{rel}: here-string would interpolate a $"
+    return match.group(1)
+
+
+@pytest.mark.parametrize("rel", PS1_WRITERS)
+def test_ps1_writer_reads_secret_from_env_and_never_clobbers(tmp_path: Path, rel: str) -> None:
+    extra, env_name = PS1_WRITERS[rel]
+    script = tmp_path / "writer.py"
+    script.write_text(_ps1_writer(rel), encoding="utf-8")
+    settings = tmp_path / "settings.json"
+    env = {**os.environ, **BASE_ENV, env_name: "secret-value"}
+
+    ok = subprocess.run([sys.executable, str(script), str(settings), *extra],
+                        env=env, capture_output=True, text=True, cwd=tmp_path)
+    assert ok.returncode == 0, ok.stderr
+    assert "secret-value" in settings.read_text(encoding="utf-8")
+
+    original = '{"env": {"MINE": "1"}, broken'
+    settings.write_text(original, encoding="utf-8")
+    bad = subprocess.run([sys.executable, str(script), str(settings), *extra],
+                         env=env, capture_output=True, text=True, cwd=tmp_path)
+    assert bad.returncode != 0 and "Nothing was changed" in bad.stderr
+    assert settings.read_text(encoding="utf-8") == original
+
+
+@pytest.mark.parametrize("rel", [*PS1_WRITERS, "extensions/matomo/install.ps1"])
+def test_ps1_installers_check_the_python_exit_code_and_keep_secrets_off_argv(rel: str) -> None:
+    text = (ROOT / rel).read_text(encoding="utf-8")
+    assert "$env:CLAUDE_SEO_SECRET = " in text
+    assert "if ($LASTEXITCODE -ne 0) { throw" in text, f"{rel} would print Done after a refusal"
+    for line in text.splitlines():
+        if "| python -" in line:
+            assert not re.search(r"\$(Plain|BingPlain|TokenPlain|IdxKey)\b", line), (rel, line)
+
+
+@pytest.mark.parametrize("rel", sorted(Path(ROOT, "extensions").glob("*/install.sh")))
+def test_python_invocations_carry_no_secret_even_across_continuations(rel: Path) -> None:
+    joined = rel.read_text(encoding="utf-8").replace("\\\n", " ")
+    for line in joined.splitlines():
+        if "python3 -" in line and "<<'PY'" in line:
+            args = line.split("python3 -", 1)[1].split("<<", 1)[0]
+            assert not re.search(r"KEY|TOKEN|PASSWORD|SECRET|USERNAME", args.replace("CONFIG", "")), (rel, line)

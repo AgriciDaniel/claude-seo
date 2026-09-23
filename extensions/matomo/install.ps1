@@ -59,5 +59,9 @@ matomo_auth.save_config({
 print('Wrote Matomo credentials to ' + matomo_auth.CONFIG_PATH)
 "@
 $env:CLAUDE_SEO_SECRET = $TokenPlain
-try { $py | python - $MatomoAuth $MatomoUrl $SiteId } finally { Remove-Item Env:CLAUDE_SEO_SECRET -ErrorAction SilentlyContinue }
+try {
+    $py | python - $MatomoAuth $MatomoUrl $SiteId
+    # A native command's non-zero exit does not throw, even with Stop.
+    if ($LASTEXITCODE -ne 0) { throw "Nothing was saved (python exited $LASTEXITCODE). See the message above." }
+} finally { Remove-Item Env:CLAUDE_SEO_SECRET -ErrorAction SilentlyContinue }
 Write-Host "Done. MATOMO_URL / MATOMO_API_TOKEN / MATOMO_SITE_ID still override the file."

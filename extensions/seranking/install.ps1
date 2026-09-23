@@ -36,5 +36,9 @@ with os.fdopen(fd, 'w') as fh:
 os.replace(tmp, path)
 "@
 $env:CLAUDE_SEO_SECRET = $Plain
-try { $pyScript | python - $SettingsJson } finally { Remove-Item Env:CLAUDE_SEO_SECRET -ErrorAction SilentlyContinue }
+try {
+    $pyScript | python - $SettingsJson
+    # A native command's non-zero exit does not throw, even with Stop.
+    if ($LASTEXITCODE -ne 0) { throw "Nothing was saved (python exited $LASTEXITCODE). See the message above." }
+} finally { Remove-Item Env:CLAUDE_SEO_SECRET -ErrorAction SilentlyContinue }
 Write-Host "Done. Try: /seo seranking ai-visibility brandname"

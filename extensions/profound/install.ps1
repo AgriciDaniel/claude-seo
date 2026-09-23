@@ -23,5 +23,9 @@ with os.fdopen(fd, 'w') as fh: json.dump(data, fh, indent=2)
 os.replace(tmp, path)
 "@
 $env:CLAUDE_SEO_SECRET = $Plain
-try { $py | python - $SettingsJson } finally { Remove-Item Env:CLAUDE_SEO_SECRET -ErrorAction SilentlyContinue }
+try {
+    $py | python - $SettingsJson
+    # A native command's non-zero exit does not throw, even with Stop.
+    if ($LASTEXITCODE -ne 0) { throw "Nothing was saved (python exited $LASTEXITCODE). See the message above." }
+} finally { Remove-Item Env:CLAUDE_SEO_SECRET -ErrorAction SilentlyContinue }
 Write-Host "Done."

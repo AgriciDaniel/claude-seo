@@ -84,7 +84,7 @@ main() {
     # Merge MCP config into ~/.claude.json
     echo "-> Configuring MCP server..."
 
-    # Credentials are passed as argv (never interpolated into the source string)
+    # Credentials travel in the environment (never argv, never interpolated into the source string)
     # and the settings file is written atomically with 0600 permissions.
     CLAUDE_SEO_SECRET="${FIRECRAWL_API_KEY}" python3 - "${MCP_CONFIG_FILE}" <<'PY'
 import json, os, sys, tempfile

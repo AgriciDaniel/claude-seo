@@ -178,7 +178,13 @@ def _decode(body: bytes, content_type: str) -> str:
     garbles UTF-8 robots.txt and llms.txt files, so the header is read here.
     """
     match = re.search(r"charset=[\"']?([\w.:-]+)", content_type, re.I)
-    encoding = match.group(1) if match else "utf-8"
+    meta = re.search(rb"<meta[^>]+charset\s*=\s*[\"']?([\w.:-]+)", body[:4096], re.I)
+    if match:
+        encoding = match.group(1)
+    elif meta:
+        encoding = meta.group(1).decode("ascii", "ignore")
+    else:
+        encoding = "utf-8"
     try:
         text = body.decode(encoding, errors="replace")
     except LookupError:

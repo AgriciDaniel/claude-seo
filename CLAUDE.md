@@ -246,7 +246,7 @@ Part of the Claude Code skill family:
 
 1. **Progressive Disclosure**: Metadata always loaded, instructions on activation, resources on demand
 2. **Industry Detection**: Auto-detect SaaS, e-commerce, local, publisher, agency
-3. **Parallel Execution**: Full audits spawn up to 16 subagents simultaneously
+3. **Parallel Execution**: Full audits spawn up to 17 subagents simultaneously
 4. **Extension System**: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, and Unlighthouse extensions
 
 ## Repository Topology (public + private)

@@ -460,3 +460,8 @@ def test_agent_ux_falls_back_to_raw_html_without_a_renderer(monkeypatch):
     report = agent_ux_check.audit("https://e.test/")
     assert report["score_status"] == "unavailable" and report["score"] is None
     assert report["html_only_fallback"] is True and report["html_findings"]
+
+
+def test_decode_uses_meta_charset_when_the_header_has_none():
+    body = '<html><head><meta charset="iso-8859-1"></head><body>Caf\xe9</body></html>'.encode("iso-8859-1")
+    assert "Café" in ac._decode(body, "text/html")

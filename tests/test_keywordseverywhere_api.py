@@ -153,3 +153,35 @@ def test_upstream_error_body_never_echoes_the_key(monkeypatch):
     result = ke.get_rank(["example.com"], api_key="opr_live_SECRET123")
     assert "opr_live_SECRET123" not in str(result)
     assert "<redacted>" in str(result.get("error", ""))
+
+
+@pytest.mark.parametrize("status,message", [(301, "unexpected redirect"), (200, "was not JSON")])
+def test_redirects_and_non_json_bodies_get_a_clear_error(status, message) -> None:
+    class Odd(FakeResponse):
+        def json(self):
+            raise ValueError("Expecting value: line 1 column 1")
+
+    with patch.object(keywordseverywhere_api, "_post", return_value=Odd(status, {})):
+        result = keywordseverywhere_api.get_rank(["example.com"], "opr_live_testkey")
+    assert result["status"] == "error" and message in result["error"]
+
+
+def test_post_goes_through_a_pinned_session_without_following_redirects() -> None:
+    calls = {}
+
+    class Session:
+        def post(self, url, **kwargs):
+            calls.update(kwargs, url=url)
+            return "resp"
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def fake_session(url):
+        calls["pinned"] = url
+        yield Session()
+
+    with patch.object(keywordseverywhere_api, "safe_requests_session", fake_session):
+        assert keywordseverywhere_api._post(keywordseverywhere_api.KWE_BASE, json={}) == "resp"
+    assert calls["pinned"] == keywordseverywhere_api.KWE_BASE
+    assert calls["allow_redirects"] is False
