@@ -152,3 +152,54 @@ def test_robots_unicode_line_separator_inside_a_comment_stays_a_comment():
     assert " " in draft  # the comment is not split into a live rule
     parsed = ac.parse_robots(robots)
     assert ac.is_allowed(ac.select_group(parsed, "GPTBot")["rules"], "/")
+
+
+# Found by a random-shape fuzz after the second verification pass.
+
+def test_ard_non_string_type_is_an_error():
+    catalog = {"specVersion": "1.0", "entries": [{"identifier": "urn:air:p:n", "displayName": "d",
+                                                  "type": ["application/ai-catalog+json"], "url": "u"}]}
+    assert "'type' must be a string" in " ".join(ac.validate_ai_catalog(json.dumps(catalog))["errors"])
+
+
+def test_lighthouse_non_string_audit_id_is_ignored():
+    lhr = {"categories": {"agentic-browsing": {"auditRefs": [{"id": ["x"]}, {"id": "y"}]}},
+           "audits": {"y": {"scoreDisplayMode": "binary", "score": 1}}}
+    assert la.calculate_fraction(la.extract_lhr(lhr))["display"] == "1/1"
+
+
+def test_seeded_shape_fuzz_never_raises():
+    """Random JSON shapes through every parser of site- or API-controlled data.
+
+    A longer run of this fuzz (5 seeds x 3000 shapes) found two crash sites after
+    both audit passes; this seeded slice keeps them from coming back.
+    """
+    import random
+
+    rng = random.Random(20260923)
+    keys = ["ucp", "version", "services", "capabilities", "transport", "endpoint", "spec",
+            "schema", "categories", "agentic-browsing", "auditRefs", "audits", "id", "score",
+            "scoreDisplayMode", "group", "details", "items", "value", "results", "error",
+            "specVersion", "entries", "identifier", "displayName", "type", "url", "data",
+            "representativeQueries", "trustManifest", "lighthouseResult", "collections"]
+
+    def rnd(depth=0):
+        roll = rng.random()
+        if depth > 4 or roll < 0.3:
+            return rng.choice([None, True, 0, 1.5, "x", "", [], {}, ["a"], {"k": [1]}])
+        if roll < 0.6:
+            return [rnd(depth + 1) for _ in range(rng.randint(0, 3))]
+        return {rng.choice(keys): rnd(depth + 1) for _ in range(rng.randint(0, 4))}
+
+    for _ in range(400):
+        obj = rnd()
+        for wrapped in (obj, {"ucp": obj}, {"specVersion": "1.0", "entries": [obj]},
+                        {"categories": {"agentic-browsing": {"auditRefs": obj}}, "audits": {"a": obj}},
+                        {"lighthouseResult": {"categories": {"agentic-browsing": obj}}}):
+            raw = json.dumps(wrapped)
+            ac.validate_ai_catalog(raw)
+            ucp_check.parse_profile(raw)
+            la.explain(la.extract_lhr(wrapped))
+            la.summarize(la.extract_lhr(wrapped), "fuzz")
+            with patch.object(ke, "_post", return_value=_Resp(200, wrapped)):
+                ke.get_rank(["example.com"], "opr_live_testkey")

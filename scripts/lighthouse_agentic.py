@@ -316,8 +316,9 @@ def extract_lhr(data: dict) -> dict:
         if not isinstance(cat, dict):
             continue
         refs = cat.get("auditRefs")
-        clean_categories[cid] = {**cat, "auditRefs": [r for r in refs if isinstance(r, dict)]
-                                 if isinstance(refs, list) else []}
+        clean_categories[cid] = {**cat, "auditRefs": [
+            r for r in refs if isinstance(r, dict) and isinstance(r.get("id"), str)]
+            if isinstance(refs, list) else []}
     return {**lhr,
             "audits": {k: v for k, v in (audits or {}).items() if isinstance(v, dict)}
             if isinstance(audits, dict) else {},

@@ -681,6 +681,8 @@ def validate_ai_catalog(raw: str) -> dict:
         media = entry.get("type")
         if not media:
             errors.append(f"{label}: missing 'type'")
+        elif not isinstance(media, str):
+            errors.append(f"{label}: 'type' must be a string")
         elif media not in ARD_MEDIA_TYPES:
             warnings.append(f"{label}: non-standard type {media!r}")
         has_url, has_data = "url" in entry, "data" in entry
