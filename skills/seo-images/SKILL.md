@@ -201,7 +201,7 @@ When DataForSEO MCP is available, enhance the image audit with competitive data.
 
 ### `/seo images serp <keyword>`
 
-Cross-reference on-page images with Google Images SERP rankings.
+Cross-reference on-page images with the image results visible in the Google SERP.
 
 **Workflow:**
 1. The pinned DataForSEO MCP server (2.8.10) has no Google Images SERP tool.

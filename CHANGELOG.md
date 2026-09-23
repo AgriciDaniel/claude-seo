@@ -51,8 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Extension installers no longer put secrets on the command line.** Every
   `extensions/*/install.sh` that writes credentials, and the four
-  `install.ps1` files that call Python (profound, seranking, bing-webmaster,
-  matomo), passed API keys, tokens and passwords to Python as arguments, readable by any local user through
+  `install.ps1` files that hand credentials to Python (profound, seranking,
+  bing-webmaster, matomo), passed API keys, tokens and passwords to Python as arguments, readable by any local user through
   `ps`. They now travel in the environment (`CLAUDE_SEO_SECRET` and
   friends), which only the same user can read; PowerShell clears the
   variables afterwards. Found while reviewing #305, whose installer shares
@@ -91,10 +91,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cleanup it reports is Claude Code behaviour, not fixed here.
 - `ucp_check.py` rejected real, spec-conformant UCP profiles ("0
   capabilities, 3 structural issues"); it now parses the ucp.dev shape.
-- Hostile or malformed site content (deeply nested JSON, odd UCP endpoints,
-  unexpected API bodies, BOM-prefixed Lighthouse reports) now produces a
-  finding instead of a traceback in `agentic_check`, `ucp_check`,
-  `keywordseverywhere_api` and `lighthouse_agentic`.
+- Hostile or malformed content that crashed `agentic_check`, `ucp_check`,
+  `keywordseverywhere_api` and `lighthouse_agentic` (deeply nested JSON,
+  non-string UCP endpoints and transports, unexpected API bodies, malformed
+  Lighthouse categories, BOM-prefixed reports) now produces a finding; each
+  shape found in two audit passes has a test. robots.txt is split on CR/LF
+  only, so a Unicode line separator inside a comment no longer becomes a rule.
 - `render_page` keeps the raw status, headers and URL when Chromium fails,
   and `agent_ux_check` falls back to raw-HTML findings with the score left
   unavailable.
@@ -125,8 +127,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   installer exit non-zero instead of overwriting it.
 - `agentic_check.py` adds an `http-404` check: a host that answers unknown
   paths with 200 makes Lighthouse fail `llms-txt` and `ard-schema`.
-- `seo_updates.py --json` adds `freshness` (stale after 30 days) and warns on
-  stderr; `seo-audit`, `seo-content` and `seo-geo` now correlate traffic
+- `seo_updates.py --json` adds `freshness` (stale after 30 days); text mode
+  also warns on stderr; `seo-audit`, `seo-content` and `seo-geo` now correlate traffic
   changes with the ledger, which gains 8 entries and `last_verified`
   2026-09-23.
 - Dependency floors raised: `lxml_html_clean` 0.4.5 (advisories fixed in
