@@ -23,6 +23,11 @@ import time
 from pathlib import Path
 from typing import Any
 
+try:
+    from doctor_agents import AgentTreeCheck, check_agent_tree
+except ModuleNotFoundError:
+    from scripts.doctor_agents import AgentTreeCheck, check_agent_tree
+
 RUNTIME_SCHEMA = 1
 LOCK_STALE_SECONDS = 30 * 60
 SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*\.py$")
@@ -396,8 +401,32 @@ def command_run(args: argparse.Namespace) -> int:
     return result.returncode
 
 
+def format_agent_tree_check(result: AgentTreeCheck) -> list[str]:
+    if result.ok:
+        return ["Audit subagent check: ok"]
+
+    lines = ["Audit subagent check: incomplete"]
+    if result.missing:
+        lines.append("Missing agents: " + ", ".join(result.missing))
+    if result.broken_symlinks:
+        lines.append("Broken agent symlinks: " + ", ".join(result.broken_symlinks))
+    lines.append(
+        "/seo audit will fall back to inline analysis with reduced independence "
+        "until these agents resolve."
+    )
+    return lines
+
+
+def agent_dir_for_doctor(root: Path) -> Path:
+    for candidate in (root / ".claude" / "agents", root / "agents"):
+        if candidate.exists() or candidate.is_symlink():
+            return candidate
+    return Path.home() / ".claude" / "agents"
+
+
 def command_doctor(args: argparse.Namespace) -> int:
-    status = _status(_root())
+    root = _root()
+    status = _status(root)
     public = {
         "ready": status["ready"],
         "mode": status["mode"],
@@ -415,6 +444,9 @@ def command_doctor(args: argparse.Namespace) -> int:
         print(f"Chromium: {'ready' if public['browser_ready'] else 'not installed'}")
         for reason in public["reasons"]:
             print(f"Reason: {reason}")
+        agent_result = check_agent_tree(agent_dir_for_doctor(root))
+        for line in format_agent_tree_check(agent_result):
+            print(line)
     return 0 if status["ready"] else 3
 
 
