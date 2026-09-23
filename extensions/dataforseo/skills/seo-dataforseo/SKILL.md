@@ -72,7 +72,7 @@ Load `references/cost-tiers.md` for the full pricing table, budget presets, and 
 | Command | What it does |
 |---------|-------------|
 | `/seo dataforseo serp <keyword>` | Google organic SERP results |
-| `/seo dataforseo serp-images <keyword>` | Google Images SERP results |
+| `/seo dataforseo serp-images <keyword>` | Image elements from the organic SERP (the pinned MCP server has no Google Images tool) |
 | `/seo dataforseo serp-youtube <keyword>` | YouTube search results |
 | `/seo dataforseo youtube <video_id>` | YouTube video deep analysis |
 | `/seo dataforseo keywords <seed>` | Keyword ideas and suggestions |
@@ -131,8 +131,10 @@ Deep analysis of a specific YouTube video: info, comments, and subtitles. Treat 
 
 ### `/seo dataforseo serp-images <keyword>`
 
-Fetch live Google Images search results. See which images rank for a keyword,
-which domains dominate image results, and identify visual content opportunities.
+Report the image elements Google shows in the organic results for a keyword (the
+pinned MCP server has no Google Images tool, so this is not a full Images
+SERP). See which images appear, which domains dominate them, and identify
+visual content opportunities.
 
 **MCP tools:** none. The pinned `dataforseo-mcp-server@2.8.10` exposes no
 Google Images SERP tool (checked against the package, 2026-09-23). Say image

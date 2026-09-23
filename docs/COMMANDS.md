@@ -620,7 +620,7 @@ Live SEO data via DataForSEO MCP server (extension). 23 data commands across 9 A
 **SERP Analysis:**
 ```
 /seo dataforseo serp <keyword>              # Google organic results (also Bing/Yahoo)
-/seo dataforseo serp-images <keyword>       # Google Images SERP results
+/seo dataforseo serp-images <keyword>       # Image elements in the organic SERP (no Images tool on the pinned server)
 /seo dataforseo serp-youtube <keyword>      # YouTube search results
 /seo dataforseo youtube <video_id>          # YouTube video deep analysis
 ```

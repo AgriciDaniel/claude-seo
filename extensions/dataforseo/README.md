@@ -39,7 +39,7 @@ The installer will:
 | Command | Description |
 |---------|-------------|
 | `/seo dataforseo serp <keyword>` | Google organic SERP results (also supports Bing/Yahoo via `se` parameter) |
-| `/seo dataforseo serp-images <keyword>` | Google Images SERP results |
+| `/seo dataforseo serp-images <keyword>` | Image elements from the organic SERP (the pinned MCP server has no Google Images tool) |
 | `/seo dataforseo serp-youtube <keyword>` | YouTube search results |
 | `/seo dataforseo youtube <video_id>` | YouTube video deep analysis (info, comments, subtitles) |
 
