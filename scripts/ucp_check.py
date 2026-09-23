@@ -42,6 +42,7 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from url_safety import (  # noqa: E402
     URLSafetyError,
+    decode_response_text,
     safe_requests_get,
     validate_url_strict,
 )
@@ -192,7 +193,7 @@ def audit_site(
         report["summary"] = f"http-{resp.status_code} on discovery"
         return report
     report["profile_present"] = True
-    parsed = parse_profile(resp.text)
+    parsed = parse_profile(decode_response_text(resp))
     report["parse"] = parsed
 
     if probe_endpoints and parsed.get("capabilities"):

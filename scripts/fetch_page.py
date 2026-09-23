@@ -19,7 +19,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 from typing import Optional
 
@@ -35,6 +34,7 @@ if _SCRIPTS_DIR not in sys.path:
 from url_safety import (  # noqa: E402
     DEFAULT_REQUEST_HEADERS,
     URLSafetyError,
+    decode_response_text,
     safe_requests_session,
     validate_url_strict,
 )
@@ -59,53 +59,9 @@ GOOGLEBOT_USER_AGENT = (
 # English variant, which corrupts hreflang and international audits.
 DEFAULT_HEADERS = dict(DEFAULT_REQUEST_HEADERS)
 
-_CONTENT_TYPE_CHARSET_RE = re.compile(r"charset\s*=\s*['\"]?([^;,'\"\s>]+)", re.IGNORECASE)
-_META_CHARSET_RE = re.compile(
-    r"<meta[^>]+charset\s*=\s*['\"]?([^;,'\"\s/>]+)",
-    re.IGNORECASE,
-)
-_BOMS = (
-    (b"\xef\xbb\xbf", "utf-8-sig"),
-    (b"\xff\xfe", "utf-16-le"),
-    (b"\xfe\xff", "utf-16-be"),
-)
-
-
-def _decode_bytes(raw: bytes, encoding: str) -> str:
-    try:
-        return raw.decode(encoding, errors="replace")
-    except LookupError:
-        return raw.decode("utf-8", errors="replace")
-
-
-def _extract_charset_from_content_type(content_type: str) -> str | None:
-    match = _CONTENT_TYPE_CHARSET_RE.search(content_type or "")
-    return match.group(1).strip() if match else None
-
-
-def _extract_meta_charset(raw: bytes) -> str | None:
-    head = raw[:4096].decode("ascii", errors="ignore")
-    match = _META_CHARSET_RE.search(head)
-    return match.group(1).strip() if match else None
-
-
-def _decode_response_content(response) -> str:
-    """Decode HTTP bytes deterministically for stable SEO snapshots."""
-    raw = response.content or b""
-    for marker, encoding in _BOMS:
-        if raw.startswith(marker):
-            return _decode_bytes(raw, encoding)
-
-    content_type = response.headers.get("Content-Type", "") if response.headers else ""
-    charset = _extract_charset_from_content_type(content_type)
-    if charset:
-        return _decode_bytes(raw, charset)
-
-    charset = _extract_meta_charset(raw)
-    if charset:
-        return _decode_bytes(raw, charset)
-
-    return raw.decode("utf-8", errors="replace")
+# Response decoding lives in url_safety (decode_response_text) so every script
+# that fetches through the safe helpers decodes the same way (issue #314).
+_decode_response_content = decode_response_text
 
 
 def fetch_page(

@@ -781,6 +781,62 @@ DEFAULT_REQUEST_HEADERS = {
 }
 
 
+_CONTENT_TYPE_CHARSET_RE = re.compile(r"charset\s*=\s*['\"]?([^;,'\"\s>]+)", re.IGNORECASE)
+_META_CHARSET_RE = re.compile(
+    r"<meta[^>]+charset\s*=\s*['\"]?([^;,'\"\s/>]+)",
+    re.IGNORECASE,
+)
+_BOMS = (
+    (b"\xef\xbb\xbf", "utf-8-sig"),
+    (b"\xff\xfe", "utf-16-le"),
+    (b"\xfe\xff", "utf-16-be"),
+)
+
+
+def _decode_bytes(raw: bytes, encoding: str) -> str:
+    try:
+        return raw.decode(encoding, errors="replace")
+    except LookupError:
+        return raw.decode("utf-8", errors="replace")
+
+
+def _extract_charset_from_content_type(content_type: str) -> str | None:
+    match = _CONTENT_TYPE_CHARSET_RE.search(content_type or "")
+    return match.group(1).strip() if match else None
+
+
+def _extract_meta_charset(raw: bytes) -> str | None:
+    head = raw[:4096].decode("ascii", errors="ignore")
+    match = _META_CHARSET_RE.search(head)
+    return match.group(1).strip() if match else None
+
+
+def decode_response_text(response) -> str:
+    """Decode a response body deterministically: BOM, then the Content-Type
+    charset, then ``<meta charset>``, then UTF-8.
+
+    Use this instead of ``response.text``. ``requests`` falls back to
+    ISO-8859-1 for text/* responses without a charset, which garbles UTF-8
+    pages (issue #314). Reading ``response.content`` consumes a streamed body,
+    so streamed callers should decode the bytes they already read.
+    """
+    raw = response.content or b""
+    for marker, encoding in _BOMS:
+        if raw.startswith(marker):
+            return _decode_bytes(raw, encoding)
+
+    content_type = response.headers.get("Content-Type", "") if response.headers else ""
+    charset = _extract_charset_from_content_type(content_type)
+    if charset:
+        return _decode_bytes(raw, charset)
+
+    charset = _extract_meta_charset(raw)
+    if charset:
+        return _decode_bytes(raw, charset)
+
+    return raw.decode("utf-8", errors="replace")
+
+
 def _with_default_headers(kwargs: dict) -> dict:
     """Fill in DEFAULT_REQUEST_HEADERS for header keys the caller did not set."""
     headers = dict(DEFAULT_REQUEST_HEADERS)

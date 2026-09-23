@@ -66,7 +66,7 @@ from typing import Optional
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from url_safety import URLSafetyError, safe_requests_get  # noqa: E402
+from url_safety import URLSafetyError, decode_response_text, safe_requests_get  # noqa: E402
 
 _SPECULATION_BLOCK_RE = re.compile(
     r'<script\b[^>]*\btype\s*=\s*["\']speculationrules["\'][^>]*>(?P<body>.*?)</script>',
@@ -217,7 +217,7 @@ def main() -> int:
         print(f"Error: url_safety: {exc}", file=sys.stderr)
         return 2
 
-    result = {"url": resp.url, **analyse(resp.text, dict(resp.headers))}
+    result = {"url": resp.url, **analyse(decode_response_text(resp), dict(resp.headers))}
 
     if args.json:
         json.dump(result, sys.stdout, indent=2)

@@ -35,7 +35,7 @@ from pathlib import Path
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from url_safety import URLSafetyError, safe_requests_get  # noqa: E402
+from url_safety import URLSafetyError, decode_response_text, safe_requests_get  # noqa: E402
 
 # Patterns for retired GBP chat. The "Message" / "Chat" CTAs alone are
 # common on commercial sites — we only flag when they appear NEAR a
@@ -110,7 +110,7 @@ def main() -> int:
     else:
         try:
             resp = safe_requests_get(args.source, timeout=20)
-            html = resp.text
+            html = decode_response_text(resp)
         except URLSafetyError as exc:
             print(f"Error: url_safety: {exc}", file=sys.stderr)
             return 2

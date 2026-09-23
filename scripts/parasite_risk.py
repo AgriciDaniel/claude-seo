@@ -55,7 +55,7 @@ from urllib.parse import urlparse
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from url_safety import URLSafetyError, safe_requests_get  # noqa: E402
+from url_safety import URLSafetyError, decode_response_text, safe_requests_get  # noqa: E402
 
 # Indicators of third-party authored content. Each adds 1 hit per page.
 _THIRD_PARTY_BYLINE_PATTERNS = (
@@ -179,7 +179,7 @@ def scan(urls: Iterable[str], *, timeout: int = 20) -> dict:
     for url in urls:
         try:
             resp = safe_requests_get(url, timeout=timeout, allow_redirects=True)
-            rows.append(_audit_page(resp.url, resp.text))
+            rows.append(_audit_page(resp.url, decode_response_text(resp)))
         except URLSafetyError as exc:
             errors.append({"url": url, "error": f"url_safety: {exc}"})
         except Exception as exc:  # noqa: BLE001 — surface every transport error

@@ -284,7 +284,8 @@ def test_render_page_never_mode_against_example_com() -> None:
 
 def _fake_response(text: str, status: int = 200, url: str = "https://x.example/"):
     return SimpleNamespace(
-        text=text, status_code=status, headers={"Content-Type": "text/html"},
+        text=text, content=text.encode("utf-8"), status_code=status,
+        headers={"Content-Type": "text/html"},
         url=url, history=[],
     )
 

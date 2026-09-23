@@ -30,7 +30,7 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from url_safety import safe_requests_get  # noqa: E402, I001
+from url_safety import decode_response_text, safe_requests_get  # noqa: E402, I001
 
 # Lazy-loader detection — covers native + the major JS lazy-loaders found on
 # WordPress/WooCommerce sites (Perfmatters, EWWW Image Optimizer, generic
@@ -267,7 +267,7 @@ def main():
         html = sys.stdin.read()
         if not html and args.url:
             resp = safe_requests_get(args.url, timeout=30, allow_redirects=True)
-            html = resp.text
+            html = decode_response_text(resp)
             args.url = resp.url
 
     result = parse_html(html, args.url)

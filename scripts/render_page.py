@@ -105,6 +105,7 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     URLSafetyError,
+    decode_response_text,
     make_safe_playwright_route_handler,
     safe_requests_get,
     validate_url_strict,
@@ -458,7 +459,7 @@ def render_page(
     # Step 1 — raw fetch (always; needed for SPA detection and as a baseline).
     try:
         resp = safe_requests_get(norm_url, timeout=30, allow_redirects=True)
-        result["raw_content"] = resp.text
+        result["raw_content"] = decode_response_text(resp)
         if resp.history:
             result["redirect_chain"] = [
                 {"url": r.url, "status_code": r.status_code} for r in resp.history
