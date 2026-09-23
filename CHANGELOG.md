@@ -94,8 +94,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hostile or malformed content that crashed `agentic_check`, `ucp_check`,
   `keywordseverywhere_api` and `lighthouse_agentic` (deeply nested JSON,
   non-string UCP endpoints and transports, unexpected API bodies, malformed
-  Lighthouse categories, BOM-prefixed reports) now produces a finding; each
-  shape found in two audit passes has a test. robots.txt is split on CR/LF
+  Lighthouse categories, non-string ARD types and audit ids, BOM-prefixed
+  reports) now produces a finding; each shape found in two audit passes and a
+  random-shape fuzz has a test, and a seeded fuzz runs in the suite. robots.txt is split on CR/LF
   only, so a Unicode line separator inside a comment no longer becomes a rule.
 - `render_page` keeps the raw status, headers and URL when Chromium fails,
   and `agent_ux_check` falls back to raw-HTML findings with the score left
