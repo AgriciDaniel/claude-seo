@@ -820,12 +820,20 @@ def decode_response_text(response) -> str:
     pages (issue #314). Reading ``response.content`` consumes a streamed body,
     so streamed callers should decode the bytes they already read.
     """
-    raw = response.content or b""
+    content_type = response.headers.get("Content-Type", "") if response.headers else ""
+    return decode_body(response.content or b"", content_type)
+
+
+def decode_body(raw: bytes, content_type: str = "") -> str:
+    """Decode already-read bytes with the same rules as ``decode_response_text``.
+
+    For streamed responses, whose ``.content`` must not be read again.
+    """
+    raw = raw or b""
     for marker, encoding in _BOMS:
         if raw.startswith(marker):
-            return _decode_bytes(raw, encoding)
+            return _decode_bytes(raw[len(marker):], encoding.replace("-sig", ""))
 
-    content_type = response.headers.get("Content-Type", "") if response.headers else ""
     charset = _extract_charset_from_content_type(content_type)
     if charset:
         return _decode_bytes(raw, charset)

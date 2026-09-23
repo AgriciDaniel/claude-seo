@@ -109,7 +109,7 @@ def test_get_rank_html_error_page_is_not_echoed() -> None:
     fake.text = "<html>opr_live_testkey not found</html>"
     with patch.object(keywordseverywhere_api, "_post", return_value=fake):
         result = keywordseverywhere_api.get_rank(["example.com"], "opr_live_testkey")
-    assert result["error"] == "HTTP 404: HTTP 404"
+    assert result["error"] == "HTTP 404: no JSON error body"
     assert "opr_live_testkey" not in result["error"]
 
 

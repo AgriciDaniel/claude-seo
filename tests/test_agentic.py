@@ -91,7 +91,8 @@ def test_paths_offer_form_annotation_and_catalog(lhr):
 
 
 def test_psi_wrapper_and_missing_category(lhr):
-    assert la.extract_lhr({"lighthouseResult": lhr}) is lhr
+    assert la.extract_lhr({"lighthouseResult": lhr}) == la.extract_lhr(lhr)
+    assert la.calculate_fraction(la.extract_lhr({"lighthouseResult": lhr}))["display"] == "4/4"
     report = la.summarize({"categories": {}, "audits": {}}, "file")
     assert report["error"] and not report["fraction"]["available"]
 

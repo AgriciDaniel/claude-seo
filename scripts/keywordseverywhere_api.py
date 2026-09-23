@@ -85,6 +85,24 @@ def get_rank(domains: list, api_key: str) -> dict:
     Returns:
         Standard response dict with rank data per domain.
     """
+    raw_key = api_key or ""
+    api_key = raw_key.strip()
+    if not api_key or any(ord(ch) < 33 for ch in api_key):
+        return {
+            "status": "error",
+            "data": None,
+            "error": "The configured Keywords Everywhere API key contains spaces or control "
+                     "characters. Re-enter it with backlinks_auth.py --setup.",
+            "metadata": {"source": "keywordseverywhere"},
+        }
+
+    def _redact(text: object) -> str:
+        text = str(text)
+        for secret in {raw_key, api_key}:
+            if secret:
+                text = text.replace(secret, "<redacted>")
+        return text[:500]
+
     headers = {"Authorization": f"Bearer {api_key}", "Accept": "application/json"}
     payload = {"domains": domains, "include_history": False}
 
@@ -111,12 +129,12 @@ def get_rank(domains: list, api_key: str) -> dict:
             try:
                 err_body = response.json()
                 err = err_body.get("error") if isinstance(err_body, dict) else None
-                err_msg = (err.get("message") if isinstance(err, dict) else err) or f"HTTP {response.status_code}"
+                err_msg = (err.get("message") if isinstance(err, dict) else err) or "no error message"
             except ValueError:
                 # Never echo an HTML error page; the status code says enough.
-                err_msg = f"HTTP {response.status_code}"
+                err_msg = "no JSON error body"
             # Never echo the key back through an upstream error body.
-            err_msg = str(err_msg).replace(api_key, "<redacted>")[:500]
+            err_msg = _redact(err_msg)
             return {
                 "status": "error",
                 "data": None,
@@ -140,7 +158,14 @@ def get_rank(domains: list, api_key: str) -> dict:
                 "error": f"HTTP {response.status_code}: response was not JSON",
                 "metadata": {"source": "keywordseverywhere"},
             }
-        results = body.get("results") or []
+        if not isinstance(body, dict) or not isinstance(body.get("results", []), list):
+            return {
+                "status": "error",
+                "data": None,
+                "error": "Unexpected response shape from the API (no results list).",
+                "metadata": {"source": "keywordseverywhere"},
+            }
+        results = [item for item in body.get("results") or [] if isinstance(item, dict)]
         ranks = [
             {
                 "domain": item.get("domain"),
@@ -183,7 +208,7 @@ def get_rank(domains: list, api_key: str) -> dict:
         return {
             "status": "error",
             "data": None,
-            "error": str(e),
+            "error": _redact(e),
             "metadata": {"source": "keywordseverywhere"},
         }
 

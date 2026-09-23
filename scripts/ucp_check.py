@@ -100,6 +100,9 @@ def parse_profile(payload: str) -> dict:
     except json.JSONDecodeError as exc:
         report["issues"].append(f"invalid-json: {exc.msg} (line {exc.lineno})")
         return report
+    except RecursionError:
+        report["issues"].append("invalid-json: nesting too deep")
+        return report
     if not isinstance(data, dict):
         report["issues"].append("profile-not-object")
         return report
@@ -141,7 +144,11 @@ def parse_profile(payload: str) -> dict:
                     entry["issues"].append("unknown-transport")
                 if not variant.get("version"):
                     entry["issues"].append("missing-version")
-                if variant.get("transport") in ("rest", "mcp", "a2a") and not variant.get("endpoint"):
+                endpoint = variant.get("endpoint")
+                if endpoint is not None and not isinstance(endpoint, str):
+                    entry["issues"].append("endpoint-not-a-string")
+                    entry["endpoint"] = None
+                elif variant.get("transport") in ("rest", "mcp", "a2a") and not endpoint:
                     entry["issues"].append("missing-endpoint")
                 report["services"].append(entry)
 
@@ -225,7 +232,7 @@ def audit_site(
 
     if probe_endpoints:
         for endpoint in sorted({svc["endpoint"] for svc in parsed.get("services") or []
-                                if svc.get("endpoint")}):
+                                if isinstance(svc.get("endpoint"), str) and svc["endpoint"]}):
             report["endpoint_probes"].append(probe_endpoint(endpoint, timeout=timeout))
 
     n_caps = len({cap["id"] for cap in parsed.get("capabilities") or []})

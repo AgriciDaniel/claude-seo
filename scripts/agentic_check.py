@@ -64,7 +64,7 @@ from urllib.parse import urljoin, urlparse
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from url_safety import URLSafetyError, safe_requests_get  # noqa: E402
+from url_safety import URLSafetyError, decode_body, safe_requests_get  # noqa: E402
 
 CHECKED_ON = "2026-09-23"
 MAX_BODY = 2_000_000
@@ -172,24 +172,8 @@ def fetch(url: str, *, headers: Optional[dict] = None, timeout: int = 15) -> dic
 
 
 def _decode(body: bytes, content_type: str) -> str:
-    """Decode with the declared charset, else UTF-8; drop a leading BOM.
-
-    ``requests`` would assume ISO-8859-1 for text/* without a charset, which
-    garbles UTF-8 robots.txt and llms.txt files, so the header is read here.
-    """
-    match = re.search(r"charset=[\"']?([\w.:-]+)", content_type, re.I)
-    meta = re.search(rb"<meta[^>]+charset\s*=\s*[\"']?([\w.:-]+)", body[:4096], re.I)
-    if match:
-        encoding = match.group(1)
-    elif meta:
-        encoding = meta.group(1).decode("ascii", "ignore")
-    else:
-        encoding = "utf-8"
-    try:
-        text = body.decode(encoding, errors="replace")
-    except LookupError:
-        text = body.decode("utf-8", errors="replace")
-    return text.lstrip("\ufeff")
+    """Decode streamed bytes with url_safety's shared rules (#314), minus any BOM."""
+    return decode_body(body, content_type).lstrip("\ufeff")
 
 
 def _ctype(rec: dict) -> str:
@@ -649,8 +633,9 @@ def validate_ai_catalog(raw: str) -> dict:
     errors, warnings = [], []
     try:
         data = json.loads(raw)
-    except ValueError as exc:
-        return {"errors": [f"malformed JSON: {exc}"], "warnings": [], "entries": 0}
+    except (ValueError, RecursionError) as exc:  # RecursionError: absurdly deep nesting
+        return {"errors": [f"malformed JSON: {type(exc).__name__}: {str(exc)[:200]}"],
+                "warnings": [], "entries": 0}
     if not isinstance(data, dict):
         return {"errors": ["root must be a JSON object"], "warnings": [], "entries": 0}
     spec = data.get("specVersion")
@@ -764,7 +749,7 @@ def audit_well_known(root: str) -> tuple[list, dict]:
                 row["valid_json"] = True
                 status = "pass" if want in ctype else "warn"
                 fix = None if status == "pass" else f"Serve with a content type containing '{want}'."
-            except ValueError:
+            except (ValueError, RecursionError):
                 row["valid_json"] = False
                 status, fix = "fail", "Document is not valid JSON."
         else:

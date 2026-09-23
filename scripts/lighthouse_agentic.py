@@ -118,7 +118,10 @@ def classify_audit(audit_ref: dict, audit: dict) -> str:
     score = audit.get("score")
     if mode == "error" or score is None:
         return "fail"
-    return "pass" if float(score) >= PASS_MIN_SCORE else "fail"
+    try:
+        return "pass" if float(score) >= PASS_MIN_SCORE else "fail"
+    except (TypeError, ValueError):
+        return "fail"
 
 
 def calculate_fraction(lhr: dict) -> dict:
@@ -298,10 +301,20 @@ def summarize(lhr: dict, source: str) -> dict:
 
 
 def extract_lhr(data: dict) -> dict:
-    """Accept either a raw Lighthouse result or a PSI v5 response."""
-    if "lighthouseResult" in data:
-        return data["lighthouseResult"]
-    return data
+    """Accept either a raw Lighthouse result or a PSI v5 response.
+
+    Anything malformed (a null lighthouseResult, non-object audits) is reduced
+    to what can be read, so callers report "no category" instead of crashing.
+    """
+    lhr = data.get("lighthouseResult", data) if isinstance(data, dict) else {}
+    if not isinstance(lhr, dict):
+        return {}
+    audits = lhr.get("audits")
+    categories = lhr.get("categories")
+    return {**lhr,
+            "audits": {k: v for k, v in (audits or {}).items() if isinstance(v, dict)}
+            if isinstance(audits, dict) else {},
+            "categories": categories if isinstance(categories, dict) else {}}
 
 
 def run_psi(url: str, strategy: str, api_key: Optional[str], timeout: int = 180) -> dict:
@@ -365,7 +378,7 @@ def main() -> None:
     reports = []
     if args.from_json:
         try:
-            with open(args.from_json, encoding="utf-8") as fh:
+            with open(args.from_json, encoding="utf-8-sig") as fh:  # PowerShell writes a BOM
                 data = json.load(fh)
         except (OSError, ValueError) as exc:
             parser.exit(1, f"Could not read {args.from_json}: {exc}\n")
