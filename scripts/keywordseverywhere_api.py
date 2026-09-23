@@ -130,7 +130,7 @@ def get_rank(domains: list, api_key: str) -> dict:
                 err_body = response.json()
                 err = err_body.get("error") if isinstance(err_body, dict) else None
                 err_msg = (err.get("message") if isinstance(err, dict) else err) or "no error message"
-            except ValueError:
+            except (ValueError, RecursionError):
                 # Never echo an HTML error page; the status code says enough.
                 err_msg = "no JSON error body"
             # Never echo the key back through an upstream error body.
@@ -151,7 +151,7 @@ def get_rank(domains: list, api_key: str) -> dict:
             }
         try:
             body = response.json()
-        except ValueError:
+        except (ValueError, RecursionError):
             return {
                 "status": "error",
                 "data": None,

@@ -311,10 +311,17 @@ def extract_lhr(data: dict) -> dict:
         return {}
     audits = lhr.get("audits")
     categories = lhr.get("categories")
+    clean_categories = {}
+    for cid, cat in (categories or {}).items() if isinstance(categories, dict) else []:
+        if not isinstance(cat, dict):
+            continue
+        refs = cat.get("auditRefs")
+        clean_categories[cid] = {**cat, "auditRefs": [r for r in refs if isinstance(r, dict)]
+                                 if isinstance(refs, list) else []}
     return {**lhr,
             "audits": {k: v for k, v in (audits or {}).items() if isinstance(v, dict)}
             if isinstance(audits, dict) else {},
-            "categories": categories if isinstance(categories, dict) else {}}
+            "categories": clean_categories}
 
 
 def run_psi(url: str, strategy: str, api_key: Optional[str], timeout: int = 180) -> dict:
@@ -334,15 +341,19 @@ def run_psi(url: str, strategy: str, api_key: Optional[str], timeout: int = 180)
         try:
             body = resp.json()
             error = body.get("error") if isinstance(body, dict) else None
-            message = error.get("message", "") if isinstance(error, dict) else str(body)
-        except ValueError:
+            message = error.get("message", "") if isinstance(error, dict) else str(body)[:300]
+        except (ValueError, RecursionError):
             message = resp.text[:300]
         hint = ""
         if resp.status_code == 429 or "Quota" in message:
             hint = " Configure a Google API key (see /seo google setup)."
         raise RuntimeError(redact_google_api_key(
             f"PSI returned HTTP {resp.status_code}: {message[:300]}{hint}"))
-    return extract_lhr(resp.json())
+    try:
+        data = resp.json()
+    except (ValueError, RecursionError):
+        raise RuntimeError("PSI returned a body that is not usable JSON.") from None
+    return extract_lhr(data)
 
 
 def _print_text(report: dict) -> None:

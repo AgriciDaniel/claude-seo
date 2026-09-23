@@ -45,7 +45,12 @@ from urllib.parse import urljoin, urlparse
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from agentic_check import fetch, parse_content_signal, validate_ai_catalog  # noqa: E402
+from agentic_check import (  # noqa: E402
+    fetch,
+    parse_content_signal,
+    robots_lines,
+    validate_ai_catalog,
+)
 
 DEFAULT_SIGNAL = "search=yes, ai-input=yes, ai-train=no"
 SLUG = re.compile(r"[^a-z0-9]+")
@@ -68,7 +73,7 @@ def add_content_signal(robots_text: str, signal: str) -> dict:
         raise ValueError("invalid signal: " + "; ".join(parsed["issues"]))
     robots_text = robots_text.lstrip("\ufeff")
     newline = "\r\n" if "\r\n" in robots_text else "\n"
-    lines = robots_text.splitlines()
+    lines = robots_lines(robots_text)
 
     # Pass 1: find groups as (index of last user-agent line, agents, has_signal).
     groups, current, in_ua_block = [], None, False
@@ -110,8 +115,15 @@ def add_content_signal(robots_text: str, signal: str) -> dict:
 
 
 def _field(line: str) -> str:
+    """Lower-cased field name; "" for blank or comment lines.
+
+    A line with a colon but no name (': junk') is a non-user-agent field, as in
+    agentic_check.parse_robots, so it ends a user-agent block.
+    """
     body = line.lstrip("\ufeff").split("#", 1)[0]
-    return body.split(":", 1)[0].strip().lower() if ":" in body else ""
+    if ":" not in body:
+        return ""
+    return body.split(":", 1)[0].strip().lower() or "(unnamed)"
 
 
 # --------------------------------------------------------------------------- llms.txt

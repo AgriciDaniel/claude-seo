@@ -140,7 +140,8 @@ def parse_profile(payload: str) -> dict:
                 entry = {"id": name, "version": variant.get("version"),
                          "transport": variant.get("transport"),
                          "endpoint": variant.get("endpoint"), "issues": []}
-                if variant.get("transport") not in UCP_TRANSPORTS:
+                transport = variant.get("transport")
+                if not isinstance(transport, str) or transport not in UCP_TRANSPORTS:
                     entry["issues"].append("unknown-transport")
                 if not variant.get("version"):
                     entry["issues"].append("missing-version")

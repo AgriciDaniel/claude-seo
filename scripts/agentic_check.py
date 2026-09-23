@@ -188,6 +188,21 @@ def _check(cid, title, priority, status, standard, evidence=None, fix=None) -> d
 # --------------------------------------------------------------------------- robots.txt
 
 
+_LINE_BREAK = re.compile(r"\r\n|\n|\r")
+
+
+def robots_lines(text: str) -> list:
+    """Split robots.txt on CR, LF or CRLF only (RFC 9309).
+
+    ``str.splitlines`` also breaks on U+2028 and other Unicode separators, which
+    would turn text inside a comment into a live rule.
+    """
+    lines = _LINE_BREAK.split(text.lstrip("\ufeff"))
+    if lines and lines[-1] == "" and _LINE_BREAK.search(text[-2:] if text else ""):
+        lines.pop()
+    return lines
+
+
 def parse_robots(text: str) -> dict:
     """Parse robots.txt into RFC 9309 groups plus global lines.
 
@@ -198,7 +213,7 @@ def parse_robots(text: str) -> dict:
     global_lines = {"sitemap": [], "agentmap": [], "orphan_content_signal": []}
     current = None
     last_was_ua = False
-    for raw in text.lstrip("\ufeff").splitlines():
+    for raw in robots_lines(text):
         line = raw.split("#", 1)[0].strip()
         if not line or ":" not in line:
             continue

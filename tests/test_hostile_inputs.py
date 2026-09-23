@@ -107,3 +107,48 @@ def test_agentic_decoder_matches_the_shared_decoder_on_utf16():
     body = "﻿Café".encode("utf-16-le")
     body = b"\xff\xfe" + body[2:]
     assert ac._decode(body, "text/html") == "Café"
+
+
+# Second verification pass (same day): remaining crash shapes and robots edge cases.
+
+def test_ucp_list_transport_is_an_issue_not_a_crash():
+    profile = {"ucp": {"version": "2026-08-25", "services": {"dev.ucp.shopping": [
+        {"version": "2026-08-25", "transport": ["rest"], "endpoint": "https://e.test/a"}]},
+        "capabilities": {"dev.ucp.shopping.cart": [{"version": "v", "spec": "s", "schema": "s"}]}}}
+    parsed = ucp_check.parse_profile(json.dumps(profile))
+    assert "unknown-transport" in parsed["services"][0]["issues"]
+
+
+def test_keywordseverywhere_deep_json_success_body():
+    class Deep(_Resp):
+        def json(self):
+            return json.loads(DEEP)
+    with patch.object(ke, "_post", return_value=Deep(200, None)):
+        result = ke.get_rank(["example.com"], "opr_live_testkey")
+    assert result["status"] == "error"
+
+
+@pytest.mark.parametrize("category", [
+    {"auditRefs": None}, {"auditRefs": ["x", 3]}, ["not", "a", "dict"],
+])
+def test_lighthouse_malformed_category_shapes(category):
+    report = la.summarize(la.extract_lhr({"categories": {"agentic-browsing": category},
+                                          "audits": {}}), "file")
+    assert isinstance(report, dict)
+
+
+def test_robots_colon_only_line_ends_a_user_agent_block_in_both_tools():
+    import agentic_fix as af
+    robots = "User-agent: A\n: junk\nUser-agent: B\nDisallow: /\n"
+    draft = af.add_content_signal(robots, "search=yes")["robots_txt"]
+    groups = ac.parse_robots(draft)["groups"]
+    assert all(g["content_signal"] for g in groups), draft
+
+
+def test_robots_unicode_line_separator_inside_a_comment_stays_a_comment():
+    import agentic_fix as af
+    robots = "User-agent: *\n# note Disallow: /\nAllow: /\n"
+    draft = af.add_content_signal(robots, "search=yes")["robots_txt"]
+    assert " " in draft  # the comment is not split into a live rule
+    parsed = ac.parse_robots(robots)
+    assert ac.is_allowed(ac.select_group(parsed, "GPTBot")["rules"], "/")
