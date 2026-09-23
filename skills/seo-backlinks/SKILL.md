@@ -20,7 +20,7 @@ Before analysis, detect available data sources:
 1. **DataForSEO MCP** (premium): Check if `backlinks_summary` tool is available
 2. **Moz API** (free signup): `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run backlinks_auth.py --check moz --json`
 3. **Bing Webmaster** (free signup): `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run backlinks_auth.py --check bing --json`
-4. **Keywords Everywhere** (free signup, single-metric): `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run backlinks_auth.py --check keywordseverywhere --json`
+4. **Keywords Everywhere** (free signup; domain rank plus referring-domain count): `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run backlinks_auth.py --check keywordseverywhere --json`
 5. **Common Crawl** (always available): Domain-level graph with PageRank
 6. **Verification Crawler** (always available): Checks if known backlinks still exist
 
@@ -51,7 +51,7 @@ Produce all 7 sections below. Each section lists data sources in preference orde
 
 **Moz API:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run moz_api.py metrics <url> --json` → Domain Authority, Page Authority, Spam Score, linking root domains, external links.
 
-**Keywords Everywhere:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run keywordseverywhere_api.py rank <domain> --json` → 0-10 domain rank only (no link counts). Use as a fallback when Moz isn't configured; do not use in place of Moz when both are available.
+**Keywords Everywhere:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run keywordseverywhere_api.py rank <domain> --json` → 0-10 Open PageRank (`open_page_rank`), a global `rank`, and a referring-domain count (`referring_domains`), per the current API; no anchors or individual links. Use as a fallback when Moz isn't configured; do not use in place of Moz when both are available.
 
 **Common Crawl:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run commoncrawl_graph.py <domain> --json` → PageRank, harmonic centrality, and low-confidence rank/presence data.
 
