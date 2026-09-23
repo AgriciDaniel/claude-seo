@@ -12,7 +12,7 @@ main() {
     # This default MUST be bumped on every release. CI guard
     # (tests/test_manifest_consistency.py) enforces this matches plugin.json.
     # Override: CLAUDE_SEO_TAG=main bash install.sh
-    REPO_TAG="${CLAUDE_SEO_TAG:-v2.3.1}"
+    REPO_TAG="${CLAUDE_SEO_TAG:-v2.4.0}"
 
     echo "════════════════════════════════════════"
     echo "║   Claude SEO - Installer             ║"

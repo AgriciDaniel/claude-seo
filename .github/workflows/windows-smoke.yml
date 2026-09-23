@@ -19,7 +19,7 @@ on:
       target_ref:
         description: "Released tag or main branch to install"
         required: true
-        default: "v2.3.1"
+        default: "v2.4.0"
         type: string
 
 permissions:
@@ -41,7 +41,7 @@ jobs:
           # Manual runs install a released tag or main. Pull requests from this
           # repository install their own head branch, so the installer under
           # test is the one in the PR rather than the previous release.
-          TARGET_REF: ${{ inputs.target_ref || github.head_ref || 'v2.3.1' }}
+          TARGET_REF: ${{ inputs.target_ref || github.head_ref || 'v2.4.0' }}
           EVENT_NAME: ${{ github.event_name }}
         shell: bash
         run: |

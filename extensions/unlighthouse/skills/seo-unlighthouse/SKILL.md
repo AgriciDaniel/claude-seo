@@ -2,7 +2,7 @@
 name: seo-unlighthouse
 description: Multi-page Lighthouse audit via the MIT-licensed Unlighthouse CLI. Free-tier alternative to running PageSpeed against every URL on a site, no API quota burn, runs locally.
 metadata:
-  version: "2.3.1"
+  version: "2.4.0"
 compatibility: "Requires Node 18+ and the unlighthouse npm package. Run extensions/unlighthouse/install.sh to pre-warm."
 ---
 
