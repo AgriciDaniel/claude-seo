@@ -96,7 +96,7 @@ def main() -> int:
         results.append(check(
             "GOOGLE_AI_API_KEY is set",
             bool(key),
-            f"{key[:8]}...{key[-4:]}" if len(key) > 12 else "(empty or short)",
+            f"...{key[-4:]}" if len(key) > 12 else "(empty or short)",
         ))
 
         # 7. Model configured

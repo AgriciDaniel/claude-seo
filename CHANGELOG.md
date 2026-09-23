@@ -66,6 +66,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   configuration. They now exit with "Nothing was changed". The PowerShell
   writers check `$LASTEXITCODE`, so they no longer print "Done." after the
   refusal.
+- The banana `setup_mcp.py` and `validate_setup.py` checks printed the first
+  eight characters of the Google AI key as well as the last four. They now
+  show only the last four. Found by CodeQL, now enabled on the repository.
 - `keywordseverywhere_api.py` could echo the API key in an error when the
   stored key had a trailing newline (pre-existing). Keys are stripped,
   rejected if they contain control characters, and every error is redacted.

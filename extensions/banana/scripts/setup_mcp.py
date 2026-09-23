@@ -65,7 +65,7 @@ def check_setup() -> bool:
     if MCP_NAME in servers:
         env = servers[MCP_NAME].get("env", {})
         key = env.get("GOOGLE_AI_API_KEY", "")
-        masked = key[:8] + "..." + key[-4:] if len(key) > 12 else "(not set)"
+        masked = "..." + key[-4:] if len(key) > 12 else "(not set)"
         print(f"MCP server '{MCP_NAME}' is configured.")
         print(f"  Package: {MCP_PACKAGE}")
         print(f"  API Key: {masked}")
