@@ -300,7 +300,7 @@ Confirmed required fields are `name`, `image`, and `offers`; use `Offer`, not `A
 | **seo-content** | Product description E-E-A-T and uniqueness analysis |
 | **seo-dataforseo** | Organic keyword rankings for gap analysis |
 | **seo-technical** | Core Web Vitals for product pages (LCP on hero image) |
-| **seo-hreflang** | Region-specific result units: product queries in the EEA, South Africa, and Turkiye can show supplier units and carousels with their own eligibility rules (documented 2026-09-08) |
+| **seo-hreflang** | Region-specific result units: product queries in the EEA, South Africa, and Turkiye can show supplier units and carousels with their own eligibility rules (documented 2026-09-08; local business queries added 2026-09-18) |
 | **seo-google** | GSC indexation + Performance data for product URLs (NOT Merchant Center feed validation, that is done in Merchant Center / the **Merchant API**; the legacy Content API for Shopping sunsets 2026-08-18) |
 
 ## UCP: Universal Commerce Protocol (live)

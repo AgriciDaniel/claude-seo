@@ -279,8 +279,9 @@ def test_faq_rich_results_retirement_documented() -> None:
     assert "May 7, 2026" in schema_types, "schema-types must date the FAQ retirement"
     # QAPage offered as the replacement for genuine Q&A.
     assert "QAPage" in deprecated and "QAPage" in schema_types
-    # Google's faqpage doc cited as primary source.
-    assert "structured-data/faqpage" in deprecated
+    # Google's retirement notice cited as primary source. The old faqpage doc
+    # URL now 301-redirects to this changelog anchor (checked 2026-09-23).
+    assert "search/updates#removing-faq-rich-result" in deprecated
 
 
 def test_faqpage_guidance_does_not_claim_unconfirmed_benefits() -> None:

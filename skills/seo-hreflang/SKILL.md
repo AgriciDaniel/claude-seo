@@ -75,7 +75,8 @@ XML sitemap implementations.
 - Google documents Search experiences that exist only in certain countries:
   **aggregator units**, **supplier units**, and carousels for hotel, flight,
   long-distance transport, and product queries shown to users in the EEA,
-  South Africa, and Turkiye (documentation added 2026-09-08). Eligibility and
+  South Africa, and Turkiye (documentation added 2026-09-08), and since
+  2026-09-18 for local business queries too. Eligibility and
   participation are documented per unit; they are not ranking signals.
 - When a site serves those regions with hreflang variants, note in the report
   whether the business is an aggregator or a direct supplier and point to the

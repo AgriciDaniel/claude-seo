@@ -114,6 +114,6 @@ Use `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_normalize.py --mo
 
 ## Cost Reference
 
-See `skills/seo-dataforseo/references/cost-tiers.md` for the full pricing table,
+See `${CLAUDE_PLUGIN_ROOT}/skills/seo-dataforseo/references/cost-tiers.md` for the full pricing table,
 budget presets, and cost reduction tips. All Merchant endpoints are $0.02/call
 on standard queue.

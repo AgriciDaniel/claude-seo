@@ -141,10 +141,14 @@ main() {
     # idempotent: it consumes the plugin-root token, so a second pass matches
     # nothing. In a POSIX basic regular expression "$" is literal unless it ends
     # the expression, so ${CLAUDE_PLUGIN_ROOT} needs no escaping here.
+    # Reference paths are opened with the Read tool, which does not expand
+    # variables, so ${CLAUDE_PLUGIN_ROOT}/skills/ becomes the absolute path.
+    skills_root_esc=$(printf '%s' "${HOME}/.claude/skills/" | sed 's/[#&\\]/\\&/g')
     rewrite_doc() {
         local doc="$1" temp_doc
         temp_doc="${doc}.claude-seo-tmp"
-        sed -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run#"$HOME/.claude/skills/seo/scripts/claude-seo" run#g' \
+        sed -e "s#\${CLAUDE_PLUGIN_ROOT}/skills/#${skills_root_esc}#g" \
+            -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run#"$HOME/.claude/skills/seo/scripts/claude-seo" run#g' \
             -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" setup#"$HOME/.claude/skills/seo/scripts/claude-seo" setup#g' \
             -e 's#"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" doctor#"$HOME/.claude/skills/seo/scripts/claude-seo" doctor#g' \
             "${doc}" > "${temp_doc}"

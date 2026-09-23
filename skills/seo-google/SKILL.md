@@ -133,7 +133,7 @@ site-wide only when `totals_complete` is true. `--limit` caps total returned
 dimension rows, not the size of every pagination request.
 
 > **AI surfaces in GSC (2026):**
-> - **Generative AI performance report** (launched 2026-06-03), a dedicated view of **AI Overviews + AI Mode** visibility. **Impressions only** (no clicks/CTR/position/query); dimensions Pages/Countries/Devices/Dates (Pacific Time); 1,000-row limit; newest data preliminary; a separate Discover gen-AI report also exists. Rolling out to a subset of properties.
+> - **Generative AI performance report** (launched 2026-06-03), a dedicated view of **AI Overviews + AI Mode** visibility. **Impressions only** (no clicks/CTR/position/query); dimensions Pages/Countries/Devices/Dates (Pacific Time); 1,000-row limit; newest data preliminary; a separate Discover gen-AI report also exists. Available to all websites worldwide since 2026-08-31 (launched to a subset 2026-06-03); dates support hourly, daily, weekly and monthly granularity.
 > - **AI Mode already rolls into standard Performance totals** (Web search type), clicks (external-link clicks in AI Mode) and impressions are counted in the normal report, so you **cannot** cleanly split "classic" vs "AI" traffic from totals. Use the Generative AI report for impressions-only AI visibility.
 > - **Data-reliability caveat:** a GSC logging error made **impressions, CTR, and average position unreliable from 2025-05-13 to 2026-04-27** (clicks unaffected; fixed forward-only, **no backfill**). Treat impression/CTR/position trends spanning that window with caution; expect an apparent impressions drop after the fix.
 

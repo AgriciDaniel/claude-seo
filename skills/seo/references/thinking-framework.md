@@ -94,7 +94,7 @@ Reduce the findings to first principles:
   missing canonical — that gates everything else.)
 - What does **Google's primary-source guidance** say about the
   recommendation? When community claims and Google contradict, defer
-  to Google (see `skills/seo-geo/references/google-ai-optimization-guide.md`).
+  to Google (see `${CLAUDE_PLUGIN_ROOT}/skills/seo-geo/references/google-ai-optimization-guide.md`).
 
 **Discipline:** the highest-leverage constraint goes first in the action
 plan, even if it's less interesting than the "growth" recommendations.

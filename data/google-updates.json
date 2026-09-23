@@ -6,7 +6,7 @@
     "https://developers.google.com/search/updates",
     "https://blog.google/products/search/"
   ],
-  "last_verified": "2026-09-10",
+  "last_verified": "2026-09-23",
   "policy": "Every entry must cite a Google-owned URL. Third-party-only claims belong in unverified[]. Bump last_verified each time an entry is added or revised.",
   "_schema_doc": {
     "updates[]": {
@@ -271,6 +271,13 @@
       "notes": "Google may keep fixed pages in a duplicate cluster for up to two weeks while canonicalization is re-evaluated."
     },
     {
+      "date": "2026-07-16",
+      "name": "NotebookLM fetcher renamed Google-GeminiNotebook",
+      "kind": "documentation",
+      "source": "https://developers.google.com/crawling/docs/changelog",
+      "notes": "The user-triggered NotebookLM fetcher token became Google-GeminiNotebook; the fetchers page lists Google-NotebookLM as a former agent supported until August 2026. Update hardcoded user-agent matches and log parsers."
+    },
+    {
       "date": "2026-07-24",
       "name": "Review snippet transparency guideline",
       "kind": "schema",
@@ -313,11 +320,60 @@
       "notes": "Google updated the site reputation policy: pages that violate it may receive a manual action when shown to users outside the EEA, while for users within the EEA the pages may be categorized as separate from the main domain but are not subject to the manual action's impact. Third-party hosted content is still a policy risk everywhere; the enforcement mechanism differs by searcher region."
     },
     {
+      "date": "2026-08-28",
+      "name": "Favicon supported file formats listed explicitly",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/appearance/favicon-in-search",
+      "notes": "The favicon guide now lists the supported file formats instead of linking to an external reference. Google says supported formats did not change."
+    },
+    {
+      "date": "2026-08-31",
+      "name": "Search generative AI control and gen-AI reports roll out worldwide",
+      "kind": "product",
+      "source": "https://support.google.com/webmasters/answer/16908024",
+      "notes": "A Search Console property setting (Settings > Search generative AI) can include (the default), exclude, or inherit from the parent property, and covers AI Overviews, AI Mode, and gen-AI features in Discover. Excluded sites get no links, grounding, or impressions in those features. The setting is not a ranking signal elsewhere and does not affect AI training (use Google-Extended for training). The Generative AI performance reports also reached all sites on this date."
+    },
+    {
       "date": "2026-09-08",
       "name": "Regional differences in Search experience documented",
       "kind": "documentation",
       "source": "https://developers.google.com/search/updates",
       "notes": "New documentation covers search experiences available only in certain countries (aggregator units, supplier units, and carousels for hotel, flight, long-distance transport and product queries in the EEA, South Africa, and Turkiye), with eligibility criteria and participation methods for publishers and aggregators."
+    },
+    {
+      "date": "2026-09-16",
+      "name": "Search profile badge documentation",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/appearance/search-profiles",
+      "notes": "Owners of a claimed Search profile (profile.google.com/@handle) can link to it with a badge or text link. Followers of a Search profile are more likely to see its linked content in Discover. Brand and touch-target rules apply, and the badge must stay visually distinct from the Preferred Sources badge."
+    },
+    {
+      "date": "2026-09-16",
+      "name": "Search profiles: multi-brand management and lower US eligibility",
+      "kind": "product",
+      "source": "https://blog.google/products-and-platforms/products/search/3-new-ways-were-improving-search-profiles-for-publishers/",
+      "notes": "Publishers can manage Search profiles for sub-brands from one login. Profiles get larger article thumbnails and longer headlines. The US eligibility threshold dropped to 10,000 followers across YouTube, Instagram, X, or TikTok."
+    },
+    {
+      "date": "2026-09-17",
+      "name": "Mediapartners-Google crawler scope clarified",
+      "kind": "documentation",
+      "source": "https://developers.google.com/crawling/docs/changelog",
+      "notes": "robots.txt rules addressed to Mediapartners-Google affect several ad products (for example AdSense and Ad Manager), not only AdSense. The global * group is still ignored by this crawler."
+    },
+    {
+      "date": "2026-09-18",
+      "name": "Aggregator and supplier units add local business queries",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/appearance/aggregator-unit",
+      "notes": "In the EEA, aggregator and supplier units now also appear for local business queries (for example plumbers and brick-and-mortar shops). Aggregators participate through the Local Point of Interest Feed. Direct providers qualify for the supplier unit from crawled data alone."
+    },
+    {
+      "date": "2026-09-18",
+      "name": "Preferred sources in AI features require gen-AI inclusion",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/appearance/preferred-sources",
+      "notes": "To display as a preferred source in AI Mode and AI Overviews, a site must be included in the Search generative AI control in Search Console. Top Stories preferred-source eligibility is unchanged."
     }
   ],
   "unverified": []

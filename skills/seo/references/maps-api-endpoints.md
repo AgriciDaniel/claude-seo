@@ -1,4 +1,4 @@
-<!-- Updated: 2026-03-23 -->
+<!-- Updated: 2026-09-23 -->
 # DataForSEO Maps & Business Data API Endpoints
 
 ## Source Key
@@ -110,7 +110,7 @@ Returns questions, answers, upvotes, dates, answer sources. Live and standard me
 
 **Use case:** Identify unanswered questions, FAQ gap analysis.
 
-**Note:** GBP Q&A is active where available. Use this endpoint when DataForSEO returns current Q&A data, noting category/region limits.
+**Note:** Google discontinued its own My Business Q&A API on 2025-11-03 (https://developers.google.com/my-business/content/sunset-dates); public Q&A is reportedly being replaced by an AI "Ask" experience (secondary reports only). This endpoint reads whatever public Q&A remains, so empty results are expected; report them as "no Q&A data", not as a profile gap.
 
 ---
 

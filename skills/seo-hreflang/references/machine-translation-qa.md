@@ -53,7 +53,7 @@ content abuse.
 
 ## Primary sources
 
-- Current QRG (September 11, 2025; 182 pages; nothing newer through 2026-07-09): https://services.google.com/fh/files/misc/hsw-sqrg.pdf
+- Current QRG (September 11, 2025; 182 pages; nothing newer through 2026-09-23): https://static.googleusercontent.com/media/guidelines.raterhub.com/en//searchqualityevaluatorguidelines.pdf (the services.google.com hsw-sqrg.pdf file is the 36-page 2023 Overview, not the guidelines)
 - John Mueller on MT (multiple SOTR episodes, 2024-2025): MT is OK
   when reviewed by a human; bulk MT without review is abuse.
 

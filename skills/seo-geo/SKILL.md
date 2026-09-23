@@ -19,8 +19,8 @@ metadata:
 
 Google's official position, published under Search Central docs:
 
-> "Optimizing for generative AI search is **still SEO** from Google's
-> perspective. AEO and GEO are rebranded labels for the same work."
+> "From Google Search's perspective, optimizing for generative AI search is
+> optimizing for the search experience, and thus **still SEO**."
 
 Read `references/google-ai-optimization-guide.md` for the full synthesis,
 myth-busting list (`llms.txt`, chunking, AI-rephrasing, mention-farming,
@@ -162,7 +162,7 @@ Check `robots.txt` for these AI crawlers:
 | Google-Extended | Google | **Gemini/Vertex training & grounding only** (NOT Google Search) | yes |
 | Google-CloudVertexBot | Google | Site-owner-requested Vertex AI Agent crawls | yes |
 | Google-Agent | Google | User-triggered agent fetches (agentic browsing for a user) | **no (user-triggered)** |
-| Google-NotebookLM | Google | Fetches individual user-added source URLs | **no (user-triggered)** |
+| Google-GeminiNotebook | Google | Fetches individual user-added source URLs (replaced `Google-NotebookLM`, supported until August 2026) | **no (user-triggered)** |
 | Google Messages | Google | User-triggered fetch | **no (user-triggered)** |
 | Applebot-Extended | Apple | **Apple Intelligence / generative-AI training data opt-out only** (NOT Siri, Spotlight, or Safari search; does not itself crawl, it labels content already fetched by Applebot) | yes |
 
@@ -218,7 +218,7 @@ bot's robots.txt status** -- check them separately and report them separately.
 Do not use these names interchangeably in report prose. When reporting crawler access,
 name the specific user-agent that was checked and the specific capability it governs.
 
-> **User-triggered fetchers ignore robots.txt by design** (Google-Agent, Google-NotebookLM, Google Messages, ChatGPT-User). robots.txt cannot block them, use server-side access controls. Google's canonical crawling/robots reference moved to **developers.google.com/crawling** (migrated 2025-11-20); IP-range files now live at `/crawling/ipranges/` and `googlebot.json` was renamed `common-crawlers.json`. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate via a `Signature-Agent` header + key directory (used by Google-Agent); reverse-DNS verification remains the fallback.
+> **Google's user-triggered fetchers ignore robots.txt by design** (Google-Agent, Google-GeminiNotebook, Google Messages); OpenAI says robots.txt "may not apply" to ChatGPT-User, while Anthropic's Claude-User honors it. robots.txt cannot block them, use server-side access controls. Google's canonical crawling/robots reference moved to **developers.google.com/crawling** (migrated 2025-11-20); IP-range files now live at `/crawling/ipranges/` and `googlebot.json` was renamed `common-crawlers.json`. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate via a `Signature-Agent` header + key directory (used by Google-Agent); reverse-DNS verification remains the fallback.
 
 ---
 
@@ -306,13 +306,15 @@ Google added many AI citation/source surfaces across AI Overviews **and** AI Mod
   eligible for a preferred badge in AI Mode or AI Overviews. This is a
   **per-user preference**, not a documented general ranking signal. Publishers
   may offer Google's interactive button or a deeplink, but should not promise a
-  site-wide ranking lift. Source:
+  site-wide ranking lift. Since 2026-09-18 the docs also require the site to be
+  included in the Search Console "Search generative AI features" setting to
+  show as a preferred source in AI Mode and AI Overviews. Source:
   developers.google.com/search/docs/appearance/preferred-sources
 - **"Highly Cited" badges**, earned via original primary reporting that other articles cite.
 - **Community Perspectives**, elevates Reddit/forum/firsthand content.
 - Inline links, desktop hover **Link Previews**, and prominent link carousels.
 
-**Controlling AI-feature appearance:** there is **no AI-specific opt-out file**. Appearance in AI Overviews and AI Mode is governed by standard preview/index directives, `nosnippet`, `data-nosnippet`, `max-snippet`, `noindex` (distinct from the third-party AI-crawler robots controls above). Source: developers.google.com/search/docs/appearance/ai-features
+**Controlling AI-feature appearance:** there is **no AI-specific opt-out file**, but since 2026-08-31 every site has a Search Console setting, "Search generative AI features" (include by default, or exclude), that controls eligibility for AI Overviews and AI Mode; it is not a ranking signal or a training control. Beyond that, appearance is governed by standard preview/index directives, `nosnippet`, `data-nosnippet`, `max-snippet`, `noindex` (distinct from the third-party AI-crawler robots controls above). Source: developers.google.com/search/docs/appearance/ai-features
 
 **Search agents (live, not just WebMCP):** Google's "Information Agents" run in the background to monitor topics, plus agentic booking/calling for select categories (rolling out to US users, summer 2026), so agent-friendly-page optimization (real interactive elements, accessibility tree, layout stability) now matters for actions, not only citations. Audit that with `/seo agentic` (the `seo-agentic` sub-skill), which also reads Lighthouse's Agentic Browsing fraction.
 

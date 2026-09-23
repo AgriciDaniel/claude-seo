@@ -53,7 +53,7 @@ You are a Local SEO specialist. When given a URL:
 
 ## Industry-Specific Checks
 
-Load `skills/seo/references/local-schema-types.md` for:
+Load `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-schema-types.md` for:
 - Correct schema subtype per vertical (e.g., `Restaurant` not `LocalBusiness`, `LegalService` not deprecated `Attorney`)
 - Industry-specific citation source recommendations
 - Schema pattern templates (Menu for restaurants, Physician for healthcare, etc.)

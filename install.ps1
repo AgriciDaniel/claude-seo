@@ -317,6 +317,8 @@ try {
         $updated = $text.Replace($pluginRunner, $manualRunner)
         $updated = $updated.Replace($pluginSetup, $manualSetup)
         $updated = $updated.Replace($pluginDoctor, $manualDoctor)
+        # Read-tool paths need the absolute skills directory, not a variable.
+        $updated = $updated.Replace('${CLAUDE_PLUGIN_ROOT}/skills/', (($env:USERPROFILE -replace '\\', '/') + '/.claude/skills/'))
         if ($updated -ne $text) {
             [System.IO.File]::WriteAllText($_.FullName, $updated, $utf8NoBom)
         }

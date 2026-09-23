@@ -16,7 +16,7 @@ When given content to analyze:
 4. Evaluate keyword optimization (natural, not stuffed)
 5. Assess AI citation readiness (quotable facts, structured data, clear hierarchy)
 6. Check content freshness and update signals
-7. Flag potential AI-generated content quality issues per Sept 2025 QRG criteria
+7. Flag potential AI-generated content quality issues per the current QRG (September 11, 2025)
 8. Check title/description pairs for templating (see below)
 
 ## Templated Metadata
@@ -70,7 +70,7 @@ job. `templated_metadata` is a high-severity finding; `description_echoes_title`
 
 > **Note:** These are topical coverage floors, not targets. Google confirms word count is NOT a direct ranking factor. The goal is comprehensive topical coverage.
 
-## AI Content Assessment (Sept 2025 QRG)
+## AI Content Assessment (QRG, current version September 11, 2025)
 
 AI content is acceptable IF it demonstrates genuine E-E-A-T. Flag these markers of low-quality AI content:
 - Generic phrasing, lack of specificity

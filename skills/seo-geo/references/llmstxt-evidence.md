@@ -11,7 +11,7 @@ it as a Google ranking or citation lever in any claude-seo report.
 
 | Source | Date | What they said |
 |---|---|---|
-| **Google AI optimization guide** (docs) | 2026-06-29 | You don't need llms.txt/AI-text files for Google Search (incl. generative AI features); doing so "won't harm (nor help) your visibility or rankings in Google Search, **as Google Search ignores them**." |
+| **Google AI optimization guide** (docs) | note added 2026-06-15; page updated 2026-07-10 | "You don't need to create new machine readable files, AI text files, markup, or Markdown to appear in Google Search (including its generative AI capabilities), as Google Search itself doesn't use them." Creating llms.txt for other systems "will neither harm nor help your site's visibility or rankings in Google Search, **as Google Search ignores them**." |
 | **John Mueller** (Google) | 2026 | Called the llms.txt discovery/differentiation use case "a dead end." |
 | **John Mueller** (Google) — Reddit + Bluesky | 2025 | "No AI system currently uses llms.txt." Compared the file to deprecated meta keywords. |
 | **Gary Illyes** (Google) — Search Central Live | July 2025 | Google has no plans to support llms.txt. |
@@ -38,7 +38,7 @@ adopts it.
 - The audit explicitly does **not** assign citation-ranking weight to it.
 - If the user asks to generate one, claude-seo produces a minimal valid
   example and a banner stating "Google Search ignores llms.txt (Google docs,
-  2026-06-29); no major LLM provider has confirmed consumption; ship for
+  2026-06-15); no major LLM provider has confirmed consumption; ship for
   non-Google optionality, not for citation".
 
 ## When this guidance changes
@@ -52,4 +52,4 @@ Update this file (and the seo-geo audit copy) when:
   inflection in `/llms.txt` request rate.
 - John Mueller / Gary Illyes / equivalent retract their 2025 statements.
 
-Last verified: 2026-06-21.
+Last verified: 2026-09-23. Lighthouse's Agentic Browsing category does score llms.txt (see `seo-agentic`); that is a lab check, not a Google Search signal.

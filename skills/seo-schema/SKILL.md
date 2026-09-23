@@ -57,9 +57,9 @@ See `schema/templates.json` for ready-to-use JSON-LD templates for these types.
 - **CourseInfo, EstimatedSalary, LearningVideo**: Retired June 2025
 - **ClaimReview**: Retired from rich results June 2025
 - **VehicleListing**: Retired from rich results June 2025
-- **Practice Problem**: Deprecation notice 2025-11-05; Search Console / Rich Results Test support removed 2026-01-06
-- **Book Actions**: Deprecated/removed from Google rich results; do not recommend it for SERP features.
-- Search Console / Rich Results Test / appearance-filter support for CourseInfo, EstimatedSalary, LearningVideo, SpecialAnnouncement, VehicleListing was removed 2025-09-09; Practice Problem support was removed 2026-01-06.
+- **Practice Problem**: Deprecation notice 2025-11-05; tooling support removed starting January 2026; documentation removed 2026-01-06
+- **Book Actions**: NOT deprecated. The June 2025 phase-out banner was removed on 2025-11-05 because a Search feature still uses the markup.
+- Search Console / Rich Results Test / appearance-filter support for CourseInfo, ClaimReview, EstimatedSalary, LearningVideo, SpecialAnnouncement, VehicleListing was removed 2025-09-09 (Search Console API through December 2025).
 
 ### Supported for Dataset Search only:
 - **Dataset**: Not discontinued; consumed by Google Dataset Search, with no Google Search rich-result surface. Don't advise removal as if it were killed.

@@ -1,5 +1,5 @@
-<!-- Updated: 2026-06-21 -->
-# Core Web Vitals Thresholds (June 2026)
+<!-- Updated: 2026-09-23 -->
+# Core Web Vitals Thresholds (September 2026)
 
 ## Current Metrics
 
@@ -18,29 +18,32 @@
 - **Anti-hallucination guard**: There is **no "Visual Stability Index" (VSI)**, **no "Core Web Vitals 2.0"**, no "Engagement Reliability" metric, and no LCP-lowered-to-2.0s change. These appear only in third-party SEO blogs and are directly contradicted by web.dev/articles/vitals and the CrUX release notes. The three stable metrics (LCP, INP, CLS) are the entire CWV set as of 2026. Do **not** ingest VSI/CWV-2.0 as real.
 - As of the **August 2026 CrUX dataset** (18,294,881 origins, published 2026-09-08): **55.6%** of origins pass all three CWV (down 0.2 points MoM; July 2026 was 55.7%), and Chrome flags the continued INP regression as a cause for concern without a definitive reason. This number is perishable; re-read https://developer.chrome.com/docs/crux/release-notes before quoting it.
 
-## LCP Subparts (February 2025 CrUX Addition)
+## LCP Subparts (January 2025 CrUX release, published February 11, 2025)
 
-LCP can now be broken into diagnostic subparts:
+LCP can be broken into diagnostic subparts (CrUX reports them for pages whose LCP element is an image):
 
 | Subpart | What It Measures | Target |
 |---------|------------------|--------|
 | **TTFB** | Time to First Byte (server response) | <800ms |
 | **Resource Load Delay** | Time from TTFB to resource request start | Minimize |
-| **Resource Load Time** | Time to download the LCP resource | Depends on size |
+| **Resource Load Duration** | Time to download the LCP resource | Depends on size |
 | **Element Render Delay** | Time from resource loaded to rendered | Minimize |
 
-**Total LCP = TTFB + Resource Load Delay + Resource Load Time + Element Render Delay**
+**Total LCP = TTFB + Resource Load Delay + Resource Load Duration + Element Render Delay**
 
 Use this breakdown to identify which phase is causing LCP issues.
 
-## Soft Navigations API (Experimental)
+## Soft Navigations API (shipped in Chrome 151)
 
-**Final origin trial Chrome 147-149 (2026), targeting an unflagged ship around Chrome 151**: measures CWV attribution for SPA soft navigations.
+**Enabled by default from Chrome 151** (no flag or origin trial needed): exposes
+soft-navigation entries so RUM tools can measure LCP, INP and CLS per SPA route
+change. Chrome has not yet said how CrUX will report soft navigations
+(https://developer.chrome.com/docs/web-platform/soft-navigations-experiment,
+updated 2026-09-02).
 
 - Addresses the long-standing SPA measurement blind spot
-- Currently experimental, **no ranking impact yet**
+- **No ranking impact yet**: CrUX field data still counts hard navigations only
 - Detects "soft navigations" (URL changes without full page load)
-- May affect future SPA CWV measurement
 
 **Detection:** Check for SPA frameworks (React, Vue, Angular, Svelte) and warn about current CWV measurement limitations.
 
@@ -101,10 +104,10 @@ npx lighthouse URL --output json --output-path report.json
 
 ## Performance Tooling Updates (2025-2026)
 
-- **Lighthouse 13.5.0** (September 2026, latest stable): Lighthouse 13.0 (Oct 2025) migrated performance audits to **insight-based audits** aligned with the DevTools Performance panel and removed legacy audits (first-meaningful-paint, font-size, third-party-facades). The performance *score* remains metric-based and was **not** re-weighted. 13.2.0-13.3.0 added and default-enabled a new **Agentic Browsing** category (Chrome 150+; fractional pass-ratio). 13.4.1 enabled it through the PSI API; the CLI needs Node.js 22.19 or newer. Details: `skills/seo-agentic/references/lighthouse-agentic-category.md`. Lighthouse is a lab tool (simulated conditions): always cross-reference with CrUX field data.
+- **Lighthouse 13.5.0** (September 2026, latest stable): Lighthouse 13.0 (Oct 2025) migrated performance audits to **insight-based audits** aligned with the DevTools Performance panel and removed legacy audits (first-meaningful-paint, font-size, third-party-facades). The performance *score* remains metric-based and was **not** re-weighted. 13.2.0-13.3.0 added and default-enabled a new **Agentic Browsing** category (Chrome 150+; fractional pass-ratio). 13.4.1 enabled it through the PSI API; the CLI needs Node.js 22.19 or newer. Details: `${CLAUDE_PLUGIN_ROOT}/skills/seo-agentic/references/lighthouse-agentic-category.md`. Lighthouse is a lab tool (simulated conditions): always cross-reference with CrUX field data.
 - **PSI / PSI API v5** run Lighthouse 13.x (updated 2025-10-20). The **PWA category was removed in Lighthouse 12** — do not parse a `pwa` category. Mobile lab **CPU throttling was increased on 2024-12-05** (higher mobile lab TBT since then; field/desktop unaffected — do not compare mobile lab TBT across that boundary).
 - **CrUX Vis** replaced the CrUX Dashboard (Looker Studio), which was **shut down at end of November 2025** (October 2025 was its final dataset; the CrUX Connector is no longer updated). Use [CrUX Vis](https://cruxvis.withgoogle.com) or the CrUX API directly.
-- **LCP subparts** added to CrUX (February 2025): Time to First Byte (TTFB), resource load delay, resource load time, and element render delay are now available as sub-components of LCP in CrUX data.
+- **LCP image subparts** added to the CrUX API in the January 2025 release (published February 11, 2025): time to first byte, resource load delay, resource load duration, and element render delay, reported for pages whose LCP element is an image. LCP resource type (text or image) was added in the same release.
 - **Google Search Console (2025-2026)**: hourly data in the Search Analytics API (HOUR dimension / HOURLY_ALL) shipped **April 2025**; the **branded vs. non-branded** query filter launched **Nov 2025** (expanded to all eligible sites ~Mar 2026, AI-classified — no manual regex); the AI-powered natural-language configuration tool was announced Dec 2025 and rolled out globally **Feb 2026**. The standalone **Page Experience report was removed** from Search Console — monitor via the Core Web Vitals report and the HTTPS report only.
 
 > **Mobile-first indexing** is the default for the indexed web and Googlebot Smartphone is the primary crawler (rollout completed 2024). A mobile version is **not strictly required** (Google says it is "very strongly recommended"); sites that don't work well on mobile can still be indexed, but the real risk is content/parity loss. Ensure the mobile version contains equivalent primary content, structured data, and meta tags.
