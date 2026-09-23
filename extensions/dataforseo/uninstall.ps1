@@ -2,7 +2,7 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "→ Uninstalling DataForSEO extension..." -ForegroundColor Yellow
+Write-Host "-> Uninstalling DataForSEO extension..." -ForegroundColor Yellow
 
 # Remove skill
 if (Test-Path "$env:USERPROFILE\.claude\skills\seo-dataforseo") {
@@ -46,13 +46,13 @@ if 'mcpServers' in settings and 'dataforseo' in settings['mcpServers']:
 "@
         $result = & $pyExe -c $pyScript 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "  ✓ Removed dataforseo from ~/.claude.json" -ForegroundColor Green
+            Write-Host "  [OK] Removed dataforseo from ~/.claude.json" -ForegroundColor Green
         } else {
-            Write-Host "  ⚠  Could not auto-remove MCP config. Remove 'dataforseo' from ~\.claude.json manually." -ForegroundColor Yellow
+            Write-Host "  [!]  Could not auto-remove MCP config. Remove 'dataforseo' from ~\.claude.json manually." -ForegroundColor Yellow
         }
     } else {
-        Write-Host "  ⚠  Python not found. Remove 'dataforseo' from ~\.claude.json manually." -ForegroundColor Yellow
+        Write-Host "  [!]  Python not found. Remove 'dataforseo' from ~\.claude.json manually." -ForegroundColor Yellow
     }
 }
 
-Write-Host "✓ DataForSEO extension uninstalled." -ForegroundColor Green
+Write-Host "[OK] DataForSEO extension uninstalled." -ForegroundColor Green

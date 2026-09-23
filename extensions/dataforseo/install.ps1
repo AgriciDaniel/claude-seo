@@ -3,41 +3,41 @@
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "════════════════════════════════════════" -ForegroundColor Cyan
-Write-Host "║   DataForSEO Extension - Installer   ║" -ForegroundColor Cyan
-Write-Host "║   For Claude SEO                     ║" -ForegroundColor Cyan
-Write-Host "════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "|   DataForSEO Extension - Installer   |" -ForegroundColor Cyan
+Write-Host "|   For Claude SEO                     |" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Check prerequisites
 $SeoSkillDir = "$env:USERPROFILE\.claude\skills\seo"
 if (-not (Test-Path $SeoSkillDir)) {
-    Write-Host "✗ Claude SEO is not installed." -ForegroundColor Red
+    Write-Host "[X] Claude SEO is not installed." -ForegroundColor Red
     Write-Host "  Install it first: irm https://raw.githubusercontent.com/AgriciDaniel/claude-seo/main/install.ps1 | iex"
     exit 1
 }
-Write-Host "✓ Claude SEO detected" -ForegroundColor Green
+Write-Host "[OK] Claude SEO detected" -ForegroundColor Green
 
 $nodeCmd = Get-Command -Name node -ErrorAction SilentlyContinue
 if ($null -eq $nodeCmd) {
-    Write-Host "✗ Node.js is required but not installed." -ForegroundColor Red
+    Write-Host "[X] Node.js is required but not installed." -ForegroundColor Red
     Write-Host "  Install Node.js 20+: https://nodejs.org/"
     exit 1
 }
 
 $nodeVersion = (node -v) -replace 'v','' -split '\.' | Select-Object -First 1
 if ([int]$nodeVersion -lt 20) {
-    Write-Host "✗ Node.js 20+ required (found v$nodeVersion)." -ForegroundColor Red
+    Write-Host "[X] Node.js 20+ required (found v$nodeVersion)." -ForegroundColor Red
     exit 1
 }
-Write-Host "✓ Node.js $(node -v) detected" -ForegroundColor Green
+Write-Host "[OK] Node.js $(node -v) detected" -ForegroundColor Green
 
 $npxCmd = Get-Command -Name npx -ErrorAction SilentlyContinue
 if ($null -eq $npxCmd) {
-    Write-Host "✗ npx is required but not found (comes with npm)." -ForegroundColor Red
+    Write-Host "[X] npx is required but not found (comes with npm)." -ForegroundColor Red
     exit 1
 }
-Write-Host "✓ npx detected" -ForegroundColor Green
+Write-Host "[OK] npx detected" -ForegroundColor Green
 
 # Prompt for credentials
 Write-Host ""
@@ -47,7 +47,7 @@ Write-Host ""
 
 $DfseUsername = Read-Host "DataForSEO username (email)"
 if ([string]::IsNullOrEmpty($DfseUsername)) {
-    Write-Host "✗ Username cannot be empty." -ForegroundColor Red
+    Write-Host "[X] Username cannot be empty." -ForegroundColor Red
     exit 1
 }
 
@@ -56,7 +56,7 @@ $DfsePassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR(
     [Runtime.InteropServices.Marshal]::SecureStringToBSTR($DfsePasswordSecure)
 )
 if ([string]::IsNullOrEmpty($DfsePassword)) {
-    Write-Host "✗ Password cannot be empty." -ForegroundColor Red
+    Write-Host "[X] Password cannot be empty." -ForegroundColor Red
     exit 1
 }
 
@@ -67,7 +67,7 @@ if (Test-Path "$ScriptDir\skills\seo-dataforseo\SKILL.md") {
 } elseif (Test-Path "$ScriptDir\extensions\dataforseo\skills\seo-dataforseo\SKILL.md") {
     $SourceDir = "$ScriptDir\extensions\dataforseo"
 } else {
-    Write-Host "✗ Cannot find extension source files." -ForegroundColor Red
+    Write-Host "[X] Cannot find extension source files." -ForegroundColor Red
     Write-Host "  Run this script from the claude-seo repo."
     exit 1
 }
@@ -83,21 +83,21 @@ $FieldConfigPath = "$SeoSkillDir\dataforseo-field-config.json"
 
 # Install skill
 Write-Host ""
-Write-Host "→ Installing DataForSEO skill..." -ForegroundColor Yellow
+Write-Host "-> Installing DataForSEO skill..." -ForegroundColor Yellow
 New-Item -ItemType Directory -Force -Path $SkillDir | Out-Null
 Copy-Item -Force "$SourceDir\skills\seo-dataforseo\SKILL.md" "$SkillDir\SKILL.md"
 
 # Install agent
-Write-Host "→ Installing DataForSEO agent..." -ForegroundColor Yellow
+Write-Host "-> Installing DataForSEO agent..." -ForegroundColor Yellow
 New-Item -ItemType Directory -Force -Path $AgentDir | Out-Null
 Copy-Item -Force "$SourceDir\agents\seo-dataforseo.md" "$AgentDir\seo-dataforseo.md"
 
 # Install field config
-Write-Host "→ Installing field config..." -ForegroundColor Yellow
+Write-Host "-> Installing field config..." -ForegroundColor Yellow
 Copy-Item -Force "$SourceDir\field-config.json" $FieldConfigPath
 
 # Merge MCP config into ~/.claude.json
-Write-Host "→ Configuring MCP server..." -ForegroundColor Yellow
+Write-Host "-> Configuring MCP server..." -ForegroundColor Yellow
 
 $settingsContent = if (Test-Path $McpConfigFile) { Get-Content $McpConfigFile -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
 if (-not $settingsContent.mcpServers) { $settingsContent | Add-Member -NotePropertyName mcpServers -NotePropertyValue ([pscustomobject]@{}) -Force }
@@ -128,10 +128,10 @@ try {
 } catch {
     Write-Host "  Note: could not restrict ~/.claude.json ACL; review manually." -ForegroundColor Yellow
 }
-Write-Host "  ✓ MCP server configured in ~/.claude.json" -ForegroundColor Green
+Write-Host "  [OK] MCP server configured in ~/.claude.json" -ForegroundColor Green
 
 # Pre-warm npx package
-Write-Host "→ Pre-downloading dataforseo-mcp-server..." -ForegroundColor Yellow
+Write-Host "-> Pre-downloading dataforseo-mcp-server..." -ForegroundColor Yellow
 try {
     & npx -y dataforseo-mcp-server@2.8.10 --help 2>&1 | Out-Null
 } catch {
@@ -139,7 +139,7 @@ try {
 }
 
 Write-Host ""
-Write-Host "✓ DataForSEO extension installed successfully!" -ForegroundColor Green
+Write-Host "[OK] DataForSEO extension installed successfully!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Usage:" -ForegroundColor Cyan
 Write-Host "  1. Start Claude Code:  claude"

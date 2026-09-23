@@ -1,4 +1,4 @@
-# Claude SEO — Ahrefs extension installer (Windows / PowerShell).
+# Claude SEO - Ahrefs extension installer (Windows / PowerShell).
 # Mirrors extensions/ahrefs/install.sh.
 [CmdletBinding()]
 param()
@@ -31,7 +31,7 @@ $SkillTarget = Join-Path $SkillDir "seo-ahrefs"
 New-Item -ItemType Directory -Path $SkillTarget -Force | Out-Null
 Copy-Item -Path (Join-Path $SourceDir "skills/seo-ahrefs/SKILL.md") `
           -Destination (Join-Path $SkillTarget "SKILL.md") -Force
-Write-Host "✓ Installed skill: $SkillTarget"
+Write-Host "[OK] Installed skill: $SkillTarget"
 
 # Pre-warm.
 & npx --yes --package=@ahrefs/mcp@0.0.11 mcp --help *> $null

@@ -81,7 +81,7 @@ matomo_auth.save_config({
     "matomo_token": token,
     "matomo_site_id": site,
 })
-print("✓ Wrote Matomo credentials to " + matomo_auth.CONFIG_PATH + " (0600)")
+print("Wrote Matomo credentials to " + matomo_auth.CONFIG_PATH + " (0600)")
 PY
 
     echo

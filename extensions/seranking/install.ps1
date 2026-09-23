@@ -1,4 +1,4 @@
-# Claude SEO — SE Ranking extension installer (Windows / PowerShell).
+# Claude SEO - SE Ranking extension installer (Windows / PowerShell).
 $ErrorActionPreference = "Stop"
 
 if (-not (Get-Command python -ErrorAction SilentlyContinue)) {

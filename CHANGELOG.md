@@ -72,6 +72,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The ahrefs and dataforseo PowerShell installers failed to parse on
+  Windows PowerShell 5.1 (pre-existing). 5.1 reads a script without a BOM as
+  ANSI, so their check-mark and box symbols broke the string quoting; pwsh was
+  unaffected. Every shipped `.ps1` file is now ASCII, a test enforces it, and
+  CI parses every extension script on both PowerShell versions; the Matomo
+  credential writer prints plain ASCII so it runs under a cp1252 console.
+
 - UTF-8 pages served as `text/html` without a charset were decoded as
   ISO-8859-1 in seven scripts (`render_page`, `parse_html`, `nlp_analyze`,
   `preload_check`, `parasite_risk`, `ucp_check`, `gbp_deprecation_lint`).

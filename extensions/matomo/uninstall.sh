@@ -45,7 +45,7 @@ if removed:
         except OSError:
             pass
         raise
-    print("\u2713 Cleared " + ", ".join(removed) + " from " + path)
+    print("Cleared " + ", ".join(removed) + " from " + path)
 PY
 fi
 
