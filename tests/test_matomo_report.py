@@ -817,8 +817,9 @@ def test_installers_do_not_put_the_token_in_settings_json():
         )
 
 
-def test_installers_pass_credentials_through_argv_not_source():
-    """No credential is interpolated into a Python source string (issue #189)."""
+def test_installers_pass_credentials_through_env_not_source_or_argv():
+    """No credential is interpolated into Python source (issue #189) or put on
+    the command line, where other local users can read it through ps."""
     sh = INSTALL_SH.read_text(encoding="utf-8")
     assert "<<'PY'" in sh, "install.sh must use a quoted heredoc"
     assert "sys.argv" in sh
@@ -826,10 +827,12 @@ def test_installers_pass_credentials_through_argv_not_source():
 
     ps1 = INSTALL_PS1.read_text(encoding="utf-8")
     # PowerShell here-strings: @" ... "@ interpolates, so the credential must
-    # arrive on the pipeline as an argument, never inside the here-string.
+    # arrive in the environment, never inside the here-string or on argv.
     assert "sys.argv" in ps1
     assert "$TokenPlain" not in ps1.split('@"')[1].split('"@')[0]
-    assert "python - $MatomoAuth $MatomoUrl $TokenPlain $SiteId" in ps1
+    assert "$env:CLAUDE_SEO_SECRET = $TokenPlain" in ps1
+    assert "python - $MatomoAuth $MatomoUrl $SiteId" in ps1
+    assert 'CLAUDE_SEO_SECRET="${MATOMO_TOKEN}" python3 -' in sh
 
 
 def test_uninstall_removes_the_config_and_the_legacy_env_entry():
@@ -869,9 +872,9 @@ def test_installer_writer_is_inert_against_an_injection_shaped_token(tmp_path):
     proc = subprocess.run(
         [sys.executable, "-c", _installer_writer(),
          str(ROOT / "scripts" / "matomo_auth.py"),
-         "https://analytics.example.com", nasty, "3"],
+         "https://analytics.example.com", "3"],
         capture_output=True, text=True,
-        env={**os.environ, "HOME": str(home)},
+        env={**os.environ, "HOME": str(home), "CLAUDE_SEO_SECRET": nasty},
     )
     assert proc.returncode == 0, proc.stderr
     assert not (tmp_path / "pwned").exists(), "installer executed the token"
@@ -888,9 +891,9 @@ def test_installer_writer_survives_a_dropped_optional_argument(tmp_path):
     proc = subprocess.run(
         [sys.executable, "-c", _installer_writer(),
          str(ROOT / "scripts" / "matomo_auth.py"),
-         "https://analytics.example.com", SECRET_TOKEN],   # no 4th argument
+         "https://analytics.example.com"],   # no site-ID argument
         capture_output=True, text=True,
-        env={**os.environ, "HOME": str(home)},
+        env={**os.environ, "HOME": str(home), "CLAUDE_SEO_SECRET": SECRET_TOKEN},
     )
     assert proc.returncode == 0, proc.stderr
     stored = json.loads((home / ".config" / "claude-seo" / "matomo.json").read_text())

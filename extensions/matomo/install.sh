@@ -61,15 +61,16 @@ main() {
     # business in it. matomo_auth.py still falls back to the MATOMO_*
     # environment variables, which stays the right choice on a shared machine.
     [ -f "${MATOMO_AUTH}" ] || { echo "✗ ${MATOMO_AUTH} not found."; exit 1; }
-    python3 - "${MATOMO_AUTH}" "${MATOMO_URL}" "${MATOMO_TOKEN}" "${MATOMO_SITE_ID}" <<'PY'
-import importlib.util, sys
+    CLAUDE_SEO_SECRET="${MATOMO_TOKEN}" python3 - "${MATOMO_AUTH}" "${MATOMO_URL}" "${MATOMO_SITE_ID}" <<'PY'
+import importlib.util, os, sys
 
 # PowerShell 5.1 drops an empty string argument to a native command, so the
 # optional site ID may simply not arrive. Tolerate that rather than crashing
 # the installer after the token has already been typed.
 args = sys.argv[1:]
-auth_path, url, token = args[0], args[1], args[2]
-site = args[3] if len(args) > 3 else ""
+auth_path, url = args[0], args[1]
+site = args[2] if len(args) > 2 else ""
+token = os.environ["CLAUDE_SEO_SECRET"]  # environment, not argv (ps)
 spec = importlib.util.spec_from_file_location("matomo_auth", auth_path)
 matomo_auth = importlib.util.module_from_spec(spec)
 sys.modules["matomo_auth"] = matomo_auth

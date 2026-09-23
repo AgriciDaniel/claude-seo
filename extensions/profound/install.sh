@@ -26,13 +26,13 @@ main() {
     mkdir -p "${SKILL_DIR}/seo-profound"
     cp "${SOURCE_DIR}/skills/seo-profound/SKILL.md" "${SKILL_DIR}/seo-profound/SKILL.md"
 
-    python3 - "${SETTINGS_JSON}" "${PROFOUND_KEY}" <<'PY'
+    CLAUDE_SEO_SECRET="${PROFOUND_KEY}" python3 - "${SETTINGS_JSON}" <<'PY'
 import json, os, sys, tempfile
-path, key = sys.argv[1], sys.argv[2]
+path, key = sys.argv[1], os.environ["CLAUDE_SEO_SECRET"]
 data = {}
 if os.path.exists(path):
     try: data = json.load(open(path))
-    except json.JSONDecodeError: data = {}
+    except json.JSONDecodeError: sys.exit(f"✗ {path} is not valid JSON. Nothing was changed; fix it and rerun.")
 data.setdefault("env", {})["PROFOUND_API_KEY"] = key
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=".settings.", suffix=".json")
 with os.fdopen(fd, "w") as fh: json.dump(data, fh, indent=2)

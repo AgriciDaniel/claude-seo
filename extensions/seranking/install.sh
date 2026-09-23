@@ -35,13 +35,13 @@ main() {
     echo "✓ Installed skill: ${SKILL_DIR}/seo-seranking/SKILL.md"
 
     mkdir -p "$(dirname "${SETTINGS_JSON}")"
-    python3 - "${SETTINGS_JSON}" "${SR_KEY}" <<'PY'
+    CLAUDE_SEO_SECRET="${SR_KEY}" python3 - "${SETTINGS_JSON}" <<'PY'
 import json, os, sys, tempfile
-path, key = sys.argv[1], sys.argv[2]
+path, key = sys.argv[1], os.environ["CLAUDE_SEO_SECRET"]
 data = {}
 if os.path.exists(path):
     try: data = json.load(open(path))
-    except json.JSONDecodeError: data = {}
+    except json.JSONDecodeError: sys.exit(f"✗ {path} is not valid JSON. Nothing was changed; fix it and rerun.")
 data.setdefault("env", {})["SERANKING_API_KEY"] = key
 fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=".settings.", suffix=".json")
 with os.fdopen(fd, "w") as fh:

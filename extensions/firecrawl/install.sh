@@ -86,17 +86,17 @@ main() {
 
     # Credentials are passed as argv (never interpolated into the source string)
     # and the settings file is written atomically with 0600 permissions.
-    python3 - "${MCP_CONFIG_FILE}" "${FIRECRAWL_API_KEY}" <<'PY'
+    CLAUDE_SEO_SECRET="${FIRECRAWL_API_KEY}" python3 - "${MCP_CONFIG_FILE}" <<'PY'
 import json, os, sys, tempfile
 
-settings_path, api_key = sys.argv[1:3]
+settings_path, api_key = sys.argv[1], os.environ["CLAUDE_SEO_SECRET"]
 
 if os.path.exists(settings_path):
     try:
         with open(settings_path) as f:
             settings = json.load(f)
     except json.JSONDecodeError:
-        settings = {}
+        sys.exit(f"✗ {settings_path} is not valid JSON. Nothing was changed; fix it and rerun.")
 else:
     settings = {}
 

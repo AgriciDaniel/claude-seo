@@ -37,14 +37,15 @@ Copy-Item (Join-Path $SourceDir "agents/seo-matomo.md") $AgentTarget -Force
 # it. matomo_auth.py still falls back to the MATOMO_* environment variables.
 if (-not (Test-Path $MatomoAuth)) { throw "$MatomoAuth not found" }
 $py = @"
-import importlib.util, sys
+import importlib.util, os, sys
 
 # PowerShell 5.1 drops an empty string argument to a native command, so the
 # optional site ID may simply not arrive. Tolerate that rather than crashing
 # the installer after the token has already been typed.
 args = sys.argv[1:]
-auth_path, url, token = args[0], args[1], args[2]
-site = args[3] if len(args) > 3 else ""
+auth_path, url = args[0], args[1]
+site = args[2] if len(args) > 2 else ""
+token = os.environ['CLAUDE_SEO_SECRET']
 spec = importlib.util.spec_from_file_location('matomo_auth', auth_path)
 matomo_auth = importlib.util.module_from_spec(spec)
 sys.modules['matomo_auth'] = matomo_auth
@@ -57,5 +58,6 @@ matomo_auth.save_config({
 })
 print('Wrote Matomo credentials to ' + matomo_auth.CONFIG_PATH)
 "@
-$py | python - $MatomoAuth $MatomoUrl $TokenPlain $SiteId
+$env:CLAUDE_SEO_SECRET = $TokenPlain
+try { $py | python - $MatomoAuth $MatomoUrl $SiteId } finally { Remove-Item Env:CLAUDE_SEO_SECRET -ErrorAction SilentlyContinue }
 Write-Host "Done. MATOMO_URL / MATOMO_API_TOKEN / MATOMO_SITE_ID still override the file."

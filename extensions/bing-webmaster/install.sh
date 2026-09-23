@@ -34,13 +34,16 @@ main() {
     mkdir -p "${SKILL_DIR}/seo-bing"
     cp "${SOURCE_DIR}/skills/seo-bing/SKILL.md" "${SKILL_DIR}/seo-bing/SKILL.md"
 
-    python3 - "${SETTINGS_JSON}" "${BING_KEY}" "${INDEXNOW_KEY}" "${INDEXNOW_LOC}" <<'PY'
+    CLAUDE_SEO_SECRET="${BING_KEY}" CLAUDE_SEO_INDEXNOW_KEY="${INDEXNOW_KEY}" python3 - "${SETTINGS_JSON}" "${INDEXNOW_LOC}" <<'PY'
 import json, os, sys, tempfile
-path, bing, idx_key, idx_loc = sys.argv[1:5]
+path = sys.argv[1]
+idx_loc = sys.argv[2] if len(sys.argv) > 2 else ""
+bing = os.environ.get("CLAUDE_SEO_SECRET", "")
+idx_key = os.environ.get("CLAUDE_SEO_INDEXNOW_KEY", "")
 data = {}
 if os.path.exists(path):
     try: data = json.load(open(path))
-    except json.JSONDecodeError: data = {}
+    except json.JSONDecodeError: sys.exit(f"✗ {path} is not valid JSON. Nothing was changed; fix it and rerun.")
 env = data.setdefault("env", {})
 if bing: env["BING_WEBMASTER_API_KEY"] = bing
 if idx_key: env["INDEXNOW_KEY"] = idx_key

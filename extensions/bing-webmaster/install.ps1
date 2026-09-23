@@ -14,11 +14,14 @@ New-Item -ItemType Directory -Path $SkillTarget -Force | Out-Null
 Copy-Item (Join-Path $SourceDir "skills/seo-bing/SKILL.md") (Join-Path $SkillTarget "SKILL.md") -Force
 $py = @"
 import json, os, sys, tempfile
-path, bing, idx_key, idx_loc = sys.argv[1:5]
+path = sys.argv[1]
+idx_loc = sys.argv[2] if len(sys.argv) > 2 else ''
+bing = os.environ.get('CLAUDE_SEO_SECRET', '')
+idx_key = os.environ.get('CLAUDE_SEO_INDEXNOW_KEY', '')
 data = {}
 if os.path.exists(path):
     try: data = json.load(open(path))
-    except: data = {}
+    except ValueError: sys.exit('x ' + path + ' is not valid JSON. Nothing was changed; fix it and rerun.')
 env = data.setdefault('env', {})
 if bing: env['BING_WEBMASTER_API_KEY'] = bing
 if idx_key: env['INDEXNOW_KEY'] = idx_key
@@ -27,5 +30,7 @@ fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or '.', prefix='.settings.'
 with os.fdopen(fd, 'w') as fh: json.dump(data, fh, indent=2)
 os.replace(tmp, path)
 "@
-$py | python - $SettingsJson $BingPlain $IdxKey $IdxLoc
+$env:CLAUDE_SEO_SECRET = $BingPlain
+$env:CLAUDE_SEO_INDEXNOW_KEY = $IdxKey
+try { $py | python - $SettingsJson $IdxLoc } finally { Remove-Item Env:CLAUDE_SEO_SECRET -ErrorAction SilentlyContinue; Remove-Item Env:CLAUDE_SEO_INDEXNOW_KEY -ErrorAction SilentlyContinue }
 Write-Host "Done."

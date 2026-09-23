@@ -114,17 +114,19 @@ main() {
 
     # Credentials are passed as argv (never interpolated into the source string)
     # and the settings file is written atomically with 0600 permissions.
-    python3 - "${MCP_CONFIG_FILE}" "${DFSE_USERNAME}" "${DFSE_PASSWORD}" "${FIELD_CONFIG_PATH}" <<'PY'
+    CLAUDE_SEO_USERNAME="${DFSE_USERNAME}" CLAUDE_SEO_SECRET="${DFSE_PASSWORD}" python3 - "${MCP_CONFIG_FILE}" "${FIELD_CONFIG_PATH}" <<'PY'
 import json, os, sys, tempfile
 
-settings_path, username, password, field_config = sys.argv[1:5]
+settings_path, field_config = sys.argv[1:3]
+username = os.environ["CLAUDE_SEO_USERNAME"]
+password = os.environ["CLAUDE_SEO_SECRET"]
 
 if os.path.exists(settings_path):
     try:
         with open(settings_path) as f:
             settings = json.load(f)
     except json.JSONDecodeError:
-        settings = {}
+        sys.exit(f"✗ {settings_path} is not valid JSON. Nothing was changed; fix it and rerun.")
 else:
     settings = {}
 
