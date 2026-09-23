@@ -185,3 +185,7 @@ id_rsa
 id_rsa.*
 id_ed25519
 id_ed25519.*
+
+# Local scratch and generated decks (never shipped)
+tmp/
+outputs/

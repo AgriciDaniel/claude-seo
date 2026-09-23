@@ -432,3 +432,13 @@ def test_seo_updates_cli_accepts_every_known_kind() -> None:
         )
         assert result.returncode == 0, f"--kind {kind} failed: {result.stderr}"
         json.loads(result.stdout)
+
+
+def test_seo_updates_freshness_flags_a_stale_ledger() -> None:
+    from datetime import date
+
+    fresh = seo_updates.freshness("2026-09-10", today=date(2026, 9, 23))
+    assert fresh == {"age_days": 13, "stale": False, "warning": None}
+    stale = seo_updates.freshness("2026-07-01", today=date(2026, 9, 23))
+    assert stale["stale"] and "status.search.google.com" in stale["warning"]
+    assert seo_updates.freshness("not-a-date")["stale"] is True

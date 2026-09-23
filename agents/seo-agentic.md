@@ -30,7 +30,7 @@ browse and act for people can read and use a site, following the
   factor. Never turn it into a percentage and never assume N.
 - Keep the Agent-UX 0-100 heuristic separate from the Lighthouse fraction.
 - Label WebMCP, Content-Signal, ai-catalog.json and Web Bot Auth as drafts or
-  proposals with the check date from `references/vendor-matrix.md`.
+  proposals with the check date from `skills/seo-agentic/references/vendor-matrix.md`.
 - Report training, search and user-triggered agent access on separate lines.
 - Absence of WebMCP, ai-catalog.json or Markdown is an opportunity, not a
   defect. Never promise ranking, citation or traffic effects.

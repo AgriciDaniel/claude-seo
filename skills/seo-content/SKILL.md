@@ -195,6 +195,19 @@ Per Google's AI optimization guide, "AEO" and "GEO" are rebranded labels for SEO
 - Last updated date if content has been revised
 - Flag content older than 12 months without update for fast-changing topics
 
+## Google Update Correlation (content and spam updates)
+
+Before attributing a traffic or ranking change to anything, list the confirmed
+Google updates in that window from the primary-source ledger:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run seo_updates.py --since <yyyy-mm> --json
+```
+
+Every entry cites a Google-owned URL. If `freshness.stale` is true, say the
+ledger may miss recent updates and check status.search.google.com before
+drawing conclusions. A date overlap is a hypothesis, never proof of cause.
+
 ## Output
 
 ### Content Quality Score: XX/100

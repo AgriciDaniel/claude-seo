@@ -123,6 +123,9 @@ Search Analytics: clicks, impressions, CTR, position for last 28 days.
 **Reference:** `references/search-console-api.md`
 **Default:** 28 days, dimensions=query,page, type=web, limit=1000.
 
+For EU sites, read `references/dma-consent-mode-v2.md` before interpreting CTR
+or GA4 drops: DMA and Consent Mode v2 change what Search Console and GA4 record.
+
 Includes quick-win detection: queries at position 4-10 with high impressions.
 The `totals` block comes from a separate dimensionless aggregate query because
 query-level rows can omit anonymized low-volume traffic. Treat totals as

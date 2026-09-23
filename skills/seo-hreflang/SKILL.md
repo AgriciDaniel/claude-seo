@@ -271,6 +271,7 @@ Load on-demand as needed (do NOT load all at startup):
 - `references/cultural-profiles.md`: DACH, Francophone, Hispanic, Japanese cultural adaptation profiles
 - `references/locale-formats.md`: Number, date, currency, address, phone format tables per locale
 - `references/content-parity.md`: Content parity audit methodology and scoring
+- `references/machine-translation-qa.md`: Flags unreviewed machine translation, which Google's spam policy treats as scaled content abuse
 
 ## Error Handling
 

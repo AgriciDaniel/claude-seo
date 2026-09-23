@@ -17,6 +17,9 @@ Usage::
     python scripts/seo_updates.py --kind core
     python scripts/seo_updates.py --json
     python scripts/seo_updates.py --unverified     # show 3rd-party claims awaiting check
+
+JSON output carries ``freshness`` (age in days, ``stale`` after 30 days). Text
+output prints a warning to stderr when the ledger is stale.
 """
 
 from __future__ import annotations
@@ -37,6 +40,28 @@ KNOWN_KINDS = (
     "core", "spam", "core+spam", "policy", "qrg", "product", "schema", "cwv",
     "discover", "documentation",
 )
+
+
+STALE_AFTER_DAYS = 30
+_STATUS_URL = "https://status.search.google.com/"
+
+
+def freshness(last_verified: str | None, today: date | None = None,
+              max_age: int = STALE_AFTER_DAYS) -> dict:
+    """Return the ledger age and whether it is too old to trust for recent updates."""
+    today = today or date.today()
+    try:
+        verified = date.fromisoformat(str(last_verified))
+    except ValueError:
+        return {"age_days": None, "stale": True,
+                "warning": "last_verified is missing or not an ISO date."}
+    age = (today - verified).days
+    stale = age > max_age
+    warning = (f"Ledger last verified {age} days ago. Updates released since "
+               f"{verified.isoformat()} are missing; check {_STATUS_URL} before "
+               "attributing recent traffic changes.") if stale else None
+    return {"age_days": age, "stale": stale, "warning": warning}
+
 
 
 def _load() -> dict:
@@ -95,6 +120,9 @@ def main() -> int:
     args = parser.parse_args()
 
     data = _load()
+    fresh = freshness(data.get("last_verified"))
+    if fresh["stale"] and not args.json:
+        print(f"WARNING: {fresh['warning']}", file=sys.stderr)
 
     if args.unverified:
         result = {
@@ -128,6 +156,7 @@ def main() -> int:
             {
                 "source_of_truth": data["source_of_truth"],
                 "last_verified": data["last_verified"],
+                "freshness": fresh,
                 "filter": {"since": args.since, "kinds": list(kinds or [])},
                 "count": len(filtered),
                 "updates": filtered,

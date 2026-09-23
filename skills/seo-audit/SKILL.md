@@ -178,6 +178,19 @@ If Google API credentials are configured (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude
 
 If Matomo credentials are configured (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --check`), spawn the `seo-matomo` agent to enrich the audit with self-hosted analytics: organic visits trend, top landing pages, device and country breakdowns, channel / search-engine split, and organic keywords. Works as a GA4 alternative (when only Matomo is configured) or as a complement (when both GA4 and Matomo are present). Matomo numbers will not match GA4 exactly because of segmentation differences (`referrerType==search` vs `sessionDefaultChannelGroup == "Organic Search"`) and attribution-window rules.
 
+## Google Update Correlation
+
+Before attributing a traffic or ranking change to anything, list the confirmed
+Google updates in that window from the primary-source ledger:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run seo_updates.py --since <yyyy-mm> --json
+```
+
+Every entry cites a Google-owned URL. If `freshness.stale` is true, say the
+ledger may miss recent updates and check status.search.google.com before
+drawing conclusions. A date overlap is a hypothesis, never proof of cause.
+
 ## Error Handling
 
 | Scenario | Action |
