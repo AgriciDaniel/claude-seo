@@ -42,7 +42,7 @@ def test_cross_skill_paths_resolve_outside_the_repo_checkout():
     absolute skills directory."""
     import re
 
-    bare = re.compile(r"`(?:skills|data)/[A-Za-z0-9_./-]+\.(?:md|json|html|txt)`")
+    bare = re.compile(r"(?<![}/\w])`?(?:skills|data)/[A-Za-z0-9_./{}-]+(?:\.(?:md|json|html|txt)|/)`")
     offenders = []
     for path in [*ROOT.glob("agents/*.md"), *ROOT.glob("skills/**/*.md"),
                  *ROOT.glob("extensions/*/agents/*.md"), *ROOT.glob("extensions/*/skills/**/*.md")]:
