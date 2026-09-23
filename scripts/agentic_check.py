@@ -347,14 +347,14 @@ def audit_robots(root: str) -> tuple[list, dict]:
          "policy differs by purpose (training vs search vs user fetches).")))
 
     user_agents = [a for a in per_agent if a["role"] == "user" and not a["root_allowed"]]
-    if user_agents:
-        checks.append(_check(
-            "robots-user-agents", "User-triggered agents and robots.txt", "P1", "info",
-            "vendor documentation",
-            {"blocked_at_root": [a["token"] for a in user_agents],
-             "documented_behaviour": {a["token"]: a["robots_behaviour"] for a in user_agents}},
-            "Several user-triggered agents do not treat robots.txt as binding. Protect "
-            "private paths with authentication, not robots.txt."))
+    checks.append(_check(
+        "robots-user-agents", "User-triggered agents and robots.txt", "P1",
+        "info" if user_agents else "pass", "vendor documentation",
+        {"blocked_at_root": [a["token"] for a in user_agents],
+         "documented_behaviour": {a["token"]: a["robots_behaviour"] for a in per_agent
+                                  if a["role"] == "user"}},
+        "Several user-triggered agents do not treat robots.txt as binding. Protect "
+        "private paths with authentication, not robots.txt." if user_agents else None))
 
     all_signals = [s for g in parsed["groups"] for s in g["content_signal"]]
     signal_issues = []
@@ -542,7 +542,7 @@ def _webmcp_markup(soup, base: str, data: dict) -> list:
     uses_document = "document.modelContext" in blob
     uses_navigator = "navigator.modelContext" in blob
     data["webmcp"] = {"forms": len(forms), "forms_annotated": len(annotated),
-                      "forms_unannotated": unannotated[:20], "registerTool_calls": registers,
+                      "forms_unannotated": unannotated[:20], "registerTool_call_sites": registers,
                       "document_modelContext": uses_document,
                       "navigator_modelContext": uses_navigator,
                       "same_origin_scripts_scanned": fetched}
@@ -553,26 +553,37 @@ def _webmcp_markup(soup, base: str, data: dict) -> list:
         "pass" if has_tools else "info",
         f"W3C Community Group draft, not a standard; WebKit opposes, Mozilla neutral "
         f"(checked {CHECKED_ON})",
-        {"registerTool_calls_seen": registers, "forms": len(forms),
-         "forms_annotated": len(annotated)},
+        {"registerTool_call_sites": registers, "forms": len(forms),
+         "forms_annotated": len(annotated),
+         "note": "Static count of registerTool( call sites in inline and same-origin "
+                 "scripts, not the number of tools (a loop registers many). Use "
+                 "lighthouse_agentic.py webmcp-registered-tools for the real list."},
         None if has_tools else
         "Optional. If the site has search, booking, checkout or lead forms, register "
         "imperative tools bound to the same handlers the UI uses. Static scan only; "
         "confirm at runtime with lighthouse_agentic.py (webmcp-registered-tools)."))
-    if uses_navigator and not uses_document:
-        checks.append(_check(
-            "webmcp-entry-point", "WebMCP registered on the current entry point", "P2",
-            "warn", "W3C Community Group draft",
-            {"navigator_modelContext": True, "document_modelContext": False},
-            "Feature-detect both: 'const mc = document.modelContext ?? "
-            "navigator.modelContext'. Check the current spec before shipping."))
-    if forms and annotated and unannotated:
-        checks.append(_check(
-            "webmcp-form-coverage", "Every form annotated for declarative WebMCP", "P3",
-            "info", "W3C Community Group draft (Chrome only)",
-            {"unannotated": unannotated[:20]},
-            "Lighthouse counts webmcp-form-coverage only when every form has toolname or "
-            "tooldescription. Annotate only forms that are safe for an agent to submit."))
+    legacy_only = uses_navigator and not uses_document
+    checks.append(_check(
+        "webmcp-entry-point", "WebMCP registered on the current entry point", "P2",
+        "warn" if legacy_only else ("pass" if uses_document else "na"),
+        "W3C Community Group draft",
+        {"navigator_modelContext": uses_navigator, "document_modelContext": uses_document},
+        "Feature-detect both: 'const mc = document.modelContext ?? "
+        "navigator.modelContext'. Check the current spec before shipping."
+        if legacy_only else None))
+    if not forms:
+        form_status = "na"
+    elif not unannotated:
+        form_status = "pass"
+    else:
+        form_status = "info"
+    checks.append(_check(
+        "webmcp-form-annotations", "Forms annotated for declarative WebMCP (static scan)", "P3",
+        form_status, "W3C Community Group draft (Chrome only)",
+        {"forms": len(forms), "unannotated": unannotated[:20]},
+        "Lighthouse's webmcp-form-coverage audit counts only when every form has toolname "
+        "or tooldescription. Annotate only forms that are safe for an agent to submit."
+        if form_status == "info" else None))
     return checks
 
 

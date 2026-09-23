@@ -258,8 +258,8 @@ def test_webmcp_markup_detects_legacy_entry_point():
     ids = {c["id"]: c for c in checks}
     assert ids["webmcp-tools"]["status"] == "pass"
     assert ids["webmcp-entry-point"]["status"] == "warn"
-    assert ids["webmcp-form-coverage"]["evidence"]["unannotated"] == ["g"]
-    assert data["webmcp"]["registerTool_calls"] == 1
+    assert ids["webmcp-form-annotations"]["evidence"]["unannotated"] == ["g"]
+    assert data["webmcp"]["registerTool_call_sites"] == 1
 
 
 def test_js_shell_detection():
@@ -434,3 +434,29 @@ def test_from_json_bad_file_exits_cleanly(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as exc:
         la.main()
     assert exc.value.code == 1
+
+
+def test_priority_table_checks_always_emit_a_row():
+    html = "<html><body><p>plain page</p></body></html>"
+    data: dict = {}
+    ids = {c["id"]: c["status"] for c in ac._webmcp_markup(ac._soup(html), "https://e.test/", data)}
+    assert ids == {"webmcp-tools": "info", "webmcp-entry-point": "na", "webmcp-form-annotations": "na"}
+    with patch.object(ac, "fetch", return_value=_rec(200, "User-agent: *\nAllow: /\n")):
+        checks, _ = ac.audit_robots("https://example.com")
+    assert {c["id"]: c["status"] for c in checks}["robots-user-agents"] == "pass"
+
+
+def test_agent_ux_falls_back_to_raw_html_without_a_renderer(monkeypatch):
+    import agent_ux_check
+
+    def fake_render(url, mode="auto", **_kwargs):
+        if mode == "always":
+            return {"url": url, "status_code": None, "error": "Executable doesn't exist"}
+        return {"url": url, "status_code": 200, "error": None,
+                "content": "<html><body><main><div onclick='x()'>Buy</div>"
+                           "<p>" + "word " * 60 + "</p></main></body></html>"}
+
+    monkeypatch.setattr(agent_ux_check, "render_page", fake_render)
+    report = agent_ux_check.audit("https://e.test/")
+    assert report["score_status"] == "unavailable" and report["score"] is None
+    assert report["html_only_fallback"] is True and report["html_findings"]

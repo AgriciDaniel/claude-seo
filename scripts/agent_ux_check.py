@@ -226,6 +226,12 @@ def audit(url: str, *, timeout_ms: int = 15000) -> dict:
         "issues": [],
     }
     if page.get("error"):
+        # Without a renderer (for example no Chromium) the score stays
+        # unavailable, but the HTML semantics checks still run on raw HTML.
+        raw = render_page(url, mode="never", timeout_ms=timeout_ms, extract_content=False)
+        if not raw.get("error") and _has_meaningful_body(raw.get("content") or ""):
+            report["html_findings"] = analyze_html(raw.get("content") or "")
+            report["html_only_fallback"] = True
         return report
     html = page.get("content") or ""
     if not _has_meaningful_body(html):

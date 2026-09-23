@@ -81,13 +81,13 @@ Run the steps in this order and keep every tool's JSON for the report.
 | P1 | Content-Signal inside every relevant group (absence is info, a gap is warn) | `content-signal` |
 | P1 | llms.txt passing the Lighthouse rules (absence is info) | `llms-txt` |
 | P1 | Markdown via `.md` URLs or `Accept: text/markdown` with `Vary: Accept` | `markdown-delivery` |
-| P1 | Stable, visible confirmation states; no hover-only menus or focus traps | manual, `agent_ux_check.py` |
+| P1 | Stable, visible confirmation states; no hover-only menus or focus traps | manual review (no script evidence; say so if not checked) |
 | P1 (transactional) / P2 | Imperative WebMCP tools bound to existing handlers | `webmcp-tools`, Lighthouse `webmcp-registered-tools` |
-| P1 if tools exist | Tool safety: annotations, confirmation, logging | `references/webmcp.md` |
+| P1 if tools exist | Tool safety: annotations, confirmation, logging | manual review of the page source against `references/webmcp.md` |
 | P2 | WebMCP registered on `document.modelContext`, not only the legacy `navigator` entry point | `webmcp-entry-point` |
 | P2 | API Catalog, OAuth metadata (only if you run APIs) | `well-known:api-catalog`, `well-known:oauth-*` |
 | P3 | A2A agent card, UCP profile (only if you run them) | `well-known:agent-card.json`, `well-known:ucp` |
-| P3 | Declarative WebMCP form attributes (Chrome only) | `webmcp-form-coverage` |
+| P3 | Declarative WebMCP form attributes (Chrome only) | `webmcp-form-annotations` (static); Lighthouse `webmcp-form-coverage` |
 | P3 (P1 when a signalled catalog fails) | ai-catalog.json (only if you have agent resources) | `ard-catalog` |
 
 Fix in order P0, then P1. Do not recommend lower priorities while a P0 fails.
@@ -178,6 +178,8 @@ version changes, and the `CHECKED_ON` constant in `agentic_check.py` together.
 | Scenario | Action |
 |---|---|
 | PSI quota exceeded or no key | Say so, suggest configuring a Google API key (`/seo google setup`), and continue with steps 2 and 3. Offer a local run: `npx lighthouse@latest <url> --only-categories=agentic-browsing --output=json`, then `--from-json`. |
+| Agent-UX `score_status: unavailable` (no Chromium) | Report the heuristic as unavailable; use `html_findings` if `html_only_fallback` is true and rely on Lighthouse `agent-accessibility-tree` for the tree. Suggest `/seo setup` for Chromium. |
+| Static WebMCP count differs from Lighthouse | `registerTool_call_sites` counts call sites, not tools. Report the Lighthouse `webmcp-registered-tools` list as the tool count. |
 | No agentic-browsing category in a saved report | The report predates Lighthouse 13.2; rerun with a current version. |
 | WebMCP audits N/A | The testing browser lacked WebMCP support, or the page registers nothing. Not a defect. |
 | Site blocks the audit fetcher | Report the status and headers; do not retry with spoofed agent user agents unless step 4's authorization applies. |

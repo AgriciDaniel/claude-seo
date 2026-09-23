@@ -56,4 +56,4 @@ file after the first analysis pass and overwrite it with the complete findings
 before finishing, so a turn-budget stop never loses completed work:
 
 - `output_dir/findings/agentic.md`: evidence, the Lighthouse fraction, findings by priority, and recommendations
-- Structured JSON-compatible findings for `audit-data.json` under the AI Search Readiness category
+- Structured JSON-compatible findings for `audit-data.json` under the AI Search Readiness category, using the finding shape in the `seo-audit` skill's "Structured Audit Data Envelope" (title, severity, description, recommendation)

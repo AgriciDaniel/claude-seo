@@ -74,8 +74,9 @@ if (mc?.registerTool) {
 </script>
 ```
 
-The return shape above follows the MCP content convention used in current
-samples; confirm it against the Chrome WebMCP docs before shipping.
+The origin-trial `<meta>` token enables the API for ordinary Chrome visitors
+during the trial; ChatGPT desktop and PSI do not need it. The return shape
+above follows the MCP content convention used in current samples; confirm it against the Chrome WebMCP docs before shipping.
 `agentic_fix.py webmcp <url>` drafts one tool per real form, bound to the
 form's own submit handler.
 
