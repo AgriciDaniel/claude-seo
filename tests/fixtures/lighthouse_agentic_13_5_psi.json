@@ -1,0 +1,208 @@
+{
+ "requestedUrl": "https://claude-seo.md/",
+ "finalDisplayedUrl": "https://claude-seo.md/",
+ "lighthouseVersion": "13.5.0",
+ "fetchTime": "2026-09-23T18:03:56.534Z",
+ "configSettings": {
+  "formFactor": "mobile"
+ },
+ "categories": {
+  "agentic-browsing": {
+   "id": "agentic-browsing",
+   "title": "Agentic Browsing",
+   "description": "These checks ensure high-quality, [browsable websites for AI agents](https://goo.gle/lighthouse-agentic-web) and validate the correctness of WebMCP integrations. This category is still under development and subject to change.",
+   "score": 1,
+   "auditRefs": [
+    {
+     "id": "agent-accessibility-tree",
+     "weight": 1,
+     "group": "agent-accessibility"
+    },
+    {
+     "id": "webmcp-form-coverage",
+     "weight": 0,
+     "group": "webmcp"
+    },
+    {
+     "id": "webmcp-registered-tools",
+     "weight": 0,
+     "group": "webmcp"
+    },
+    {
+     "id": "webmcp-schema-validity",
+     "weight": 1,
+     "group": "webmcp"
+    },
+    {
+     "id": "cumulative-layout-shift",
+     "weight": 1,
+     "acronym": "CLS"
+    },
+    {
+     "id": "llms-txt",
+     "weight": 1,
+     "group": "agent-discoverability"
+    },
+    {
+     "id": "ard-schema",
+     "weight": 0,
+     "group": "agent-discoverability"
+    }
+   ],
+   "categoryScoreDisplayMode": "fraction"
+  }
+ },
+ "audits": {
+  "agent-accessibility-tree": {
+   "id": "agent-accessibility-tree",
+   "title": "Accessibility tree is well-formed",
+   "description": "A well-formed [accessibility tree](https://developer.chrome.com/docs/lighthouse/agentic-browsing/accessibility-for-agents) helps AI agents to navigate and interact with the page.",
+   "score": 1,
+   "scoreDisplayMode": "binary",
+   "displayValue": "All audits passed"
+  },
+  "webmcp-form-coverage": {
+   "id": "webmcp-form-coverage",
+   "title": "WebMCP form coverage",
+   "description": "Consider adding [WebMCP](https://developer.chrome.com/docs/ai/webmcp) annotations to the forms listed below. This helps AI agents identify and interact with these forms more reliably.",
+   "score": 1,
+   "scoreDisplayMode": "informative",
+   "displayValue": "1 form missing annotations",
+   "details": {
+    "items": [
+     {
+      "node": {
+       "boundingRect": {
+        "width": 350,
+        "right": 381,
+        "bottom": 11120,
+        "top": 11002,
+        "height": 118,
+        "left": 31
+       },
+       "path": "1,HTML,1,BODY,3,MAIN,15,SECTION,0,DIV,7,DIV,2,FORM",
+       "snippet": "<form class=\"cy-form\" onsubmit=\"checkMySite(event)\">",
+       "nodeLabel": "Website domain\nhttps://\nRUN ON PAGESPEED\n\u2192",
+       "lhId": "1-6-FORM",
+       "type": "node",
+       "selector": "section#speed-report-feature > div.wrap > div#checkYours > form.cy-form"
+      }
+     }
+    ],
+    "headings": [
+     {
+      "label": "Form",
+      "key": "node",
+      "valueType": "node"
+     }
+    ],
+    "type": "table"
+   }
+  },
+  "webmcp-registered-tools": {
+   "id": "webmcp-registered-tools",
+   "title": "WebMCP tools registered",
+   "description": "Lists the [WebMCP tools](https://developer.chrome.com/docs/ai/webmcp) registered at the time of analysis.",
+   "score": 1,
+   "scoreDisplayMode": "informative",
+   "details": {
+    "type": "list",
+    "items": [
+     {
+      "title": "Imperative Tools",
+      "type": "list-section",
+      "value": {
+       "headings": [
+        {
+         "valueType": "text",
+         "label": "Tool name",
+         "key": "tool"
+        },
+        {
+         "valueType": "text",
+         "label": "Description",
+         "key": "description"
+        },
+        {
+         "key": "source",
+         "label": "Source Location",
+         "valueType": "source-location"
+        },
+        {
+         "label": "Input schema",
+         "valueType": "code",
+         "key": "inputSchema"
+        }
+       ],
+       "items": [
+        {
+         "tool": "search_skills",
+         "inputSchema": "{}",
+         "description": "Search Claude SEO's skill pages by name or description and return up to 5 matching skills with slug, name, summary, and URL. Read-only. Does not change the page or send data anywhere."
+        },
+        {
+         "description": "Return one Claude SEO skill's name, one line summary, canonical URL, and exact slash commands, given the skill's URL slug.",
+         "inputSchema": "{}",
+         "tool": "get_skill"
+        },
+        {
+         "inputSchema": "{}",
+         "description": "Return the exact Claude SEO install commands shown on this site, optionally filtered to one platform.",
+         "tool": "get_install_command"
+        },
+        {
+         "inputSchema": "{}",
+         "description": "Return the current Claude SEO version, its release date, and the URL of the release announcement post.",
+         "tool": "get_latest_release"
+        }
+       ],
+       "type": "table"
+      }
+     }
+    ]
+   }
+  },
+  "webmcp-schema-validity": {
+   "id": "webmcp-schema-validity",
+   "title": "WebMCP schemas are valid",
+   "description": "Valid [WebMCP schemas](https://developer.chrome.com/docs/ai/webmcp) are required for AI agents to understand and interact with tools correctly. Please fix any errors or warnings reported by the browser.",
+   "score": 1,
+   "scoreDisplayMode": "binary"
+  },
+  "cumulative-layout-shift": {
+   "id": "cumulative-layout-shift",
+   "title": "Cumulative Layout Shift",
+   "description": "Cumulative Layout Shift measures the movement of visible elements within the viewport. [Learn more about the Cumulative Layout Shift metric](https://web.dev/articles/cls).",
+   "score": 1,
+   "scoreDisplayMode": "numeric",
+   "displayValue": "0.015",
+   "details": {
+    "items": [
+     {
+      "newEngineResult": {
+       "cumulativeLayoutShiftMainFrame": 0.01483216764903525,
+       "cumulativeLayoutShift": 0.01483216764903525
+      },
+      "newEngineResultDiffered": false,
+      "cumulativeLayoutShiftMainFrame": 0.01483216764903525
+     }
+    ],
+    "type": "debugdata"
+   }
+  },
+  "llms-txt": {
+   "id": "llms-txt",
+   "title": "llms.txt follows recommendations",
+   "description": "If your llms.txt file does not follow recommendations, large language models may not be able to understand how you want your website to be crawled or used for training. The [llms.txt](https://llmstxt.org/) file should be a Markdown file containing at least one H1 header. [Learn more about the llms.txt audit](https://developer.chrome.com/docs/lighthouse/agentic-browsing/llms-txt).",
+   "score": 1,
+   "scoreDisplayMode": "binary"
+  },
+  "ard-schema": {
+   "id": "ard-schema",
+   "title": "`ai-catalog.json` schema is valid",
+   "description": "Valid `ai-catalog.json` manifests are required for autonomous AI agents and registries to discover and verify your resources. [Learn more about the ARD specification](https://agenticresourcediscovery.org/spec/).",
+   "score": null,
+   "scoreDisplayMode": "notApplicable"
+  }
+ }
+}

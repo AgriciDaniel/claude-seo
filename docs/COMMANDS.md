@@ -53,7 +53,7 @@ Full website SEO audit with parallel analysis.
 **What it does:**
 1. Crawls up to 500 pages
 2. Detects business type
-3. Delegates to up to 15 specialist subagents in parallel (8 always-on + 7 conditional)
+3. Delegates to up to 16 specialist subagents in parallel (9 always-on + 7 conditional)
 4. Generates SEO Health Score (0-100)
 5. Creates prioritized action plan
 
@@ -174,6 +174,28 @@ AI Overviews / Generative Engine Optimization.
 - Entity clarity (definitions, context)
 - Authority signals (credentials, sources)
 - Structured data support
+
+---
+
+### `/seo agentic [audit|fix|lighthouse|refresh] <url>`
+
+Agent readiness: how well AI agents that browse and act for people can read and use the site.
+
+**Examples:**
+```
+/seo agentic https://example.com
+/seo agentic lighthouse https://example.com
+/seo agentic fix https://example.com
+```
+
+**What it analyzes:**
+- Lighthouse Agentic Browsing result as Lighthouse computes it (X of N, N/A and informative audits excluded)
+- Accessibility tree for agents (the 33 axe rules Lighthouse uses, plus the local Agent-UX heuristic)
+- robots.txt groups per AI purpose (training, search, user-triggered) and Content-Signal
+- llms.txt, Markdown delivery (`Accept: text/markdown`, `.md` alternates), ai-catalog.json, `/.well-known` files
+- WebMCP tools and form annotations, labelled as a W3C Community Group draft
+
+`fix` drafts robots.txt Content-Signal lines, llms.txt, ai-catalog.json and WebMCP scaffolds for review; nothing is deployed.
 
 ---
 
@@ -746,6 +768,7 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 | `/seo sitemap generate` | Create new sitemap with industry templates |
 | `/seo images <url>` | Image optimization |
 | `/seo geo <url>` | AI search optimization (GEO) |
+| `/seo agentic <url>` | Agent readiness (Lighthouse Agentic Browsing, AI agent access, WebMCP) |
 | `/seo local <url>` | Local SEO (GBP, citations, reviews) |
 | `/seo maps [command]` | Maps intelligence (geo-grid, GBP audit, competitors) |
 | `/seo backlinks <url>` | Backlink profile analysis |

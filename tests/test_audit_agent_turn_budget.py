@@ -57,7 +57,7 @@ def test_audit_skill_still_names_the_known_subagent_set():
         "seo-technical", "seo-content", "seo-schema", "seo-sitemap",
         "seo-performance", "seo-visual", "seo-geo", "seo-local", "seo-maps",
         "seo-google", "seo-backlinks", "seo-cluster", "seo-sxo", "seo-drift",
-        "seo-ecommerce", "seo-dataforseo", "seo-matomo",
+        "seo-ecommerce", "seo-dataforseo", "seo-matomo", "seo-agentic",
     }
 
 

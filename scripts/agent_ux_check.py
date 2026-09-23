@@ -3,7 +3,7 @@
 Agent-friendly page auditor.
 
 Scores a page against the checklist in
-``skills/seo-technical/references/agent-friendly-pages.md`` — the
+``skills/seo-agentic/references/agent-friendly-pages.md``, the
 web.dev-sourced criteria Google's AI optimization guide references for
 agent UX. Findings cover the three channels agents use:
 
@@ -21,7 +21,8 @@ NOTE: this score is a local 0-100 heuristic and is **distinct** from
 Google's Lighthouse "Agentic Browsing" category, which reports a
 **fractional pass-ratio (X of N), not a 0-100 score** (Chrome 150+).
 Do not present this heuristic as the official Lighthouse agentic score.
-See ``skills/seo-technical/references/agent-friendly-pages.md``.
+Use ``lighthouse_agentic.py`` for the real fraction; see
+``skills/seo-agentic/references/lighthouse-agentic-category.md``.
 
 Implementation
 ==============

@@ -6,7 +6,7 @@ Claude SEO follows Anthropic's official Claude Code skill specification with a m
 
 ## Directory Structure
 
-The plugin ships 25 sub-skills (21 core + 1 orchestrator + 1 framework integration + 2 extension mirrors) and 18 sub-agents (15 core + 1 framework integration + 2 extension mirrors).
+The plugin ships 26 sub-skills (22 core + 1 orchestrator + 1 framework integration + 2 extension mirrors) and 19 sub-agents (16 core + 1 framework integration + 2 extension mirrors).
 
 ```
 ~/.claude/plugins/.../claude-seo/
@@ -24,6 +24,7 @@ The plugin ships 25 sub-skills (21 core + 1 orchestrator + 1 framework integrati
 │   ├── seo-sitemap/            # XML sitemap analysis and generation
 │   ├── seo-images/             # Image optimization analysis
 │   ├── seo-geo/                # AI search optimization (GEO)
+│   ├── seo-agentic/            # Agent readiness (Lighthouse Agentic Browsing, WebMCP)
 │   ├── seo-local/              # Local SEO (GBP, citations, reviews)
 │   ├── seo-maps/               # Maps intelligence (geo-grid, GBP audit)
 │   ├── seo-backlinks/          # Backlink profile analysis
@@ -48,6 +49,7 @@ The plugin ships 25 sub-skills (21 core + 1 orchestrator + 1 framework integrati
     ├── seo-performance.md      # Core Web Vitals
     ├── seo-visual.md           # Screenshots, mobile rendering
     ├── seo-geo.md              # AI crawler access, citability
+    ├── seo-agentic.md          # Agent readiness, Lighthouse Agentic Browsing
     ├── seo-local.md            # GBP signals, NAP, reviews
     ├── seo-maps.md             # Geo-grid, competitor radius mapping
     ├── seo-backlinks.md        # Moz, Bing Webmaster, Common Crawl

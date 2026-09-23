@@ -54,9 +54,9 @@ in case a recipe needs a specific call.
 
 ## Overview
 
-Claude SEO is a Tier 4 SEO analysis skill with 25 sub-skills (21 core + 1 orchestrator +
-1 framework integration + 2 extension mirrors), 18 sub-agents (15 core + 1 framework
-integration + 2 extension mirrors), and 56 Python execution scripts.
+Claude SEO is a Tier 4 SEO analysis skill with 26 sub-skills (22 core + 1 orchestrator +
+1 framework integration + 2 extension mirrors), 19 sub-agents (16 core + 1 framework
+integration + 2 extension mirrors), and 59 Python execution scripts.
 
 ## Quick Reference
 
@@ -139,7 +139,7 @@ bash install.sh
 ## Architecture
 
 ```
-skills/                    # 25 sub-skills (auto-discovered)
+skills/                    # 26 sub-skills (auto-discovered)
   seo/SKILL.md            # Main orchestrator + routing
   seo-cluster/            # Semantic clustering (v1.9.0)
   seo-sxo/                # Search Experience Optimization (v1.9.0)
@@ -154,6 +154,7 @@ skills/                    # 25 sub-skills (auto-discovered)
   seo-sitemap/            # XML sitemaps
   seo-images/             # Image optimization
   seo-geo/                # AI search / GEO
+  seo-agentic/            # Agent readiness (Lighthouse Agentic Browsing, WebMCP)
   seo-local/              # Local SEO
   seo-maps/               # Maps intelligence
   seo-plan/               # Strategic planning
@@ -165,8 +166,8 @@ skills/                    # 25 sub-skills (auto-discovered)
   seo-flow/               # FLOW framework integration
   seo-dataforseo/         # DataForSEO (extension)
   seo-image-gen/          # AI images (extension)
-agents/                    # 18 subagents
-scripts/                   # 56 Python scripts, including the managed runtime
+agents/                    # 19 subagents
+scripts/                   # 59 Python scripts, including the managed runtime
 schema/                    # JSON-LD templates
 extensions/                # 9 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Matomo, Unlighthouse
 ```

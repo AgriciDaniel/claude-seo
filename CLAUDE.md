@@ -4,8 +4,8 @@
 
 This repository contains **Claude SEO**, a Tier 4 Claude Code skill for comprehensive
 SEO analysis across all industries. It follows the Agent Skills open standard and the
-3-layer architecture (directive, orchestration, execution). 25 sub-skills (21 core +
-1 orchestrator + 1 framework integration + 2 extension mirrors), 18 sub-agents (15 core +
+3-layer architecture (directive, orchestration, execution). 26 sub-skills (22 core +
+1 orchestrator + 1 framework integration + 2 extension mirrors), 19 sub-agents (16 core +
 1 framework integration + 2 extension mirrors), and an extensible reference
 system cover technical SEO, content quality,
 schema markup, image optimization, sitemap architecture, AI search optimization,
@@ -24,7 +24,7 @@ claude-seo/
   .claude-plugin/
     plugin.json                    # Plugin manifest (v2.3.1)
     marketplace.json               # Marketplace catalog for distribution
-  skills/                            # 25 sub-skills (auto-discovered)
+  skills/                            # 26 sub-skills (auto-discovered)
     seo/                           # Main orchestrator skill
       SKILL.md                     # Entry point, routing table, core rules
       references/                  # On-demand knowledge files (13 files)
@@ -37,6 +37,9 @@ claude-seo/
     seo-sitemap/SKILL.md         # XML sitemap analysis/generation
     seo-images/SKILL.md          # Image optimization analysis
     seo-geo/SKILL.md             # AI search / GEO optimization
+    seo-agentic/                 # Agent readiness (Lighthouse Agentic Browsing, WebMCP)
+      SKILL.md
+      references/                # Lighthouse category, access policy, discovery, WebMCP, vendor matrix
     seo-local/SKILL.md           # Local SEO (GBP, citations, reviews, map pack)
     seo-maps/SKILL.md            # Maps intelligence (geo-grid, GBP audit, reviews, competitors)
     seo-plan/SKILL.md            # Strategic SEO planning
@@ -65,7 +68,7 @@ claude-seo/
     seo-image-gen/              # AI image generation for SEO assets (extension mirror)
       SKILL.md
       references/                # Image gen reference files (7 files)
-  agents/                          # 18 subagents (auto-discovered)
+  agents/                          # 19 subagents (auto-discovered)
     seo-technical.md             # Crawlability, indexability, security
     seo-content.md               # E-E-A-T, readability, thin content
     seo-schema.md                # Structured data validation
@@ -73,6 +76,7 @@ claude-seo/
     seo-performance.md           # Core Web Vitals, page speed
     seo-visual.md                # Screenshots, mobile rendering
     seo-geo.md                   # AI crawler access, GEO, citability
+    seo-agentic.md               # Agent readiness, Lighthouse Agentic Browsing
     seo-local.md                 # GBP, NAP, citations, reviews, local schema
     seo-maps.md                  # Geo-grid, GBP audit, reviews, competitor radius
     seo-google.md                # Google API analyst (CrUX, GSC, GA4)
@@ -86,7 +90,7 @@ claude-seo/
     seo-flow.md                  # FLOW framework integration
   hooks/                           # Quality gate hooks
     hooks.json                   # PostToolUse schema validation
-  scripts/                         # 56 Python execution scripts
+  scripts/                         # 59 Python execution scripts
     google_auth.py               # Credential management (OAuth, SA, API key, 4-tier detection)
     backlinks_auth.py            # Backlink API credential management (Moz, Bing)
     moz_api.py                   # Moz Link Explorer API (DA/PA, spam, domains, anchors)
@@ -120,6 +124,9 @@ claude-seo/
     lcp_subparts.py              # LCP subparts breakdown via CrUX API
     preload_check.py             # Speculation Rules / bfcache / prerender / preload detector
     agent_ux_check.py            # Agent-friendly page auditor
+    agentic_check.py             # Agent-readiness HTTP auditor (robots, llms.txt, Markdown, ARD, well-known, WebMCP)
+    agentic_fix.py               # Agent-readiness fix drafter (robots Content-Signal, llms.txt, ai-catalog, WebMCP)
+    lighthouse_agentic.py        # Lighthouse Agentic Browsing fraction reader (PSI or saved JSON)
     content_quality.py           # QRG-aligned content quality detector
     metadata_template.py         # Templated title/description detector (title echo + stock CTA)
     content_humanize.py          # AI-pattern remover (rewrites AI-typical phrasing)
@@ -167,6 +174,7 @@ claude-seo/
 | `/seo sitemap generate` | Create new sitemap with industry templates |
 | `/seo images <url>` | Image optimization |
 | `/seo geo <url>` | AI search optimization (GEO) |
+| `/seo agentic <url>` | Agent readiness (Lighthouse Agentic Browsing, AI agent access, WebMCP) |
 | `/seo local <url>` | Local SEO (GBP, citations, reviews) |
 | `/seo maps [command]` | Maps intelligence (geo-grid, GBP audit, competitors) |
 | `/seo backlinks <url>` | Backlink profile analysis |
@@ -234,7 +242,7 @@ Part of the Claude Code skill family:
 
 1. **Progressive Disclosure**: Metadata always loaded, instructions on activation, resources on demand
 2. **Industry Detection**: Auto-detect SaaS, e-commerce, local, publisher, agency
-3. **Parallel Execution**: Full audits spawn up to 15 subagents simultaneously
+3. **Parallel Execution**: Full audits spawn up to 16 subagents simultaneously
 4. **Extension System**: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, and Unlighthouse extensions
 
 ## Repository Topology (public + private)

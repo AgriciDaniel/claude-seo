@@ -25,8 +25,8 @@ directory because hosted marketplaces reject one. Repository users run
 with a bare Python interpreter.
 
 Comprehensive SEO analysis across all industries (SaaS, local services,
-e-commerce, publishers, agencies). Orchestrates 24 sub-skills (21 core + 1 framework
-integration + 2 extension mirrors) and 18 sub-agents. A separate optional Firecrawl
+e-commerce, publishers, agencies). Orchestrates 25 sub-skills (22 core + 1 framework
+integration + 2 extension mirrors) and 19 sub-agents. A separate optional Firecrawl
 extension is also installable (see "Optional Extensions" below).
 
 ## Quick Reference
@@ -42,6 +42,7 @@ extension is also installable (see "Optional Extensions" below).
 | `/seo content <url>` | E-E-A-T and content quality analysis |
 | `/seo content-brief <topic or url>` | Generate detailed SEO content brief with target keywords, outline, internal links |
 | `/seo geo <url>` | AI Overviews / Generative Engine Optimization |
+| `/seo agentic [audit\|fix\|lighthouse\|refresh] <url>` | Agent readiness: Lighthouse Agentic Browsing X/N, accessibility tree, AI agent access, llms.txt, Markdown, WebMCP |
 | `/seo plan <business-type>` | Strategic SEO planning |
 | `/seo programmatic [url\|plan]` | Programmatic SEO analysis and planning |
 | `/seo competitor-pages [url\|generate]` | Competitor comparison page generation |
@@ -80,7 +81,7 @@ required, suggest `/seo setup` and do not improvise a `pip install`.
 
 When the user invokes `/seo audit`, delegate to subagents in parallel:
 1. Detect business type (SaaS, local, ecommerce, publisher, agency, other)
-2. Spawn subagents: seo-technical, seo-content, seo-schema, seo-sitemap, seo-performance, seo-visual, seo-geo
+2. Spawn subagents: seo-technical, seo-content, seo-schema, seo-sitemap, seo-performance, seo-visual, seo-geo, seo-agentic
 3. If Google API credentials detected (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_auth.py --check`), also spawn seo-google agent
 4. If Matomo credentials detected (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --check`), also spawn seo-matomo agent (alternative or complement to seo-google's GA4 reports)
 5. If local business detected, also spawn seo-local agent
@@ -162,6 +163,7 @@ Display after these commands complete their full output:
 - `/seo schema` (after schema detection/validation report)
 - `/seo sitemap` (after sitemap analysis or generation)
 - `/seo geo` (after GEO optimization report)
+- `/seo agentic` (after agent-readiness report)
 - `/seo plan` (after strategic SEO plan)
 - `/seo local` (after local SEO audit)
 - `/seo maps` (after maps intelligence report)
@@ -220,8 +222,8 @@ Weighted aggregate of all categories:
 
 ## Sub-Skills
 
-This skill orchestrates 24 sub-skills (21 core + 1 framework integration + 2 extension
-mirrors). The orchestrator itself (`seo`) is the 25th in `skills/`, but does not
+This skill orchestrates 25 sub-skills (22 core + 1 framework integration + 2 extension
+mirrors). The orchestrator itself (`seo`) is the 26th in `skills/`, but does not
 orchestrate itself, so it is not enumerated below.
 
 1. **seo-audit** -- Full website audit with parallel delegation
@@ -248,6 +250,7 @@ orchestrate itself, so it is not enumerated below.
 22. **seo-dataforseo** -- Live SEO data via DataForSEO MCP (extension mirror)
 23. **seo-image-gen** -- AI image generation for SEO assets via Gemini (extension mirror)
 24. **seo-flow** -- FLOW framework integration (Find -> Leverage -> Optimize -> Win, 41 AI prompts, CC BY 4.0)
+25. **seo-agentic** -- Agent readiness: Lighthouse Agentic Browsing, accessibility tree for agents, AI agent access policy, llms.txt, Markdown, ai-catalog.json, WebMCP
 
 ### Optional Extensions
 
@@ -280,6 +283,7 @@ For parallel analysis during audits:
 - `seo-performance` -- Core Web Vitals measurement
 - `seo-visual` -- Screenshots, mobile testing, above-fold
 - `seo-geo` -- AI crawler access, llms.txt, citability, brand mention signals
+- `seo-agentic` -- Lighthouse Agentic Browsing fraction, accessibility tree for agents, AI agent access policy, Markdown, discovery files, WebMCP (always in full audits)
 - `seo-local` -- GBP signals, NAP consistency, reviews, local schema, industry-specific local factors (conditional: spawned when Local Service detected)
 - `seo-maps` -- Geo-grid rank tracking, GBP audit, review intelligence, competitor radius mapping (conditional: spawned when Local Service detected AND DataForSEO MCP available)
 - `seo-google` -- CWV field data, URL indexation status, organic traffic trends (conditional: spawned when Google API credentials detected)

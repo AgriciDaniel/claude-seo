@@ -27,10 +27,10 @@ def _content_ingesting_agents() -> list[Path]:
     return agents
 
 
-def test_fourteen_agents_ingest_external_content():
+def test_fifteen_agents_ingest_external_content():
     # Locks the known set size so a future addition/removal is a deliberate,
     # reviewed change rather than a silent drift.
-    assert len(_content_ingesting_agents()) == 14
+    assert len(_content_ingesting_agents()) == 15
 
 
 def test_every_content_ingesting_agent_has_untrusted_content_guidance():

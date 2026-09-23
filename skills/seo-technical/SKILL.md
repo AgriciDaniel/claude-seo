@@ -183,43 +183,23 @@ Google updated its JavaScript SEO documentation in December 2025 with critical c
 
 ## Agent-Friendly Pages & Agentic Browsing
 
-AI agents (not just AI summarizers) increasingly read sites through three
-channels: vision models on screenshots, raw HTML/DOM, and the **accessibility
-tree** (the cleanest signal). Audit criteria: semantic HTML (real `<button>`
-and `<a>`, not `<div onclick>`), label associations, interactive target sizing,
-layout stability across templates, `cursor: pointer` correctness, live in
-`references/agent-friendly-pages.md`.
+Agent readiness has its own sub-skill: `/seo agentic <url>` (`seo-agentic`).
+It owns the Lighthouse **Agentic Browsing** category (a fraction, X of N, not
+a 0-100 score), the accessibility tree for agents, AI agent access policy,
+llms.txt, Markdown delivery, ai-catalog.json, `/.well-known` discovery files,
+and WebMCP. During a technical audit, record only these two signals and point
+to `seo-agentic` for the rest:
 
-Google now ships a Lighthouse **Agentic Browsing** category (default-on since
-Lighthouse 13.3.0, Chrome 150+; buckets: agent-centric accessibility, CLS +
-llms.txt, three WebMCP audits). It reports a **fractional pass-ratio (X of N),
-not a 0-100 score**, keep that distinct from this skill's own Agent-UX 0-100
-heuristic below. Lighthouse 13.4.1 re-enabled the category through the PSI API.
-It is also available through Lighthouse CLI with
-`--only-categories=agentic-browsing`, DevTools, and the PSI web UI. See
-`references/agent-friendly-pages.md`.
-
-### Audit command
+- JS rendering: primary content missing from the raw HTML also hides it from
+  agents that do not run JavaScript.
+- A 5xx robots.txt, which compliant crawlers read as "disallow everything".
 
 ```bash
-# Render with Playwright + capture accessibility tree, then score
 "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run agent_ux_check.py https://example.com --json
 ```
 
-The scanner outputs an Agent-UX score (0-100) plus itemized issues:
-- HTML findings: real buttons / anchors, `<div onclick>` widgets, semantic
-  landmarks, inputs without `<label for>`, inputs without ARIA labels
-- Accessibility tree findings: total nodes, interactive nodes, unnamed
-  interactive elements, `role="generic"` ratio
-
-The accessibility-tree snapshot uses Chromium's
-`Accessibility.getFullAXTree` CDP command through Playwright. To capture the
-tree without scoring, use
-`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run render_page.py <url> --a11y-tree --json`.
-
-Surface findings as **opportunities**, not failures; don't gate audits on a
-sub-100 Agent-UX score. WebMCP origin-trial/sign-up status needs verification,
-and absence of WebMCP support is still an opportunity, not a defect.
+The Agent-UX 0-100 score above is a local heuristic. Keep it distinct from the
+Lighthouse fraction, and surface its findings as opportunities, not failures.
 
 ## Output
 

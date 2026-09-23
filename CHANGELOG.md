@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- New `seo-agentic` sub-skill and `seo-agentic` audit agent (`/seo agentic
+  [audit|fix|lighthouse|refresh] <url>`) for agent readiness. Three scripts:
+  `lighthouse_agentic.py` reads the Lighthouse Agentic Browsing category
+  through PSI v5 (`category=AGENTIC_BROWSING`) or a saved report and
+  reproduces the report renderer's fraction exactly (N/A, manual and
+  informative audits excluded, pass at score 0.9), with per-audit status and
+  the changes that add a counted audit; `agentic_check.py` checks server
+  rendering, RFC 9309 robots.txt group selection per AI agent and
+  Content-Signal, llms.txt with Lighthouse parity, Markdown delivery
+  (`Accept: text/markdown` with `Vary: Accept`, `.md` alternates),
+  `ai-catalog.json` discovery and ARD conformance, `/.well-known`
+  documents (RFC 9727, 9728, 8414, A2A), WebMCP markup, and, only with
+  `--ua-matrix`, responses to AI agent user agents; `agentic_fix.py` drafts
+  Content-Signal lines for every robots.txt group without touching
+  Allow/Disallow, llms.txt, `ai-catalog.json`, and WebMCP tools bound to each
+  form's own submit handler. Every request goes through `url_safety`. Facts
+  were verified on 2026-09-23 against the Lighthouse 13.5.0 source, live PSI
+  runs, the WebMCP spec draft, and vendor bot documentation, and the dated,
+  source-graded vendor matrix lives in one reference file. Full audits now
+  spawn `seo-agentic` alongside `seo-geo`, writing `findings/agentic.md`.
+
 - New optional Matomo extension (`extensions/matomo/`) for self-hosted or
   Matomo Cloud analytics. Adds `/seo matomo organic | top-pages | device
   | country | referrers | keywords` as a GA4 alternative or complement.
@@ -25,6 +46,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   private address is reached by naming it in `CLAUDE_SEO_LOCAL_TARGETS`, which
   both installers print at install time, and a redirect away from the instance
   is refused rather than followed. (#275)
+
+### Changed
+
+- `agent-friendly-pages.md` moved from `seo-technical` to `seo-agentic` and
+  was rewritten for Lighthouse 13.5.0: the category has seven audits
+  (`agent-accessibility-tree` aggregates 33 axe rules; `ard-schema` validates
+  `ai-catalog.json`), not three accessibility audits. `seo-technical` now
+  points to `/seo agentic`, and the Lighthouse notes in `seo-performance`
+  and `cwv-thresholds.md` name 13.5.0.
 
 ## [2.3.1] - 2026-09-10
 

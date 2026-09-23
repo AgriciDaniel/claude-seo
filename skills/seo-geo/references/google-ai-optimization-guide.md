@@ -109,11 +109,12 @@ The AI optimization guide pivots near the end to **AI agents** — not just
 summarizers. Agents interact with sites through three channels: screenshots
 plus a vision model, raw HTML/DOM, and the browser accessibility tree.
 
-Full audit criteria: `skills/seo-technical/references/agent-friendly-pages.md`.
+Full audit criteria: `skills/seo-agentic/references/agent-friendly-pages.md` (run `/seo agentic`).
 
 The guide also covers **WebMCP** (proposed standard for direct site to agent
-interaction. Chrome 149 origin-trial and 2026-06-09 sign-up claims are
-unresolved, with three shipped Lighthouse audits) and **UCP** (Universal
+interaction; a W3C Community Group draft in a Chrome origin trial from M149
+to M156, verified 2026-09-23; status, consumers and safe patterns in
+`skills/seo-agentic/references/webmcp.md`) and **UCP** (Universal
 Commerce Protocol, open standard co-developed with Shopify, Etsy, Wayfair,
 Target, Walmart; Google-confirmed reference implementation in AI Mode in
 Search; ucp.dev lists 2026-04-08 as the latest date-based release, non-Google
@@ -138,5 +139,5 @@ and hedged). UCP audit criteria:
 - Google publishes new myth-busting / clarification.
 - Any of the linked policy docs revise eligibility or enforcement language.
 - The UCP / WebMCP standards advance (UCP has ucp.dev-listed date-based spec
-  2026-04-08, non-Google and hedged; WebMCP Chrome 149 origin-trial status is
-  unresolved).
+  2026-04-08, non-Google and hedged; WebMCP status is tracked in
+  `skills/seo-agentic/references/vendor-matrix.md`).
