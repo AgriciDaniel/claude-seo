@@ -483,3 +483,50 @@ def test_real_404_passes_the_probe(monkeypatch):
     monkeypatch.setattr(ac, "fetch", lambda url, headers=None: _rec(404))
     checks, data = ac.audit_not_found("https://e.test")
     assert checks[0]["status"] == "pass" and data["catch_all_200"] is False
+
+
+TOKENS = ["GPTBot", "CCBot", "ClaudeBot", "OAI-SearchBot", "Googlebot", "PerplexityBot", "*"]
+
+
+def _policy(text: str) -> dict:
+    parsed = ac.parse_robots(text)
+    return {t: ac.is_allowed(ac.select_group(parsed, t)["rules"], "/") for t in TOKENS}
+
+
+@pytest.mark.parametrize("robots", [
+    "User-agent: GPTBot\n# training bots\nUser-agent: CCBot\nDisallow: /\n",
+    "User-agent: GPTBot\n\nUser-agent: CCBot\nDisallow: /\n",
+    "User-agent: *\nAllow: /\n\nUser-agent: GPTBot\n# c\n\nUser-agent: ClaudeBot\nDisallow: /\n# tail\nUser-agent: OAI-SearchBot\nAllow: /\n",
+    "﻿User-agent: GPTBot\r\nUser-agent: CCBot\r\nDisallow: /\r\n",
+])
+def test_content_signal_never_changes_who_is_allowed(robots: str) -> None:
+    """The drafter's promise: Allow/Disallow outcomes are identical after the edit."""
+    draft = af.add_content_signal(robots, "search=yes, ai-train=no")["robots_txt"]
+    assert _policy(draft) == _policy(robots), draft
+    parsed = ac.parse_robots(draft)
+    for group in parsed["groups"]:
+        assert group["content_signal"], f"group without signal: {group['agents']}"
+
+
+def test_content_signal_policy_equivalence_randomized() -> None:
+    """500 generated robots.txt files: the drafter never changes an outcome."""
+    import random
+
+    rng = random.Random(20260923)
+    agents = ["GPTBot", "CCBot", "ClaudeBot", "OAI-SearchBot", "PerplexityBot", "*"]
+    fillers = ["", "# note", "   ", "Sitemap: https://e.test/s.xml"]
+    rules = ["Disallow: /", "Allow: /", "Disallow:", "Disallow: /private", "Crawl-delay: 5"]
+    for _ in range(500):
+        lines = []
+        for _ in range(rng.randint(1, 4)):
+            for _ in range(rng.randint(1, 3)):
+                lines.append(f"User-agent: {rng.choice(agents)}")
+                if rng.random() < 0.4:
+                    lines.append(rng.choice(fillers))
+            for _ in range(rng.randint(0, 3)):
+                lines.append(rng.choice(rules))
+                if rng.random() < 0.3:
+                    lines.append(rng.choice(fillers))
+        robots = rng.choice(["\n", "\r\n"]).join(lines) + "\n"
+        draft = af.add_content_signal(robots, "search=yes")["robots_txt"]
+        assert _policy(draft) == _policy(robots), robots

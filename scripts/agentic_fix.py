@@ -55,44 +55,57 @@ SLUG = re.compile(r"[^a-z0-9]+")
 
 
 def add_content_signal(robots_text: str, signal: str) -> dict:
-    """Insert ``Content-Signal: <signal>`` after the user-agent lines of each group
-    that has none. Returns the new text plus a list of changed groups."""
+    """Insert ``Content-Signal: <signal>`` into each user-agent group that has none.
+
+    Groups follow RFC 9309 as ``agentic_check.parse_robots`` reads them: a group
+    is a run of ``user-agent`` lines (blank lines and comments between them do
+    not end it) followed by rule lines, until the next ``user-agent`` line after
+    a rule. The signal goes directly after the group's last ``user-agent`` line,
+    so no group is split and every Allow/Disallow outcome stays identical.
+    """
     parsed = parse_content_signal(signal)
     if parsed["issues"]:
         raise ValueError("invalid signal: " + "; ".join(parsed["issues"]))
     robots_text = robots_text.lstrip("\ufeff")
+    newline = "\r\n" if "\r\n" in robots_text else "\n"
     lines = robots_text.splitlines()
-    out, changed = [], []
-    i = 0
-    while i < len(lines):
-        line = lines[i]
-        if _field(line) == "user-agent":
-            agents = []
-            while i < len(lines) and _field(lines[i]) == "user-agent":
-                agents.append(lines[i].split(":", 1)[1].split("#", 1)[0].strip())
-                out.append(lines[i])
-                i += 1
-            j = i
-            has_signal = False
-            while j < len(lines) and _field(lines[j]) != "user-agent":
-                if _field(lines[j]) == "content-signal":
-                    has_signal = True
-                j += 1
-            if not has_signal:
-                out.append(f"Content-Signal: {signal}")
-                changed.append(agents)
+
+    # Pass 1: find groups as (index of last user-agent line, agents, has_signal).
+    groups, current, in_ua_block = [], None, False
+    for idx, line in enumerate(lines):
+        field = _field(line)
+        if not field:
+            continue  # blank line or comment: neither starts nor ends a block
+        if field == "user-agent":
+            if current is None or not in_ua_block:
+                current = {"last_ua": idx, "agents": [], "has_signal": False}
+                groups.append(current)
+            current["agents"].append(line.split(":", 1)[1].split("#", 1)[0].strip())
+            current["last_ua"] = idx
+            in_ua_block = True
             continue
+        in_ua_block = False
+        if current is not None and field == "content-signal":
+            current["has_signal"] = True
+
+    # Pass 2: insert after the last user-agent line of each group lacking a signal.
+    insert_after = {g["last_ua"] for g in groups if not g["has_signal"]}
+    changed = [g["agents"] for g in groups if not g["has_signal"]]
+    out = []
+    for idx, line in enumerate(lines):
         out.append(line)
-        i += 1
-    if not any(_field(ln) == "user-agent" for ln in lines):
+        if idx in insert_after:
+            out.append(f"Content-Signal: {signal}")
+
+    if not groups:
         # Append (never prepend): rules outside any group stay inert instead of
         # joining the new group, and no Allow/Disallow line is invented.
         tail = ["User-agent: *", f"Content-Signal: {signal}"]
         out = (out + [""] + tail) if any(ln.strip() for ln in out) else tail
         changed.append(["*"])
-    text = "\n".join(out)
-    if robots_text.endswith("\n") or not robots_text:
-        text += "\n"
+    text = newline.join(out)
+    if robots_text.endswith(("\n", "\r")) or not robots_text:
+        text += newline
     return {"robots_txt": text, "groups_changed": changed}
 
 
