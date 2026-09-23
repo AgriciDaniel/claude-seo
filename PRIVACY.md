@@ -35,7 +35,7 @@ When configured with backlink API credentials, these scripts transmit data to th
 |--------|---------|-----------|---------------|
 | `moz_api.py` | Moz Link Explorer API | Domains you analyze | [Moz Privacy](https://moz.com/privacy-policy) |
 | `bing_webmaster.py` | Bing Webmaster Tools API | Domains you analyze | [Microsoft Privacy](https://privacy.microsoft.com/) |
-| `keywordseverywhere_api.py` | openpagerank.keywordseverywhere.com | Up to 100 domain names per request, with your API key in the `API-OPR` header | [Keywords Everywhere Privacy](https://keywordseverywhere.com/privacy-policy.html) |
+| `keywordseverywhere_api.py` | openpagerank.keywordseverywhere.com | Up to 100 domain names per request, with your API key in the `Authorization: Bearer` header | [Keywords Everywhere Privacy](https://keywordseverywhere.com/privacy-policy.html) |
 | `indexnow_submit.py` | IndexNow endpoints (Bing / Yandex / Seznam / Naver) | URLs submitted and key-verification URL data | Endpoint provider policies |
 | `commoncrawl_graph.py` | Common Crawl | Domains (public dataset query) | [Common Crawl Terms](https://commoncrawl.org/terms-of-use) |
 | `verify_backlinks.py` | Target URLs directly | URLs to verify backlink existence | N/A (direct HTTP requests) |

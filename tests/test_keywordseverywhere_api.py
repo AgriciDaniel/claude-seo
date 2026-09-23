@@ -1,10 +1,12 @@
 """Keywords Everywhere (Open PageRank) API client regressions.
 
-Covers the fallback backlinks source added for #262: a successful lookup,
-an authentication error, a rate-limit response, and the 100-domain batch
-cap. The success/error/rate-limit bodies below are recorded shapes from
-the Open PageRank API docs (https://www.domcop.com/openpagerank/documentation),
-which Keywords Everywhere's endpoint is a drop-in continuation of.
+Covers the fallback backlinks source added for #262 and repaired for #312: a
+successful lookup, an authentication error, a rate-limit response, and the
+100-domain batch cap. Response shapes follow the current API documentation
+(https://openpagerank.keywordseverywhere.com/docs, verified 2026-09-23):
+POST /v1/domains/bulk, Bearer auth, ``results[]`` with ``open_page_rank``.
+The earlier fixture encoded the removed DomCop-era contract, which kept this
+suite green while the live endpoint returned 404.
 """
 
 from __future__ import annotations
@@ -23,33 +25,26 @@ pytest.importorskip("requests")
 import keywordseverywhere_api  # noqa: E402
 from url_safety import URLSafetyError  # noqa: E402
 
-# Recorded success response for a single-domain rank lookup.
-RECORDED_SUCCESS_RESPONSE = {
-    "status_code": 200,
-    "last_updated": "26th August 2026",
-    "response": [
+DOCS_SUCCESS_RESPONSE = {
+    "as_of": "2026-09-01",
+    "count": 1,
+    "results": [
         {
-            "status_code": 200,
-            "error": "",
-            "page_rank_decimal": 4.68,
             "domain": "example.com",
-            "rank": "4",
-            "page_rank_integer": 5,
+            "found": True,
+            "open_page_rank": 4.68,
+            "rank": 51234,
+            "referring_domains": 1830,
         }
     ],
+    "invalid": [],
 }
-
-# Recorded auth-error body: Open PageRank returns this shape for a missing
-# or invalid API-OPR header.
-RECORDED_AUTH_ERROR_RESPONSE = {
-    "status_code": 401,
-    "message": "Invalid API Key or Domain limit reached",
+DOCS_AUTH_ERROR_RESPONSE = {
+    "error": {"type": "authentication_error",
+              "message": "Missing or invalid Authorization: Bearer <api_key>"},
 }
-
-# Recorded rate-limit body.
-RECORDED_RATE_LIMIT_RESPONSE = {
-    "status_code": 429,
-    "message": "Rate limit exceeded",
+DOCS_RATE_LIMIT_RESPONSE = {
+    "error": {"type": "rate_limit_error", "message": "Too many requests"},
 }
 
 
@@ -63,30 +58,31 @@ class FakeResponse:
         return self._body
 
 
-def test_get_rank_success_parses_recorded_response() -> None:
-    fake = FakeResponse(200, RECORDED_SUCCESS_RESPONSE)
-    with patch.object(keywordseverywhere_api, "safe_requests_get", return_value=fake) as mock_get:
+def test_get_rank_posts_the_documented_bulk_request() -> None:
+    fake = FakeResponse(200, DOCS_SUCCESS_RESPONSE)
+    with patch.object(keywordseverywhere_api, "_post", return_value=fake) as mock_post:
         result = keywordseverywhere_api.get_rank(["example.com"], "opr_live_testkey")
 
-    assert result["status"] == "success"
-    assert result["error"] is None
-    assert result["data"]["domains"] == [
-        {
-            "domain": "example.com",
-            "page_rank_decimal": 4.68,
-            "page_rank_integer": 5,
-            "rank": "4",
-        }
-    ]
-    assert result["metadata"]["source"] == "keywordseverywhere"
-    # The API key must travel in the API-OPR header, never as a query param.
-    _, kwargs = mock_get.call_args
-    assert kwargs["headers"]["API-OPR"] == "opr_live_testkey"
+    assert result["status"] == "success" and result["error"] is None
+    assert result["data"]["domains"] == [{
+        "domain": "example.com",
+        "found": True,
+        "open_page_rank": 4.68,
+        "page_rank_decimal": 4.68,
+        "rank": 51234,
+        "referring_domains": 1830,
+    }]
+    assert result["data"]["as_of"] == "2026-09-01"
+    args, kwargs = mock_post.call_args
+    assert args[0] == "https://openpagerank.keywordseverywhere.com/v1/domains/bulk"
+    assert kwargs["headers"]["Authorization"] == "Bearer opr_live_testkey"
+    assert kwargs["json"] == {"domains": ["example.com"], "include_history": False}
+    assert "params" not in kwargs  # the key never travels in the URL
 
 
 def test_get_rank_auth_error_maps_to_error_status() -> None:
-    fake = FakeResponse(401, RECORDED_AUTH_ERROR_RESPONSE)
-    with patch.object(keywordseverywhere_api, "safe_requests_get", return_value=fake):
+    fake = FakeResponse(401, DOCS_AUTH_ERROR_RESPONSE)
+    with patch.object(keywordseverywhere_api, "_post", return_value=fake):
         result = keywordseverywhere_api.get_rank(["example.com"], "bad-key")
 
     assert result["status"] == "error"
@@ -95,8 +91,8 @@ def test_get_rank_auth_error_maps_to_error_status() -> None:
 
 
 def test_get_rank_rate_limit_maps_to_rate_limited_status() -> None:
-    fake = FakeResponse(429, RECORDED_RATE_LIMIT_RESPONSE)
-    with patch.object(keywordseverywhere_api, "safe_requests_get", return_value=fake):
+    fake = FakeResponse(429, DOCS_RATE_LIMIT_RESPONSE)
+    with patch.object(keywordseverywhere_api, "_post", return_value=fake):
         result = keywordseverywhere_api.get_rank(["example.com"], "opr_live_testkey")
 
     assert result["status"] == "rate_limited"
@@ -104,10 +100,21 @@ def test_get_rank_rate_limit_maps_to_rate_limited_status() -> None:
     assert result["metadata"]["rate_limited"] is True
 
 
+def test_get_rank_html_error_page_is_not_echoed() -> None:
+    class HtmlResponse(FakeResponse):
+        def json(self):
+            raise ValueError("not json")
+
+    fake = HtmlResponse(404, {})
+    fake.text = "<html>opr_live_testkey not found</html>"
+    with patch.object(keywordseverywhere_api, "_post", return_value=fake):
+        result = keywordseverywhere_api.get_rank(["example.com"], "opr_live_testkey")
+    assert result["error"] == "HTTP 404: HTTP 404"
+    assert "opr_live_testkey" not in result["error"]
+
+
 def test_get_rank_ssrf_block_surfaces_as_error_not_a_crash() -> None:
-    with patch.object(
-        keywordseverywhere_api, "safe_requests_get", side_effect=URLSafetyError("blocked host")
-    ):
+    with patch.object(keywordseverywhere_api, "_post", side_effect=URLSafetyError("blocked host")):
         result = keywordseverywhere_api.get_rank(["example.com"], "opr_live_testkey")
 
     assert result["status"] == "error"
@@ -119,7 +126,7 @@ def test_main_rejects_batches_over_100_domains_without_a_network_call(
 ) -> None:
     domains = [f"d{i}.example.com" for i in range(101)]
     monkeypatch.setattr(sys, "argv", ["keywordseverywhere_api.py", "rank", *domains, "--json"])
-    with patch.object(keywordseverywhere_api, "safe_requests_get") as mock_get:
+    with patch.object(keywordseverywhere_api, "_post") as mock_get:
         with pytest.raises(SystemExit) as exc_info:
             keywordseverywhere_api.main()
 
@@ -131,17 +138,18 @@ def test_main_rejects_batches_over_100_domains_without_a_network_call(
 
 
 def test_upstream_error_body_never_echoes_the_key(monkeypatch):
-    """A 500 whose body repeats the key must not leak it into the result."""
+    """A 500 whose JSON error repeats the key must not leak it into the result."""
     import keywordseverywhere_api as ke
 
     class _Resp:
         status_code = 500
-        text = "upstream error: API-OPR opr_live_SECRET123 rejected"
+        text = ""
 
         def json(self):
-            raise ValueError("not json")
+            return {"error": {"type": "api_error",
+                              "message": "Bearer opr_live_SECRET123 rejected"}}
 
-    monkeypatch.setattr(ke, "safe_requests_get", lambda *a, **k: _Resp())
+    monkeypatch.setattr(ke, "_post", lambda *a, **k: _Resp())
     result = ke.get_rank(["example.com"], api_key="opr_live_SECRET123")
     assert "opr_live_SECRET123" not in str(result)
     assert "<redacted>" in str(result.get("error", ""))
