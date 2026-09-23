@@ -176,7 +176,7 @@ Optimize for AI search engines (ChatGPT, Perplexity, Google AI Overviews):
 
 ### AI Search Visibility & GEO (2025-2026)
 
-**Google AI Mode** is Google's conversational AI search surface. Google's last official model naming for AI Mode / AI Overviews is a custom version of **Gemini 2.5**. Treat third-party AI Mode usage, citation, and link-share figures as methodology-dependent unless primary-sourced, and optimize for both AI Mode and AI Overviews (see the `seo-geo` skill).
+**Google AI Mode** is Google's conversational AI search surface. Google has upgraded the AI Mode model several times (Gemini 3.5 Flash has been the default since 2026-05-19, per blog.google); never tie advice to a model version. Treat third-party AI Mode usage, citation, and link-share figures as methodology-dependent unless primary-sourced, and optimize for both AI Mode and AI Overviews (see the `seo-geo` skill).
 
 **Key optimization strategies for AI citation:**
 - **Structured answers:** Clear question-answer formats, definition patterns, and step-by-step instructions that AI systems can extract and cite

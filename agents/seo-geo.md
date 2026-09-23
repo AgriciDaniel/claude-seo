@@ -42,7 +42,7 @@ cohere-ai
 
 ## Key Citability Signals
 
-- Optimal passage length: **134-167 words** for AI citation
+- Self-contained answer blocks (about 130-170 words is a third-party heuristic; Google says content need not be chunked for AI)
 - Direct answers in first 40-60 words of each section
 - Question-based H2/H3 headings
 - Specific statistics with source attribution

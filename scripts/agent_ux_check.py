@@ -269,6 +269,9 @@ def _cli() -> None:
     report = audit(args.url, timeout_ms=args.timeout_ms)
     if args.json:
         print(json.dumps(report, indent=2))
+        if report["score"] is None:
+            print(f"Agent-UX score unavailable: {report.get('render_error') or 'no renderer'}",
+                  file=sys.stderr)
         sys.exit(0 if report["score"] is not None else 1)
 
     if report["render_error"]:

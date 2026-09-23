@@ -45,8 +45,8 @@ Run the steps in this order and keep every tool's JSON for the report.
    Uses PSI v5 (`category=AGENTIC_BROWSING`); a Google API key avoids the
    shared anonymous quota. With a saved report use `--from-json <file>`.
    Report the fraction as `X/N` exactly as computed. Never convert it to a
-   percentage and never assume N is 6 or 7: N/A and informative audits drop
-   out. Read `references/lighthouse-agentic-category.md` before explaining it.
+   percentage and never assume N: it is at most 6, and N/A and informative
+   audits drop out. Read `references/lighthouse-agentic-category.md` before explaining it.
 2. **HTTP and markup checks.**
    `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run agentic_check.py <url> --json`.
    Covers server-rendered content, robots.txt groups per AI agent and
@@ -88,9 +88,13 @@ Run the steps in this order and keep every tool's JSON for the report.
 | P2 | API Catalog, OAuth metadata (only if you run APIs) | `well-known:api-catalog`, `well-known:oauth-*` |
 | P3 | A2A agent card, UCP profile (only if you run them) | `well-known:agent-card.json`, `well-known:ucp` |
 | P3 | Declarative WebMCP form attributes (Chrome only) | `webmcp-form-annotations` (static); Lighthouse `webmcp-form-coverage` |
-| P3 (P1 when a signalled catalog fails) | ai-catalog.json (only if you have agent resources) | `ard-catalog` |
+| P3 (P1 when a catalog URL fails, including a catch-all 200 at the well-known path) | ai-catalog.json (only if you have agent resources) | `ard-catalog` |
+| P1 | Unknown URLs return a real 404 (a catch-all 200 fails llms-txt and ard-schema in Lighthouse) | `http-404` |
 
-Fix in order P0, then P1. Do not recommend lower priorities while a P0 fails.
+Fix in order P0, then P1. Do not recommend lower priorities while a measured P0
+fails. A P0 you could not test (for example the WAF check on a third-party site)
+is reported as "not tested" and does not block the rest; the Lighthouse "paths"
+are listed as options either way.
 
 ## Report structure
 
@@ -178,7 +182,7 @@ version changes, and the `CHECKED_ON` constant in `agentic_check.py` together.
 | Scenario | Action |
 |---|---|
 | PSI quota exceeded or no key | Say so, suggest configuring a Google API key (`/seo google setup`), and continue with steps 2 and 3. Offer a local run: `npx lighthouse@latest <url> --only-categories=agentic-browsing --output=json`, then `--from-json`. |
-| Agent-UX `score_status: unavailable` (no Chromium) | Report the heuristic as unavailable; use `html_findings` if `html_only_fallback` is true and rely on Lighthouse `agent-accessibility-tree` for the tree. Suggest `/seo setup` for Chromium. |
+| Agent-UX `score_status: unavailable` (no Chromium) | Report the heuristic as unavailable and rely on Lighthouse `agent-accessibility-tree` for the tree. Use `html_findings` (when `html_only_fallback` is true) only if `server-rendered` passed; on a client-rendered page they describe the empty app shell. Suggest `/seo setup` for Chromium. |
 | Static WebMCP count differs from Lighthouse | `registerTool_call_sites` counts call sites, not tools. Report the Lighthouse `webmcp-registered-tools` list as the tool count. |
 | No agentic-browsing category in a saved report | The report predates Lighthouse 13.2; rerun with a current version. |
 | WebMCP audits N/A | The testing browser lacked WebMCP support, or the page registers nothing. Not a defect. |

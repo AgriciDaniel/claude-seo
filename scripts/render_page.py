@@ -482,12 +482,22 @@ def render_page(
         result["content"] = result["raw_content"]
     else:
         result["mode_used"] = "rendered"
+
+        def _keep_raw_on_render_failure() -> None:
+            # The render failed, but the raw fetch succeeded: keep its status,
+            # headers and URL so callers still see what the server answered.
+            result["url"] = final_raw_url
+            result["status_code"] = raw_status
+            result["headers"] = raw_headers
+            result["raw_fallback_available"] = True
+
         if sync_playwright is None:
             result["error"] = (
                 "playwright is required for rendered mode. "
                 "Install: pip install -r requirements.txt "
                 "&& playwright install chromium"
             )
+            _keep_raw_on_render_failure()
             return result
 
         vp = VIEWPORTS[viewport]
@@ -564,6 +574,7 @@ def render_page(
                 browser.close()
         except Exception as exc:
             result["error"] = f"playwright error: {exc}"
+            _keep_raw_on_render_failure()
             return result
         finally:
             result["render_ms"] = (time.monotonic() - start) * 1000.0

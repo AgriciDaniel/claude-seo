@@ -435,6 +435,10 @@ def audit_llms(root: str) -> tuple[list, dict]:
     if result["lighthouse"] == "not-applicable":
         fix = ("No /llms.txt. Lighthouse drops the audit from the fraction; publishing a "
                "valid one adds a counted pass. Include an H1, a '>' summary and Markdown links.")
+    elif result["lighthouse"] == "fail" and any("soft 404" in n for n in result["notes"]):
+        fix = ("The host answers /llms.txt with an HTML page and status 200 (a catch-all). "
+               "Lighthouse counts that as a failed audit. Return a real 404 (the audit "
+               "becomes N/A) or publish a real llms.txt.")
     elif result["lighthouse"] == "fail":
         fix = "Fix: " + "; ".join(result["errors"])
     checks = [_check("llms-txt", "llms.txt follows the Lighthouse rules", "P1", status,
@@ -715,6 +719,13 @@ def audit_ard(root: str, agentmap: list, page: dict) -> tuple[list, dict]:
             "content_type": _ctype(rec)}
     standard = (f"Agentic Resource Discovery (ARD) spec 1.0; checked by Lighthouse 13.5 "
                 f"ard-schema (checked {CHECKED_ON})")
+    if not signalled and rec["status"] == 200 and _ctype(rec).startswith("text/html"):
+        data["soft_404"] = True
+        return [_check("ard-catalog", "ai-catalog.json (Agentic Resource Discovery)", "P1",
+                       "fail", standard, data,
+                       "/.well-known/ai-catalog.json returns an HTML page with status 200 (a "
+                       "catch-all). Lighthouse treats any 200 as a catalog and counts a "
+                       "failed ard-schema audit. Return a real 404 for unknown paths.")], data
     if not signalled and rec["status"] != 200:
         return [_check("ard-catalog", "ai-catalog.json (Agentic Resource Discovery)", "P3", "na",
                        standard, data,
@@ -809,6 +820,22 @@ def audit_ua_matrix(url: str) -> tuple[list, dict]:
 # --------------------------------------------------------------------------- driver
 
 
+def audit_not_found(root: str) -> tuple[list, dict]:
+    """Does an unknown URL return a real 404? Catch-all 200s break discovery files."""
+    probe = f"{root}/claude-seo-404-probe-{os.urandom(4).hex()}"
+    rec = fetch(probe)
+    data = {"probe_url": probe, "status": rec["status"], "content_type": _ctype(rec)}
+    catch_all = rec["status"] == 200
+    data["catch_all_200"] = catch_all
+    return [_check(
+        "http-404", "Unknown URLs return a real 404", "P1",
+        "warn" if catch_all else ("pass" if rec["status"] and rec["status"] >= 400 else "info"),
+        "HTTP semantics (RFC 9110); Google soft-404 guidance", data,
+        "Unknown paths return 200. Crawlers see soft 404s, and Lighthouse fails llms-txt and "
+        "ard-schema on the catch-all page. Serve a real 404 for paths that do not exist."
+        if catch_all else None)], data
+
+
 def summarize(checks: list) -> dict:
     summary: dict = {}
     for c in checks:
@@ -830,10 +857,12 @@ def audit(url: str, *, ua_matrix: bool = False) -> dict:
     md_checks, md = audit_markdown(url, page)
     ard_checks, ard = audit_ard(root, robots.get("agentmap", []), page)
     wk_checks, wk = audit_well_known(root)
-    report["checks"] = page_checks + robots_checks + llms_checks + md_checks + ard_checks + wk_checks
+    nf_checks, nf = audit_not_found(root)
+    report["checks"] = (page_checks + robots_checks + llms_checks + md_checks + ard_checks
+                        + wk_checks + nf_checks)
     page.pop("soup_links", None)
     report["data"] = {"page": page, "robots": robots, "llms": llms, "markdown": md,
-                      "ard": ard, "well_known": wk}
+                      "ard": ard, "well_known": wk, "not_found": nf}
     if ua_matrix:
         ua_checks, rows = audit_ua_matrix(url)
         report["checks"] += ua_checks

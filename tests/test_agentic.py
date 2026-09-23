@@ -465,3 +465,21 @@ def test_agent_ux_falls_back_to_raw_html_without_a_renderer(monkeypatch):
 def test_decode_uses_meta_charset_when_the_header_has_none():
     body = '<html><head><meta charset="iso-8859-1"></head><body>Caf\xe9</body></html>'.encode("iso-8859-1")
     assert "Café" in ac._decode(body, "text/html")
+
+
+def test_catch_all_200_is_diagnosed_as_missing_404(monkeypatch):
+    html = _rec(200, "<!doctype html><html><body>app</body></html>", {"content-type": "text/html"})
+    monkeypatch.setattr(ac, "fetch", lambda url, headers=None: html)
+    checks, data = ac.audit_ard("https://e.test", [], {})
+    assert checks[0]["status"] == "fail" and checks[0]["priority"] == "P1"
+    assert "real 404" in checks[0]["fix"] and data["soft_404"]
+    checks, _ = ac.audit_not_found("https://e.test")
+    assert checks[0]["id"] == "http-404" and checks[0]["status"] == "warn"
+    checks, _ = ac.audit_llms("https://e.test")
+    assert "real 404" in checks[0]["fix"]
+
+
+def test_real_404_passes_the_probe(monkeypatch):
+    monkeypatch.setattr(ac, "fetch", lambda url, headers=None: _rec(404))
+    checks, data = ac.audit_not_found("https://e.test")
+    assert checks[0]["status"] == "pass" and data["catch_all_200"] is False

@@ -40,6 +40,12 @@ WRONG = [
      "developers.google.com/my-business/content/sunset-dates"),
     (r"Content API for Shopping sunsets August 18, 2026", "it was sunset; requests now fail",
      "developers.google.com/merchant/api/guides/compatibility/overview"),
+    (r"custom version of Gemini 2\.5", "AI Mode default is Gemini 3.5 Flash since 2026-05-19",
+     "blog.google/products-and-platforms/products/search/search-io-2026"),
+    (r"(?i)optimal passage length", "a third-party heuristic, not a Google rule",
+     "developers.google.com/search/docs/fundamentals/ai-optimization-guide"),
+    (r"AI crawlers do NOT execute JavaScript", "Googlebot renders JS and feeds AI features",
+     "developers.google.com/search/docs/crawling-indexing/javascript"),
     (r"Project Mariner\)", "Mariner's status is secondary-only; describe Google-Agent by function",
      "developers.google.com/crawling"),
 ]

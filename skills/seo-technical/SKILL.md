@@ -24,7 +24,7 @@ metadata:
   separately from working fallback locations
 - Noindex tags: intentional vs accidental
 - Crawl depth: important pages within 3 clicks of homepage
-- JavaScript rendering: check if critical content requires JS execution
+- JavaScript rendering: check if critical content requires JS execution (method in section 8)
 - Crawl budget: for large sites (>10k pages), efficiency matters
 - Googlebot **fetch limits**: Googlebot fetches the first **2MB of HTML** and first **64MB of a PDF** (uncompressed; 15MB is the broader crawler-infra default). Long-standing, not a 2026 change, but inline base64 images, oversized inline CSS/JS, or bloated nav can push critical content/JSON-LD past the cap and out of the index. Keep key content + structured data within the first 2MB.
 - Crawl rate **auto-adjusts** (backs off on 5xx/slow responses); there is **no manual crawl-rate control** (the legacy Search Console setting was removed Jan 2024). Influence crawling via sitemaps, server responsiveness, and robots controls.
@@ -68,7 +68,6 @@ As of 2025-2026, AI companies actively crawl the web to train models and power A
   training use but does NOT affect discoverability via Siri, Spotlight, or Safari,
   which follows `Applebot` (per Apple's support article); `Applebot-Extended` does
   not itself crawl
-- ~3-5% of websites now use AI-specific robots.txt rules
 
 **Example, selective AI crawler blocking:**
 ```
@@ -87,7 +86,7 @@ User-agent: *
 Allow: /
 ```
 
-**Recommendation:** Consider your AI visibility strategy before blocking. Being cited by AI systems drives brand awareness and referral traffic. Cross-reference the `seo-geo` skill for the full AI crawler/fetcher taxonomy.
+**Recommendation:** Consider your AI visibility strategy before blocking: blocking an AI search crawler removes the site from that engine's answers. Do not promise traffic from allowing one. Cross-reference the `seo-geo` skill for the full AI crawler/fetcher taxonomy.
 
 > **Google's user-triggered fetchers ignore robots.txt by design** (other vendors differ: Anthropic's Claude-User honors it). Google now documents **Google-Agent** (user-triggered agentic browsing) plus **Google-GeminiNotebook** (formerly Google-NotebookLM) and **Google Messages** as *user-triggered* fetchers that **cannot be blocked via robots.txt**. Use server-side access controls instead. By contrast, `Google-Extended` and `Google-CloudVertexBot` obey robots.txt. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate cryptographically via a `Signature-Agent` header + key directory at `agent.bot.goog` (used by Google-Agent); reverse-DNS verification remains the fallback.
 
@@ -99,7 +98,7 @@ Allow: /
   interpret an unchanged canonical immediately after a fix as proof that the
   fix failed.
 - Thin content: pages below minimum word counts per type
-- Pagination: rel=next/prev or load-more pattern
+- Pagination: crawlable `<a href>` links to each page (Google has not used rel=next/prev since 2019); give each page a self-referencing canonical; load-more and infinite scroll need paginated URLs behind them
 - Hreflang: correct for multi-language/multi-region sites
 - Index bloat: unnecessary pages consuming crawl budget
 
@@ -123,15 +122,15 @@ Allow: /
 
 ### 5. Mobile Optimization & Page Experience
 - Responsive design: viewport meta tag, responsive CSS
-- Touch targets: minimum 48x48px with 8px spacing
-- Font size: minimum 16px base
+- Touch targets: WCAG 2.2 AA requires at least 24x24 CSS px; 48x48px with spacing is the comfortable guideline (not a Google requirement)
+- Font size: readable text without zooming (16px base is common practice, not a Google rule)
 - No horizontal scroll
 - Mobile-first indexing: Googlebot Smartphone is the primary crawler (rollout completed 2024). A mobile version is **not strictly required** (Google says "very strongly recommended"), sites that don't work on mobile can still be indexed, but the real risk is **content/parity loss**, not hard exclusion.
 - **Mobile/desktop content parity** (highest-value mobile check): equivalent primary content, matching robots meta tags, matching titles/descriptions, equivalent structured data, crawlable resources; avoid lazy-loading primary content that requires user interaction.
 - **Intrusive interstitials / ad density**: flag full-page interstitials, standalone consent-redirect pages, persistent blocking dialogs, and excessive/distracting ad density (a named page-experience aspect). Acceptable: small banners, standard CMS/legal dialogs.
 - **"Read more" deep links**: keep key content **immediately visible on load** (not behind tabs/accordions), don't hijack scroll on load, and preserve URL hash fragments, content hidden behind expandable sections is less likely to qualify.
 
-> **Page experience is guidance, not a single ranking system.** Only **Core Web Vitals** feeds ranking directly; **HTTPS** is a confirmed but lightweight signal (affects <~1% of queries). Relevance can still win even when page experience is sub-par, so don't over-weight security headers. Note: the standalone **Page Experience report was removed** from Search Console (monitor via the Core Web Vitals + HTTPS reports).
+> **Page experience is guidance, not a single ranking system.** Only **Core Web Vitals** feeds ranking directly; **HTTPS** is a confirmed but lightweight signal (Google called it very lightweight when it was announced in 2014). Relevance can still win even when page experience is sub-par, so don't over-weight security headers. Note: the standalone **Page Experience report was removed** from Search Console (monitor via the Core Web Vitals + HTTPS reports).
 
 ### 6. Core Web Vitals
 - **LCP** (Largest Contentful Paint): target <=2.5s
@@ -147,6 +146,7 @@ Allow: /
 - See seo-schema skill for full analysis
 
 ### 8. JavaScript Rendering
+- Method: `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run agentic_check.py <url> --json` reports visible words in the raw HTML (`server-rendered`); compare with `render_page.py <url> --mode always --json` when Chromium is available. Without Chromium, report the raw-HTML result and say rendered content was not compared.
 - Check if content visible in initial HTML vs requires JS
 - Identify client-side rendered (CSR) vs server-side rendered (SSR)
 - Flag SPA frameworks (React, Vue, Angular) that may cause indexing issues
@@ -200,10 +200,17 @@ to `seo-agentic` for the rest:
 
 The Agent-UX 0-100 score above is a local heuristic. Keep it distinct from the
 Lighthouse fraction, and surface its findings as opportunities, not failures.
+A failing Lighthouse `agent-accessibility-tree` audit is different: `seo-agentic`
+rates it P0, because it is Google's own measured check.
 
 ## Output
 
 ### Technical Score: XX/100
+
+Score only what was measured. Each category score is the share of that
+category's checks that passed, adjusted for severity; a category you could not
+measure is reported as "not measured", never given a number. Show the checks
+behind every score.
 
 ### Category Breakdown
 | Category | Status | Score |
@@ -229,7 +236,7 @@ If DataForSEO MCP tools are available, use `on_page_instant_pages` for real page
 
 ## Google API Integration (Optional)
 
-If Google API credentials are configured, use `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run pagespeed_check.py <url> --json` for real PSI + CrUX field data (replaces lab-only CWV estimates), `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run crux_history.py <url> --json` for 25-week CWV trends, and `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_inspect.py <url> --json` for real indexation status per URL.
+If Google API credentials are configured, use `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run pagespeed_check.py <url> --json` for real PSI + CrUX field data (replaces lab-only CWV estimates), `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run crux_history.py <url> --form-factor PHONE --json` for 25-week CWV trends (use PHONE: the all-devices view can hide a mobile failure), and `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_inspect.py <url> --json` for real indexation status per URL.
 
 ## Auditing a Local or Private Host
 

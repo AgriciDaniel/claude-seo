@@ -34,13 +34,16 @@ the contradiction in the report.
 
 ## Key Statistics
 
+Third-party figures below were not re-verified on 2026-09-23. Quote them only
+with their source and date, or leave them out.
+
 | Metric | Value | Source |
 |--------|-------|--------|
 | AI Overviews reach | 2.5 billion+ monthly active users, reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source; 200+ countries | Third-party I/O reporting |
 | AI Overviews query coverage | ~50% of queries (third-party measurement; varies by country) | Industry data |
 | AI Mode monthly users | 1B+, reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source | Third-party I/O reporting |
-| AI Mode model | custom version of Gemini 2.5 | Google |
-| AI-referred sessions growth | 527% (Jan-May 2025) | SparkToro |
+| AI Mode model | Gemini 3.5 Flash is the default since 2026-05-19; versions change often, so never tie advice to a model | Google (blog.google, I/O 2026) |
+| AI-referred sessions growth | 527% (Jan-May 2025) | Third-party (attributed to SparkToro; not re-verified) |
 | ChatGPT weekly active users | 900 million | OpenAI |
 | Perplexity monthly queries | 500+ million | Perplexity |
 
@@ -65,7 +68,10 @@ the contradiction in the report.
 
 ### 1. Citability Score (25%)
 
-**Optimal passage length: 134-167 words** for AI citation. And **~44% of AI
+**Self-contained answer blocks** are easy for AI systems to quote. Third-party
+studies suggest roughly 130-170 words; this is a readability heuristic, not a
+Google requirement (Google's AI optimization guide says you do not need to chunk
+content for AI). And **~44% of AI
 citations come from the first 30% of a page** (SE Ranking study), front-load
 your most citable, self-contained answer rather than burying it below the fold.
 
@@ -103,7 +109,7 @@ your most citable, self-contained answer rather than burying it below the fold.
 
 ### 3. Multi-Modal Content (15%)
 
-Content with multi-modal elements sees **156% higher selection rates**.
+Multi-modal content can support selection in AI answers (third-party claims only; no primary source gives a figure).
 
 **Check for:**
 - Text + relevant images
@@ -132,12 +138,12 @@ Content with multi-modal elements sees **156% higher selection rates**.
 
 ### 5. Technical Accessibility (20%)
 
-**AI crawlers do NOT execute JavaScript.** Server-side rendering is critical.
+**Many AI crawlers fetch raw HTML without running JavaScript** (for example GPTBot and PerplexityBot in public tests), while Googlebot renders JavaScript and feeds AI Overviews and AI Mode. Server-side rendering keeps content visible to all of them.
 
 **Check for:**
 - Server-side rendering (SSR) vs client-only content
 - AI crawler access in robots.txt
-- llms.txt file presence and configuration
+- llms.txt presence (reported for completeness; it carries **no weight** in this score, see `references/llmstxt-evidence.md`)
 - RSL 1.0 licensing terms
 
 ---
@@ -233,7 +239,7 @@ Read `references/llmstxt-evidence.md` for the primary-source evidence (Mueller, 
 > ranking or citation lever. Source:
 > developers.google.com/search/docs/fundamentals/ai-optimization-guide
 
-The emerging **llms.txt** standard provides AI crawlers with structured content guidance.
+**llms.txt** is a community proposal for giving LLMs a curated map of a site; no major AI provider has confirmed using it.
 
 **Location:** `/llms.txt` (root of domain)
 
@@ -274,7 +280,7 @@ New standard (December 2025) for machine-readable AI licensing terms.
 | Platform | Key Citation Sources | Optimization Focus |
 |----------|---------------------|-------------------|
 | **Google AI Overviews** | Strongly ranking-correlated, cites pages that already rank well | Traditional SEO + passage optimization |
-| **Google AI Mode** (custom version of Gemini 2.5) | Weakly ranking-correlated; broader pool (~9 domains cited/query, Ahrefs) | Distinct surface: freshness, entity authority, citable passages beyond position 5 |
+| **Google AI Mode** (Gemini models; 3.5 Flash default since 2026-05-19) | Weakly ranking-correlated; broader pool (~9 domains cited/query, Ahrefs) | Distinct surface: freshness, entity authority, citable passages beyond position 5 |
 | **ChatGPT** | Wikipedia (47.9%), Reddit (11.3%) | Entity presence, authoritative sources |
 | **Perplexity** | Reddit (46.7%), Wikipedia | Community validation, discussions |
 | **Bing Copilot** | Bing index, authoritative sites | Bing SEO, IndexNow |
@@ -332,7 +338,7 @@ Treat a stale ledger (`freshness.stale`) as incomplete.
 Generate `GEO-ANALYSIS.md` with:
 
 1. **GEO Readiness Score: XX/100**
-2. **Platform breakdown** (Google AIO, ChatGPT, Perplexity scores)
+2. **Platform breakdown** (Google AIO, ChatGPT, Perplexity): give a score only for platforms measured with a tool (for example DataForSEO or SE Ranking); otherwise report qualitative readiness and say it was not measured
 3. **AI Crawler Access Status** -- report each crawler separately with the
    capability it governs. Training access (`GPTBot`, `Google-Extended`, `CCBot`,
    `ClaudeBot`, `Applebot-Extended`) and search citability (`OAI-SearchBot`,
@@ -340,7 +346,7 @@ Generate `GEO-ANALYSIS.md` with:
    findings and must never be merged into one line.
 4. **llms.txt Status** (present, missing, recommendations)
 5. **Brand Mention Analysis** (presence on Wikipedia, Reddit, YouTube, LinkedIn)
-6. **Passage-Level Citability** (optimal 134-167 word blocks identified)
+6. **Passage-Level Citability** (self-contained answer blocks identified; ~130-170 words is a heuristic, not a Google rule)
 7. **Server-Side Rendering Check** (JavaScript dependency analysis)
 8. **Top 5 Highest-Impact Changes**
 9. **Schema Recommendations** (for AI discoverability)
@@ -351,7 +357,7 @@ Generate `GEO-ANALYSIS.md` with:
 ## Quick Wins
 
 1. Add "What is [topic]?" definition in first 60 words
-2. Create 134-167 word self-contained answer blocks
+2. Create self-contained answer blocks (about 130-170 words is a common heuristic)
 3. Add question-based H2/H3 headings
 4. Include specific statistics with sources
 5. Add publication/update dates
