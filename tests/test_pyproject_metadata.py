@@ -27,11 +27,22 @@ def test_pyproject_has_minimal_ruff_config_only() -> None:
     assert 'ignore = ["E501"]' in text
 
 
-def test_requirements_accept_selected_security_compatibility_floors() -> None:
+def _floor(text: str, package: str) -> tuple[int, ...]:
+    match = re.search(rf"^{re.escape(package)}>=([0-9.]+),<", text, re.MULTILINE)
+    assert match, f"{package} needs a bounded '>=floor,<ceiling' requirement"
+    return tuple(int(part) for part in match.group(1).split("."))
+
+
+def test_requirements_keep_security_and_compatibility_floors() -> None:
+    """Floors may rise (Dependabot bumps) but never fall below these minimums."""
     text = (REPO_ROOT / "requirements.txt").read_text(encoding="utf-8")
-    assert re.search(r"^lxml>=6\.1\.1,<7\.0\.0", text, re.MULTILINE)
-    assert re.search(r"^lxml_html_clean>=0\.4\.3,<1\.0\.0", text, re.MULTILINE)
-    assert re.search(r"^urllib3>=2\.7\.0,<3\.0\.0", text, re.MULTILINE)
-    assert re.search(r"^numpy>=2\.2\.6,<3\.0\.0", text, re.MULTILINE)
-    assert re.search(r"^google-auth-httplib2>=0\.4\.0,<1\.0\.0", text, re.MULTILINE)
-    assert re.search(r"^google-ads>=25\.0\.0,<40\.0\.0", text, re.MULTILINE)
+    minimums = {
+        "lxml": (6, 1, 1),
+        "lxml_html_clean": (0, 4, 5),   # advisories fixed in 0.4.4 and 0.4.5
+        "urllib3": (2, 7, 0),
+        "numpy": (2, 2, 6),
+        "google-auth-httplib2": (0, 4, 0),
+        "google-ads": (25, 0, 0),
+    }
+    for package, minimum in minimums.items():
+        assert _floor(text, package) >= minimum, f"{package} floor is below {minimum}"

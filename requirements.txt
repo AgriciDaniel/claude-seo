@@ -1,17 +1,17 @@
 # Claude SEO - Python Dependencies
 # Bounded version pinning with security-conscious minimums
-# Last updated: September 10, 2026 (v2.3.1)
+# Last updated: September 23, 2026 (v2.4.0 floors)
 
 beautifulsoup4>=4.15.0,<5.0.0     # No known CVEs
 requests>=2.34.2,<3.0.0           # CVE-2024-47081, CVE-2024-35195 fixes
 lxml>=6.1.1,<7.0.0                # CVE-2025-24928 + additional libxml2 security patches
-lxml_html_clean>=0.4.3,<1.0.0     # lxml 6 removed html.clean into this standalone package
+lxml_html_clean>=0.4.5,<1.0.0     # lxml 6 removed html.clean into this standalone package
 playwright>=1.62.0,<2.0.0         # CVE-2025-59288 fix (macOS)
 urllib3>=2.7.0,<3.0.0             # High-severity urllib3 advisories GHSA-mf9v-mfxr-j63j, GHSA-qccp-gfcp-xxvc
 
 # v2.0.0 Phase A: headless rendering across all agents
-trafilatura>=2.1.0,<3.0.0         # Boilerplate-free content extraction (SPA-safe)
-htmldate>=1.9.0,<2.0.0            # Publication-date extraction for freshness signals
+trafilatura>=2.2.0,<3.0.0         # Boilerplate-free content extraction (SPA-safe)
+htmldate>=1.10.0,<2.0.0           # Publication-date extraction for freshness signals
 courlan>=1.4.0,<2.0.0             # trafilatura URL helper; explicit pin avoids transitive drift
 
 # Report generation (for seo-google PDF/Excel reports)
@@ -23,6 +23,6 @@ openpyxl>=3.1.5,<4.0.0                # No known CVEs (Excel export)
 # Google API dependencies (for seo-google skill)
 google-api-python-client>=2.196.0,<3.0.0   # No known CVEs
 google-auth>=2.56.2,<3.0.0                  # No known CVEs
-google-auth-httplib2>=0.4.0,<1.0.0           # Compatibility floor for current google-auth stack
+google-auth-httplib2>=0.4.2,<1.0.0           # Compatibility floor for current google-auth stack
 google-analytics-data>=0.18.0,<1.0.0         # No known CVEs
-google-ads>=25.0.0,<40.0.0                   # Direct import in keyword_planner.py
+google-ads>=31.4.0,<40.0.0                   # Direct import in keyword_planner.py
