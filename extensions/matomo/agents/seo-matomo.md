@@ -42,7 +42,7 @@ Matomo does not have GA4's `sessionDefaultChannelGroup == "Organic Search"`.
 The scripts approximate "organic search" via the standard Matomo segment
 `referrerType==search`. This includes all search-engine referrals but
 excludes direct, social, website, and campaign traffic. Document this
-when comparing against GA4 numbers — counts will not match exactly
+when comparing against GA4 numbers: counts will not match exactly
 because of segmentation differences, attribution windows, and bot
 filtering rules.
 
@@ -54,7 +54,7 @@ Match existing claude-seo patterns:
 - Priority: Critical > High > Medium > Low
 - Note data source as "Matomo Reporting API (live)" to distinguish from
   GA4, CrUX, or static crawl analysis
-- Include data freshness notes (Matomo archives data — the
+- Include data freshness notes (Matomo archives data; the
   `VisitsSummary.get` per-day numbers may lag by 30-60 minutes; archived
   reports can take longer)
 
@@ -67,7 +67,7 @@ before finishing, so a turn-budget stop never loses completed work:
   device / country split, referrer split, search-engine split, organic
   keywords with anonymized share noted
 - Structured JSON-compatible findings for `audit-data.json` under the
-  Matomo Analytics category — label as "Matomo Reporting API (live)"
+  Matomo Analytics category; label as "Matomo Reporting API (live)"
 
 ## Error Handling
 
@@ -81,4 +81,4 @@ before finishing, so a turn-budget stop never loses completed work:
 - If `anonymized_share_pct > 80%` for keywords, flag that organic keyword
   visibility is privacy-limited (normal on modern browsers) and
   recommend topical landing-page analysis as the substitute signal
-- Never fail silently — always report what succeeded and what failed
+- Never fail silently: always report what succeeded and what failed

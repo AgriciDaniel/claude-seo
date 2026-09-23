@@ -79,7 +79,7 @@ jobs:
             [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
             if ($errors.Count -gt 0) {
               $failed = $true
-              $errors | ForEach-Object { Write-Host "::error file=$($_.Extent.File),line=$($_.Extent.StartLineNumber)::$($_.Message)" }
+              $errors | ForEach-Object { Write-Host ("PARSE ERROR {0} line {1}: {2}" -f $_.Extent.File, $_.Extent.StartLineNumber, $_.Message) }
             }
           }
           if ($failed) { exit 1 }
@@ -210,7 +210,7 @@ jobs:
             [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
             if ($errors.Count -gt 0) {
               $failed = $true
-              $errors | ForEach-Object { Write-Host "::error file=$($_.Extent.File),line=$($_.Extent.StartLineNumber)::$($_.Message)" }
+              $errors | ForEach-Object { Write-Host ("PARSE ERROR {0} line {1}: {2}" -f $_.Extent.File, $_.Extent.StartLineNumber, $_.Message) }
             }
           }
           if ($failed) { exit 1 }

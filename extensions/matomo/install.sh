@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude SEO — Matomo extension installer.
+# Claude SEO: Matomo extension installer.
 #
 # Self-hosted (or Matomo Cloud) Reporting API. Provides organic traffic,
 # landing pages, device / country breakdowns, and referrer analysis as a
@@ -14,7 +14,7 @@ main() {
     AGENTS_DIR="${HOME}/.claude/agents"
 
     echo "════════════════════════════════════════"
-    echo "║ Claude SEO — Matomo extension       ║"
+    echo "║ Claude SEO - Matomo extension       ║"
     echo "════════════════════════════════════════"
 
     command -v python3 >/dev/null 2>&1 || { echo "✗ Python 3 required."; exit 1; }

@@ -20,10 +20,10 @@
 
 You'll be prompted for:
 
-- Matomo instance URL (e.g. `https://analytics.example.com`) — must
+- Matomo instance URL (e.g. `https://analytics.example.com`); must
   start with `http://` or `https://` and have no userinfo
 - Matomo API `token_auth` (32-character hex)
-- Default `idSite` (optional, e.g. `1`) — saves having to pass
+- Default `idSite` (optional, e.g. `1`); saves having to pass
   `--site-id` on every call
 
 The installer writes them to `~/.config/claude-seo/matomo.json` with `0600`
@@ -49,7 +49,7 @@ export MATOMO_SITE_ID="1"
 3. Click **Create a new token**, give it a meaningful name
    (e.g. "claude-seo") and `view` access on the sites you want to
    analyze
-4. Copy the generated `token_auth` (32 hex chars) — Matomo only shows
+4. Copy the generated `token_auth` (32 hex chars). Matomo only shows
    it once at creation
 
 ## Self-hosted instance on a private address
@@ -111,7 +111,7 @@ When `matomo_auth.py --check` succeeds, the `/seo audit` orchestrator
 spawns the `seo-matomo` agent alongside the existing specialists. The
 agent writes `output_dir/findings/matomo.md` with organic traffic trend,
 top landing pages, device / country split, and referrer breakdown. It
-works alongside `seo-google` — both can run in the same audit when you
+works alongside `seo-google`: both can run in the same audit when you
 have both GA4 and Matomo configured.
 
 ## Uninstall
