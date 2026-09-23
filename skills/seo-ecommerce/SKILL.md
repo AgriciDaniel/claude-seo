@@ -195,8 +195,10 @@ Identify mismatches between organic and Shopping visibility.
 
 1. Fetch organic rankings via seo-dataforseo:
    `dataforseo_labs_google_ranked_keywords` for domain
-2. Fetch Google Shopping presence via Merchant API:
-   `merchant_google_products_search` for top organic keywords
+2. Fetch Google Shopping presence through the Merchant REST script (not an
+   MCP tool; the cost-ledger key is `merchant_google_products_search`):
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_merchant.py search <keyword>`
+   for the top organic keywords
 3. Cross-reference results
 
 ### Gap Types
