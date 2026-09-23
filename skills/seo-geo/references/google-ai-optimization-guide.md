@@ -38,9 +38,9 @@ as classic Search. Two AI techniques layer on top:
    additional results before answering.
 
 **Eligibility floor:** a page must be **indexed and eligible to be shown with
-a snippet in Google Search**, and the site must be **included in "Search
-generative AI features" in Search Console** (include is the default; sites can
-exclude; rolled out to all sites worldwide 2026-08-31,
+a snippet in Google Search**, and the site must be **included in Search generative AI features** through
+the Search Console "Search generative AI" control (include is the default;
+the options are include, exclude or inherit; rolled out to all sites worldwide 2026-08-31,
 https://support.google.com/webmasters/answer/16908024). The setting is not a
 ranking signal and not a training control. There is no separate "AI index". Everything that follows is SEO fundamentals applied through this
 lens.
@@ -123,8 +123,8 @@ consumers and safe patterns are tracked separately in
 name **UCP** (Universal
 Commerce Protocol, open standard co-developed with Shopify, Etsy, Wayfair,
 Target, Walmart; Google-confirmed reference implementation in AI Mode in
-Search; ucp.dev lists 2026-04-08 as the latest date-based release, non-Google
-and hedged). UCP audit criteria:
+Search; ucp.dev lists 2026-08-25 as the latest date-based release, while
+Google's merchant guide documents 2026-04-08). UCP audit criteria:
 `${CLAUDE_PLUGIN_ROOT}/skills/seo-ecommerce/references/ucp-universal-commerce-protocol.md`.
 
 ## How claude-seo treats this guide
@@ -144,6 +144,6 @@ and hedged). UCP audit criteria:
 
 - Google publishes new myth-busting / clarification.
 - Any of the linked policy docs revise eligibility or enforcement language.
-- The UCP / WebMCP standards advance (UCP has ucp.dev-listed date-based spec
-  2026-04-08, non-Google and hedged; WebMCP status is tracked in
+- The UCP / WebMCP standards advance (UCP spec 2026-08-25 on ucp.dev, 2026-04-08
+  in Google's merchant guide; WebMCP status is tracked in
   `${CLAUDE_PLUGIN_ROOT}/skills/seo-agentic/references/vendor-matrix.md`).

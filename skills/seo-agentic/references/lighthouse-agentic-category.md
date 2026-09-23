@@ -119,6 +119,6 @@ counted audit.
 ## Recheck triggers
 
 - A new Lighthouse minor version (compare the category `auditRefs`).
-- WebMCP leaving origin trial (Chrome milestone 157 is a target, not a
-  commitment; the trial runs M149 to M156).
+- WebMCP leaving origin trial (the trial runs M149 to M156; no ship
+  milestone is announced).
 - Changes to the ARD schema pin (`third-party/ard/README.md` in Lighthouse).

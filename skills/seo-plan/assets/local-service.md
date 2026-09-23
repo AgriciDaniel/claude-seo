@@ -102,7 +102,7 @@
 
 - **Video verification** is now standard: postcard verification has been largely phased out. Prepare for a short video verification process showing the business location or service area.
 - **WhatsApp integration** replaced Google Business Chat (deprecated). Businesses can connect WhatsApp as their primary messaging channel.
-- **GBP Q&A availability**: GBP Q&A remains available for select categories/regions; maintain Q&A and supporting website FAQ content where relevant.
+- **GBP Q&A**: Google discontinued its Q&A API on 2025-11-03 and public Q&A is reportedly being phased out; answer common questions on the website and in the business description instead.
 - **Business hours are a top-5 ranking factor**: "Business is open at time of search" ranked as a top individual factor for the first time (Whitespark 2026 Local Search Ranking Factors Report). Keep hours accurate; consider extended hours if feasible.
 - **Review "Stories" format**: Google Maps now shows review snippets in a swipeable Stories format on mobile. Encourage detailed, descriptive reviews with photos.
 

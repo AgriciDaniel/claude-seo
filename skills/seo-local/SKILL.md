@@ -163,7 +163,7 @@ Citations declining for traditional pack rankings but **3 of top 5 AI visibility
 - Bing Places awareness (powers ChatGPT, Copilot, Alexa -- recommend claiming and optimizing)
 - Industry-specific directory recommendations: load `../seo/references/local-schema-types.md` for per-vertical citation sources
 - Data aggregator awareness: Data Axle, Foursquare, Neustar/TransUnion (recommend submission for downstream distribution)
-- Regional Search units: in the EEA, South Africa and Turkiye, Google's aggregator and supplier units also cover local business queries since 2026-09-18 (see `seo-hreflang` section 5c); note this for businesses serving those markets
+- Regional Search units: in the EEA, Google's aggregator and supplier units also cover local business queries since 2026-09-18; Türkiye has separate places-site features (see `seo-hreflang` section 5c); note this for businesses serving those markets
 
 **Scoring guide:**
 - Full: Consistent NAP across page/schema, Tier 1 citations detected, industry directories present

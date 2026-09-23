@@ -53,12 +53,13 @@ Syntax: `Content-Signal: search=yes, ai-input=yes, ai-train=no`.
 | `search` | Building a search index and showing links/snippets (excludes AI summaries) |
 | `ai-input` | Using content as input to an AI answer (RAG, grounding) |
 | `ai-train` | Training or fine-tuning models |
-| `use` | Experimental Cloudflare field (`immediate`, `reference`, `full`); the managed default was `search=yes, ai-train=no, use=reference` in 2026-09 |
+| `use` | Experimental Cloudflare field (`immediate`, `reference`, `full`); Cloudflare's managed default includes `use=reference` (docs give no date) |
 
 Status: Cloudflare's CC0 Content Signals Policy (launched 2025-09-24). The
 IETF individual draft `draft-romm-aipref-contentsignals` expired 2026-04-04;
 the IETF AIPREF working group vocabulary (`draft-ietf-aipref-vocab`) has not
-reached consensus. Google has said it does not act on Content-Signal. Present
+reached consensus. We found no Google statement about Content-Signal; Google's
+robots.txt spec lists only the fields it supports, and this is not one. Present
 it as a stated preference with no confirmed effect.
 
 ## Illustrative robots.txt (welcomes agents and search, not training)

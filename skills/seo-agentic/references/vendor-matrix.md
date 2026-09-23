@@ -31,10 +31,10 @@ Opera and Comet agent actions is unverified.
 | ChatGPT Atlas browser | reported stopped 2026-08-09; ChatGPT agent removed early Aug 2026 | S |
 | ChatGPT Instant Checkout | reported moved to Apps in 2026-03 | S |
 | Project Mariner | reported shut down 2026-05-04 | S |
-| Chrome WebMCP origin trial | M149 to M156; M157 targeted, not committed | P (range), S (end date 2026-11-17) |
+| Chrome WebMCP origin trial | M149 to M156; no ship milestone announced | P (range), S (end date 2026-11-17) |
 | Lighthouse | 13.5.0 (npm latest, 2026-09-18); PSI runs 13.5.0 | P |
 | Web Bot Auth | `draft-ietf-webbotauth-httpsig-protocol-00` (2026-09-01); `Signature-Agent` dictionary form | P |
-| Content-Signal | Cloudflare CC0 policy; IETF individual draft expired 2026-04-04; Google does not act on it | P |
+| Content-Signal | Cloudflare CC0 policy; IETF individual draft expired 2026-04-04 (P); no Google statement found, and Google's robots.txt spec does not list the field (S) | P/S |
 | MCP Server Card | SEP-2127 open and unmerged (updated 2026-09-12) | P |
 
 ## Evidence of impact (flag vendor numbers)

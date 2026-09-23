@@ -88,7 +88,7 @@ Allow: /
 
 **Recommendation:** Consider your AI visibility strategy before blocking: blocking an AI search crawler removes the site from that engine's answers. Do not promise traffic from allowing one. Cross-reference the `seo-geo` skill for the full AI crawler/fetcher taxonomy.
 
-> **Google's user-triggered fetchers ignore robots.txt by design** (other vendors differ: Anthropic's Claude-User honors it). Google now documents **Google-Agent** (user-triggered agentic browsing) plus **Google-GeminiNotebook** (formerly Google-NotebookLM) and **Google Messages** as *user-triggered* fetchers that **cannot be blocked via robots.txt**. Use server-side access controls instead. By contrast, `Google-Extended` and `Google-CloudVertexBot` obey robots.txt. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate cryptographically via a `Signature-Agent` header + key directory at `agent.bot.goog` (used by Google-Agent); reverse-DNS verification remains the fallback.
+> **Google's user-triggered fetchers generally ignore robots.txt rules** (other vendors differ: Anthropic's Claude-User honors it). Google now documents **Google-Agent** (user-triggered agentic browsing) plus **Google-GeminiNotebook** (formerly Google-NotebookLM) and **Google Messages** as *user-triggered* fetchers that **cannot be blocked via robots.txt**. Use server-side access controls instead. By contrast, `Google-Extended` and `Google-CloudVertexBot` obey robots.txt. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate cryptographically via a `Signature-Agent` header + key directory at `agent.bot.goog` (used by Google-Agent); reverse-DNS verification remains the fallback.
 
 ### 2. Indexability
 - Canonical tags: self-referencing, no conflicts with noindex
@@ -98,7 +98,7 @@ Allow: /
   interpret an unchanged canonical immediately after a fix as proof that the
   fix failed.
 - Thin content: pages below minimum word counts per type
-- Pagination: crawlable `<a href>` links to each page (Google has not used rel=next/prev since 2019); give each page a self-referencing canonical; load-more and infinite scroll need paginated URLs behind them
+- Pagination: crawlable `<a href>` links to each page (Google no longer uses rel=next/prev; it announced this in 2019); give each page a self-referencing canonical; load-more and infinite scroll need paginated URLs behind them
 - Hreflang: correct for multi-language/multi-region sites
 - Index bloat: unnecessary pages consuming crawl budget
 

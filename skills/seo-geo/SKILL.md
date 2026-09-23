@@ -42,7 +42,7 @@ with their source and date, or leave them out.
 | AI Overviews reach | 2.5 billion+ monthly active users, reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source; 200+ countries | Third-party I/O reporting |
 | AI Overviews query coverage | ~50% of queries (third-party measurement; varies by country) | Industry data |
 | AI Mode monthly users | 1B+, reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source | Third-party I/O reporting |
-| AI Mode model | Gemini 3.5 Flash is the default since 2026-05-19; versions change often, so never tie advice to a model | Google (blog.google, I/O 2026) |
+| AI Mode model | Google upgrades it often (Gemini 3.5 Flash became the default on 2026-05-19, and newer Flash models have shipped since); never tie advice to a model | Google (blog.google) |
 | AI-referred sessions growth | 527% (Jan-May 2025) | Third-party (attributed to SparkToro; not re-verified) |
 | ChatGPT weekly active users | 900 million | OpenAI |
 | Perplexity monthly queries | 500+ million | Perplexity |
@@ -224,7 +224,7 @@ bot's robots.txt status** -- check them separately and report them separately.
 Do not use these names interchangeably in report prose. When reporting crawler access,
 name the specific user-agent that was checked and the specific capability it governs.
 
-> **Google's user-triggered fetchers ignore robots.txt by design** (Google-Agent, Google-GeminiNotebook, Google Messages); OpenAI says robots.txt "may not apply" to ChatGPT-User, while Anthropic's Claude-User honors it. robots.txt cannot block them, use server-side access controls. Google's canonical crawling/robots reference moved to **developers.google.com/crawling** (migrated 2025-11-20); IP-range files now live at `/crawling/ipranges/` and `googlebot.json` was renamed `common-crawlers.json`. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate via a `Signature-Agent` header + key directory (used by Google-Agent); reverse-DNS verification remains the fallback.
+> **Google's user-triggered fetchers generally ignore robots.txt rules** (Google-Agent, Google-GeminiNotebook, Google Messages); OpenAI says robots.txt "may not apply" to ChatGPT-User, while Anthropic's Claude-User honors it. robots.txt cannot block them, use server-side access controls. Google's canonical crawling/robots reference moved to **developers.google.com/crawling** (migrated 2025-11-20); IP-range files now live at `/crawling/ipranges/` and `googlebot.json` was renamed `common-crawlers.json`. Emerging: **Web Bot Auth** (RFC 9421) lets bots authenticate via a `Signature-Agent` header + key directory (used by Google-Agent); reverse-DNS verification remains the fallback.
 
 ---
 
@@ -280,7 +280,7 @@ New standard (December 2025) for machine-readable AI licensing terms.
 | Platform | Key Citation Sources | Optimization Focus |
 |----------|---------------------|-------------------|
 | **Google AI Overviews** | Strongly ranking-correlated, cites pages that already rank well | Traditional SEO + passage optimization |
-| **Google AI Mode** (Gemini models; 3.5 Flash default since 2026-05-19) | Weakly ranking-correlated; broader pool (~9 domains cited/query, Ahrefs) | Distinct surface: freshness, entity authority, citable passages beyond position 5 |
+| **Google AI Mode** (Gemini models, upgraded often) | Weakly ranking-correlated; broader pool (~9 domains cited/query, Ahrefs) | Distinct surface: freshness, entity authority, citable passages beyond position 5 |
 | **ChatGPT** | Wikipedia (47.9%), Reddit (11.3%) | Entity presence, authoritative sources |
 | **Perplexity** | Reddit (46.7%), Wikipedia | Community validation, discussions |
 | **Bing Copilot** | Bing index, authoritative sites | Bing SEO, IndexNow |
@@ -313,14 +313,14 @@ Google added many AI citation/source surfaces across AI Overviews **and** AI Mod
   **per-user preference**, not a documented general ranking signal. Publishers
   may offer Google's interactive button or a deeplink, but should not promise a
   site-wide ranking lift. Since 2026-09-18 the docs also require the site to be
-  included in the Search Console "Search generative AI features" setting to
+  included in Search generative AI features (the Search Console "Search generative AI" control) to
   show as a preferred source in AI Mode and AI Overviews. Source:
   developers.google.com/search/docs/appearance/preferred-sources
 - **"Highly Cited" badges**, earned via original primary reporting that other articles cite.
 - **Community Perspectives**, elevates Reddit/forum/firsthand content.
 - Inline links, desktop hover **Link Previews**, and prominent link carousels.
 
-**Controlling AI-feature appearance:** there is **no AI-specific opt-out file**, but since 2026-08-31 every site has a Search Console setting, "Search generative AI features" (include by default, or exclude), that controls eligibility for AI Overviews and AI Mode; it is not a ranking signal or a training control. Beyond that, appearance is governed by standard preview/index directives, `nosnippet`, `data-nosnippet`, `max-snippet`, `noindex` (distinct from the third-party AI-crawler robots controls above). Source: developers.google.com/search/docs/appearance/ai-features
+**Controlling AI-feature appearance:** there is **no AI-specific opt-out file**, but since 2026-08-31 every site has a Search Console control, "Search generative AI" (include by default, exclude, or inherit), that controls eligibility for AI Overviews and AI Mode; it is not a ranking signal or a training control. Beyond that, appearance is governed by standard preview/index directives, `nosnippet`, `data-nosnippet`, `max-snippet`, `noindex` (distinct from the third-party AI-crawler robots controls above). Source: developers.google.com/search/docs/appearance/ai-features
 
 **Search agents (live, not just WebMCP):** Google's "Information Agents" run in the background to monitor topics, plus agentic booking/calling for select categories (rolling out to US users, summer 2026), so agent-friendly-page optimization (real interactive elements, accessibility tree, layout stability) now matters for actions, not only citations. Audit that with `/seo agentic` (the `seo-agentic` sub-skill), which also reads Lighthouse's Agentic Browsing fraction.
 

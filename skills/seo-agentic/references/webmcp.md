@@ -11,7 +11,7 @@ checked 2026-09-23.
 | Item | Status |
 |---|---|
 | Spec | W3C Web Machine Learning Community Group draft ("not a W3C Standard nor on the Standards Track"); last spec commit 2026-09-17. Editors from Microsoft and Google. |
-| Chrome | Origin trial M149 to M156 (chromestatus 5117755740913664); dev flag `chrome://flags/#enable-webmcp-testing`. M157 is a target, not a commitment. |
+| Chrome | Origin trial M149 to M156 (chromestatus 5117755740913664); dev flag `chrome://flags/#enable-webmcp-testing` (Chrome's WebMCP docs, updated 2026-08-07). No ship milestone is announced. |
 | Edge | Testing in Canary/Dev; origin trial; MicrosoftEdge/webmcp-labs samples and WebMCP Explorer. No evidence Copilot consumes tools. |
 | WebKit | Position `oppose` (standards-positions #670): prefers the accessibility tree over a parallel tool layer. Exact dates and quotes come from secondary trackers. |
 | Mozilla | Position `neutral` (#1412): interest in the imperative API, not the declarative one. |

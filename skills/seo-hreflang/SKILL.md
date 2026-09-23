@@ -71,13 +71,18 @@ XML sitemap implementations.
   country-targeting setting were removed in 2022**, do **not** recommend setting
   country targeting in GSC; hreflang is the remaining lever.
 
-### 5c. Region-specific Search units (EEA, South Africa, Turkiye)
-- Google documents Search experiences that exist only in certain countries:
-  **aggregator units**, **supplier units**, and carousels for hotel, flight,
-  long-distance transport, and product queries shown to users in the EEA,
-  South Africa, and Turkiye (documentation added 2026-09-08), and since
-  2026-09-18 for local business queries too. Eligibility and
-  participation are documented per unit; they are not ranking signals.
+### 5c. Region-specific Search units (EEA, South Africa, Türkiye)
+- Google documents Search experiences that exist only in certain regions
+  (documentation added 2026-09-08; https://developers.google.com/search/docs/appearance/aggregator-features):
+  - **EEA only:** aggregator units and supplier units (hotels, flights, ground
+    transportation, products, and since 2026-09-18 local businesses), the
+    ecosystem carousel, and job-site features.
+  - **Türkiye:** places-site features (hotels, local businesses).
+  - **South Africa:** a badge and refinement chip for travel, products, car
+    hire, food delivery and ground transportation.
+  - **Structured data carousels** in all three, with different query types.
+  Eligibility and participation are documented per unit; they are not ranking
+  signals.
 - When a site serves those regions with hreflang variants, note in the report
   whether the business is an aggregator or a direct supplier and point to the
   regional documentation, so the client is not surprised by a different result

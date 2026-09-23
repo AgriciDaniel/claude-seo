@@ -331,7 +331,7 @@
       "name": "Search generative AI control and gen-AI reports roll out worldwide",
       "kind": "product",
       "source": "https://support.google.com/webmasters/answer/16908024",
-      "notes": "A Search Console property setting (Settings > Search generative AI) can include (the default), exclude, or inherit from the parent property, and covers AI Overviews, AI Mode, and gen-AI features in Discover. Excluded sites get no links, grounding, or impressions in those features. The setting is not a ranking signal elsewhere and does not affect AI training (use Google-Extended for training). The Generative AI performance reports also reached all sites on this date."
+      "notes": "A Search Console property setting (Settings > Search generative AI) can include (the default), exclude, or inherit from the parent property, and covers AI Overviews, AI Mode, and gen-AI features in Discover. Excluded sites get no links, grounding, or impressions in those features. The setting is not a ranking signal elsewhere and does not affect AI training (use Google-Extended for training). The Generative AI performance reports also reached all sites on this date (source: https://support.google.com/webmasters/answer/16984139)."
     },
     {
       "date": "2026-09-08",
