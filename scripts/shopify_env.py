@@ -5,8 +5,9 @@ Read Shopify Crawler Access signatures from a project-local `.shopify-env`.
 Shopify merchants mint a crawl credential in their admin under
 Online Store > Preferences > Crawler access. The admin prints three HTTP
 header values (RFC 9421 message signature, tag "web-bot-auth"). A crawler
-that replays them is not rate limited by the storefront. The signature is
-bound to one authority (host) and expires after roughly 90 days.
+that replays them is one the merchant authorized; Shopify's help page says a
+signed crawler that gets rate-limit errors has an invalid signature. The
+signature is bound to one authority (host) and expires after roughly 90 days.
 
 The file lives in the folder an audit runs from, one block per shop. A new
 `Domain=` line starts a block; keys before the first `Domain=` are crawl
@@ -68,6 +69,21 @@ CRAWL_KEYS = {
     "save-html": ("save_html", _flag),
     "ignore-robots": ("ignore_robots", _flag),
 }
+
+# Inclusive ranges for the crawl keys that set request pressure on the store.
+# A value outside its range is ignored with a problem, so the default applies.
+CRAWL_BOUNDS = {
+    "concurrency": (1, 16),
+    "delay": (0.0, 60.0),
+}
+
+
+def out_of_bounds(field: str, value) -> bool:
+    """True when `value` falls outside CRAWL_BOUNDS[field]; NaN counts as outside."""
+    if field not in CRAWL_BOUNDS:
+        return False
+    low, high = CRAWL_BOUNDS[field]
+    return not low <= value <= high
 
 
 def normalize_key(raw: str) -> str:
@@ -192,6 +208,11 @@ def parse_env_file(path: Path) -> dict:
             except (TypeError, ValueError):
                 result["problems"].append(f"line {lineno}: {key} is not usable (ignored)")
                 continue
+            if out_of_bounds(field, cast):
+                low, high = CRAWL_BOUNDS[field]
+                result["problems"].append(
+                    f"line {lineno}: {key} must be between {low} and {high} (ignored)")
+                continue
             target = block.setdefault("crawl", {}) if block else result["crawl"]
             target[field] = cast
             continue
@@ -280,6 +301,11 @@ def precheck(url: str, start: Path | None = None) -> dict:
         result["detail"] = (f"{env['path']} has no block for {authority}. A signature is bound "
                             f"to one host; if the store serves on the other of apex/www, "
                             f"check that host.")
+        return result
+    if "://" in url and urlparse(url).scheme.lower() != "https":
+        result["reason"] = "insecure_scheme"
+        result["detail"] = (f"{url} is not https. The signature is never sent over plain "
+                            f"http; audit https://{authority} instead.")
         return result
     left = days_left(entry.get("expires"))
     if not left == left or left <= 0:  # NaN or expired

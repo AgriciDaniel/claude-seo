@@ -2,7 +2,7 @@
 name: seo-shopify
 description: "Uncapped, sitemap-complete crawl of a Shopify storefront using the merchant's Crawler Access signature from a project-local .shopify-env, feeding the standard seo-audit pipeline. Use when the user says 'Shopify audit', 'crawl the whole store', 'Crawler access', 'signature-agent', 'web-bot-auth', 'rate limited while crawling', or audits a host listed in .shopify-env."
 metadata:
-  version: "2.3.0"
+  version: "2.4.0"
 compatibility: "Requires a Shopify store the user administers (the signature is minted in the store's admin) and a .shopify-env file in the folder the audit runs from. Without it, seo-audit runs unchanged."
 ---
 
@@ -11,9 +11,10 @@ compatibility: "Requires a Shopify store the user administers (the signature is 
 Shopify rate-limits storefront crawling, and `seo-audit` caps its link-following
 crawl at 500 pages. A merchant can mint a **Crawler Access** signature in their
 admin (Online Store > Preferences > Crawler access). A crawler that replays the
-three resulting headers is treated as an authenticated crawler and is not rate
-limited, and Shopify publishes a complete nested sitemap for every store. Together
-that makes an uncapped, sitemap-complete crawl possible without guessing at a cap.
+three resulting headers is treated as a crawler the merchant authorized; Shopify's
+help page says rate-limit errors on a signed crawl mean the signature is invalid.
+Shopify also publishes a complete nested sitemap for every store. Together that
+makes an uncapped, sitemap-complete crawl possible without guessing at a cap.
 
 This skill adds that crawl. It replaces **step 3 only** of `seo-audit` (the crawl).
 Business-type detection, subagent delegation, scoring and reports stay as
@@ -63,8 +64,9 @@ against that host.
 "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run shopify_crawl.py <url> --out ./crawl
 ```
 
-No `--max-pages`. The crawl covers the complete sitemap; a cap applies only when
-`.shopify-env` or the command line sets one, and the summary then carries
+No `--max-pages`. A signed crawl covers the complete sitemap; a cap applies only when
+`.shopify-env` or the command line sets one (an unsigned crawl defaults to 500
+pages), and the summary then carries
 `"truncated": true`. Report the real number of pages crawled, never a rounded cap.
 
 Exit codes:
@@ -79,8 +81,9 @@ Exit codes:
 Large stores: the crawl is resumable (`--resume`). If it was interrupted, resume it
 instead of auditing a partial crawl.
 
-Defaults: no page limit; concurrency 6 and a 0.2 s delay when signed, 2 and 1 s
-unsigned; robots.txt respected; redirects recorded, not followed; bodies read up to
+Defaults: no page limit, concurrency 6 and a 0.2 s delay when signed; 500 pages,
+concurrency 2 and 1 s unsigned (concurrency is bounded to 1-16, delay to 0-60 s);
+never signed over plain `http://`; robots.txt respected; redirects recorded, not followed; bodies read up to
 10 MiB per page and the sitemap walk bounded at 5 levels, 500 sitemaps and 250,000
 URLs (`discovery_capped` in `summary.json` names the cap that was hit). Precedence is
 command line > domain block > global keys > these defaults. Useful flags:

@@ -455,9 +455,12 @@ Setup walkthroughs live under `extensions/<name>/docs/`; integration notes: [doc
 Shopify rate-limits storefront crawling and `seo-audit` caps its link crawl at 500
 pages. For a store you administer, mint a Crawler Access signature in the Shopify
 admin (Online Store > Preferences > Crawler access), put it in a project-local
-`.shopify-env`, and `/seo shopify <url>` crawls the complete sitemap with no page cap and
-no storefront rate limiting before handing the artifacts to the audit pipeline. No API
-keys; the credential stays in your project folder and is git-ignored.
+`.shopify-env`, and `/seo shopify <url>` crawls the complete sitemap with no page cap
+as a crawler the merchant authorized, then hands the artifacts to the audit pipeline.
+Shopify's help page ties rate-limit errors on a signed crawl to an invalid signature;
+it does not promise a signed crawler is never throttled, so the crawler still backs
+off when the store pushes back. No API keys; the credential stays in your project
+folder and is git-ignored.
 Setup: [extensions/shopify/docs/SHOPIFY-SETUP.md](extensions/shopify/docs/SHOPIFY-SETUP.md).
 
 ## Ecosystem
