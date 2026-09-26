@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `extensions/shopify`: an uncapped, sitemap-complete crawl of a Shopify storefront
+  the user administers, signed with the store's Crawler Access signature
+  (`web-bot-auth`) read from a project-local `.shopify-env`. `shopify_env.py`
+  parses the file and answers `precheck`; `shopify_crawl.py` crawls through the
+  pinned `url_safety` session, sends the signature to its issuing https origin only
+  and never over plain `http://`, records redirects without following them, bounds
+  the sitemap walk and every response body, and writes `summary.json`,
+  `sample.json` and `pages.jsonl` for the `seo-audit` pipeline. An unsigned crawl
+  stops at 500 pages unless told otherwise, and `Concurrency` and `Delay` are
+  bounded to 1-16 and 0-60 s. `seo-audit` falls back to its 500-page link crawl
+  whenever no valid signature exists.
+
 ## [2.4.0] - 2026-09-24
 
 ### Added

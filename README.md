@@ -181,6 +181,7 @@ claude
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo matomo [command] [args]` | Matomo Reporting API: GA4 alternative or complement (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo shopify [crawl\|check] <url>` | Uncapped signed crawl of a Shopify store you administer via Crawler Access (extension) |
 
 ## Features
 
@@ -448,6 +449,19 @@ The audit orchestrator spawns the `seo-matomo` agent automatically when
 credentials are present.
 
 Setup walkthroughs live under `extensions/<name>/docs/`; integration notes: [docs/MCP-INTEGRATION.md](docs/MCP-INTEGRATION.md).
+
+### Shopify Crawler Access
+
+Shopify rate-limits storefront crawling and `seo-audit` caps its link crawl at 500
+pages. For a store you administer, mint a Crawler Access signature in the Shopify
+admin (Online Store > Preferences > Crawler access), put it in a project-local
+`.shopify-env`, and `/seo shopify <url>` crawls the complete sitemap with no page cap
+as a crawler the merchant authorized, then hands the artifacts to the audit pipeline.
+Shopify's help page ties rate-limit errors on a signed crawl to an invalid signature;
+it does not promise a signed crawler is never throttled, so the crawler still backs
+off when the store pushes back. No API keys; the credential stays in your project
+folder and is git-ignored.
+Setup: [extensions/shopify/docs/SHOPIFY-SETUP.md](extensions/shopify/docs/SHOPIFY-SETUP.md).
 
 ## Ecosystem
 
