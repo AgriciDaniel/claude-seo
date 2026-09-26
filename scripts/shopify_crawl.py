@@ -3,11 +3,13 @@
 Sitemap-driven Shopify storefront crawler with Crawler Access signatures.
 
 Shopify publishes a complete nested sitemap for every storefront, so the URL
-set comes from sitemap.xml instead of link following and no page cap is
-needed. When `.shopify-env` (see shopify_env.py) holds a Crawler Access
-signature for the target host, its three headers are attached to every
-request and the storefront lifts its rate limit. The signature is sent to
-that one origin only.
+set comes from sitemap.xml instead of link following. When `.shopify-env`
+(see shopify_env.py) holds a Crawler Access signature for the target host,
+its three headers are attached to every request, Shopify identifies the
+crawler as one the merchant authorized, and no page cap applies by default.
+The signature is sent to that one https origin only, never over plain http.
+An unsigned crawl stops at UNSIGNED_MAX_PAGES unless --max-pages says
+otherwise.
 
 Every request goes through url_safety: the root is validated with
 validate_url_strict, DNS is pinned for the crawl, only URLs on the root's
@@ -90,6 +92,9 @@ TEMPLATE_PATTERNS = [
     ("home", re.compile(r"^https?://[^/]+/?$")),
 ]
 
+# An unsigned crawl gets the same page budget as seo-audit's link crawl.
+UNSIGNED_MAX_PAGES = 500
+
 BUILTIN_DEFAULTS = {
     "max_pages": 0,
     "timeout": 30,
@@ -151,9 +156,10 @@ def headers_for(url: str, origin: Origin, sig_headers: dict | None) -> dict:
     """Base headers, plus the signature only for the origin it was issued for.
 
     Scheme is part of the check: an http:// entry for an https:// store would
-    otherwise carry the signature in cleartext."""
+    otherwise carry the signature in cleartext, and an http:// origin is never
+    signed at all."""
     headers = dict(BASE_HEADERS)
-    if sig_headers and origin.owns(url):
+    if sig_headers and origin.scheme == "https" and origin.owns(url):
         headers.update(sig_headers)
     return headers
 
@@ -466,8 +472,13 @@ def stratified_sample(records: list[dict], per_template: int) -> list[dict]:
 
 def resolve_settings(args: argparse.Namespace, env: dict, entry: dict | None, signed: bool) -> None:
     """CLI flag beats the domain block, which beats the global keys, which beat
-    the built-in defaults. Unset attributes on `args` are filled in place."""
+    the built-in defaults. Unset attributes on `args` are filled in place.
+
+    Concurrency and delay end up inside shopify_env.CRAWL_BOUNDS whatever
+    their source; the env parser already drops out-of-range values, this
+    also clamps the command line."""
     builtin = dict(BUILTIN_DEFAULTS)
+    builtin["max_pages"] = 0 if signed else UNSIGNED_MAX_PAGES
     builtin["concurrency"] = 6 if signed else 2
     builtin["delay"] = 0.2 if signed else 1.0
     layers = [builtin, env.get("crawl", {}), (entry or {}).get("crawl", {})]
@@ -475,9 +486,14 @@ def resolve_settings(args: argparse.Namespace, env: dict, entry: dict | None, si
         if getattr(args, field, None) is None:
             value = fallback
             for layer in layers:
-                if layer.get(field) is not None:
+                if layer.get(field) is not None and not shopify_env.out_of_bounds(field, layer[field]):
                     value = layer[field]
             setattr(args, field, value)
+    for field, (low, high) in shopify_env.CRAWL_BOUNDS.items():
+        value = getattr(args, field)
+        if value != value:  # NaN from the command line
+            value = builtin[field]
+        setattr(args, field, min(max(value, low), high))
 
 
 class ThreadSessions:
@@ -515,9 +531,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("url", help="storefront root, e.g. https://shop.example")
     parser.add_argument("--out", default="./crawl", help="output directory")
     # Defaults stay None so .shopify-env can fill them; the command line still wins.
-    parser.add_argument("--max-pages", type=int, help="0 = no cap (default)")
-    parser.add_argument("--concurrency", type=int, help="default 6 signed, 2 unsigned")
-    parser.add_argument("--delay", type=float, help="base delay per request; grows on 429")
+    parser.add_argument("--max-pages", type=int,
+                        help=f"0 = no cap; default no cap signed, {UNSIGNED_MAX_PAGES} unsigned")
+    parser.add_argument("--concurrency", type=int, help="1-16; default 6 signed, 2 unsigned")
+    parser.add_argument("--delay", type=float, help="0-60 s base delay per request; grows on 429")
     parser.add_argument("--timeout", type=int)
     parser.add_argument("--sample-per-template", type=int)
     parser.add_argument("--include", help="regex; crawl only matching URLs")
@@ -553,12 +570,17 @@ def main(argv: list[str] | None = None) -> int:
     sig_headers = None
     if args.no_signature:
         entry = None
+    elif entry and origin.scheme != "https":
+        _log(f"WARNING: {origin.root} is not https; the signature for {authority} is never sent "
+             f"over plain http. Crawling unsigned; use https://{authority} for a signed crawl.")
+        entry = None
     elif entry and shopify_env.days_left(entry.get("expires")) > 0:
         sig_headers = shopify_env.signature_headers(entry)
         _log(f"Crawler Access signature active for {authority} "
              f"({shopify_env.days_left(entry['expires']):.0f} days left)")
     elif entry:
         _log(f"WARNING: signature for {authority} is expired; crawling unsigned at normal rate limits.")
+        entry = None
     else:
         _log(f"No signature for {authority}; crawling unsigned.")
 

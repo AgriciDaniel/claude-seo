@@ -103,6 +103,7 @@ def test_precheck_modes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
     empty = tmp_path / "empty"
     empty.mkdir()
     assert shopify_env.precheck("https://shop.example", empty)["reason"] == "no_env_file"
+    assert shopify_env.precheck("http://shop.example", empty)["reason"] == "no_env_file"
 
     _write_env(tmp_path, f"""
         Domain = shop.example
@@ -118,6 +119,8 @@ def test_precheck_modes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None
     assert 28 <= signed["days_left"] <= 30
     assert shopify_env.precheck("https://www.shop.example", tmp_path)["reason"] == "no_signature"
     assert shopify_env.precheck("https://old.example", tmp_path)["reason"] == "signature_expired"
+    plain = shopify_env.precheck("http://shop.example", tmp_path)
+    assert (plain["mode"], plain["reason"]) == ("fallback", "insecure_scheme")
     for result in (signed, shopify_env.precheck("https://old.example", tmp_path)):
         assert result["mode"] in ("signed", "fallback")
 
@@ -179,3 +182,19 @@ def test_list_json_never_prints_signature_values(
     out = capsys.readouterr().out
     assert "SECRETVALUE" not in out
     assert json.loads(out)["authorities"]["shop.example"]["keyid"] == "key-1"
+
+
+def test_out_of_range_concurrency_and_delay_are_ignored(tmp_path: Path) -> None:
+    path = _write_env(tmp_path, f"""
+        Concurrency = 64
+        Delay = -2
+        Domain = shop.example
+        Signature-Input = {_signature_input(FUTURE)}
+        Signature = sig1=:ok:
+        Concurrency = 4
+        Delay = nan
+    """)
+    env = shopify_env.parse_env_file(path)
+    assert env["crawl"] == {}
+    assert env["authorities"]["shop.example"]["crawl"] == {"concurrency": 4}
+    assert len([p for p in env["problems"] if "must be between" in p]) == 3
