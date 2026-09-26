@@ -152,6 +152,12 @@ def test_signature_is_only_attached_to_the_issuing_origin() -> None:
     assert other_host["User-Agent"] == crawl.USER_AGENT
 
 
+def test_signature_is_never_sent_to_an_http_origin() -> None:
+    plain = crawl.Origin("http", "shop.example")
+    headers = crawl.headers_for("http://shop.example/products/a", plain, SIG)
+    assert not {"Signature", "Signature-Input", "Signature-Agent"} & set(headers)
+
+
 def test_crawl_one_records_redirects_without_following() -> None:
     session = _Session({
         "https://shop.example/products/old": _Response(301, headers={"Location": "https://evil.example/"}),
@@ -304,7 +310,41 @@ def test_settings_precedence_cli_over_block_over_global_over_builtin() -> None:
                                sample_per_template=None, include=None, exclude=None,
                                save_html=None, ignore_robots=None)
     crawl.resolve_settings(unsigned, {"crawl": {}}, None, signed=False)
-    assert (unsigned.concurrency, unsigned.delay, unsigned.max_pages) == (2, 1.0, 0)
+    assert (unsigned.concurrency, unsigned.delay, unsigned.max_pages) == (
+        2, 1.0, crawl.UNSIGNED_MAX_PAGES)
+
+
+def _blank_args(**overrides) -> SimpleNamespace:
+    fields = dict(max_pages=None, concurrency=None, delay=None, timeout=None,
+                  sample_per_template=None, include=None, exclude=None,
+                  save_html=None, ignore_robots=None)
+    fields.update(overrides)
+    return SimpleNamespace(**fields)
+
+
+def test_unsigned_crawl_defaults_to_the_page_cap_but_an_explicit_value_wins() -> None:
+    unsigned = _blank_args()
+    crawl.resolve_settings(unsigned, {"crawl": {}}, None, signed=False)
+    assert unsigned.max_pages == 500
+    signed = _blank_args()
+    crawl.resolve_settings(signed, {"crawl": {}}, None, signed=True)
+    assert signed.max_pages == 0
+    lifted = _blank_args(max_pages=0)
+    crawl.resolve_settings(lifted, {"crawl": {}}, None, signed=False)
+    assert lifted.max_pages == 0
+
+
+def test_concurrency_and_delay_are_bounded_whatever_their_source() -> None:
+    from_env = _blank_args()
+    crawl.resolve_settings(from_env, {"crawl": {"concurrency": 500, "delay": -1.0}},
+                           {"crawl": {"delay": float("nan")}}, signed=True)
+    assert (from_env.concurrency, from_env.delay) == (6, 0.2)
+    from_cli = _blank_args(concurrency=0, delay=3600.0)
+    crawl.resolve_settings(from_cli, {"crawl": {}}, None, signed=True)
+    assert (from_cli.concurrency, from_cli.delay) == (1, 60.0)
+    nan_cli = _blank_args(delay=float("nan"))
+    crawl.resolve_settings(nan_cli, {"crawl": {}}, None, signed=False)
+    assert nan_cli.delay == 1.0
 
 
 def test_main_refuses_unsafe_roots(capsys: pytest.CaptureFixture[str]) -> None:

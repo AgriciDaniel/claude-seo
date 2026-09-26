@@ -1,8 +1,8 @@
 # .shopify-env — copy into the folder you run audits from. Never commit it.
 #
 # Crawl settings before the first Domain= apply to every shop below.
-# Max-Pages=0 means no cap; that is also the default.
-Max-Pages   = 0
+# Signed crawls have no page cap by default; unsigned crawls stop at 500 pages.
+# A Max-Pages here would apply to both. Concurrency is 1-16, Delay 0-60 seconds.
 Concurrency = 6
 Delay       = 0.2
 

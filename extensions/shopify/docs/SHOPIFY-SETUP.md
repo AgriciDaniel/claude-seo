@@ -5,9 +5,12 @@
 1. **An uncapped, sitemap-complete crawl** of a Shopify storefront via
    `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run shopify_crawl.py` instead of
    the 500-page link-following crawl in `seo-audit`.
-2. **No storefront rate limiting** while crawling, because every request
+2. **An authorized crawler** in the storefront's eyes, because every request
    carries the store's Crawler Access signature (RFC 9421 message signature,
-   tag `web-bot-auth`), read from a project-local `.shopify-env`.
+   tag `web-bot-auth`), read from a project-local `.shopify-env`. Shopify's help
+   page says rate-limit errors on a signed crawl mean the signature is not valid;
+   it does not promise that a signed crawl is never throttled, so the crawler
+   still backs off on `429`, `430` and `503`.
 3. A `seo-shopify` skill that runs the precheck, the crawl, and then hands the
    artifacts to the standard `seo-audit` pipeline.
 
@@ -47,7 +50,6 @@ block per shop; a new `Domain=` line starts the next block. Keys before the firs
 `Domain=` are crawl settings shared by every shop in the file.
 
 ```
-Max-Pages   = 0
 Concurrency = 6
 
 Domain          = shop.example
@@ -62,9 +64,13 @@ Concurrency     = 3
 
 `Signature-Agent` is optional and defaults to `"https://shopify.com"`. Header
 values are used byte-exact; do not strip their quotes. Recognised crawl keys:
-`Max-Pages` (0 = no cap, the default), `Concurrency`, `Delay`, `Timeout`,
+`Max-Pages` (0 = no cap; the default is no cap for a signed crawl and 500 for an
+unsigned one), `Concurrency` (1 to 16), `Delay` (0 to 60 seconds), `Timeout`,
 `Sample-Per-Template`, `Include`, `Exclude`, `Save-HTML`, `Ignore-Robots`. Inside
-a block they override the shared values for that shop only.
+a block they override the shared values for that shop only. A `Concurrency` or
+`Delay` outside its range is ignored with a warning and the default applies. A
+global `Max-Pages` also applies to unsigned crawls, so leave it out unless you
+want to lift or lower the 500-page cap for those too.
 
 A copy of this layout lives at `extensions/shopify/.shopify-env.example`.
 
@@ -89,7 +95,9 @@ Or in Claude Code: `/seo shopify https://shop.example`.
   following them.
 - The signature is attached only to requests whose scheme and host equal the
   origin it was issued for; an `http://` entry for an `https://` store is skipped
-  rather than signed in cleartext. Sitemap entries on other hosts are skipped.
+  rather than signed in cleartext, and an `http://` store URL is crawled unsigned
+  (the precheck reports `insecure_scheme`). Sitemap entries on other hosts are
+  skipped.
 - No command prints the signature values; `list` and `check` report key id and
   expiry only.
 - The sitemap walk stops at 5 index levels, 500 sitemaps or 250,000 URLs, and
