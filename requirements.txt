@@ -19,6 +19,7 @@ matplotlib>=3.9.0,<4.0.0              # No known CVEs
 numpy>=2.2.6,<3.0.0                   # Direct import in google_report.py; matplotlib>=3.9 is the first numpy 2 release line
 weasyprint>=70.0,<71.0                # PYSEC-2026-3940 fixed in 70.0
 openpyxl>=3.1.5,<4.0.0                # No known CVEs (Excel export)
+pypdf>=6.14.0,<7.0.0                  # Post-render PDF review (page count, extracted text)
 
 # Google API dependencies (for seo-google skill)
 google-api-python-client>=2.196.0,<3.0.0   # No known CVEs

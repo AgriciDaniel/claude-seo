@@ -41,6 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unreadable, has zero pages, or contains almost no extractable text, and
   warns when the PDF holds under half the source HTML's text. Before, only
   a missing `pypdf` was handled, so a zero-page or textless render passed.
+- `pypdf` is now a declared dependency. `google_report.py` imports it for the
+  post-render review, but `requirements.txt` never listed it, so a fresh
+  runtime always skipped the page-count check and reported `page_count: null`.
 
 ## [2.4.0] - 2026-09-24
 
