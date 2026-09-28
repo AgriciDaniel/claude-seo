@@ -58,6 +58,17 @@ WRONG = [
      "developers.google.com/my-business/content/sunset-dates"),
     (r"Project Mariner\)", "Mariner's status is secondary-only; describe Google-Agent by function",
      "developers.google.com/crawling"),
+    # Review of 2026-09-28.
+    (r"(?i)since 2026-08-28", "regional site reputation enforcement took effect 2026-08-30",
+     "developers.google.com/search/blog/2026/08/update-site-reputation-policy"),
+    (r"Gemini training \(NOT search\)|Optional block \(training only\)[^\n]*Google-Extended",
+     "Google-Extended covers Gemini training and grounding",
+     "developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers"),
+    (r"August 2026 Spam \| Aug 18-20", "the August 2026 spam rollout completed August 21",
+     "status.search.google.com/incidents/LEubPCm2octf2uMqCFKE"),
+    (r"^\|[^|]*\d{4} (Core|Spam)[^|]*\|[^|]*\|[^|]*\|\s*Confirmed\s*\|\s*$",
+     "Google confirms rollout dates, not impact descriptions; label rows 'Dates confirmed'",
+     "status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history"),
 ]
 
 
