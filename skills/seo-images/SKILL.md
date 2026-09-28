@@ -71,7 +71,7 @@ Use progressive enhancement with the most efficient format first:
 </picture>
 ```
 
-The browser will use the first supported format. Current browser support: AVIF 93.8%, WebP 95.3%.
+The browser will use the first supported format. Global browser support (caniuse.com, checked 2026-09-28): AVIF about 95.4%, WebP about 96.8%. Re-check caniuse before quoting.
 
 #### JPEG XL: Emerging Format
 

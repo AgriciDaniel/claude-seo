@@ -44,13 +44,13 @@ with their source and date, or leave them out.
 | AI Mode monthly users | 1B+, reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source | Third-party I/O reporting |
 | AI Mode model | Google upgrades it often (Gemini 3.5 Flash became the default on 2026-05-19, and newer Flash models have shipped since); never tie advice to a model | Google (blog.google) |
 | AI-referred sessions growth | 527% (Jan-May 2025) | Third-party (attributed to SparkToro; not re-verified) |
-| ChatGPT weekly active users | 900 million | OpenAI |
+| ChatGPT weekly active users | 1 billion+ (reported August 2026; 900 million in February 2026) | OpenAI, via press reporting |
 | Perplexity monthly queries | 500+ million | Perplexity |
 
 ## Critical Insight: Brand Mentions > Backlinks
 
 **Brand mentions correlate 3x more strongly with AI visibility than backlinks.**
-(Ahrefs December 2025 study of 75,000 brands)
+(Ahrefs study of 75,000 brands, published 2025-05-26)
 
 | Signal | Correlation with AI Citations |
 |--------|------------------------------|
@@ -232,8 +232,8 @@ name the specific user-agent that was checked and the specific capability it gov
 
 Read `references/llmstxt-evidence.md` for the primary-source evidence (Mueller, Illyes, SE Ranking 300k-domain study, OtterlyAI server-log audit) on why `/llms.txt` is not currently a citation lever for major AI search systems. claude-seo reports presence but assigns no citation-ranking weight.
 
-> **Google now states this explicitly.** Google's AI optimization guide, introduced
-> 2026-05-15 and clarified 2026-06-15, says `llms.txt` and other AI-text files are
+> **Google now states this explicitly.** Google's AI optimization guide, published
+> 2026-05-15 (llms.txt guidance clarified 2026-06-15, last updated 2026-07-10), says `llms.txt` and other AI-text files are
 > not needed for Google Search and do not help or hurt visibility or rankings.
 > They may still serve non-Google systems. Never recommend `llms.txt` as a Google
 > ranking or citation lever. Source:
@@ -281,8 +281,8 @@ New standard (December 2025) for machine-readable AI licensing terms.
 |----------|---------------------|-------------------|
 | **Google AI Overviews** | Strongly ranking-correlated, cites pages that already rank well | Traditional SEO + passage optimization |
 | **Google AI Mode** (Gemini models, upgraded often) | Weakly ranking-correlated; broader pool (~9 domains cited/query, Ahrefs) | Distinct surface: freshness, entity authority, citable passages beyond position 5 |
-| **ChatGPT** | Wikipedia (47.9%), Reddit (11.3%) | Entity presence, authoritative sources |
-| **Perplexity** | Reddit (46.7%), Wikipedia | Community validation, discussions |
+| **ChatGPT** | Wikipedia (47.9%), Reddit (11.3%) of top-10 cited sources (Profound, 2025-06-05) | Entity presence, authoritative sources |
+| **Perplexity** | Reddit (46.7%) of top-10 cited sources (Profound, 2025-06-05), Wikipedia | Community validation, discussions |
 | **Bing Copilot** | Bing index, authoritative sites | Bing SEO, IndexNow |
 
 > **Two Google citation engines, not one.** AI Mode and AI Overviews reach the
@@ -298,9 +298,9 @@ New standard (December 2025) for machine-readable AI licensing terms.
 > nothing here is a documented ranking change.
 >
 > **UX is now unified, surfaces still distinct.** At Google I/O 2026 (2026-05-19)
-> Google merged AI Overviews and AI Mode into "one seamless AI Search experience"
-> (question → AI Overview → follow-up in AI Mode) with a new intelligent Search
-> box. The *experience* is one flow, but the two citation engines remain
+> Google said follow-up questions now flow from an AI Overview into AI Mode, live
+> worldwide on desktop and mobile, and began rolling out a new intelligent Search
+> box where AI Mode is available. The *experience* is one flow, but the two citation engines remain
 > technically distinct (different models/link sets), keep scoring both.
 
 ### Citation surfaces & controls in AI Search (2026)
@@ -322,7 +322,7 @@ Google added many AI citation/source surfaces across AI Overviews **and** AI Mod
 
 **Controlling AI-feature appearance:** there is **no AI-specific opt-out file**, but since 2026-08-31 every site has a Search Console control, "Search generative AI" (include by default, exclude, or inherit), that controls eligibility for AI Overviews, AI Mode and generative AI features in Discover; it is not a ranking signal, it is separate from `Google-Extended`, and it is not a training control. Beyond that, appearance is governed by standard preview/index directives, `nosnippet`, `data-nosnippet`, `max-snippet`, `noindex` (distinct from the third-party AI-crawler robots controls above). Source: developers.google.com/search/docs/appearance/ai-features
 
-**Search agents (live, not just WebMCP):** Google's "Information Agents" run in the background to monitor topics, plus agentic booking/calling for select categories (rolling out to US users, summer 2026), so agent-friendly-page optimization (real interactive elements, accessibility tree, layout stability) now matters for actions, not only citations. Audit that with `/seo agentic` (the `seo-agentic` sub-skill), which also reads Lighthouse's Agentic Browsing fraction.
+**Search agents (live, not just WebMCP):** Google's "Information Agents" run in the background to monitor topics, plus agentic booking/calling for select categories (announced at I/O 2026 for a summer US rollout; Information Agents start with AI Pro and Ultra subscribers; confirm current availability before promising it), so agent-friendly-page optimization (real interactive elements, accessibility tree, layout stability) now matters for actions, not only citations. Audit that with `/seo agentic` (the `seo-agentic` sub-skill), which also reads Lighthouse's Agentic Browsing fraction.
 
 ---
 

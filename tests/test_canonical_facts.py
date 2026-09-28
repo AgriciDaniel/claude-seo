@@ -69,6 +69,17 @@ WRONG = [
     (r"^\|[^|]*\d{4} (Core|Spam)[^|]*\|[^|]*\|[^|]*\|\s*Confirmed\s*\|\s*$",
      "Google confirms rollout dates, not impact descriptions; label rows 'Dates confirmed'",
      "status.search.google.com/products/rGHU1u87FJnkP6W2GwMi/history"),
+    (r"canonical selection, mobile usability", "URL Inspection mobileUsabilityResult is deprecated",
+     "developers.google.com/webmaster-tools/v1/urlInspection.index/UrlInspectionResult"),
+    (r"Nano Banana 2 \(Flash, previous gen\)", "gemini-2.5-flash-image is the original Nano Banana",
+     "ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image"),
+    (r"\*\*18-day rule\*\*", "a single Sterling Sky case example, not a rule",
+     "sterlingsky.ca/what-gets-you-ranking-for-near-me-2025"),
+    (r"Ahrefs December 2025 study", "the Ahrefs 75,000-brand study was published 2025-05-26",
+     "ahrefs.com/blog/ai-overview-brand-correlation"),
+    (r"December 2025 JS SEO guidance, structured data injected via JavaScript may face delayed",
+     "the guide warns about Shopping crawl frequency for dynamic Product markup",
+     "developers.google.com/search/docs/appearance/structured-data/generate-structured-data-with-javascript"),
 ]
 
 

@@ -84,7 +84,7 @@ Design templates that produce unique, valuable pages:
 
 Google's Scaled Content Abuse policy (introduced March 2024) saw major enforcement escalation in 2025:
 
-- **June 2025:** Wave of manual actions targeting websites with AI-generated content at scale
+- **June 2025:** Third-party reports described a wave of manual actions against sites publishing AI-generated content at scale (no Google announcement)
 - **August 2025:** Third-party/SEO-community reporting described stronger SpamBrain detection for AI-generated link schemes and content farms
 - **Result:** Google reported 45% reduction in low-quality, unoriginal content in search results post-March 2024 enforcement
 

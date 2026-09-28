@@ -49,7 +49,7 @@ BroadcastEvent, Clip, SeekToAction, SoftwareSourceCode
 
 See `schema/templates.json` for ready-to-use JSON-LD templates for these types.
 
-> **JSON-LD and JavaScript rendering:** Per Google's December 2025 JS SEO guidance, structured data injected via JavaScript may face delayed processing. For time-sensitive markup (especially Product, Offer), include JSON-LD in the initial server-rendered HTML.
+> **JSON-LD and JavaScript rendering:** Google supports structured data generated with JavaScript, but its "Generate structured data with JavaScript" guide (last updated 2025-12-10) warns that dynamically generated Product markup can make Shopping crawls less frequent and less reliable for fast-changing price and availability. For time-sensitive markup (especially Product, Offer), include JSON-LD in the initial server-rendered HTML.
 
 ### NO RICH RESULTS, KEEP IF USEFUL:
 - **FAQPage**: Google retired FAQ rich results for ALL sites on May 7, 2026 (supersedes the Aug 2023 gov/health restriction). No Google SERP rich-result benefit; flag existing FAQPage at Info (not Critical) rather than removal. For genuine user Q&A pages, use **QAPage**.

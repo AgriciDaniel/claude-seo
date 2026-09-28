@@ -112,7 +112,7 @@ Google updated SAB guidelines to **disallow entire states or countries** as serv
 
 ### AI Visibility for Local Businesses
 
-One March 2025 vendor dataset reported AI Overviews on ~0.14% of local keywords; treat coverage as methodology-dependent. ChatGPT and Perplexity are increasingly used for local recommendations.
+Reported AI Overview coverage on local queries depends on the query set: seoClarity's broad 500M+ keyword panel found ~0.14% of local keywords in March 2025, while Whitespark's 540 targeted service-industry queries (2025) found up to 68%. Measure it on your own keyword set. ChatGPT and Perplexity are increasingly used for local recommendations.
 
 To optimize for AI local visibility:
 - Ensure presence on expert-curated "best of" lists (ranked #1 AI visibility factor in Whitespark 2026 report)

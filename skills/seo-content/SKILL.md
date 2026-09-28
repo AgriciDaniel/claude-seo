@@ -133,7 +133,7 @@ Google's raters assess low-quality, scaled, copied, or AI-generated main content
 
 > **Helpful Content System (March 2024):** The Helpful Content System was merged into Google's core ranking algorithm during the March 2024 core update. It no longer operates as a standalone classifier. Helpfulness signals are now weighted within every core update. The same principles apply (people-first content, demonstrating E-E-A-T, satisfying user intent), but enforcement is continuous rather than through separate HCU updates. Google now also documents **continuous, smaller unannounced core updates** between major ones (changelog 2025-12-09).
 
-> **Gen-AI optimization is SEO (Google docs, 2026-06-29):** the official "optimizing for generative AI features" guide states you do **not** need new AI files, markup, Markdown, content chunking, or AI-specific rewrites; chasing inauthentic "mentions" is unhelpful. AEO/GEO is rebranded SEO rooted in core ranking/quality.
+> **Gen-AI optimization is SEO (Google docs, published 2026-05-15, last updated 2026-07-10):** the official "optimizing for generative AI features" guide states you do **not** need new AI files, markup, Markdown, content chunking, or AI-specific rewrites; chasing inauthentic "mentions" is unhelpful. AEO/GEO is rebranded SEO rooted in core ranking/quality.
 
 > **Honest scoping (Google docs, 2026-06-05):** per "Using third-party SEO tools, services, and advice," no tool guarantees rankings and third-party tools have no access to Google's internal ranking data. claude-seo's scores are **heuristics**, not Google-internal signals, so say so in reports, and validate GEO/AEO findings against Google's official guidance (Search Console is the first-party source).
 

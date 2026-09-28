@@ -96,7 +96,7 @@ Primary category is the **single most important local pack factor** (Whitespark 
 
 ### 2. Reviews & Reputation (20%)
 
-Review velocity matters more than total count. The **18-day rule** (Sterling Sky): rankings cliff if no new reviews for 3 weeks.
+Review velocity matters more than total count. In Sterling Sky's 2025 study of 8,186 businesses, one case-study business that stopped getting reviews for 18 days lost rankings sharply while steadier competitors held. Treat it as an illustrative example, not a fixed threshold.
 
 **Check for:**
 - Total Google review count visible on page or schema (magic threshold: 10, Sterling Sky)
@@ -225,7 +225,7 @@ Links declining for local pack but remain **~26% of local organic ranking** (Whi
 **Do not duplicate seo-geo analysis.** Provide local-specific AI context and recommend `/seo geo <url>` for full analysis.
 
 Key local AI facts:
-- AI Overviews appear on up to 68% of local searches (Whitespark Q2 2025)
+- AI Overviews appeared on up to 68% of local searches in Whitespark's 2025 sample (540 service-industry queries, 3 metros); broad keyword panels report far lower rates (seoClarity: ~0.14% of local keywords in March 2025), so coverage depends on the query set
 - ChatGPT converts at 15.9% vs Google organic at 1.76% (Seer Interactive)
 - 3 of top 5 AI visibility factors are citation-related (Whitespark 2026)
 - ChatGPT does NOT access GBP directly -- sources from Bing index, Yelp, TripAdvisor, BBB, Reddit
@@ -275,7 +275,7 @@ Generate `LOCAL-SEO-ANALYSIS-{domain}.md` with:
 ## Medium Effort
 
 1. Create dedicated page for each core service (Whitespark: #1 local organic factor)
-2. Build review generation strategy maintaining 18-day minimum cadence
+2. Build a review generation strategy with a steady cadence (aim for no gaps longer than about 2 to 3 weeks)
 3. Submit to three data aggregators (Data Axle, Foursquare, Neustar/TransUnion) for downstream distribution
 4. Claim industry-specific directory listings (per vertical recommendations)
 5. Add industry-specific schema patterns (Menu for restaurants, Physician for healthcare, etc.)

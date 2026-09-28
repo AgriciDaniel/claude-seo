@@ -339,6 +339,7 @@ def test_seo_updates_every_entry_has_google_owned_source() -> None:
         "status.search.google.com",
         "web.dev",
         "developer.chrome.com",
+        "static.googleusercontent.com",  # full Search Quality Rater Guidelines PDF
         "services.google.com",
         "support.google.com",
     }

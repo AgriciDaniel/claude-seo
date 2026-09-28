@@ -22,7 +22,7 @@
 | Property | Value |
 |----------|-------|
 | **Model ID** | `gemini-2.5-flash-image` |
-| **Tier** | Nano Banana 2 (Flash, previous gen) |
+| **Tier** | Nano Banana (original Flash image model; previous gen) |
 | **Speed** | Fast |
 | **Aspect Ratios** | 1:1, 16:9, 9:16, 4:3, 3:4 |
 | **Max Resolution** | Up to 1024×1024 (1K tier) |
@@ -32,7 +32,7 @@
 ## Deprecated Models (DO NOT USE)
 
 ### gemini-3-pro-image-preview
-- **Status:** Base model deprecated March 9, 2026. **Image generation variant may still be accessible**. Use at your own discretion via `set_model`. Prefer 3.1 Flash.
+- **Status:** Shut down 2026-06-25 (ai.google.dev/gemini-api/docs/deprecations). The text model `gemini-3-pro-preview` is a different model with its own date (2026-03-09). Prefer 3.1 Flash.
 - **Was:** Nano Banana Pro tier (professional asset production, 4K output, 14 reference images)
 - **Migration:** Use `gemini-3.1-flash-image-preview` instead
 

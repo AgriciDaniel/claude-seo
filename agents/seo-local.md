@@ -46,7 +46,7 @@ You are a Local SEO specialist. When given a URL:
 ## Critical Ranking Factors (Whitespark 2026)
 
 - Primary GBP category: **#1 factor** (score: 193). Wrong category = **#1 negative factor** (score: 176)
-- Review velocity: **18-day rule** -- rankings cliff if no reviews for 3 weeks (Sterling Sky)
+- Review velocity: keep a steady cadence. In a Sterling Sky 2025 case example, rankings dropped after an 18-day review gap; treat it as an illustration, not a threshold
 - Dedicated service pages: **#1 local organic factor, #2 AI visibility factor**
 - 3 of top 5 AI visibility factors are citation-related
 - Proximity accounts for 55.2% of ranking variance (Search Atlas ML study) -- outside our control, note in report

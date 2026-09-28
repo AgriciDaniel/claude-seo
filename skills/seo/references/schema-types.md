@@ -87,13 +87,13 @@ Google's documentation explicitly recommends JSON-LD over Microdata and RDFa.
 |-------------|-------|-------|
 | Product Certification markup | April 2025 | Energy ratings, safety certifications. Replaced EnergyConsumptionDetails. |
 | ProductGroup | 2025 | E-commerce product variants with variesBy, hasVariant properties |
-| ProfilePage | 2025 | Author/creator profile pages with mainEntity Person for E-E-A-T |
-| DiscussionForumPosting | 2024 | For forum/community content |
-| Speakable | Updated 2024 | For voice search optimization |
+| ProfilePage | 2023-11-27 | Author/creator profile pages with mainEntity Person for E-E-A-T |
+| DiscussionForumPosting | 2023-11-27 | For forum/community content |
+| Speakable | Beta (checked 2026-09-28) | For voice search optimization; Google still labels it beta and subject to change |
 | LoyaltyProgram | June 2025 | Member pricing, loyalty card structured data |
 | Organization-level MerchantShippingPolicy markup | 2025-11-12 | Merchant-level shipping policy structured data under Organization; return policies under Organization clarified 2025-07-11. Search Console shipping and returns settings (no Merchant Center needed) predate this |
-| ConferenceEvent | December 2025 | Schema.org v29.4 addition |
-| PerformingArtsEvent | December 2025 | Schema.org v29.4 addition |
+| ConferenceEvent | 2025-12-08 | Schema.org v29.4 addition (schema.org/docs/releases.html); no Google rich result |
+| PerformingArtsEvent | Long-standing schema.org type | Event subtype; no dedicated Google rich result |
 | hasAdultConsideration | 2026-05-20 | Product variant / Merchant listing; **required for adult-oriented products**; Google Search supports only `https://schema.org/SexualContentConsideration` |
 | Product.category | 2026-07-07 | Accepts `Text`, `CategoryCode`, or arrays mixing both; use Google's taxonomy URL and `codeValue` for Google Product Categories |
 | Offer sale duration | 2026-07-07 | Use `validFrom` plus `validThrough` or `priceValidUntil`, in ISO 8601 format |

@@ -152,7 +152,8 @@ URL Inspection: real indexation status from Google.
 **Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_inspect.py <url> --json`
 
 Returns: verdict (PASS/FAIL), coverage state, robots.txt status, indexing state,
-page fetch state, canonical selection, mobile usability, rich results.
+page fetch state, canonical selection, rich results. (`mobileUsabilityResult` is deprecated
+in the API; do not report it as a mobile-usability check.)
 
 ### `/seo google inspect-batch <file>`
 

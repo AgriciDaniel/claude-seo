@@ -96,7 +96,7 @@ XGBoost regression model, explains 92-93% of variance. (Study)
 
 - Google blocked/removed **240M+ policy-violating reviews** in 2024 (Confirmed, 40% increase over 2023)
 - Review deletion rates up **600%+** Jan-Jul 2025; 38% of deleted were 5-star (Study, GMBapi.com)
-- FTC Consumer Review Rule effective Oct 21, 2024: penalties up to **$53,088/violation** (Confirmed, US law)
+- FTC Consumer Review Rule effective Oct 21, 2024: penalties up to **$53,088/violation** (Confirmed, US law; unchanged for 2026 because the 2026 inflation adjustment was cancelled, Federal Register 2026-09-15)
 - **Review gating prohibited** by both Google (fake engagement policy) and FTC (Confirmed)
 
 ---
@@ -195,7 +195,7 @@ Posts (with scheduling), Services menu, Attributes (including identity: Women-le
 | ChatGPT/AI for local recommendations | 45% of users (up from 6%) | BrightLocal LCRS 2026 |
 | ChatGPT conversion rate | 15.9% | Seer Interactive |
 | Google organic conversion rate | 1.76% | Seer Interactive |
-| AI Overviews on local searches | Up to 68% | Whitespark Q2 2025 |
+| AI Overviews on local searches | Up to 68% (540 targeted queries); ~0.14% on a broad 500M+ keyword panel | Whitespark 2025; seoClarity March 2025 |
 | AI Overview CTR reduction for pos 1 | -58% | Ahrefs, Feb 2026 |
 | Brand cited in AIO = organic CTR boost | +35% | Seer Interactive |
 | ChatGPT traffic vs Google for local | ~2% | Sterling Sky, Feb 2026 |
@@ -220,7 +220,7 @@ Posts (with scheduling), Services menu, Attributes (including identity: Women-le
 ## Proximity & Search Behavior
 
 - 46% of all Google searches seek local information (Study)
-- 76% of mobile "near me" searches lead to visit within 24 hours (Confirmed, Google)
-- 900% increase in "near me" searches over two years (Confirmed/Study, Google)
+- 76% of people who run a local search on a smartphone visit a business within a day (Google, 2016; historical, original page retired)
+- 900%+ growth in mobile searches for "___ near me today/tonight", 2015 to 2017 (Think with Google, 2017; historical, narrower than all "near me" queries)
 - Proximity varies: urban 1-2 miles, rural 5-10+ miles, specialty/niche = wider (Consensus)
 - Google uses dynamic weighting per query: "emergency plumber near me" = proximity-dominant; "best plastic surgeon" = prominence-dominant (Consensus)

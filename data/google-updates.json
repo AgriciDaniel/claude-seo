@@ -92,8 +92,8 @@
       "date": "2025-01-23",
       "name": "QRG update (Jan 2025)",
       "kind": "qrg",
-      "source": "https://services.google.com/fh/files/misc/hsw-sqrg.pdf",
-      "notes": "Adds formal definition of generative AI (§2.1). Defines scaled content abuse, expired-domain abuse, filler content under §4.6 Spammy Webpages. Lowest rating triggered when all/almost all MC is copied, paraphrased, or AI-generated."
+      "source": "https://static.googleusercontent.com/media/guidelines.raterhub.com/en//searchqualityevaluatorguidelines.pdf",
+      "notes": "Adds formal definition of generative AI (§2.1). Defines scaled content abuse, expired-domain abuse, filler content under §4.6 Spammy Webpages. Lowest rating triggered when all/almost all MC is copied, paraphrased, or AI-generated. The live PDF is now the September 11, 2025 edition, so the January 2025 wording can no longer be checked against it."
     },
     {
       "date": "2025-03-05",
@@ -148,7 +148,7 @@
       "date": "2025-09-11",
       "name": "QRG update (Sept 2025)",
       "kind": "qrg",
-      "source": "https://services.google.com/fh/files/misc/hsw-sqrg.pdf",
+      "source": "https://static.googleusercontent.com/media/guidelines.raterhub.com/en//searchqualityevaluatorguidelines.pdf",
       "notes": "Adds AI Overview rating examples. Expands YMYL to include political/social topics. Google: 'no change to rating guidance'."
     },
     {
