@@ -134,6 +134,7 @@ dimension rows, not the size of every pagination request.
 
 > **AI surfaces in GSC (2026):**
 > - **Generative AI performance report** (launched 2026-06-03), a dedicated view of **AI Overviews + AI Mode** visibility. **Impressions only** (no clicks/CTR/position/query); dimensions Pages/Countries/Devices/Dates (Pacific Time); 1,000-row limit; newest data preliminary; a separate Discover gen-AI report also exists. Available to all websites worldwide since 2026-08-31 (launched to a subset 2026-06-03); dates support hourly, daily, weekly and monthly granularity.
+> - **Multimodal search type** (rolling out globally since 2026-09-24): a filter in the Search results and Generative AI performance reports for visits from Lens, Circle to Search, image uploads and Chrome "Search this image", exportable from the UI. No Search Analytics API `type` value has been verified for it, so do not invent one.
 > - **AI Mode already rolls into standard Performance totals** (Web search type), clicks (external-link clicks in AI Mode) and impressions are counted in the normal report, so you **cannot** cleanly split "classic" vs "AI" traffic from totals. Use the Generative AI report for impressions-only AI visibility.
 > - **Data-reliability caveat:** a GSC logging error made **impressions, CTR, and average position unreliable from 2025-05-13 to 2026-04-27** (clicks unaffected; fixed forward-only, **no backfill**). Treat impression/CTR/position trends spanning that window with caution; expect an apparent impressions drop after the fix.
 
@@ -335,7 +336,7 @@ Generate a professional PDF report with charts and analytics.
 - **seo-performance**: CrUX field data supplements Lighthouse lab data
 - **seo-sitemap**: GSC sitemap status shows submitted counts, errors, and warnings; use URL Inspection for indexation truth
 - **seo-content**: GSC query data informs keyword targeting
-- **seo-geo**: Use GSC Generative AI performance reports and AI Overviews/AI Mode/Discover gen-AI include/exclude controls where available
+- **seo-geo**: Use GSC Generative AI performance reports and AI Overviews/AI Mode/Discover gen-AI include/exclude controls (the Search generative AI property setting, available to all sites since 2026-08-31)
 
 ## Output Format
 

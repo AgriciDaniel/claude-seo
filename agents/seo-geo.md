@@ -37,7 +37,7 @@ Search or AI Overviews inclusion (those follow Googlebot), and Applebot-Extended
 governs Apple Intelligence training only, never Siri/Spotlight/Safari discoverability
 (that follows Applebot). Check and report each bot against the specific capability
 it governs.
-Optional block (training only): CCBot, ClaudeBot, Google-Extended, Applebot-Extended,
+Optional block (training, plus grounding for Google-Extended): CCBot, ClaudeBot, Google-Extended, Applebot-Extended,
 cohere-ai
 
 ## Key Citability Signals

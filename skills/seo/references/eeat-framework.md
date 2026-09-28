@@ -137,9 +137,9 @@ Raters now formally evaluate whether content appears AI-generated:
 - Repetitive structure across multiple pages
 - No author attribution or expertise signals
 
-### Spam Policies (updated 2026-08-28)
+### Spam Policies (updated 2026-08-30)
 - **Expired domain abuse**: Buying expired domains for their backlinks
-- **Site reputation abuse**: Using a reputable site to host low-quality content (parasite SEO). Enforcement differs by searcher region since 2026-08-28: outside the EEA the pages may receive a manual action; for users within the EEA they may be categorized as separate from the main domain instead. Treat it as a policy risk everywhere, and do not promise a demotion-free outcome for EEA audiences either.
+- **Site reputation abuse**: Using a reputable site to host low-quality content (parasite SEO). Enforcement differs by searcher region since 2026-08-30 (announced 2026-08-28): outside the EEA the pages may receive a manual action; for users within the EEA they may be categorized as separate from the main domain instead. Treat it as a policy risk everywhere, and do not promise a demotion-free outcome for EEA audiences either.
 - **Scaled content abuse**: Mass-producing content without value — Google's policy now **explicitly** names "using generative AI tools to generate many pages without adding value" (also covers automated transformations like synonymizing/translating).
 - **Back-button hijacking** (NEW, malicious practices): manipulating browser history (`history.pushState`/`replaceState`, including via third-party ad/library scripts) so users can't use the Back button. Announced 2026-04-13; **enforcement live since 2026-06-15** (manual actions + automated demotions).
 

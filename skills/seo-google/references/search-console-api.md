@@ -64,6 +64,7 @@
 - Data has a **2-3 day lag**. Available for approximately 16 months.
 - If a date range overlaps 2025-05-13 to 2026-04-27, clicks remain usable but impressions, CTR, and average position require caution due to the confirmed GSC impressions logging error.
 - `discover` and `googleNews` types do not support `query` dimension or `position` metric.
+- The **multimodal** search type (Lens, Circle to Search, image uploads; rolling out since 2026-09-24) is a Search Console UI filter with export. No API `type` value for it has been verified; do not pass one.
 - Country codes are **ISO 3166-1 alpha-3** (e.g., `USA`, `GBR`, `DEU`).
 - Pagination: increment `startRow` by `rowLimit` until fewer rows returned.
 - `rowLimit` is per API request. The claude-seo `--limit` option is a total

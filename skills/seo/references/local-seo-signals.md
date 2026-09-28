@@ -157,16 +157,17 @@ Posts (with scheduling), Services menu, Attributes (including identity: Women-le
 
 | Update | Date | Impact | Source |
 |--------|------|--------|--------|
-| March 2025 Core | Mar 13-27 | Emphasized E-E-A-T, penalized thin/AI content | Confirmed |
-| June 2025 Core | Jun 30-Jul 17 | General quality focus | Confirmed |
-| August 2025 Spam | Aug 26-Sep 22 | Targeted keyword stuffing, fake reviews, PBNs. Local Pack often stable | Confirmed |
+| March 2025 Core | Mar 13-27 | Third-party reports: E-E-A-T emphasis, thin/AI content losses | Dates confirmed |
+| June 2025 Core | Jun 30-Jul 17 | General quality focus (third-party reading) | Dates confirmed |
+| August 2025 Spam | Aug 26-Sep 22 | Google named no target; third-party reports cite keyword stuffing, fake reviews, PBNs, with the Local Pack often stable | Dates confirmed |
 | December 2025 Core | Dec 11-29 | Broad core update (rollout confirmed; "impact" is third-party interpretation — Google gave only generic guidance) | Dates confirmed |
 | February 2026 Discover Update | Feb 5-27 | Discover-only; favored original/in-depth/local content, reduced clickbait | Dates confirmed |
 | March 2026 Spam | Mar 24 (~19.5h) | Fast spam refresh; no local-specific guidance | Dates confirmed |
 | March 2026 Core | Mar 27-Apr 8 | First core update of 2026 | Dates confirmed |
 | May 2026 Core | May 21-Jun 2 | Second core update of 2026 | Dates confirmed |
 | June 2026 Spam | Jun 24-26 | Normal spam update, all languages | Dates confirmed |
-| August 2026 Spam | Aug 18-20 | Normal spam update | Dates confirmed |
+| August 2026 Spam | Aug 18-21 | Normal spam update | Dates confirmed |
+| September 2026 Spam | Sep 24, active on Sep 28 (up to two weeks) | Normal spam update; Google named no target | Dates confirmed |
 | "Diversity Update" | 2025 | Harder to rank in both map pack AND organic simultaneously | Study (Sterling Sky) |
 
 > **Note:** core-update *rollout dates* are Google-confirmed (Search Status Dashboard); the **"Impact" descriptions are third-party interpretation** — Google's only on-record statement for broad core updates is generic ("better surface relevant, satisfying content from all types of sites"). Do not present impact framing as Google fact.

@@ -93,7 +93,7 @@ Google's Scaled Content Abuse policy (introduced March 2024) saw major enforceme
 - **Human review:** Minimum 5-10% sample review of generated pages before publishing
 - **Progressive rollout:** Publish in batches of 50-100 pages. Monitor indexing and rankings for 2-4 weeks before expanding. Never publish 500+ programmatic pages simultaneously without explicit quality review.
 - **Standalone value test:** Each page should pass: "Would this page be worth publishing even if no other similar pages existed?"
-- **Site reputation abuse:** Google clarified site reputation abuse language on 2024-11-19; treat third-party/hosted programmatic content as a policy risk. Since 2026-08-28 enforcement depends on the searcher: manual actions apply outside the EEA, while for EEA users the third-party section may be categorized separately from the main domain. Report the risk for both audiences.
+- **Site reputation abuse:** Google clarified site reputation abuse language on 2024-11-19; treat third-party/hosted programmatic content as a policy risk. Since 2026-08-30 (announced 2026-08-28) enforcement depends on the searcher: manual actions apply outside the EEA, while for EEA users the third-party section may be categorized separately from the main domain. Report the risk for both audiences.
 
 > **Recommendation:** The WARNING gate at `<40% unique content` remains appropriate. Consider a HARD STOP at `<30%` unique content to prevent scaled content abuse risk.
 
