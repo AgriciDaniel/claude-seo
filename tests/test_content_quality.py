@@ -412,8 +412,18 @@ def test_seo_updates_unverified_entries_call_out_status() -> None:
 def test_seo_updates_filter_by_kind() -> None:
     data = seo_updates._load()
     cores = seo_updates._filter(data["updates"], kinds={"core"})
-    assert all(u["kind"] == "core" for u in cores)
+    assert all(u["kind"] in {"core", "core+spam"} for u in cores)
     assert any("December 2025 Core Update" in u["name"] for u in cores)
+
+
+def test_seo_updates_spam_filter_includes_combined_rollouts() -> None:
+    """`--kind spam` used to skip the combined March 2024 core+spam rollout."""
+    data = seo_updates._load()
+    spam = seo_updates._filter(data["updates"], kinds={"spam"})
+    assert all(u["kind"] in {"spam", "core+spam"} for u in spam)
+    assert any(u["kind"] == "core+spam" for u in spam)
+    policy = seo_updates._filter(data["updates"], kinds={"policy"})
+    assert all(u["kind"] == "policy" for u in policy)
 
 
 def test_seo_updates_filter_by_year() -> None:

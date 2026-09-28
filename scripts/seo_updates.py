@@ -87,7 +87,12 @@ def _filter(
             since_date = date.fromisoformat(since)
         out = [u for u in out if date.fromisoformat(u["date"]) >= since_date]
     if kinds:
-        out = [u for u in out if u.get("kind") in kinds]
+        # A combined "core+spam" rollout is both a core and a spam update, so
+        # asking for either one must include it (e.g. March 2024).
+        wanted = set(kinds)
+        if wanted & {"core", "spam"}:
+            wanted.add("core+spam")
+        out = [u for u in out if u.get("kind") in wanted]
     out.sort(key=lambda u: u["date"], reverse=True)
     return out
 

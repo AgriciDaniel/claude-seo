@@ -37,6 +37,7 @@ def _psi_payload():
     return {
         "analysisUTCTimestamp": "2026-08-29T00:00:00.000Z",
         "lighthouseResult": {
+            "lighthouseVersion": "13.5.0",
             "categories": {
                 "performance": {"score": 0.91},
                 "accessibility": {"score": None},  # not evaluated
@@ -66,3 +67,12 @@ def test_unscored_category_is_omitted_not_reported_as_zero():
 
     # A category Lighthouse refused to score is absent, not a 0/100 failure.
     assert "accessibility" not in result["lighthouse_scores"], result["lighthouse_scores"]
+
+
+def test_lighthouse_version_is_reported():
+    with mock.patch.object(
+        pagespeed_check.requests, "get", return_value=_Response(_psi_payload())
+    ):
+        result = pagespeed_check.run_pagespeed("https://example.com")
+
+    assert result["lighthouse_version"] == "13.5.0"

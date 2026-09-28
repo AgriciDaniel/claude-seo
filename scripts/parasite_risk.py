@@ -21,7 +21,8 @@ the topic diverges from the site's primary corpus. Three signals:
 
 The output is **advisory**: the scanner cannot determine the actual
 contractual relationship between the site and the content producer.
-Enforcement differs by searcher region since 2026-08-28: outside the EEA a
+Enforcement differs by searcher region (announced 2026-08-28, effective
+2026-08-30): outside the EEA a
 violation may draw a manual action; for users within the EEA the section may be
 categorized as separate from the main domain instead. The scanner reports the
 risk regardless of region.
