@@ -35,9 +35,10 @@ metadata:
    - `seo-sxo` -- Search experience analysis: page-type mismatch, user stories, persona scoring (always include in full audits)
    - `seo-drift` -- Drift analysis: compare against stored baseline (spawn when drift baseline exists for the URL via `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_history.py <url>`)
    - `seo-ecommerce` -- Product schema, marketplace intelligence (spawn when E-commerce industry detected)
-5. **Score** -- aggregate into SEO Health Score (0-100)
-6. **Persist audit artifacts** -- write all outputs under `{domain}-audit/`
-7. **Report** -- generate prioritized action plan and optional PDF/HTML report
+5. **Verify** -- re-check every Critical and High finding yourself before it reaches the report (see "Verification Pass" below). Subagent findings are claims, not facts.
+6. **Score** -- `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run audit_score.py {domain}-audit/audit-data.json --write --strict`. Scores only measured categories and withholds the composite when coverage is below 70% (see "Scoring Weights"). Never hand-compute or estimate a health score.
+7. **Persist audit artifacts** -- write all outputs under `{domain}-audit/`
+8. **Report** -- generate prioritized action plan and optional PDF/HTML report
 
 ## Crawl Configuration
 
@@ -75,17 +76,25 @@ Write `{domain}-audit/audit-data.json` with this shape so `"${CLAUDE_PLUGIN_ROOT
     {
       "name": "Technical SEO",
       "score": 0,
+      "measured": true,
       "what_works": [],
       "findings": [
         {
           "title": "Finding title",
           "severity": "Critical|High|Medium|Low|Info",
           "description": "Evidence-backed detail",
-          "recommendation": "Specific fix"
+          "recommendation": "Specific fix",
+          "source": "seo-technical",
+          "verification": {
+            "status": "verified|unverified|disproved",
+            "method": "How the orchestrator re-checked it",
+            "evidence": "What the re-check observed (counts, URLs, status codes)"
+          }
         }
       ]
     }
   ],
+  "corrections": [],
   "action_plan": {
     "phases": [
       {"name": "Phase 1: Critical Fixes", "timeframe": "Week 1", "items": []},
@@ -113,10 +122,71 @@ Write `{domain}-audit/audit-data.json` with this shape so `"${CLAUDE_PLUGIN_ROOT
 | AI Search Readiness | 10% |
 | Images | 5% |
 
+Name categories after the rows above, or set `"scoring_category"` to one of
+them; `audit_score.py` reports how it mapped any other name. A category that
+was not measured (its agent failed, timed out, or lacked the data) gets
+`"score": null, "measured": false`, never `0` and never an estimate. A score
+drawn from a narrow slice of the category (one template, one signal) also
+counts as not measured: record the slice as findings, not as the score.
+`audit_score.py` renormalises the weights over measured categories and writes
+`summary.score_coverage` and `summary.unmeasured_categories`. When measured
+categories cover less than 70% of the weight it removes `summary.health_score`
+and writes `summary.health_score_withheld` with the reason; the report then
+states which categories are missing instead of showing a number. Always quote
+the coverage next to the score ("68/100, 77% of categories measured").
+
+## Verification Pass
+
+Subagents misread pages, count wrong, and generalise from one sample. Before
+scoring, the orchestrator re-checks every Critical and High finding with its
+own tool calls; Medium findings are spot-checked when they drive a
+recommendation.
+
+1. **Re-derive, don't re-read.** Fetch the evidence directly (`fetch_page.py`,
+   `render_page.py`, `parse_html.py`, curl for status codes) rather than
+   rereading the agent's summary. Check the rendered DOM as well as raw HTML
+   before calling anything "missing".
+2. **Recount every number.** Counts, percentages and "N of M" claims are
+   recomputed from the raw data. A number that cannot be reproduced is not
+   reported.
+3. **Try to disprove it.** Ask what would make the finding false and check
+   that: a "missing" element may exist under another type or template; a
+   "broken" link may redirect to a live page; a "slow" asset may load after
+   LCP. A finding survives only if the disproof attempt fails.
+4. **Check the scope.** A finding observed on one page is reported for one
+   page. Claim a template-wide or site-wide issue only after sampling at least
+   one page per affected template.
+5. **Record the outcome** in each finding's `verification` object:
+   - `verified`: the re-check reproduced it; `evidence` says what was observed.
+   - `disproved`: the re-check contradicted it; `evidence` says why.
+     `audit_score.py --write` moves it to top-level `corrections`, so it never
+     reaches the client report.
+   - `unverified`: could not be checked (blocked, needs credentials). Downgrade
+     it to Medium, or keep the severity and label it unverified in the report.
+6. `audit_score.py --strict` exits 2 while any Critical or High finding is
+   still unverified. Resolve each one before generating the report.
+
+`FULL-AUDIT-REPORT.md` ends with a **Corrections** section listing every
+disproved claim, its source agent and the disproof, so later runs do not
+regress to it.
+
+## Shell Pitfalls
+
+- **Parallel writes to one file lose lines.** `xargs -P` or `&` jobs sharing a
+  single `>` redirect silently drop output. Have each job append (`>>`) to its
+  own file, then concatenate, and check that the collected line count equals
+  the input count before using the result.
+- **macOS lacks GNU tools.** No `timeout` or `shuf` by default: use `gtimeout`
+  (coreutils) or Python's `subprocess` timeout, and `sort -R` or Python
+  `random.sample` for sampling. `sed -i` needs `''` on BSD sed.
+- **Persist raw evidence** (sitemap, status scans, fetched HTML) under
+  `{domain}-audit/evidence/` so a re-run or verification pass starts warm
+  instead of re-crawling.
+
 ## Report Structure
 
 ### Executive Summary
-- Overall SEO Health Score (0-100)
+- Overall SEO Health Score (0-100) with its coverage, or the reason it was withheld
 - Business type detected
 - Top 5 critical issues
 - Top 5 quick wins
@@ -200,3 +270,4 @@ drawing conclusions. A date overlap is a hypothesis, never proof of cause.
 | Rate limiting (429 responses) | Back off and reduce concurrent requests. Report partial results with a note on which sections could not be completed. |
 | Timeout on large sites (500+ pages) | Cap the crawl at the timeout limit. Report findings for pages crawled and estimate total site scope. |
 | Subagent hits its `maxTurns` budget on a large site | Findings are not lost: every audit subagent writes a partial `output_dir/findings/*.md` after its first analysis pass and overwrites it with the complete findings before finishing. Read whatever findings file exists and merge it into the report, noting it may be partial. |
+| Subagent returns nothing and no findings file exists | Mark its categories `"score": null, "measured": false`. Do not fill the gap with estimates; `audit_score.py` accounts for it in coverage. |

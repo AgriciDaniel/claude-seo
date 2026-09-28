@@ -679,6 +679,14 @@ def _build_css(domain: str) -> str:
     /* allow page breaks to prevent white gaps */
   }}
 
+  .coverage-box {{
+    background: #fffbeb;
+    border-left: 3px solid #b7791f;
+    padding: 3mm 4mm;
+    margin: 4mm 0;
+    font-size: 9.5pt;
+  }}
+
   .success-box {{
     background: #f0fdf4;
     border-left: 3px solid #2d6a4f;
@@ -1088,6 +1096,40 @@ def _finding_description(item):
     return ""
 
 
+def _health_score_label(summary):
+    """Label the health score with its coverage when audit_score.py recorded one."""
+    coverage = summary.get("score_coverage") if isinstance(summary, dict) else None
+    if isinstance(coverage, (int, float)) and not isinstance(coverage, bool) and coverage < 1:
+        return f"SEO Health Score ({coverage:.0%} of categories measured)"
+    return "SEO Health Score"
+
+
+def _score_coverage_note(summary):
+    """Explain a partial or withheld health score. Returns escaped HTML or ''."""
+    if not isinstance(summary, dict):
+        return ""
+    unmeasured = [str(c) for c in _coerce_items(summary.get("unmeasured_categories")) if c]
+    missing = f" Not measured: {escape(', '.join(unmeasured))}." if unmeasured else ""
+    withheld = summary.get("health_score_withheld")
+    if withheld and summary.get("health_score") is None:
+        return (f"<strong>No composite health score issued:</strong> {escape(str(withheld))}."
+                f"{missing} Findings below are reported individually.")
+    if unmeasured and summary.get("health_score") is not None:
+        return f"The health score is weighted over measured categories only.{missing}"
+    return ""
+
+
+def _verification_badge(finding):
+    """Mark gated findings that were never independently re-checked."""
+    if not isinstance(finding, dict):
+        return ""
+    verification = finding.get("verification")
+    status = verification.get("status") if isinstance(verification, dict) else verification
+    if str(status or "").strip().lower() == "unverified":
+        return ' <span class="status-warn">Unverified</span>'
+    return ""
+
+
 def _build_full_audit_categories(data, section_num=2):
     """Build category sections for audit-data.json style reports."""
     categories = _coerce_items(data.get("categories"))
@@ -1108,7 +1150,9 @@ def _build_full_audit_categories(data, section_num=2):
         name = escape(str(category.get("name", f"Category {idx}")))
         score = category.get("score")
         lines.append(f'  <h3>{section_num}.{idx} {name}</h3>')
-        if score is not None:
+        if category.get("measured") is False or (score is None and "measured" in category):
+            lines.append('  <p><strong>Score:</strong> <span class="status-warn">Not measured</span></p>')
+        elif score is not None:
             try:
                 score_val = float(score)
                 cls = "status-pass" if score_val >= 80 else ("status-warn" if score_val >= 50 else "status-fail")
@@ -1138,12 +1182,13 @@ def _build_full_audit_categories(data, section_num=2):
                 # findings have no severity, and _finding_severity() falls back to "Info" --
                 # which would badge every entry as "Info" (see the executive-summary fix for
                 # the same shape). Dict-shaped findings with an explicit severity keep it.
+                badge = _verification_badge(finding)
                 if isinstance(finding, dict) and finding.get("severity"):
                     severity = escape(str(finding["severity"]))
                     severity_class = _rating_css_class(severity)
-                    lines.append(f'    <h4>{title} <span class="{severity_class}">{severity}</span></h4>')
+                    lines.append(f'    <h4>{title} <span class="{severity_class}">{severity}</span>{badge}</h4>')
                 else:
-                    lines.append(f'    <h4>{title}</h4>')
+                    lines.append(f'    <h4>{title}{badge}</h4>')
                 if desc:
                     lines.append(f'    <p>{desc}</p>')
                 if recommendation:
@@ -1230,7 +1275,7 @@ def _build_executive_summary(domain, timestamp, data, report_type):
 
     health_score = summary.get("health_score")
     if health_score is not None:
-        cards.append(("health", f"{health_score}/100", "SEO Health Score", _score_color(float(health_score))))
+        cards.append(("health", f"{health_score}/100", _health_score_label(summary), _score_color(float(health_score))))
 
     # PSI performance score
     psi = data.get("psi", {})
@@ -1270,6 +1315,11 @@ def _build_executive_summary(domain, timestamp, data, report_type):
             lines.append(_metric_card(val, lbl, clr))
             lines.append('    </div>')
         lines.append('  </div>')
+        lines.append('')
+
+    coverage_note = _score_coverage_note(summary)
+    if coverage_note:
+        lines.append(f'  <div class="coverage-box">{coverage_note}</div>')
         lines.append('')
 
     # Critical issues box
@@ -2259,7 +2309,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
             domain, "Full SEO Audit Report" if has_audit_schema else "Google SEO Intelligence Report",
             "Comprehensive Analysis",
             score=display_score,
-            score_label="SEO Health Score" if health_score is not None else ("Lighthouse Performance Score" if perf_score else None),
+            score_label=_health_score_label(summary) if health_score is not None else ("Lighthouse Performance Score" if perf_score else None),
             meta_items=[timestamp, "Full Audit"],
         ))
 
@@ -2421,25 +2471,46 @@ def _review_pdf(pdf_path: str, html_content: str) -> dict:
     RULE: Always review the PDF before presenting to the user.
     Check for common rendering issues.
     """
-    review = {"issues": [], "page_count": None, "file_size_kb": None}
+    import re
+
+    review = {"issues": [], "page_count": None, "file_size_kb": None, "text_chars": None}
+    fatal = []
 
     # File size
     try:
         size = os.path.getsize(pdf_path)
         review["file_size_kb"] = round(size / 1024, 1)
     except OSError:
-        pass
+        fatal.append("PDF file missing after render")
 
-    # Page count (if pypdf available)
+    # Page count and extracted text (if pypdf available). Characters are counted
+    # with whitespace removed: font subsetting splits words across text-show
+    # operators, so extracted spacing is unreliable but the glyph count is not.
     try:
         from pypdf import PdfReader
         reader = PdfReader(pdf_path)
         review["page_count"] = len(reader.pages)
+        pdf_text = "".join((page.extract_text() or "") for page in reader.pages)
+        review["text_chars"] = len(re.sub(r"\s+", "", pdf_text))
     except ImportError:
-        review["issues"].append("pypdf missing, page-count check skipped")
+        review["issues"].append("pypdf missing, page-count and text checks skipped")
+    except Exception as exc:  # corrupt or truncated file
+        fatal.append(f"PDF unreadable: {type(exc).__name__}")
+
+    if review["page_count"] == 0:
+        fatal.append("PDF has zero pages")
+    if review["text_chars"] is not None:
+        body = re.sub(r"<(style|script)\b.*?</\1>", "", html_content, flags=re.DOTALL | re.IGNORECASE)
+        source_chars = len(re.sub(r"\s+", "", re.sub(r"<[^>]+>", "", body)))
+        if review["text_chars"] < 200:
+            fatal.append(f"PDF contains almost no extractable text ({review['text_chars']} chars)")
+        elif source_chars and review["text_chars"] < 0.5 * source_chars:
+            review["issues"].append(
+                f"PDF text ({review['text_chars']} chars) is under half the source HTML "
+                f"({source_chars} chars); content may be truncated"
+            )
 
     # HTML-level checks
-    import re
     # Check for empty chart containers (img with no src)
     empty_imgs = re.findall(r'<img[^>]*src=""[^>]*>', html_content)
     if empty_imgs:
@@ -2459,7 +2530,10 @@ def _review_pdf(pdf_path: str, html_content: str) -> dict:
     if len(tables) != len(set(tables)):
         review["issues"].append("Duplicate tables detected")
 
-    if not review["issues"]:
+    if fatal:
+        review["issues"] = fatal + review["issues"]
+        review["status"] = f"FAIL ({len(fatal)} fatal)"
+    elif not review["issues"]:
         review["status"] = "PASS"
     else:
         review["status"] = f"WARN ({len(review['issues'])} issues)"

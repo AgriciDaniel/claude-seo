@@ -92,7 +92,7 @@ When the user invokes `/seo audit`, delegate to subagents in parallel:
 10. If e-commerce detected, also spawn seo-ecommerce agent
 11. If drift baseline exists for this URL (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_history.py <url>`), also spawn seo-drift agent
 12. Always include seo-sxo in full audits (search experience applies to all sites)
-13. Collect results and generate unified report with SEO Health Score (0-100)
+13. Collect results, re-check every Critical/High finding directly (seo-audit "Verification Pass"), then score with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run audit_score.py <audit-data.json> --write --strict`: SEO Health Score (0-100) from measured categories only, with coverage, withheld below 70%
 14. **Synthesize via the 10-principle framework** (see "Synthesis Methodology" below), walk PERCEIVE → ANALYZE → VALIDATE → ACT before bucketing findings into Critical / High / Medium / Low
 15. Create prioritized action plan with dependency sequencing + falsifiability per recommendation
 16. **Offer PDF report**: "Generate a professional PDF report? Use `/seo google report full`"

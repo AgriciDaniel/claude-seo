@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `audit_score.py` computes the SEO Health Score from measured categories
+  only. A category with `"score": null` or `"measured": false` is excluded
+  and the weights are renormalised, instead of counting it as 0 or letting
+  the orchestrator estimate it. The script writes `summary.score_coverage`
+  and `summary.unmeasured_categories`, and below 70% weighted coverage
+  (`--min-coverage`) it removes `summary.health_score` and records
+  `summary.health_score_withheld` with the reason. When most specialists
+  return nothing, a composite number would otherwise be mostly invented.
+- A verification pass in `seo-audit`: the orchestrator re-checks every
+  Critical and High finding with its own fetches before scoring (re-derive,
+  recount, attempt a disproof, check scope) and records a `verification`
+  object per finding. `audit_score.py --strict` exits 2 while any
+  Critical/High finding is unverified, and `--write` moves `disproved`
+  findings into a top-level `corrections` list so they never reach the
+  client report. Specialist claims that a direct fetch contradicts (an
+  element reported missing that exists under another type, a "broken" link
+  that redirects to a live page) are the failure this step targets.
+- `seo-audit` gains a "Shell Pitfalls" section: parallel jobs sharing one
+  `>` redirect lose lines, macOS has no `timeout`/`shuf`, and raw evidence
+  should be persisted so re-runs start warm.
+
+### Changed
+
+- The full report labels the health score with its coverage ("SEO Health
+  Score (75% of categories measured)"), explains a withheld score and lists
+  unmeasured categories in the executive summary, shows "Not measured"
+  instead of a score for unmeasured categories, and badges Critical/High
+  findings still marked unverified.
+- The PDF post-render review returns `FAIL` when the file is missing,
+  unreadable, has zero pages, or contains almost no extractable text, and
+  warns when the PDF holds under half the source HTML's text. Before, only
+  a missing `pypdf` was handled, so a zero-page or textless render passed.
+
 ## [2.4.0] - 2026-09-24
 
 ### Added
