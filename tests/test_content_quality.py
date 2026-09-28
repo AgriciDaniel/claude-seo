@@ -338,6 +338,7 @@ def test_seo_updates_every_entry_has_google_owned_source() -> None:
         "blog.google",
         "status.search.google.com",
         "web.dev",
+        "developer.chrome.com",
         "services.google.com",
         "support.google.com",
     }
