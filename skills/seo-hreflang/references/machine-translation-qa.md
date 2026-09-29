@@ -12,9 +12,9 @@ https://developers.google.com/search/docs/essentials/spam-policies
 > way to produce many pages that add little-to-no value."
 
 Machine-translated content is fine **when reviewed by a human
-speaker and corrected**. Untranslated MT — or "lightly post-edited"
+speaker and corrected**. Untranslated MT (or "lightly post-edited"
 output that still contains hallucinated terms, wrong gender/number
-agreement, or untranslated proper nouns — is treated as scaled
+agreement, or untranslated proper nouns) is treated as scaled
 content abuse.
 
 ## Signals the seo-hreflang audit should surface
@@ -23,7 +23,7 @@ content abuse.
 |---|---|---|
 | Multiple `hreflang` alternates point to URLs whose content is identical except for header chrome | Critical | Indicates the body wasn't translated; just template wrapped. |
 | `lang="xx"` attribute on `<html>` doesn't match the body language | High | Translation pipeline output without a final QA step. |
-| Auto-translated `<meta name="description">` longer than 160 chars (untrimmed) | Medium | The translator overran the snippet limit — no human reviewer caught it. |
+| Auto-translated `<meta name="description">` longer than 160 chars (untrimmed) | Medium | The translator overran the snippet limit; no human reviewer caught it. |
 | `lang` attribute is `auto` or missing entirely | Medium | Pages that don't declare their language confuse hreflang + AI crawlers. |
 | Untranslated proper nouns or product names sprinkled in body | Low (heuristic) | Common MT failure mode; hard to detect automatically. |
 | Schema.org `inLanguage` field absent or wrong | Medium | Multi-language audits should cross-check `inLanguage` vs. body. |
@@ -33,7 +33,7 @@ content abuse.
 - Sites that have a few MT pages clearly labelled as MT (a
   human-translation-fallback pattern). Google's QRG explicitly
   permits MT *when honestly labelled and clearly scoped*.
-- Machine-translated UI strings — those are i18n, not "content".
+- Machine-translated UI strings: those are i18n, not "content".
 - Content with `lang="auto"` if the audit can't fetch a fallback
   signal (be conservative; don't claim what we can't verify).
 

@@ -34,7 +34,7 @@ def validate_schema_claims(parsed_data: dict) -> list:
             issues.append({
                 "severity": "warning",
                 "field": f"schema[{i}]",
-                "message": "Schema block is not a dict — may be unparseable JSON-LD",
+                "message": "Schema block is not a dict: may be unparseable JSON-LD",
             })
             continue
 
@@ -64,7 +64,7 @@ def validate_schema_claims(parsed_data: dict) -> list:
             issues.append({
                 "severity": "error",
                 "field": f"schema[{i}]",
-                "message": "HowTo schema detected — deprecated Sept 2023. Never recommend.",
+                "message": "HowTo schema detected: deprecated Sept 2023. Never recommend.",
             })
 
     return issues
@@ -104,14 +104,14 @@ def validate_verification_results(verify_data: dict) -> list:
         source_domain = urlparse(source).netloc.lower()
 
         if status == "link_removed" and any(sd in source_domain for sd in social_domains):
-            # Social media page marked as link_removed — likely false negative
+            # Social media page marked as link_removed: likely false negative
             http_status = r.get("http_status", 0)
             if http_status == 200:
                 issues.append({
                     "severity": "error",
                     "field": f"verify[{source}]",
                     "message": f"Social media page ({source_domain}) returned 200 but marked 'link_removed'. "
-                               "Most social platforms are JS-rendered — should be 'unverifiable_js'.",
+                               "Most social platforms are JS-rendered; should be 'unverifiable_js'.",
                 })
 
     return issues
@@ -124,7 +124,7 @@ def validate_h1_claims(parsed_data: dict) -> list:
     h1_suspicious = parsed_data.get("h1_suspicious", [])
 
     if not h1_list:
-        # No H1 is a real finding — just ensure it's stated clearly
+        # No H1 is a real finding; just ensure it's stated clearly
         return issues
 
     # Check if ALL H1s are suspicious (likely no real heading)
@@ -151,11 +151,11 @@ def validate_cc_claims(cc_data: dict) -> list:
     in_rankings = data.get("in_rankings")
 
     if in_crawl is False and in_rankings is False:
-        # Domain not in CC at all — ensure report doesn't claim "low authority"
+        # Domain not in CC at all; ensure report doesn't claim "low authority"
         issues.append({
             "severity": "info",
             "field": "cc_data",
-            "message": "Domain not found in Common Crawl. Do NOT interpret as 'low authority' — "
+            "message": "Domain not found in Common Crawl. Do NOT interpret as 'low authority'; "
                        "it means CC hasn't crawled it yet. Could be new, niche, or geo-specific (.ro, .jp, etc.).",
         })
 
@@ -163,7 +163,7 @@ def validate_cc_claims(cc_data: dict) -> list:
         issues.append({
             "severity": "info",
             "field": "cc_data",
-            "message": "Domain in CC crawl but not in rankings. Report as 'below ranking threshold' — "
+            "message": "Domain in CC crawl but not in rankings. Report as 'below ranking threshold'; "
                        "not 'domain has no authority'.",
         })
 

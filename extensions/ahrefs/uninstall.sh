@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude SEO — Ahrefs extension uninstaller.
+# Claude SEO: Ahrefs extension uninstaller.
 set -euo pipefail
 
 SKILL_DIR="${HOME}/.claude/skills/seo-ahrefs"

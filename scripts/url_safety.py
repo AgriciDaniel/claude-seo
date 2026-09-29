@@ -401,7 +401,7 @@ def normalize_hostname(hostname: str) -> str:
         raise URLSafetyError("Empty hostname")
 
     h = hostname.lower().strip()
-    # Strip a single trailing dot — FQDN form is semantically identical to
+    # Strip a single trailing dot: FQDN form is semantically identical to
     # the bare form for the purposes of resolution and policy.
     if h.endswith(".") and not h.endswith(".."):
         h = h[:-1]
@@ -435,7 +435,7 @@ def validate_url(url: str) -> bool:
         - Normalization itself fails (malformed obfuscated input)
     Returns True for any other well-formed http(s) URL with a
     public-looking hostname. Use ``validate_url_strict`` whenever the
-    caller will open a socket — only the strict form catches a DNS
+    caller will open a socket; only the strict form catches a DNS
     record that resolves to a non-public IP at connect time.
     """
     try:
@@ -458,7 +458,7 @@ def validate_url(url: str) -> bool:
     try:
         ipaddress.ip_address(hostname)
     except ValueError:
-        return True  # Hostname is a name, not a literal — OK at parse time.
+        return True  # Hostname is a name, not a literal: OK at parse time.
     if is_safe_ip(hostname):
         return True
     return allowlisted and _is_allowlistable_ip(hostname)
@@ -657,7 +657,7 @@ def _pin_dns(
     only to ``pinned_ip``, AND every other hostname looked up during the
     pinned scope has its resolved IPs validated against
     :func:`is_safe_ip`. Non-public resolutions raise ``socket.gaierror``,
-    which ``requests`` surfaces as ``ConnectionError`` — the caller's
+    which ``requests`` surfaces as ``ConnectionError``: the caller's
     existing error path.
 
     ``exempt_hosts`` are resolved by the real resolver without the
@@ -955,7 +955,7 @@ def make_safe_playwright_route_handler(
 
             parsed = urlparse(request.url)
             if parsed.scheme not in ("http", "https"):
-                # data:, blob:, chrome-extension:, etc. — no DNS involved.
+                # data:, blob:, chrome-extension:, etc.: no DNS involved.
                 route.continue_()
                 return
             host = parsed.hostname

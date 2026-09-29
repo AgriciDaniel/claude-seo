@@ -150,5 +150,5 @@ upgrade.
 Two very old tags (`v1.2.0`, `v1.4.0`) could not be pushed to the
 private repo because the underlying commits use a private email address
 that GitHub now blocks. These tags remain available on `origin` only.
-Not a regression — those releases shipped on public and are reachable
+Not a regression: those releases shipped on public and are reachable
 there.

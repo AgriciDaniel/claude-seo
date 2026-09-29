@@ -76,7 +76,7 @@ def _rate_limit():
                 import fcntl
                 fcntl.flock(f, fcntl.LOCK_EX)
             except (ImportError, OSError):
-                pass  # Windows or lock unavailable — skip locking
+                pass  # Windows or lock unavailable: skip locking
 
             f.seek(0)
             content = f.read().strip()

@@ -222,7 +222,7 @@ def _save_oauth_token(token_data: dict):
         2. ``os.open`` with explicit mode 0o600 (mode applies only to
            newly-created files, ignored when the file already exists).
         3. ``os.fchmod`` on the open fd to *force* 0o600 even if the
-           file pre-existed at step 2 — defeats the
+           file pre-existed at step 2; defeats the
            os.path.exists()/os.open() TOCTOU race where an external
            creator could install a 0o644 file between the two calls.
 
@@ -235,7 +235,7 @@ def _save_oauth_token(token_data: dict):
     fd = os.open(TOKEN_PATH, flags, 0o600)
     # fchmod on the open fd guarantees 0o600 even if the file existed at
     # open time (in which case os.open's mode arg is ignored by the OS).
-    # os.fdopen takes ownership of fd — it closes the fd whether the
+    # os.fdopen takes ownership of fd: it closes the fd whether the
     # write succeeds or raises, so there is no fd-leak path here.
     try:
         fchmod = getattr(os, "fchmod", None)

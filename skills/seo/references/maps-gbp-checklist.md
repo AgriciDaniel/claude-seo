@@ -147,4 +147,4 @@ This ensures consistent scoring regardless of which industry multipliers are act
 | Attributes | `attributes` (grouped by type) |
 | Popular times | `popular_times` |
 | Posts | My Business Updates API |
-| Verified status | Not directly exposed — infer from profile completeness + Maps SERP presence, or flag as "Unknown (manual check required)" |
+| Verified status | Not directly exposed: infer from profile completeness + Maps SERP presence, or flag as "Unknown (manual check required)" |

@@ -16,7 +16,7 @@ Google's September 11, 2025 Quality Rater Guidelines:
 
 The script is *advisory*: it surfaces signals so the caller can decide
 whether a page warrants rewriting. It does NOT make a "this is AI"
-verdict — modern generative tools can produce content that passes
+verdict: modern generative tools can produce content that passes
 every heuristic. Pair this with ``content_verify.py`` (claim
 verification) for stronger signal.
 
@@ -46,7 +46,7 @@ Attribution
 The AI-pattern list draws from the Wikipedia "AI Cleanup" project's
 catalogue of LLM-typical phrasings (CC BY-SA 4.0). The same list is
 used by ivankuznetsov/claude-seo (MIT) and we cite both upstreams in
-the comment block. Patterns are kept conservative — only phrases that
+the comment block. Patterns are kept conservative: only phrases that
 appear disproportionately in LLM output and rarely in human writing
 are included.
 """

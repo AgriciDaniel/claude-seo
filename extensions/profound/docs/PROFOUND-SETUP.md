@@ -1,7 +1,7 @@
 # Profound extension setup
 
 Profound (https://tryprofound.com) tracks brand mentions across LLMs as
-a time-series — the complement to SE Ranking's on-demand sampling.
+a time-series: the complement to SE Ranking's on-demand sampling.
 
 ## Install
 

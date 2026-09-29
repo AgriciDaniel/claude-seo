@@ -11,7 +11,7 @@ For each page that exists in multiple languages, check:
 
 | Dimension | What to Compare | Acceptable Variance | Severity if Failing |
 |-----------|----------------|--------------------|--------------------|
-| Page existence | Does equivalent page exist in all declared languages? | 0% — all declared languages must have the page | High |
+| Page existence | Does equivalent page exist in all declared languages? | 0%: all declared languages must have the page | High |
 | Section structure | Same number of H2/H3 sections? | ±1 section allowed | Medium |
 | FAQ items | Same number of FAQ questions? | ±2 items allowed | Medium |
 | Images | Same number of images with localized alt text? | Must match exactly | Medium |

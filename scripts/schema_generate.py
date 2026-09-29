@@ -4,7 +4,7 @@ JSON-LD generators for the four high-leverage v2 Schema.org types:
 
   - Reservation       (FoodEstablishmentReservation, etc.)
   - OrderAction       (an "Order this" potentialAction)
-  - DiscussionForumPosting  (community/forum content — promoted to
+  - DiscussionForumPosting  (community/forum content, promoted to
                               first-class rich result in 2024)
   - ProfilePage       (author/entity pages with sameAs + knowsAbout
                        for AI citation entity graphs)
@@ -222,7 +222,7 @@ def profile(
 
 
 def _strip_nones(payload: dict) -> dict:
-    """Recursively remove keys with value None — keeps the JSON-LD output
+    """Recursively remove keys with value None: keeps the JSON-LD output
     tight without us writing manual ``if x is not None`` guards above."""
     if isinstance(payload, dict):
         return {k: _strip_nones(v) for k, v in payload.items() if v is not None}
@@ -338,7 +338,7 @@ def main() -> int:
             works_for=args.works_for, image=args.image,
             job_title=args.job_title,
         )
-    else:  # pragma: no cover — argparse rejects unknown sub-commands
+    else:  # pragma: no cover (argparse rejects unknown sub-commands)
         parser.error(f"Unknown kind {args.kind!r}")
         return 2
 

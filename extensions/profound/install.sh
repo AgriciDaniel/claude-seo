@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude SEO — Profound (LLM citation tracker) extension installer.
+# Claude SEO: Profound (LLM citation tracker) extension installer.
 #
 # Profound tracks brand citation rates across major LLMs and exposes
 # them as structured time-series. Pairs with seo-seranking (which
@@ -11,7 +11,7 @@ main() {
     SETTINGS_JSON="${HOME}/.claude/settings.json"
 
     echo "════════════════════════════════════════"
-    echo "║   Claude SEO — Profound extension    ║"
+    echo "║   Claude SEO: Profound extension    ║"
     echo "════════════════════════════════════════"
 
     command -v python3 >/dev/null 2>&1 || { echo "✗ Python 3 required."; exit 1; }

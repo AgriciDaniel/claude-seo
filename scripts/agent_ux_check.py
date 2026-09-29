@@ -101,7 +101,7 @@ def analyze_html(html: str) -> dict:
         "inputs_without_label": 0,
     }
 
-    # Inputs without ARIA labels — first cut, then check label[for] coverage.
+    # Inputs without ARIA labels: first cut, then check label[for] coverage.
     aria_less = _INPUT_WITHOUT_LABEL_RE.findall(html)
     findings["inputs_without_aria"] = len(aria_less)
 

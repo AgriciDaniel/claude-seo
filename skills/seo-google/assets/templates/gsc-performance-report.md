@@ -1,7 +1,7 @@
 # Google Search Console Performance Report
 
 **Property:** {property}
-**Date Range:** {start_date} — {end_date}
+**Date Range:** {start_date} to {end_date}
 **Search Type:** {search_type}
 
 ## Summary

@@ -21,7 +21,7 @@ not a recommendation.
 
 ## PERCEIVE
 
-### 1. OBSERVE — the external input
+### 1. OBSERVE: the external input
 
 Collect signals without interpreting them. For a website audit this means:
 
@@ -36,13 +36,13 @@ Collect signals without interpreting them. For a website audit this means:
 
 **Discipline:** do not score yet. Do not classify yet. Just collect.
 
-### 2. OBSERVE — internal metacognition
+### 2. OBSERVE: internal metacognition
 
 Audit your own assumptions about the site before assembling
 recommendations. Common assumption traps in SEO:
 
-- Assuming the homepage represents the site (often it doesn't —
-  programmatic pages or category pages drive traffic)
+- Assuming the homepage represents the site (often it doesn't: programmatic
+  pages or category pages drive traffic)
 - Assuming "low traffic" means "low value" (intent-matched low-volume can
   outconvert high-volume informational queries)
 - Assuming the brand wants what the analyst thinks is "best practice"
@@ -56,10 +56,10 @@ recommendations. Common assumption traps in SEO:
 this resting on?" If the answer surprises you, surface the assumption in
 the report so the user can reject it explicitly.
 
-### 3. LISTEN — active receptivity
+### 3. LISTEN: active receptivity
 
-Read what the site, user intent, and platform signals are actually saying
-— not what you expect them to say.
+Read what the site, user intent, and platform signals are actually saying,
+not what you expect them to say.
 
 - Read the page's existing copy before recommending a rewrite. The brand
   voice is data.
@@ -68,7 +68,7 @@ Read what the site, user intent, and platform signals are actually saying
 - Read user reviews / community discussions / Reddit threads for what
   customers actually ask about (versus what the marketing team thinks
   they ask about).
-- Read the user's prior conversations + memory if available — they may
+- Read the user's prior conversations + memory if available; they may
   have ruled out approaches already.
 
 **Discipline:** if a recommendation contradicts the SERP for the same
@@ -79,7 +79,7 @@ exception.
 
 ## ANALYZE
 
-### 4. THINK — critical processing
+### 4. THINK: critical processing
 
 Reduce the findings to first principles:
 
@@ -90,8 +90,8 @@ Reduce the findings to first principles:
   shown with a snippet)? If the page is not indexed, no AI work
   matters yet.
 - What is the **highest-leverage constraint** binding the site right
-  now? (Often: a single technical defect — non-indexable, slow LCP,
-  missing canonical — that gates everything else.)
+  now? (Often: a single technical defect (non-indexable, slow LCP,
+  missing canonical) that gates everything else.)
 - What does **Google's primary-source guidance** say about the
   recommendation? When community claims and Google contradict, defer
   to Google (see `${CLAUDE_PLUGIN_ROOT}/skills/seo-geo/references/google-ai-optimization-guide.md`).
@@ -99,7 +99,7 @@ Reduce the findings to first principles:
 **Discipline:** the highest-leverage constraint goes first in the action
 plan, even if it's less interesting than the "growth" recommendations.
 
-### 5. CONNECT — lateral / associative
+### 5. CONNECT: lateral / associative
 
 Combine findings from sub-skills that the user wouldn't naturally pair.
 Examples that frequently produce the highest-value recommendations:
@@ -116,9 +116,9 @@ Examples that frequently produce the highest-value recommendations:
   → JS-blocked content is the upstream cause of the content finding.
 
 **Discipline:** any single sub-skill finding that survives connection
-unchanged should be skeptical — it might be a symptom, not a cause.
+unchanged should be skeptical; it might be a symptom, not a cause.
 
-### 6. CONNECT — system orchestration
+### 6. CONNECT: system orchestration
 
 Wire the validated recommendations into an executable sequence:
 
@@ -136,7 +136,7 @@ two recommendations cannot be done in either order, say so.
 
 ## VALIDATE
 
-### 7. FEEL — emotional intelligence + intuition
+### 7. FEEL: emotional intelligence + intuition
 
 Pure-logic recommendations break on contact with the actual reader /
 business / stakeholder. Pressure-test against:
@@ -156,7 +156,7 @@ business / stakeholder. Pressure-test against:
 **Discipline:** if you can't articulate the human cost of a
 recommendation, you haven't fully validated it.
 
-### 8. ACCEPT — intellectual humility
+### 8. ACCEPT: intellectual humility
 
 Each recommendation should carry the falsifiability that comes with
 honesty:
@@ -166,7 +166,7 @@ honesty:
 - If the user has tried this and it didn't work before, surface that.
   Don't re-recommend the same thing.
 - If a constraint cannot be removed (legal, brand, technical), the
-  recommendation has to pivot — not double down.
+  recommendation has to pivot, not double down.
 - If a v1 recommendation is now stale because Google's guidance shifted,
   retract it explicitly.
 
@@ -177,7 +177,7 @@ failed?" line. No invisible bets.
 
 ## ACT
 
-### 9. CREATE — generative output
+### 9. CREATE: generative output
 
 Stop strategizing. Produce the artifact:
 
@@ -191,7 +191,7 @@ Stop strategizing. Produce the artifact:
 
 **Discipline:** ship the artifact. Analysis paralysis is the enemy.
 
-### 10. GROW — iterative loop
+### 10. GROW: iterative loop
 
 The audit is a snapshot, not a verdict. Build the feedback loop:
 
@@ -219,10 +219,10 @@ action plan. The Critical / High / Medium / Low priority bucketing
 happens **after** the validation phase, not instead of it.
 
 Single-purpose commands (`/seo schema`, `/seo images`, `/seo technical`,
-etc.) can skip the full loop when the user is asking a narrow question
-— but their recommendations should still pass at least THINK + ACCEPT
-before being emitted (does this rest on a sound first principle, and is
-the falsifiability surfaced?).
+etc.) can skip the full loop when the user is asking a narrow question, but
+their recommendations should still pass at least THINK + ACCEPT before being
+emitted (does this rest on a sound first principle, and is the falsifiability
+surfaced?).
 
 ## When to escalate to the user
 
@@ -230,7 +230,7 @@ These principles are claude-seo's; they are not the user's. Surface them
 for the user when:
 
 - A recommendation requires accepting an assumption you'd rather not own
-  (CONNECT-lateral often produces these — surface the link and let the
+  (CONNECT-lateral often produces these; surface the link and let the
   user confirm).
 - The validation phase flagged a brand-voice / operator-capacity / hard
   constraint you can see but cannot resolve.

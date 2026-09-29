@@ -29,7 +29,7 @@ in Search; broader Universal Cart rollout details are reported from Google I/O
 | Compatible with AP2 (Agent Payments Protocol) for cryptographic user-consent proof on autonomous purchases | A way to skip being merchant of record |
 | Google reference implementation for conversational buying in AI Mode in Search | A "ranking factor" because Google has not framed it that way |
 
-Merchants stay **Merchant of Record** under UCP — they keep customer
+Merchants stay **Merchant of Record** under UCP; they keep customer
 relationships and post-purchase ownership.
 
 ## How to declare a UCP profile
@@ -71,8 +71,8 @@ profile and negotiate a version.
 
 ### Integration paths
 
-- **Native checkout** (default) — full agentic potential; the recommended path.
-- **Embedded checkout** (optional, iframe-based) — for specific Google-approved
+- **Native checkout** (default): full agentic potential; the recommended path.
+- **Embedded checkout** (optional, iframe-based): for specific Google-approved
   merchants with complex/bespoke checkout.
 
 Merchants join a **waitlist** (interest form linked from developers.google.com/merchant/ucp) before going live.
@@ -105,7 +105,7 @@ Exact identifiers are governed by the live spec. The namespace pattern is
 5. **Integration path:** does the profile imply Native (default) or Embedded
    (approved-merchant) checkout?
 
-The audit should **not** score the absence of UCP as a critical failure — frame
+The audit should **not** score the absence of UCP as a critical failure; frame
 it as an opportunity, especially for merchants already on Google Merchant
 Center. (UCP itself is live; what's "early" is broad merchant adoption.)
 
@@ -114,8 +114,8 @@ Center. (UCP itself is live; what's "early" is broad merchant adoption.)
 | Existing surface | Relationship to UCP |
 |---|---|
 | Google Merchant Center feed | Google's guide builds on existing Merchant Center shopping feeds for discovery |
-| Google Business Profile | Independent — UCP is product / order; GBP is store / location |
-| Product schema (`hasMerchantReturnPolicy`, `shippingDetails`) | Complementary — UCP exposes the same data at the API layer; schema exposes it at the page layer |
+| Google Business Profile | Independent: UCP is product / order; GBP is store / location |
+| Product schema (`hasMerchantReturnPolicy`, `shippingDetails`) | Complementary: UCP exposes the same data at the API layer; schema exposes it at the page layer |
 | AP2 (Agent Payments Protocol) | Pair. UCP handles discovery + checkout structure; AP2 handles cryptographic proof of user consent. Treat FIDO governance, v0.2, and Mastercard Verifiable Intent details as secondary-source context, not canonical audit guidance until primary sources verify them. |
 
 A merchant that already has clean Merchant Center feeds, complete Product
@@ -125,9 +125,9 @@ schema, and a checkout API can declare a UCP profile in a sprint.
 
 - **Tier 1 (e-commerce sites already on Merchant Center):** recommend
   declaring a UCP profile as a forward-looking opportunity.
-- **Tier 2 (DTC sites not on Merchant Center):** do not recommend UCP yet —
+- **Tier 2 (DTC sites not on Merchant Center):** do not recommend UCP yet;
   Merchant Center is the prerequisite to most flows.
-- **Tier 3 (informational / B2B sites):** ignore UCP — but **do not** blanket-
+- **Tier 3 (informational / B2B sites):** ignore UCP, but **do not** blanket-
   exclude hospitality/restaurant sites: UCP is expanding to **Lodging and Food**
   verticals (hotel booking in AI Mode, food delivery via Google Maps).
 
@@ -146,7 +146,7 @@ schema, and a checkout API can declare a UCP profile in a sprint.
   Zealand and the US, and cover organic AI traffic only (paid Ads traffic
   excluded). The UCP integration hub added cart transfer to the merchant site
   and checkout flow testing, rolling out gradually in the US.
-- **Landscape:** UCP is one of three agentic-checkout protocols — alongside
+- **Landscape:** UCP is one of three agentic-checkout protocols: alongside
   **OpenAI's Agentic Commerce Protocol (ACP)** (its consumer Instant Checkout was
   pulled early March 2026) and **Microsoft Copilot** checkout via Shopify
   (2026-01-08). Keep ACP/Copilot as *secondary*-sourced context.

@@ -9,7 +9,7 @@ Since January 2025 CrUX has exposed the four LCP sub-metrics:
   - largest_contentful_paint_image_element_render_delay
 
 These let you decompose a slow LCP into network, scheduling, fetch,
-and render phases — turning "your LCP is 4.2s" into "your TTFB is 1.1s
+and render phases: turning "your LCP is 4.2s" into "your TTFB is 1.1s
 and your render delay is 2.4s, fix server response and the image
 preload sequence". Per the gap analysis, this is the single most
 actionable upgrade to claude-seo's CWV reporting.
@@ -191,7 +191,7 @@ def main() -> int:
         print("Subparts (p75 ms):")
         for k, v in result["subparts_p75_ms"].items():
             label = k.replace("largest_contentful_paint_image_", "")
-            print(f"  {label:35s} {v if v is not None else '—'}")
+            print(f"  {label:35s} {v if v is not None else 'n/a'}")
         if result["dominant_subparts"]:
             print("\nDominant subparts (>= 40% of LCP):")
             for d in result["dominant_subparts"]:

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude SEO — Bing Webmaster + IndexNow extension installer.
+# Claude SEO: Bing Webmaster + IndexNow extension installer.
 #
 # Wires the existing scripts/bing_webmaster.py and indexnow_submit.py into
 # a discoverable seo-bing skill and stores the Bing Webmaster Tools API
@@ -14,7 +14,7 @@ main() {
     SETTINGS_JSON="${HOME}/.claude/settings.json"
 
     echo "════════════════════════════════════════"
-    echo "║ Claude SEO — Bing Webmaster + IndexNow║"
+    echo "║ Claude SEO: Bing Webmaster + IndexNow║"
     echo "════════════════════════════════════════"
 
     command -v python3 >/dev/null 2>&1 || { echo "✗ Python 3 required."; exit 1; }

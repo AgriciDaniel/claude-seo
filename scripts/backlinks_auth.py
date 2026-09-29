@@ -79,7 +79,7 @@ def _restrict_to_current_user_windows(path: str) -> None:
     stop other local accounts from reading the file. ``icacls`` is the
     closest equivalent. Failures (missing binary, non-NTFS volume, a
     restricted shell) are swallowed with a logged warning rather than
-    aborting the credential write or load — POSIX users never reach this
+    aborting the credential write or load; POSIX users never reach this
     function at all, since it is a no-op there.
     """
     if os.name != "nt":
@@ -121,7 +121,7 @@ def _write_secure_json(path: str, data: dict) -> None:
         2. ``os.open`` with explicit mode 0o600 (applies only to newly
            created files; ignored by the OS when the file already exists).
         3. ``os.fchmod`` on the open fd to *force* 0o600 even if the file
-           pre-existed at step 2 — defeats the os.path.exists()/os.open()
+           pre-existed at step 2; defeats the os.path.exists()/os.open()
            TOCTOU race where an external writer could install a 0o644 file
            between the two calls.
         4. On Windows, a best-effort ``icacls`` restriction, since steps 2-3

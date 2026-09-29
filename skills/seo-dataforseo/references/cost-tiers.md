@@ -39,7 +39,7 @@ Configure with: `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_costs
 - Batch keywords into single `search_volume` calls instead of individual SERP lookups
 - Use `standard` task queue instead of `live` for non-urgent analysis (60-80% savings)
 - Avoid `site:` and `filetype:` operators in image SERP queries (5x cost multiplier)
-- Cache session results — don't re-fetch the same keyword/domain within a session
+- Cache session results: don't re-fetch the same keyword/domain within a session
 
 ## Approval Flow
 

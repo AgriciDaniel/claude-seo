@@ -49,7 +49,7 @@ a report (`status: FAIL`) that carries a number in either case. See the
 
 ### Moz API (Tier 1)
 - **Endpoint:** `https://api.moz.com/jsonrpc` (JSON-RPC 2.0)
-- **Free tier:** 2,500 rows/month, 1 request per 10 seconds (verify current limits at https://moz.com/products/api — free tier limits may change)
+- **Free tier:** 2,500 rows/month, 1 request per 10 seconds (verify current limits at https://moz.com/products/api: free tier limits may change)
 - **Signup:** https://moz.com/products/api (credit card required, not charged)
 - **Data:** Domain Authority (0-100), Page Authority, Spam Score (1-17%), link counts,
   referring domains, anchor text distribution

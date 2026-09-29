@@ -10,8 +10,8 @@ selectors that are part of real emoji sequences. Unknown idiom?
 Leave it alone.
 
 Statistical watermarks (e.g. SynthID-style token-probability
-watermarks) live in word choice, not codepoints; nothing here — or
-anywhere — reliably detects or strips those, so this tool does not
+watermarks) live in word choice, not codepoints; nothing here, or
+anywhere, reliably detects or strips those, so this tool does not
 claim to.
 
 Use case: a content editor running last-mile cleanup on a draft. This

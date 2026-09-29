@@ -160,7 +160,7 @@ Two deterministic passes, both logged in the JSON output:
 Scope honesty: statistical watermarks (SynthID-style token-probability
 schemes) live in word choice, not codepoints. No tool reliably detects or
 removes them; do not claim otherwise in reports. This cleanup is for
-editing the user's own drafts, not for laundering third-party content —
+editing the user's own drafts, not for laundering third-party content;
 decline requests to strip provenance from content the user doesn't own.
 
 ## AI Citation Readiness (GEO signals)

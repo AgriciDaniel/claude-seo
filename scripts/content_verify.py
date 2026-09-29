@@ -54,7 +54,7 @@ import re
 import sys
 from pathlib import Path
 
-# Claim patterns. Each is (regex, label). Order matters — first match
+# Claim patterns. Each is (regex, label). Order matters: first match
 # wins per substring so a "47% of users" doesn't double-count as both
 # statistic and quantity. Trailing-word groups are restricted to
 # [a-zA-Z]+ so a greedy match cannot cross a sentence boundary into the
@@ -125,7 +125,7 @@ def extract_claims(text: str) -> list[dict]:
     for pattern, label in _CLAIM_PATTERNS:
         for m in pattern.finditer(text):
             # Skip if an earlier (more specific) pattern already covered
-            # this span — prevents 47% double-counting as statistic + quantity.
+            # this span; prevents 47% double-counting as statistic + quantity.
             if any(s <= m.start() < e or s < m.end() <= e for s, e, _ in found_spans):
                 continue
             found_spans.append((m.start(), m.end(), label))

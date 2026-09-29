@@ -45,7 +45,7 @@ Problem** is the type Google explicitly ties to the January-2026 sunset: it got 
 deprecation notice **2025-11-05**, with Rich Results Test, Search Console rich-result
 reporting, and appearance-filter support removed starting **January 2026**.
 
-**Dataset** is a separate case: **not discontinued** — Dataset markup is consumed only
+**Dataset** is a separate case: **not discontinued**; Dataset markup is consumed only
 by **Dataset Search** (still live), not by Google Search rich results (clarified
 2025-11-05). Don't advise removal as if it were killed.
 
@@ -55,13 +55,13 @@ When generating schema, prefer these alternatives:
 
 | Asked for | Replacement |
 |---|---|
-| `ClaimReview` | None — explain rich result is dead; suggest `Article` with `dateline` if news context. |
+| `ClaimReview` | None: explain rich result is dead; suggest `Article` with `dateline` if news context. |
 | `EstimatedSalary` | `JobPosting` with `baseSalary` for specific roles. |
 | `LearningVideo` | `VideoObject` (still live). |
 | Course Info | Course list (Course + ItemList carousel), still live |
 | `SpecialAnnouncement` | `Event` if time-bounded; otherwise `Article` or `WebPage`. |
 | `VehicleListing` | `Product` with vehicle-specific properties. |
-| `HowTo` (for SERP) | None — explain the rich result is dead. Suggest article structure with clear `<h2>` step headings if the goal is comprehension; ranking benefit is no longer schema-driven. |
+| `HowTo` (for SERP) | None: explain the rich result is dead. Suggest article structure with clear `<h2>` step headings if the goal is comprehension; ranking benefit is no longer schema-driven. |
 | `FAQPage` (for SERP) | None, rich results retired May 2026. Keep only if accurate for non-SERP consumers; use `QAPage` for genuine user-submitted Q&A pages. |
 
 ## Primary sources

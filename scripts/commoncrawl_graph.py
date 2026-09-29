@@ -54,7 +54,7 @@ KNOWN_RELEASES = [
     "cc-main-2024-oct-nov-dec",
 ]
 
-# Graph file types — filenames include the release name as prefix
+# Graph file types: filenames include the release name as prefix
 # e.g., domain/cc-main-2026-jan-feb-mar-domain-vertices.txt.gz
 VERTICES_SUFFIX = "-domain-vertices.txt.gz"
 EDGES_SUFFIX = "-domain-edges.txt.gz"

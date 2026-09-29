@@ -11,7 +11,7 @@ Setup
 =====
 1. Generate a 32+ character host key. Any random string works.
 2. Place the key in a file named ``<key>.txt`` at the root of your
-   site, served at ``https://example.com/<key>.txt`` — the file body
+   site, served at ``https://example.com/<key>.txt``; the file body
    is the key itself. IndexNow crawls this once to prove host ownership.
 3. Pass the key + the key-location URL to this script (or set the
    ``INDEXNOW_KEY`` and ``INDEXNOW_KEY_LOCATION`` env vars).
@@ -147,7 +147,7 @@ def verify_key_published(
         resp = safe_requests_get(key_location, timeout=15)
     except URLSafetyError as exc:
         return {"ok": False, "error": f"url_safety: {exc}"}
-    except Exception as exc:  # noqa: BLE001 — surface every transport error verbatim
+    except Exception as exc:  # noqa: BLE001 (surface every transport error verbatim)
         return {"ok": False, "error": f"fetch failed: {exc}"}
     if resp.status_code != 200:
         return {"ok": False, "status_code": resp.status_code,

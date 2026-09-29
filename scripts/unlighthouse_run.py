@@ -5,7 +5,7 @@ Thin wrapper around the Unlighthouse CLI (https://unlighthouse.dev).
 Unlighthouse is an MIT-licensed OSS Lighthouse runner that crawls an
 entire site and outputs a single aggregate report. It's the closest
 free-tier equivalent to running PageSpeed against every URL on a site
-and aggregating the results — a workflow PSI's API quota does not
+and aggregating the results: a workflow PSI's API quota does not
 support without a paid Google Cloud bill.
 
 This wrapper:
@@ -31,7 +31,7 @@ https://unlighthouse.dev/api/config). This wrapper generates a small
 
 The same generated config sets ``puppeteerClusterOptions.timeout``
 (milliseconds), which unlighthouse forwards to ``Cluster.launch()``
-(puppeteer-cluster) as the per-page task timeout — a documented pass
+(puppeteer-cluster) as the per-page task timeout: a documented pass
 -through (https://unlighthouse.dev/api/config#puppeteerclusteroptions).
 This guards against a single hung page consuming the whole crawl's
 time budget, independent of the subprocess-level ``--timeout``.

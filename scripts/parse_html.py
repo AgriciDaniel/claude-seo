@@ -32,7 +32,7 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from url_safety import decode_response_text, safe_requests_get  # noqa: E402, I001
 
-# Lazy-loader detection — covers native + the major JS lazy-loaders found on
+# Lazy-loader detection: covers native + the major JS lazy-loaders found on
 # WordPress/WooCommerce sites (Perfmatters, EWWW Image Optimizer, generic
 # `data-src` patterns). Sites optimized by these plugins strip native
 # `loading="lazy"` and replace `src` with a placeholder, so a check on `loading`

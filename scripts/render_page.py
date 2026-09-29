@@ -456,7 +456,7 @@ def render_page(
         result["error"] = f"url_safety: {exc}"
         return result
 
-    # Step 1 — raw fetch (always; needed for SPA detection and as a baseline).
+    # Step 1: raw fetch (always; needed for SPA detection and as a baseline).
     try:
         resp = safe_requests_get(norm_url, timeout=30, allow_redirects=True)
         result["raw_content"] = decode_response_text(resp)
@@ -579,7 +579,7 @@ def render_page(
         finally:
             result["render_ms"] = (time.monotonic() - start) * 1000.0
 
-    # Step 2 — content extraction (works on either raw or rendered HTML).
+    # Step 2: content extraction (works on either raw or rendered HTML).
     if extract_content and result["content"]:
         if trafilatura is not None:
             try:

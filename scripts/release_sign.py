@@ -3,7 +3,7 @@
 Generate a SHA-256 manifest of every git-tracked file in the repository.
 
 The manifest is published alongside each release tag (attached to the
-GitHub release artifacts) so users — and the install scripts — can
+GitHub release artifacts) so users, and the install scripts, can
 verify the contents of a checkout against the maintainer's signed
 record.
 

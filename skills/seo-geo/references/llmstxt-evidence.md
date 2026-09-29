@@ -1,4 +1,4 @@
-# `/llms.txt` — evidence-based reframe (June 2026)
+# `/llms.txt`: evidence-based reframe (June 2026)
 
 ## TL;DR
 
@@ -13,11 +13,11 @@ it as a Google ranking or citation lever in any claude-seo report.
 |---|---|---|
 | **Google AI optimization guide** (docs) | note added 2026-06-15; page updated 2026-07-10 | "You don't need to create new machine readable files, AI text files, markup, or Markdown to appear in Google Search (including its generative AI capabilities), as Google Search itself doesn't use them." Creating llms.txt for other systems "will neither harm nor help your site's visibility or rankings in Google Search, **as Google Search ignores them**." |
 | **John Mueller** (Google) | 2026 | Called the llms.txt discovery/differentiation use case "a dead end." |
-| **John Mueller** (Google) — Reddit + Bluesky | 2025 | "No AI system currently uses llms.txt." Compared the file to deprecated meta keywords. |
-| **Gary Illyes** (Google) — Search Central Live | July 2025 | Google has no plans to support llms.txt. |
-| **SE Ranking** — 300k-domain study | November 2025 | Among the 50 most AI-cited domains, **only one** had an `/llms.txt`. |
-| **OtterlyAI** — server-log audit | 2025 | **0.1%** of AI-bot traffic targets `/llms.txt` (84 of 62,100 requests). |
-| **Anthropic, Stripe, Cloudflare, NVIDIA** — published files | 2024–2025 | All publish `llms.txt`. **None** have stated their crawlers consume third-party `llms.txt` files. |
+| **John Mueller** (Google), Reddit + Bluesky | 2025 | "No AI system currently uses llms.txt." Compared the file to deprecated meta keywords. |
+| **Gary Illyes** (Google), Search Central Live | July 2025 | Google has no plans to support llms.txt. |
+| **SE Ranking**, 300k-domain study | November 2025 | Among the 50 most AI-cited domains, **only one** had an `/llms.txt`. |
+| **OtterlyAI**, server-log audit | 2025 | **0.1%** of AI-bot traffic targets `/llms.txt` (84 of 62,100 requests). |
+| **Anthropic, Stripe, Cloudflare, NVIDIA**, published files | 2024–2025 | All publish `llms.txt`. **None** have stated their crawlers consume third-party `llms.txt` files. |
 
 ## Where it does matter
 
@@ -25,7 +25,7 @@ it as a Google ranking or citation lever in any claude-seo report.
 Continue, Cline, Claude Code) when loading per-library documentation.
 Mintlify auto-generates `/llms.txt` and `/llms-full.txt` for thousands
 of developer-docs sites. For a developer-tooling site, publishing
-`llms.txt` is a net win — it helps agents quote the docs accurately.
+`llms.txt` is a net win; it helps agents quote the docs accurately.
 
 For a non-developer business site, the value is purely defensive: zero
 cost, possible future-optionality if a major AI provider eventually

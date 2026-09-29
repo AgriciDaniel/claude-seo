@@ -16,7 +16,7 @@ The installer prompts for an API key (hidden input), copies
 
 ## Get an API key
 
-https://seranking.com/api.html — pricing is unit-based; the AI visibility
+https://seranking.com/api.html: pricing is unit-based; the AI visibility
 endpoint costs ~5 units per query (1 per platform).
 
 ## Verify

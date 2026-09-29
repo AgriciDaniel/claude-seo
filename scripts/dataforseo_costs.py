@@ -319,7 +319,7 @@ def cmd_check(args):
             "status": "needs_approval",
             "endpoint": endpoint,
             "approval_reason": "unknown_endpoint",
-            "message": f"Unknown endpoint '{endpoint}' — cost not in database. Requires explicit approval.",
+            "message": f"Unknown endpoint '{endpoint}': cost not in database. Requires explicit approval.",
             "estimated_cost_usd": 0.05,
         }
         json.dump(result, sys.stdout, indent=2)

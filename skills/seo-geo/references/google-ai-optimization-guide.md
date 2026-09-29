@@ -11,12 +11,12 @@ as the canonical reference and reject community claims that contradict it.
 https://developers.google.com/search/docs/fundamentals/ai-optimization-guide
 (announcing blog: https://developers.google.com/search/blog/2026/05/a-new-resource-for-optimizing)
 
-> **Companion doc — third-party SEO tools (2026-06-05):** Google published
+> **Companion doc: third-party SEO tools (2026-06-05):** Google published
 > "Using third-party SEO tools, services, and advice." No tool guarantees
 > rankings; third-party tools have **no access to Google's internal ranking
 > data**; Google does not endorse vendors; evaluate AEO/GEO claims against
 > official guidance; Search Console is the authoritative first-party source.
-> claude-seo's scores are heuristics, not Google-internal signals — state this
+> claude-seo's scores are heuristics, not Google-internal signals; state this
 > honestly in reports. Source:
 > https://developers.google.com/search/docs/fundamentals/third-party-seo
 
@@ -32,9 +32,9 @@ its guidance on evaluating third-party SEO advice.
 AI Overviews and AI Mode are grounded in the same ranking and quality systems
 as classic Search. Two AI techniques layer on top:
 
-1. **RAG / grounding** — retrieves indexed pages, generates a response with
+1. **RAG / grounding**: retrieves indexed pages, generates a response with
    clickable source links.
-2. **Query fan-out** — issues multiple related sub-queries and pulls in
+2. **Query fan-out**: issues multiple related sub-queries and pulls in
    additional results before answering.
 
 **Eligibility floor:** a page must be **indexed and eligible to be shown with
@@ -73,13 +73,13 @@ The AI optimization guide links to Google's E-E-A-T guidance:
 **Primary source:**
 https://developers.google.com/search/docs/fundamentals/creating-helpful-content
 
-Key actionable test — **Who / How / Why**:
+Key actionable test: **Who / How / Why**:
 
-- **Who** created it — bylines expected where readers expect them; author
+- **Who** created it: bylines expected where readers expect them; author
   background pages required for YMYL.
-- **How** it was created — especially for AI-assisted content; disclose
+- **How** it was created: especially for AI-assisted content; disclose
   process where readers would reasonably ask.
-- **Why** it exists — "to help people," not "to attract search clicks."
+- **Why** it exists: "to help people," not "to attract search clicks."
 
 YMYL ("Your Money or Your Life") topics get extra weight: health, finance,
 safety. Sept 2025 QRG expanded YMYL to include political / social topics.
@@ -103,7 +103,7 @@ spam when used to **scale low-value pages** (QRG §4.6.5 scaled content abuse,
 
 Two operational requirements with concrete enforcement surfaces:
 
-1. **Merchant Center — AI-generated product images:** must carry IPTC
+1. **Merchant Center: AI-generated product images:** must carry IPTC
    `DigitalSourceType: TrainedAlgorithmicMedia` metadata. See
    `${CLAUDE_PLUGIN_ROOT}/skills/seo-images/SKILL.md` for the audit + injection pattern.
 2. **AI-generated product titles and descriptions:** must be separately
@@ -111,7 +111,7 @@ Two operational requirements with concrete enforcement surfaces:
 
 ## Forward-looking: agent-friendly pages and WebMCP
 
-The AI optimization guide pivots near the end to **AI agents** — not just
+The AI optimization guide pivots near the end to **AI agents**, not just
 summarizers. Agents interact with sites through three channels: screenshots
 plus a vision model, raw HTML/DOM, and the browser accessibility tree.
 
@@ -131,8 +131,8 @@ Google's merchant guide documents 2026-04-08). UCP audit criteria:
 
 1. `seo-geo` audits cite this URL as the authoritative source whenever the
    user asks about AEO/GEO frameworks.
-2. The myth-busting list above gates community-sourced AI-SEO recommendations
-   — if a recommendation contradicts Google's stated position, flag it.
+2. The myth-busting list above gates community-sourced AI-SEO recommendations:
+   if a recommendation contradicts Google's stated position, flag it.
 3. Where a third-party claim and Google contradict, claude-seo defers to
    Google and notes the contradiction explicitly.
 4. `seo-ecommerce` and `seo-images` enforce the two operational requirements

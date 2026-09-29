@@ -18,10 +18,10 @@ Approach
      - ``years_registered``
      - ``last_significant_renewal`` (best-effort: last "updated:" date)
 4. Optional ``--topic`` flag accepts the current detected topic. If
-   the topic differs from what was registered for (heuristic — see
+   the topic differs from what was registered for (heuristic: see
    notes), flag as a potential expired-domain abuse risk.
 
-This script does NOT make the topical comparison itself — that requires
+This script does NOT make the topical comparison itself; that requires
 fetching the current site, classifying it, and comparing against the
 Wayback Machine's earliest snapshot. The expensive cross-reference is
 delegated to the ``seo-content`` skill which orchestrates it.
@@ -203,7 +203,7 @@ def lookup(domain: str) -> dict:
             "expires": None,
             "registrar": None,
             "years_registered": None,
-            "notes": ["whois unavailable — install the 'whois' system package "
+            "notes": ["whois unavailable: install the 'whois' system package "
                       "or check egress on TCP/43"],
         }
 

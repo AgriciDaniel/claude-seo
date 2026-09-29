@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude SEO — Ahrefs extension installer.
+# Claude SEO: Ahrefs extension installer.
 #
 # Wires the official @ahrefs/mcp server into ~/.claude.json and
 # copies the seo-ahrefs mirror skill into ~/.claude/skills/.
@@ -15,7 +15,7 @@ main() {
     MCP_CONFIG_JSON="${HOME}/.claude.json"
 
     echo "════════════════════════════════════════"
-    echo "║   Claude SEO — Ahrefs extension      ║"
+    echo "║   Claude SEO: Ahrefs extension      ║"
     echo "════════════════════════════════════════"
 
     command -v python3 >/dev/null 2>&1 || {

@@ -208,7 +208,7 @@ def verify_single_backlink(source_url: str, target_url: str,
         result["status"] = "verified"
         return result
 
-    # Target not found — check if page is JS-rendered (false negative risk)
+    # Target not found: check if page is JS-rendered (false negative risk)
     content = page_data.get("content", "")
     js_indicators = [
         '<div id="root"', '<div id="app"', '<div id="__next"',

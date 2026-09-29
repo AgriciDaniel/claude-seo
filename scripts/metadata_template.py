@@ -35,7 +35,7 @@ authorship:
         Description opens with the title but adds real information.
   3. ``brand_suffix_in_description`` (low)
         The title's brand suffix was concatenated into the description
-        body — a generation artefact, not a written sentence.
+        body: a generation artefact, not a written sentence.
   4. ``description_duplicates_title`` (medium)
         Description and title are the same string.
 

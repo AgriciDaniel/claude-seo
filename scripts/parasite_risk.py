@@ -11,12 +11,12 @@ This scanner crawls a small set of representative URLs on a site,
 classifies each into a content "topic", and flags subfolders where
 the topic diverges from the site's primary corpus. Three signals:
 
-  1. **Third-party authorship density** — bylines containing words like
+  1. **Third-party authorship density**: bylines containing words like
      "Partner Content", "Sponsored", "Advertising", "Brand Studio".
-  2. **Commercial-intent skew vs. site primary corpus** — affiliate
+  2. **Commercial-intent skew vs. site primary corpus**: affiliate
      code in outbound links, "Buy now" CTAs, price comparison tables,
      coupons.
-  3. **Topical drift between subfolders** — root corpus is editorial
+  3. **Topical drift between subfolders**: root corpus is editorial
      but a single subfolder reads as pure commerce.
 
 The output is **advisory**: the scanner cannot determine the actual
@@ -38,7 +38,7 @@ sitemaps or running `seo-sitemap`'s URL extractor.
 Output
 ======
 Per-subfolder risk: high/medium/low/unknown plus the contributing
-signals. The script does not score the whole site — section-level
+signals. The script does not score the whole site; section-level
 risk is the operational unit (per Google's policy).
 """
 
@@ -183,7 +183,7 @@ def scan(urls: Iterable[str], *, timeout: int = 20) -> dict:
             rows.append(_audit_page(resp.url, decode_response_text(resp)))
         except URLSafetyError as exc:
             errors.append({"url": url, "error": f"url_safety: {exc}"})
-        except Exception as exc:  # noqa: BLE001 — surface every transport error
+        except Exception as exc:  # noqa: BLE001 (surface every transport error)
             errors.append({"url": url, "error": str(exc)})
 
     sections = _classify(rows)
