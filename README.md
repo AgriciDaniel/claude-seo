@@ -344,6 +344,7 @@ Test coverage grew from 39 (v1.9.9) to 410 across the v2 line; the url_safety su
 - **v2.3.0 (September 2026): Google currency and community fixes.** Refreshed Google guidance through 2026-09-10 (EEA site-reputation enforcement, regional aggregator and supplier units, AI Mode travel, CrUX August), added the `CLAUDE_SEO_LOCAL_TARGETS` allowlist and proxy validation, hardened the JSON-LD hook and Unicode watermark stripping, corrected AI crawler guidance, unified `fetch_page --json`, fixed Unlighthouse flags, raised audit agent turn budgets, and landed 12 more community PRs.
 - **v2.3.1 (September 2026): agents on Opus and community follow-ups.** Five judgment-heavy agents run on Opus, Keywords Everywhere joins as a free backlinks fallback, setup failures show the failing stage's output, the remaining extension installers write `~/.claude.json` atomically, and the v2.3.0 templated-metadata script is registered with the launcher.
 - **v2.4.0 (September 2026): agent readiness and audit fixes.** New `/seo agentic` scores Lighthouse's Agentic Browsing category exactly as Lighthouse counts it and audits AI agent access, llms.txt, Markdown delivery, `ai-catalog.json` and WebMCP; extension installers keep secrets off the command line and never wipe a malformed config; fixes #312, #314 and #317; facts re-verified against primary sources.
+- **v2.4.1 (September 2026): Google-currency patch.** Adds the September 2026 spam update and every Google change through 2026-09-28 to the ledger, re-verifies about 30 facts against primary sources, labels third-party claims as such (including the SAFE detector and the "link spam excluded" claim), reports the Lighthouse version PSI ran, splits oversized references, and adds regression tests for each correction.
 
 ## Limitations
 
@@ -361,7 +362,7 @@ Sonnet. A full `/seo audit` therefore costs more than it did on v2.3.0. To chang
 a model, edit the `model:` line in the agent's frontmatter under `agents/`.
 
 
-- Python 3.10+
+- Python 3.10+ (Python 3.10 reaches end of life in October 2026; use 3.11 or newer for new installs. A later minor release will raise the floor.)
 - Claude Code CLI
 - Optional: Playwright Chromium: install.sh offers to install it (you can skip the prompt); needed only for SPA rendering and screenshots
 - Optional: Google API credentials for enriched CWV / GSC / GA4 data (see `/seo google setup`)

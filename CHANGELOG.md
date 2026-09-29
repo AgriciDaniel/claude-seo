@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-09-29
+
+Google-currency patch. Every changed fact was re-checked against its
+primary source between 2026-09-28 and 2026-09-29; claims that could not be
+confirmed on a Google-owned page are recorded in `unverified[]` or labelled
+as third-party instead of being stated as fact.
+
+### Added
+
+- Ledger (`data/google-updates.json`): the September 2026 Spam Update
+  (started 2026-09-24, still rolling out when this release was cut; Google
+  estimates up to two weeks and named no target), the August 2025 Spam
+  Update, VideoObject `creator` and `interactionStatistic` documentation,
+  Search Console multimodal reporting, Merchant Center AI performance
+  insights, the UCP integration hub cart transfer, Gemini 3.8 Flash in AI
+  Mode for subscribers, and CrUX experimental ad metrics.
+- `unverified[]` entries so audits do not encode them: SAFE ("The Synthetic
+  Gap" is a Google paper about YouTube spam networks and never mentions
+  Search), the claim that the September spam update excludes link spam,
+  vendor volatility readings, a "September 2026 Authority Signals Update"
+  (refuted: no such incident on the Search Status Dashboard), a JSON-LD
+  parsing report, and AI Mode SERP tests.
+- `pagespeed_check.py` reports `lighthouse_version`, the Lighthouse build
+  PSI actually ran (13.5.0 on 2026-09-29).
+- Tests: `test_no_em_dash.py`, `test_file_size_limits.py` (SKILL.md 500
+  lines, references 200), and nine new canonical-fact guards, each failing
+  on the v2.4.0 wording it replaces.
+
+### Changed
+
+- Skills: the Search generative AI control covers Discover gen-AI features
+  and is separate from `Google-Extended`; `Google-Extended` covers Gemini
+  training and grounding, not Search; the multimodal search type is a UI and
+  export filter with no verified API `type`; local business queries in EEA
+  aggregator and supplier units reach seo-ecommerce.
+- Re-verified and corrected: URL Inspection `mobileUsabilityResult` is
+  deprecated; the AI optimization guide dates (published 2026-05-15,
+  llms.txt clarified 2026-06-15, last updated 2026-07-10); JavaScript
+  structured data guidance (dynamic Product markup can slow Shopping
+  crawls); ProfilePage and DiscussionForumPosting dates, Speakable still
+  beta; I/O 2026 wording and summer rollouts marked as announced; Gemini
+  image model names and the 3 Pro Image preview shutdown (2026-06-25); FTC
+  review penalty unchanged for 2026; ChatGPT 1B+ weekly users; Ahrefs and
+  Profound study dates; caniuse AVIF and WebP figures.
+- Third-party claims are labelled as such: update-table impact text (Google
+  confirms rollout dates, not targets), the Sterling Sky 18-day finding (a
+  case example, not a rule), local AI Overview coverage (0.14% and 68% shown
+  together with their methods), the June 2025 manual-action wave, and the
+  late-2024 publisher site-reputation reports.
+- Six reference files over 200 lines were split at section boundaries into
+  sibling files, with no content removed.
+- Em dashes removed from skills, agents, scripts, extensions and docs.
+- Python 3.10 reaches end of life in October 2026; the docs now recommend
+  3.11 or newer. The floor is unchanged in this patch.
+
+### Fixed
+
+- `seo_updates.py --kind spam` and `--kind core` now include the combined
+  March 2024 core+spam rollout.
+- Site reputation regional enforcement is dated from its effective date,
+  2026-08-30 (announced 2026-08-28), in `parasite_risk.py` and the skills.
+- Ledger: the December 2024 spam update no longer claims a scaled-content
+  target; the November 2024 core update records its 23-day rollout; the
+  August 2026 spam update ended August 21; the QRG entries cite the full
+  guidelines PDF instead of the 2023 overview.
+
 ## [2.4.0] - 2026-09-24
 
 ### Added
