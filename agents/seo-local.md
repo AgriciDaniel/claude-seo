@@ -58,6 +58,9 @@ Load `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-schema-types.md` for:
 - Industry-specific citation source recommendations
 - Schema pattern templates (Menu for restaurants, Physician for healthcare, etc.)
 
+Load `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-schema-multilocation.md` for multi-location
+`@id`/`branchOf` patterns and the deprecated or invalid local types to flag.
+
 ## DataForSEO Integration (Optional)
 
 If DataForSEO MCP tools are available, use `business_data_business_listings_search` for live GBP/business-listing data and `serp_organic_live_advanced` for real-time local pack positions.

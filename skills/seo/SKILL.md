@@ -114,7 +114,7 @@ least THINK + ACCEPT before emitting (sound first principle, surfaced
 falsifiability). The Critical / High / Medium / Low priority buckets are the
 **output** of validation, not a substitute for it.
 
-Full methodology + per-principle SEO mapping: `references/thinking-framework.md`.
+Full methodology + per-principle SEO mapping: `references/thinking-framework.md` (VALIDATE and ACT in `references/thinking-framework-validate-act.md`).
 
 Each emitted recommendation should carry:
 - The first-principle observation it rests on (THINK)
@@ -192,9 +192,12 @@ Load these on-demand as needed (do NOT load all at startup):
 - `references/cwv-thresholds.md`: Current Core Web Vitals thresholds and measurement details
 - `references/schema-types.md`: All supported schema types with deprecation status
 - `references/eeat-framework.md`: E-E-A-T evaluation criteria (Sept 2025 QRG update)
+- `references/eeat-scoring-guide.md`: E-E-A-T score bands and improvement actions
 - `references/quality-gates.md`: Content length minimums, uniqueness thresholds
 - `references/local-seo-signals.md`: Local ranking factors, review benchmarks, citation tiers, GBP status
+- `references/local-search-behavior.md`: Voice, AI search impact on local, Local Pack structure, proximity
 - `references/local-schema-types.md`: LocalBusiness subtypes, industry-specific schema and citation sources
+- `references/local-schema-multilocation.md`: Multi-location schema pattern, deprecated local schema
 
 Maps-specific references (loaded by seo-maps skill, not at startup):
 - `references/maps-geo-grid.md`, `references/maps-gbp-checklist.md`, `references/maps-api-endpoints.md`, `references/maps-free-apis.md`

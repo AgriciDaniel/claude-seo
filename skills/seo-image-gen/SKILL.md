@@ -142,7 +142,7 @@ Approximate costs:
 | MCP not configured | Run `./extensions/banana/install.sh` |
 | API key invalid | New key at https://aistudio.google.com/apikey |
 | Rate limited (429) | Wait 60s, retry. Free tier: ~10 RPM / ~500 RPD |
-| `IMAGE_SAFETY` | Rephrase prompt - see `references/prompt-engineering.md` Safety section |
+| `IMAGE_SAFETY` | Rephrase prompt - see `references/prompt-adaptation-safety.md` |
 | MCP unavailable | Configure MCP with `./extensions/banana/install.sh`; claude-seo does not vendor a local generation fallback script |
 | Extension not installed | Show install instructions: `./extensions/banana/install.sh` |
 
@@ -155,7 +155,9 @@ Approximate costs:
 ## Reference Documentation
 
 Load on-demand. Do NOT load all at startup:
-- `references/prompt-engineering.md`:6-component system, domain modes, templates
+- `references/prompt-engineering.md`: 6-component system, domain modes, advanced techniques
+- `references/prompt-templates.md`: ready-to-use templates by use case
+- `references/prompt-adaptation-safety.md`: model adaptation rules, common mistakes, safety-filter rephrasing
 - `references/gemini-models.md`:Model specs, rate limits, capabilities
 - `references/mcp-tools.md`:MCP tool parameters and responses
 - `references/post-processing.md`:ImageMagick/FFmpeg pipeline recipes

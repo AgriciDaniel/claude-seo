@@ -107,7 +107,7 @@ CrUX field data only (no Lighthouse run). Faster.
 25-week CrUX History trends. Shows whether CWV metrics are improving, stable, or degrading.
 
 **Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run crux_history.py <url> --json`
-**Reference:** `references/pagespeed-crux-api.md`
+**Reference:** `references/crux-history-api.md`
 
 Output includes per-metric trend direction, percentage change, and weekly p75 values.
 

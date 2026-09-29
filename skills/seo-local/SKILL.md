@@ -240,7 +240,9 @@ Key local AI facts:
 
 Load on-demand as needed:
 - `../seo/references/local-seo-signals.md`: Ranking factors, review benchmarks, citation tiers, GBP feature status, algorithm updates
+- `../seo/references/local-search-behavior.md`: Voice search, AI search impact on local, Local Pack structure, proximity
 - `../seo/references/local-schema-types.md`: LocalBusiness subtypes by industry, schema patterns, citation sources per vertical
+- `../seo/references/local-schema-multilocation.md`: Multi-location schema pattern, deprecated local schema
 
 ---
 

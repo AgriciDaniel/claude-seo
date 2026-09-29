@@ -227,6 +227,7 @@ Load on-demand as needed (do NOT load all at startup):
 - `../seo/references/maps-gbp-checklist.md`: 25-field GBP audit with industry weights
 - `../seo/references/local-seo-signals.md`: Ranking factors, review benchmarks (shared)
 - `../seo/references/local-schema-types.md`: LocalBusiness subtypes by industry (shared)
+- `../seo/references/local-schema-multilocation.md`: Multi-location schema pattern (shared)
 
 ---
 
