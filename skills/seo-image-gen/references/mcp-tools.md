@@ -70,8 +70,9 @@ Switch the active Gemini model.
 | `model` | string | Yes | Model identifier |
 
 **MCP package model aliases, verify against the installed MCP package and Google model docs before use:**
-- `gemini-3.1-flash-image-preview` (package default alias, unverified as a Google-confirmed model name)
-- `gemini-2.5-flash-image` (package fallback alias, verify before use)
+- `gemini-3.1-flash-image` (Nano Banana 2; the older `gemini-3.1-flash-image-preview` alias shut down 2026-06-25)
+- `gemini-3-pro-image` (Nano Banana Pro)
+- `gemini-2.5-flash-image` shuts down 2026-10-02; do not use it as a fallback
 
 ### get_image_history
 Retrieve list of images generated in the current session.

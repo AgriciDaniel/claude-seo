@@ -1,15 +1,16 @@
 # Gemini Image Generation Models
 
-> Package alias notes. Verify current Google model IDs before use.
-> Do not treat these as Google-confirmed current model IDs.
+> Checked 2026-09-29 against ai.google.dev/gemini-api/docs/deprecations: the
+> `-preview` image IDs shut down 2026-06-25 and `gemini-2.5-flash-image` shuts
+> down 2026-10-02. If the MCP package defaults to a retired ID, set the model.
 
-## Package Model Aliases
+## Current Models
 
-### gemini-3.1-flash-image-preview (Unverified package-specific alias)
+### gemini-3.1-flash-image (Nano Banana 2)
 | Property | Value |
 |----------|-------|
-| **Model ID** | `gemini-3.1-flash-image-preview` (verify in installed MCP/tool config) |
-| **Tier** | Package label: Nano Banana 2 (Flash) |
+| **Model ID** | `gemini-3.1-flash-image` (replaces `gemini-3.1-flash-image-preview`, shut down 2026-06-25) |
+| **Tier** | Nano Banana 2 (Flash) |
 | **Speed** | Fast - optimized for high-volume use |
 | **Aspect Ratios** | All 14 ratios (see table below) |
 | **Max Resolution** | Up to 4096×4096 (4K tier) |
@@ -22,22 +23,21 @@
 | Property | Value |
 |----------|-------|
 | **Model ID** | `gemini-2.5-flash-image` |
-| **Tier** | Nano Banana (original Flash image model; previous gen) |
+| **Tier** | Nano Banana (original Flash image model; previous gen). **Shuts down 2026-10-02**; Google names `gemini-3.1-flash-image` as the replacement |
 | **Speed** | Fast |
 | **Aspect Ratios** | 1:1, 16:9, 9:16, 4:3, 3:4 |
 | **Max Resolution** | Up to 1024×1024 (1K tier) |
 | **Rate Limits (Free)** | ~10 RPM / ~500 RPD |
-| **Best For** | Stable fallback, proven quality |
+| **Best For** | Nothing new: migrate existing uses before 2026-10-02 |
 
 ## Deprecated Models (DO NOT USE)
 
 ### gemini-3-pro-image-preview
 - **Status:** Shut down 2026-06-25 (ai.google.dev/gemini-api/docs/deprecations). The text model `gemini-3-pro-preview` is a different model with its own date (2026-03-09). Prefer 3.1 Flash.
 - **Was:** Nano Banana Pro tier (professional asset production, 4K output, 14 reference images)
-- **Migration:** Use `gemini-3.1-flash-image-preview` instead
+- **Migration:** Use `gemini-3-pro-image` (Google's named replacement) or `gemini-3.1-flash-image`
 
-### gemini-2.0-flash-exp
-- **Status:** Deprecated, replaced by gemini-2.5-flash-image
+- **`gemini-2.0-flash-exp`:** retired; use `gemini-3.1-flash-image`.
 
 ## Aspect Ratios
 

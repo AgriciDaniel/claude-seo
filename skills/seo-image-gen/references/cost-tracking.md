@@ -21,7 +21,7 @@ Do not quote fixed package prices unless they have been verified at https://ai.g
 
 ```bash
 # Log a generation
-cost_tracker.py log --model gemini-3.1-flash-image-preview --resolution 1K --prompt "coffee shop hero"
+cost_tracker.py log --model gemini-3.1-flash-image --resolution 1K --prompt "coffee shop hero"
 
 # View summary (total + last 7 days)
 cost_tracker.py summary
@@ -30,7 +30,7 @@ cost_tracker.py summary
 cost_tracker.py today
 
 # Estimate before batch
-cost_tracker.py estimate --model gemini-3.1-flash-image-preview --resolution 1K --count 10
+cost_tracker.py estimate --model gemini-3.1-flash-image --resolution 1K --count 10
 
 # Reset ledger
 cost_tracker.py reset --confirm

@@ -32,7 +32,7 @@ Google's documentation explicitly recommends JSON-LD over Microdata and RDFa.
 | WebPage | Page-level | name, description, datePublished, dateModified |
 | Person | Author/team | name, jobTitle, url, sameAs, image, worksFor |
 | ContactPage | Contact pages | name, url |
-| VideoObject | Video content | name, description, thumbnailUrl, uploadDate, duration, contentUrl; recommended since 2026-09-24: creator (Person or Organization with name or alternateName) and interactionStatistic (WatchAction, LikeAction, CommentAction, ShareAction; real counts only) |
+| VideoObject | Video content | name, description, thumbnailUrl, uploadDate, duration, contentUrl; creator (Person or Organization with name or alternateName) recommended since 2026-09-24; interactionStatistic (recommended since 2019) supports WatchAction, LikeAction, CommentAction, ShareAction (clarified 2026-09-24; real counts only) |
 | ImageObject | Image content | contentUrl, caption, creator, copyrightHolder |
 | Event | Events | name, startDate, endDate, location, organizer, offers |
 | JobPosting | Job listings | title, description, datePosted, hiringOrganization, jobLocation |

@@ -104,7 +104,7 @@ Audits the 25 fields that affect Google Business Profile quality and ranking.
 
 > **AI & 2026 context (third-party reported):** **Ask Maps**, reported by AP News
 > as a Gemini conversational Maps feature launched 2026-03-12 (iOS/Android,
-> US + India). **AI Mode** (1B+ MAU, reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source)
+> US + India). **AI Mode** (1B+ monthly users, stated by Google at I/O 2026)
 > increasingly surfaces 1-2 business local AI interfaces in third-party terminology, and **agentic
 > booking/calling** for local services (home repair, beauty, pet care) was
 > announced at I/O 2026 for a summer US rollout (Google can call businesses on the

@@ -23,7 +23,7 @@
 | ChatGPT/AI for local recommendations | 45% of users (up from 6%) | BrightLocal LCRS 2026 |
 | ChatGPT conversion rate | 15.9% | Seer Interactive |
 | Google organic conversion rate | 1.76% | Seer Interactive |
-| AI Overviews on local searches | Up to 68% (540 targeted queries); ~0.14% on a broad 500M+ keyword panel | Whitespark 2025; seoClarity March 2025 |
+| AI Overviews on local searches | 68% on average (540 targeted queries); ~0.14% on a broad 500M+ keyword panel | Whitespark 2025; seoClarity March 2025 |
 | AI Overview CTR reduction for pos 1 | -58% | Ahrefs, Feb 2026 |
 | Brand cited in AIO = organic CTR boost | +35% | Seer Interactive |
 | ChatGPT traffic vs Google for local | ~2% | Sterling Sky, Feb 2026 |

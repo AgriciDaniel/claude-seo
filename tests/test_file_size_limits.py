@@ -26,7 +26,8 @@ def test_skill_files_under_limit() -> None:
 
 def test_reference_files_under_limit() -> None:
     files = [*ROOT.glob("skills/*/references/**/*.md"),
-             *ROOT.glob("extensions/*/skills/*/references/**/*.md")]
+             *ROOT.glob("extensions/*/skills/*/references/**/*.md"),
+             *ROOT.glob("extensions/*/references/**/*.md")]
     assert files
     over = {str(p.relative_to(ROOT)): n for p in files if (n := _line_count(p)) > REFERENCE_LIMIT}
     assert not over, f"reference files over {REFERENCE_LIMIT} lines: {over}"

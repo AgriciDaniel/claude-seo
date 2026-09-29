@@ -11,7 +11,7 @@ main() {
     SEO_SKILL_DIR="${SKILL_DIR}/seo"
 
     echo "════════════════════════════════════════"
-    echo "║   Claude SEO: Unlighthouse           ║"
+    echo "║   Claude SEO: Unlighthouse            ║"
     echo "════════════════════════════════════════"
 
     command -v python3 >/dev/null 2>&1 || { echo "✗ Python 3 required."; exit 1; }

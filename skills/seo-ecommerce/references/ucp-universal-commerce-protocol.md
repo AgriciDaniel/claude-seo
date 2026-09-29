@@ -141,7 +141,7 @@ schema, and a checkout API can declare a UCP profile in a sprint.
 - **GML 2026 (2026-05-20):** BNPL (Affirm, Klarna) in Google Pay; **Direct
   Offers** + Shopping ads on YouTube enabling instant purchase for UCP-integrated
   brands; AI performance insights + Ask Advisor in Merchant Center.
-- **Since GML (2026-09-16):** AI performance insights are generally available
+- **Holiday shopping update (2026-09-16):** AI performance insights are now available
   for English-language queries on accounts in Australia, Canada, India, New
   Zealand and the US, and cover organic AI traffic only (paid Ads traffic
   excluded). The UCP integration hub added cart transfer to the merchant site

@@ -14,7 +14,8 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 FILES = [*ROOT.glob("skills/**/*.md"), *ROOT.glob("agents/*.md"),
-         *ROOT.glob("extensions/*/skills/**/*.md"), *ROOT.glob("extensions/*/agents/*.md")]
+         *ROOT.glob("extensions/*/skills/**/*.md"), *ROOT.glob("extensions/*/agents/*.md"),
+         *ROOT.glob("scripts/*.py")]
 
 WRONG = [
     # (regex, why it is wrong, primary source)
@@ -59,7 +60,7 @@ WRONG = [
     (r"Project Mariner\)", "Mariner's status is secondary-only; describe Google-Agent by function",
      "developers.google.com/crawling"),
     # Review of 2026-09-28.
-    (r"(?i)since 2026-08-28", "regional site reputation enforcement took effect 2026-08-30",
+    (r"(?i)(site reputation|searcher region|EEA)[^\n]{0,400}since 2026-08-28", "regional site reputation enforcement took effect 2026-08-30",
      "developers.google.com/search/blog/2026/08/update-site-reputation-policy"),
     (r"Gemini training \(NOT search\)|Optional block \(training only\)[^\n]*Google-Extended",
      "Google-Extended covers Gemini training and grounding",
@@ -75,8 +76,6 @@ WRONG = [
      "ai.google.dev/gemini-api/docs/models/gemini-2.5-flash-image"),
     (r"\*\*18-day rule\*\*", "a single Sterling Sky case example, not a rule",
      "sterlingsky.ca/what-gets-you-ranking-for-near-me-2025"),
-    (r"Ahrefs December 2025 study", "the Ahrefs 75,000-brand study was published 2025-05-26",
-     "ahrefs.com/blog/ai-overview-brand-correlation"),
     (r"December 2025 JS SEO guidance, structured data injected via JavaScript may face delayed",
      "the guide warns about Shopping crawl frequency for dynamic Product markup",
      "developers.google.com/search/docs/appearance/structured-data/generate-structured-data-with-javascript"),

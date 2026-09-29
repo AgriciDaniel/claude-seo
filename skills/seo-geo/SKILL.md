@@ -41,7 +41,7 @@ with their source and date, or leave them out.
 |--------|-------|--------|
 | AI Overviews reach | 2.5 billion+ monthly active users, reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source; 200+ countries | Third-party I/O reporting |
 | AI Overviews query coverage | ~50% of queries (third-party measurement; varies by country) | Industry data |
-| AI Mode monthly users | 1B+, reported from Google I/O 2026 keynote coverage; not confirmed on a Google-owned source | Third-party I/O reporting |
+| AI Mode monthly users | 1B+ (Google, I/O 2026, 2026-05-19) | Google (blog.google) |
 | AI Mode model | Google upgrades it often (Gemini 3.5 Flash became the default on 2026-05-19, and newer Flash models have shipped since); never tie advice to a model | Google (blog.google) |
 | AI-referred sessions growth | 527% (Jan-May 2025) | Third-party (attributed to SparkToro; not re-verified) |
 | ChatGPT weekly active users | 1 billion+ (reported August 2026; 900 million in February 2026) | OpenAI, via press reporting |
@@ -50,7 +50,7 @@ with their source and date, or leave them out.
 ## Critical Insight: Brand Mentions > Backlinks
 
 **Brand mentions correlate 3x more strongly with AI visibility than backlinks.**
-(Ahrefs study of 75,000 brands, published 2025-05-26)
+(Ahrefs study of 75,000 brands, published 2025-12-12; it follows Ahrefs' May 2025 AI Overviews study)
 
 | Signal | Correlation with AI Citations |
 |--------|------------------------------|

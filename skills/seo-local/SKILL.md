@@ -225,7 +225,7 @@ Links declining for local pack but remain **~26% of local organic ranking** (Whi
 **Do not duplicate seo-geo analysis.** Provide local-specific AI context and recommend `/seo geo <url>` for full analysis.
 
 Key local AI facts:
-- AI Overviews appeared on up to 68% of local searches in Whitespark's 2025 sample (540 service-industry queries, 3 metros); broad keyword panels report far lower rates (seoClarity: ~0.14% of local keywords in March 2025), so coverage depends on the query set
+- AI Overviews appeared on 68% of local searches on average in Whitespark's 2025 sample (540 service-industry queries, 3 metros); broad keyword panels report far lower rates (seoClarity: ~0.14% of local keywords in March 2025), so coverage depends on the query set
 - ChatGPT converts at 15.9% vs Google organic at 1.76% (Seer Interactive)
 - 3 of top 5 AI visibility factors are citation-related (Whitespark 2026)
 - ChatGPT does NOT access GBP directly -- sources from Bing index, Yelp, TripAdvisor, BBB, Reddit

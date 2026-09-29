@@ -49,12 +49,12 @@ As of 2025-2026, AI companies actively crawl the web to train models and power A
 | Claude-SearchBot | Anthropic | `Claude-SearchBot` | Claude search-result citability |
 | PerplexityBot | Perplexity | `PerplexityBot` | Perplexity search index (not model training) |
 | Bytespider | ByteDance | `Bytespider` | Model training |
-| Google-Extended | Google | `Google-Extended` | Gemini training and grounding (NOT Search) |
+| Google-Extended | Google | `Google-Extended` | Gemini training and grounding, and training of the models behind Search gen-AI features (no effect on Search inclusion or ranking) |
 | Applebot-Extended | Apple | `Applebot-Extended` | Apple Intelligence training opt-out (NOT Siri/Spotlight/Safari) |
 | CCBot | Common Crawl | `CCBot` | Open dataset |
 
 **Key distinctions:**
-- Blocking `Google-Extended` prevents Gemini training and grounding use but does NOT affect Google Search indexing or AI Overviews (those use `Googlebot`)
+- Blocking `Google-Extended` prevents Gemini training and grounding use (and training of the models behind Search gen-AI features) but does NOT affect Google Search indexing or AI Overviews (those use `Googlebot`)
 - Blocking `GPTBot` prevents OpenAI training but does NOT affect ChatGPT Search
   citability, which is governed by `OAI-SearchBot`, nor user-triggered browsing
   (`ChatGPT-User`). Check `OAI-SearchBot` for any citability claim; `GPTBot`

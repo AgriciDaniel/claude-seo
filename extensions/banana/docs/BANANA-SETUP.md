@@ -62,7 +62,7 @@ Or check manually:
 - The safety filter flagged your prompt (often a false positive)
 - Claude will suggest rephrased alternatives automatically
 - Common triggers: certain color descriptions, implied scenarios
-- See `references/prompt-engineering.md` Safety Rephrase section
+- See `references/prompt-adaptation-safety.md` (Safety Filter Rephrase Strategies)
 
 ### "Node.js version too old"
 - Requires Node.js 20+

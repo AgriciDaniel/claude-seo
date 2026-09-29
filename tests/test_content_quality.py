@@ -415,6 +415,7 @@ def test_seo_updates_filter_by_kind() -> None:
     data = seo_updates._load()
     cores = seo_updates._filter(data["updates"], kinds={"core"})
     assert all(u["kind"] in {"core", "core+spam"} for u in cores)
+    assert any(u["kind"] == "core+spam" for u in cores)
     assert any("December 2025 Core Update" in u["name"] for u in cores)
 
 

@@ -90,7 +90,8 @@ Always communicate the detected tier before running commands.
 Combined Lighthouse lab data + CrUX field data.
 
 **Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run pagespeed_check.py <url> --json`
-**Reference:** `references/pagespeed-crux-api.md`
+**Reference:** `references/pagespeed-crux-api.md` (Core Web Vitals thresholds: `references/crux-history-api.md`)
+**Report the Lighthouse build** from the output's `lighthouse_version` field instead of assuming the latest release.
 **Default:** Both mobile + desktop strategies, all Lighthouse categories.
 
 Output merges lab scores (point-in-time Lighthouse) with field data (28-day

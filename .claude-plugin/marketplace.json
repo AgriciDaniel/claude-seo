@@ -5,13 +5,13 @@
     "name": "AgriciDaniel"
   },
   "metadata": {
-    "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions (Matomo, DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse). v2.4.0 adds /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access), keeps installer secrets off the command line, and fixes #312, #314 and #317."
+    "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions (Matomo, DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse). v2.4.1 brings Google guidance current through 2026-09-28, including the September 2026 spam update; v2.4.0 added /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access)."
   },
   "plugins": [
     {
       "name": "claude-seo",
       "source": "./",
-      "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions. v2.4.0 adds /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access), keeps installer secrets off the command line, and fixes #312, #314 and #317.",
+      "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions. v2.4.1 brings Google guidance current through 2026-09-28, including the September 2026 spam update; v2.4.0 added /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access).",
       "author": {
         "name": "AgriciDaniel",
         "url": "https://github.com/AgriciDaniel"

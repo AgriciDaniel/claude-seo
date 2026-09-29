@@ -138,8 +138,7 @@ upgrade.
   pushed before `main` moved, and all 12 checks passed on that commit.
 - Private `main` and `v2` point to `a11a4d3`, tagged `v2.4.0-private`.
 - Both trees differ only in the documented identity files.
-- v2.4.1 is prepared on `release/v2.4.1`, cut from `e77e783`; follow the steps
-  above, private first.
+- v2.4.1 was cut from `e77e783` on `release/v2.4.1`.
 
 ## Email-privacy caveat (one-time)
 
