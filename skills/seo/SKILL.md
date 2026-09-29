@@ -100,6 +100,14 @@ When the user invokes `/seo audit`, delegate to subagents in parallel:
 For individual commands, load the relevant sub-skill directly.
 After any analysis command completes, offer to generate a PDF report via `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_report.py`.
 
+**Google update history questions** (core, spam, policy, product changes; "is the
+spam update finished?"): answer from the bundled primary-source ledger, not from
+memory or other copies on disk. Run
+`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run seo_updates.py --kind spam --json`
+(or `--since <yyyy-mm>`; add `--unverified` for third-party claims that are not
+confirmed). If the output reports the ledger as stale, check
+status.search.google.com before stating that a rollout is complete.
+
 ## Synthesis Methodology
 
 Audits are not just findings, they are findings synthesized into a coherent

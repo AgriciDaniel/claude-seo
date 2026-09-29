@@ -32,17 +32,18 @@ as third-party instead of being stated as fact.
 - `pagespeed_check.py` reports `lighthouse_version`, the Lighthouse build
   PSI actually ran (13.5.0 on 2026-09-29).
 - Tests: `test_no_em_dash.py`, `test_file_size_limits.py` (SKILL.md 500
-  lines, references 200), and nine new canonical-fact guards, each failing
-  on the v2.4.0 wording it replaces.
+  lines, references 200), and eight new canonical-fact guards, each failing
+  on the v2.4.0 wording it replaces. The ledger host allowlist adds
+  `developer.chrome.com` and `static.googleusercontent.com` (the full QRG PDF).
 
 ### Changed
 
 - Skills: the Search generative AI control covers Discover gen-AI features
   and is separate from `Google-Extended`; `Google-Extended` covers Gemini
   training and grounding and training of the models behind Search gen-AI
-  features, with no effect on Search inclusion or ranking; the multimodal search type is a UI and
-  export filter with no verified API `type`; local business queries in EEA
-  aggregator and supplier units reach seo-ecommerce.
+  features, with no effect on Search inclusion or ranking; the multimodal
+  search type is a UI and export filter with no verified API `type`; local
+  business queries in EEA aggregator and supplier units reach seo-ecommerce.
 - Re-verified and corrected: URL Inspection `mobileUsabilityResult` is
   deprecated; the AI optimization guide dates (published 2026-05-15,
   llms.txt clarified 2026-06-15, last updated 2026-07-10); JavaScript
@@ -51,14 +52,17 @@ as third-party instead of being stated as fact.
   beta; I/O 2026 wording and summer rollouts marked as announced; Gemini
   image model names and shutdowns (the `-preview` image IDs retired
   2026-06-25, `gemini-2.5-flash-image` retires 2026-10-02); AI Mode 1B+
-  monthly users is Google-stated; FTC
-  review penalty unchanged for 2026; ChatGPT 1B+ weekly users; Ahrefs and
-  Profound study dates; caniuse AVIF and WebP figures.
+  monthly users is Google-stated; FTC review penalty unchanged for 2026;
+  ChatGPT 1B+ weekly users; Ahrefs and Profound study dates; caniuse AVIF
+  and WebP figures.
 - Third-party claims are labelled as such: update-table impact text (Google
   confirms rollout dates, not targets), the Sterling Sky 18-day finding (a
   case example, not a rule), local AI Overview coverage (0.14% and 68% shown
   together with their methods), the June 2025 manual-action wave, and the
   late-2024 publisher site-reputation reports.
+- The `/seo` orchestrator routes Google update-history questions to the
+  bundled ledger (`seo_updates.py`), so answers no longer depend on whatever
+  older copy the model finds on disk.
 - Six reference files over 200 lines were split at section boundaries into
   sibling files, with no content removed.
 - Em dashes removed from skills, agents, scripts, extensions and docs.

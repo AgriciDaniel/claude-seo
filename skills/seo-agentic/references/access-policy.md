@@ -23,7 +23,7 @@ citability rules live in `seo-geo`; this table adds what matters for agents.
 | PerplexityBot | Perplexity | search index | honoured | perplexity.com/perplexitybot.json |
 | Perplexity-User | Perplexity | user-initiated fetches | generally ignored | perplexity.com/perplexity-user.json |
 | Google-Agent | Google | user-triggered agent fetches | generally ignored | developers.google.com/static/crawling/ipranges/user-triggered-agents.json |
-| Google-Extended | Google | Gemini training/grounding control token, no crawler; never Google Search | honoured | n/a |
+| Google-Extended | Google | Gemini training/grounding (and Search gen-AI model training) control token, no crawler; never Search inclusion | honoured | n/a |
 
 Anthropic's help center previously said IP ranges were not published; as of
 2026-08 they are at `claude.com/crawling/bots.json`. Do not IP-block

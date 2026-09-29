@@ -165,7 +165,7 @@ Check `robots.txt` for these AI crawlers:
 | CCBot | Common Crawl | Training data (often blocked) | yes |
 | Bytespider | ByteDance | TikTok/Douyin AI | yes |
 | cohere-ai | Cohere | Cohere models | yes |
-| Google-Extended | Google | **Gemini/Vertex training & grounding only** (NOT Google Search) | yes |
+| Google-Extended | Google | **Gemini/Vertex training & grounding, and training of the models behind Search gen-AI features** (NOT Google Search inclusion or ranking) | yes |
 | Google-CloudVertexBot | Google | Site-owner-requested Vertex AI Agent crawls | yes |
 | Google-Agent | Google | User-triggered agent fetches (agentic browsing for a user) | **no (user-triggered)** |
 | Google-GeminiNotebook | Google | Fetches individual user-added source URLs (replaced `Google-NotebookLM`, supported until August 2026) | **no (user-triggered)** |
@@ -201,8 +201,9 @@ bot's robots.txt status** -- check them separately and report them separately.
 | "Content can be used for Apple Intelligence training" | `Applebot-Extended` | `Applebot` |
 | "Content is discoverable via Siri, Spotlight, or Safari search" | `Applebot` | `Applebot-Extended` |
 
-- **`Google-Extended` governs Gemini and Vertex AI training and grounding use only.
-  It does not affect inclusion in ordinary Google Search, or in AI Overviews and AI
+- **`Google-Extended` governs Gemini and Vertex AI training and grounding use, and
+  training of the models behind Search gen-AI features. It does not affect inclusion
+  in ordinary Google Search, or in AI Overviews and AI
   Mode, both of which are served from the `Googlebot` index.** Never score
   `Google-Extended` as a "Google Search readiness" signal, and never cite a blocked
   `Google-Extended` as evidence that a site is missing from Google Search.
