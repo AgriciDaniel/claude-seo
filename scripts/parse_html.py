@@ -5,6 +5,7 @@ Parse HTML and extract SEO-relevant elements.
 Usage:
     python parse_html.py page.html
     python parse_html.py --url https://example.com
+    python parse_html.py --url https://example.com --probe-images --json
 """
 
 import argparse
@@ -30,7 +31,8 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from url_safety import decode_response_text, safe_requests_get  # noqa: E402, I001
+import requests  # noqa: E402  (url_safety already hard-requires it)
+from url_safety import URLSafetyError, decode_response_text, safe_requests_get  # noqa: E402, I001
 
 # Lazy-loader detection: covers native + the major JS lazy-loaders found on
 # WordPress/WooCommerce sites (Perfmatters, EWWW Image Optimizer, generic
@@ -43,6 +45,116 @@ _GENERIC_LAZY_ATTRS = ("data-src", "data-lazy-src", "data-original", "data-srcse
 _PERFMATTERS_CLASSES = {"perfmatters-lazy", "perfmatters-lazy-loaded"}
 _EWWW_CLASSES = {"lazyload-eio", "lazyloaded-eio"}
 _GENERIC_LAZY_CLASSES = {"lazyload", "lazyloaded", "lazy", "lazy-loaded"}
+
+# Served-format probe (issue #331). WordPress WebP plugins (EWWW, ShortPixel,
+# WebP Express, Imagify), Cloudflare Polish and image CDNs serve WebP or AVIF
+# from a `.jpg`/`.png` URL when the browser's Accept header allows it, so the
+# URL extension is not the format visitors receive. The probe asks the way a
+# browser does and reads the format from Content-Type, then the magic bytes.
+IMAGE_ACCEPT = "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"
+_SNIFF_BYTES = 32
+_CONTENT_TYPE_FORMATS = {
+    "image/avif": "avif",
+    "image/webp": "webp",
+    "image/jpeg": "jpeg",
+    "image/jpg": "jpeg",
+    "image/pjpeg": "jpeg",
+    "image/png": "png",
+    "image/apng": "png",
+    "image/gif": "gif",
+    "image/svg+xml": "svg",
+    "image/jxl": "jxl",
+}
+
+
+def _sniff_image_format(head: bytes) -> Optional[str]:
+    """Return the image format named by the file's magic bytes, or None."""
+    if head.startswith(b"\xff\xd8\xff"):
+        return "jpeg"
+    if head.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if head.startswith((b"GIF87a", b"GIF89a")):
+        return "gif"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "webp"
+    if head[4:8] == b"ftyp" and head[8:12] in (b"avif", b"avis"):
+        return "avif"
+    if head.startswith((b"\xff\x0a", b"\x00\x00\x00\x0cJXL ")):
+        return "jxl"
+    if head.lstrip().startswith((b"<svg", b"<?xml")):
+        return "svg"
+    return None
+
+
+def probe_image_format(src: str, timeout: int = 15) -> dict:
+    """Fetch the start of an image the way a browser does and report what is served.
+
+    Returns ``served_format`` (from the magic bytes, else Content-Type),
+    ``served_bytes`` (Content-Length, or None when the server omits it),
+    ``negotiated`` (True when the response varies on Accept, so the format
+    depends on the client) and ``probe_error`` (None on success).
+    """
+    result = {
+        "served_format": None,
+        "served_bytes": None,
+        "negotiated": False,
+        "probe_error": None,
+    }
+    if not src or urlparse(src).scheme not in ("http", "https"):
+        result["probe_error"] = "not an http(s) URL"
+        return result
+
+    try:
+        resp = safe_requests_get(
+            src,
+            timeout=timeout,
+            allow_redirects=True,
+            stream=True,
+            headers={"Accept": IMAGE_ACCEPT, "Accept-Encoding": "identity"},
+        )
+        try:
+            if resp.status_code >= 400:
+                result["probe_error"] = f"HTTP {resp.status_code}"
+                return result
+            head = next(resp.iter_content(_SNIFF_BYTES), b"")
+            content_type = resp.headers.get("Content-Type", "").split(";")[0].strip().lower()
+            result["served_format"] = (
+                _sniff_image_format(head) or _CONTENT_TYPE_FORMATS.get(content_type)
+            )
+            length = resp.headers.get("Content-Length")
+            result["served_bytes"] = int(length) if length and length.isdigit() else None
+            vary = resp.headers.get("Vary", "").lower()
+            result["negotiated"] = "accept" in [v.strip() for v in vary.split(",")]
+        finally:
+            resp.close()
+    except URLSafetyError as exc:
+        result["probe_error"] = f"url_safety: {exc}"
+    except requests.exceptions.RequestException as exc:
+        result["probe_error"] = f"request failed: {exc}"
+    return result
+
+
+def probe_images(images: list, timeout: int = 15, limit: int = 50) -> list:
+    """Add the served-format fields from ``probe_image_format`` to each image entry.
+
+    Probes at most ``limit`` distinct URLs; entries past the limit get
+    ``probe_error`` set so the report never guesses their format.
+    """
+    cache: dict = {}
+    for image in images:
+        src = image.get("src", "")
+        if src not in cache:
+            if len(cache) >= limit:
+                cache[src] = {
+                    "served_format": None,
+                    "served_bytes": None,
+                    "negotiated": False,
+                    "probe_error": f"skipped: probe limit of {limit} images reached",
+                }
+            else:
+                cache[src] = probe_image_format(src, timeout=timeout)
+        image.update(cache[src])
+    return images
 
 
 def _has_rel_token(tag, token: str) -> bool:
@@ -253,6 +365,11 @@ def main():
     parser.add_argument("file", nargs="?", help="HTML file to parse")
     parser.add_argument("--url", "-u", help="Base URL for resolving links")
     parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
+    parser.add_argument(
+        "--probe-images",
+        action="store_true",
+        help="Fetch each image as a browser would and record the format actually served",
+    )
 
     args = parser.parse_args()
 
@@ -271,6 +388,8 @@ def main():
             args.url = resp.url
 
     result = parse_html(html, args.url)
+    if args.probe_images:
+        probe_images(result["images"])
 
     if args.json:
         print(json.dumps(result, indent=2))

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Image format is judged by what the server sends, not the URL extension
+  (#331). `parse_html.py --probe-images` fetches each image with a browser
+  `Accept` header and adds `served_format`, `served_bytes`, `negotiated` and
+  `probe_error` to every image entry. `seo-images` and `seo-page` now flag
+  "Wrong Format" only from `served_format`, so a `.jpg` URL that a WebP plugin,
+  Cloudflare Polish or an image CDN already serves as WebP is no longer told to
+  "convert to WebP".
+
 ## [2.4.1] - 2026-09-29
 
 Google-currency patch. Every changed fact was re-checked against its

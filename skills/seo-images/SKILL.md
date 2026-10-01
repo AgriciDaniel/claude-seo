@@ -59,6 +59,26 @@ Recommend compression to target thresholds where possible without quality loss.
 
 Recommend WebP/AVIF over JPEG/PNG. Check for `<picture>` element with format fallbacks.
 
+#### Judge the served format, not the URL extension
+
+Many sites serve WebP or AVIF from a `.jpg`/`.png` URL when the browser asks for it (WordPress WebP
+plugins such as EWWW, ShortPixel, WebP Express and Imagify, Cloudflare Polish, image CDNs). The extension
+is not the format visitors receive. Run
+`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run parse_html.py --url <url> --probe-images --json`,
+which fetches each image with a browser `Accept` header and adds to every image entry:
+
+| Field | Meaning |
+|---|---|
+| `served_format` | Format actually served (`webp`, `avif`, `jpeg`, `png`, `gif`, `svg`, `jxl`), from the magic bytes |
+| `served_bytes` | Size actually served (Content-Length), or `null` when the server omits it |
+| `negotiated` | `true` when the response has `Vary: Accept`, so the format depends on the browser |
+| `probe_error` | Why the image could not be checked, else `null` |
+
+- Flag "Wrong Format" and size savings only from `served_format` / `served_bytes`. A `.jpg` URL with
+  `served_format: webp` is already optimized: do not recommend converting it.
+- If `probe_error` is set, report the format as unverified. Never infer it from the extension.
+- Never suggest a replacement image URL (e.g. `photo.webp`) without confirming it returns HTTP 200.
+
 #### Recommended `<picture>` Element Pattern
 
 Use progressive enhancement with the most efficient format first:
@@ -430,7 +450,7 @@ For maximum image SEO, run this pipeline on each image:
 |----------|--------|
 | URL unreachable | Report connection error with status code. Suggest verifying URL and checking if site requires authentication. |
 | No images found on page | Report that no `<img>` elements were detected. Suggest checking if images are loaded via JavaScript or CSS background-image. |
-| Images behind CDN or authentication | Note that image files could not be directly accessed for size analysis. Report available metadata (alt text, dimensions, format from markup) and flag inaccessible resources. |
+| Images behind CDN or authentication | Note that image files could not be directly accessed for size analysis. Report available metadata (alt text, dimensions) and flag inaccessible resources. Mark their format as unverified: the URL extension is not the served format. |
 | exiftool not installed | Fall back to ImageMagick for metadata. Recommend: `sudo apt install libimage-exiftool-perl` |
 | cwebp not installed | Fall back to ImageMagick or FFmpeg for WebP conversion. Recommend: `sudo apt install webp` |
 | DataForSEO MCP not available | Skip Image SERP Analysis section. Note extension is not installed. |

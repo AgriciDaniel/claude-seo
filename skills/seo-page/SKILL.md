@@ -55,7 +55,10 @@ metadata:
 ### Images
 - Alt text: present, descriptive, includes keywords where natural
 - File size: flag >200KB (warning), >500KB (critical)
-- Format: recommend WebP/AVIF over JPEG/PNG
+- Format: recommend WebP/AVIF over JPEG/PNG, judged by the format actually served, not the URL extension
+  (a `.jpg` URL often serves WebP). Run
+  `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run parse_html.py --url <url> --probe-images --json` and read
+  `served_format` / `served_bytes` per image; see `seo-images` for the rules
 - Dimensions: width/height set for CLS prevention
 - Lazy loading: report `lazy_method` per image (native | perfmatters | ewww | js-generic | none). Do not flag "not lazy-loaded" when JS lazy-loaders (Perfmatters, EWWW, lazysizes) are detected, they intentionally strip the native `loading="lazy"` attribute and use `data-src` placeholders
 
