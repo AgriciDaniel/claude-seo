@@ -58,6 +58,7 @@ extension is also installable (see "Optional Extensions" below).
 | `/seo drift history <url>` | Show drift history over time |
 | `/seo ecommerce <url>` | E-commerce SEO: product schema, marketplace intelligence |
 | `/seo matomo [command] [args]` | Matomo Reporting API: GA4 alternative or supplement (extension) |
+| `/seo posthog [command]` | PostHog via MCP: GA4 alternative or supplement (extension) |
 | `/seo firecrawl [command] <url>` | Full-site crawling and site mapping (extension) |
 | `/seo dataforseo [command]` | Live SEO data via DataForSEO (extension) |
 | `/seo image-gen [use-case] <description>` | AI image generation for SEO assets (extension) |
@@ -84,7 +85,8 @@ When the user invokes `/seo audit`, delegate to subagents in parallel:
 2. Spawn subagents: seo-technical, seo-content, seo-schema, seo-sitemap, seo-performance, seo-visual, seo-geo, seo-agentic
 3. If Google API credentials detected (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_auth.py --check`), also spawn seo-google agent
 4. If Matomo credentials detected (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run matomo_auth.py --check`), also spawn seo-matomo agent (alternative or complement to seo-google's GA4 reports)
-5. If local business detected, also spawn seo-local agent
+5. If the PostHog MCP `exec` tool (`mcp__PostHog__exec`) is available, also spawn seo-posthog agent (alternative or complement to seo-google's GA4 reports)
+5b. If local business detected, also spawn seo-local agent
 6. If local business detected AND DataForSEO MCP available, also spawn seo-maps agent
 7. If backlink APIs detected (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run backlinks_auth.py --check`), also spawn seo-backlinks agent
 8. If Firecrawl MCP available, use `firecrawl_map` to discover all site URLs before analysis
@@ -270,7 +272,7 @@ installer to activate (see each extension's `install.sh`/`install.ps1`):
 
 All optional extensions are reachable through `/seo` subcommands once
 installed: firecrawl, dataforseo, and image-gen, plus `/seo ahrefs`,
-`/seo bing`, `/seo matomo`, `/seo profound`, `/seo seranking`, and
+`/seo bing`, `/seo matomo`, `/seo posthog`, `/seo profound`, `/seo seranking`, and
 `/seo unlighthouse`. Each installs as its own sub-skill, so the model also
 auto-routes to their descriptions without the `/seo` prefix.
 
@@ -283,6 +285,10 @@ auto-routes to their descriptions without the `/seo` prefix.
   (Windows). Once installed, invoke via `/seo matomo <command>` or rely
   on the audit orchestrator to spawn the seo-matomo agent automatically
   when credentials are present.
+- **seo-posthog** -- PostHog analytics via the PostHog MCP server as a GA4
+  alternative or complement. Install via `extensions/posthog/install.sh`.
+  Once installed, invoke via `/seo posthog <command>` or rely on the audit
+  orchestrator to spawn the seo-posthog agent when the MCP is connected.
 
 ## Subagents
 
