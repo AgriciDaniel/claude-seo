@@ -1,4 +1,4 @@
-# .shopify-env — copy into the folder you run audits from. Never commit it.
+# .shopify-env: copy into the folder you run audits from. Never commit it.
 #
 # Crawl settings before the first Domain= apply to every shop below.
 # Signed crawls have no page cap by default; unsigned crawls stop at 500 pages.
