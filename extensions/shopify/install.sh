@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude SEO — Shopify Crawler Access extension installer.
+# Claude SEO: Shopify Crawler Access extension installer.
 #
 # Copies the seo-shopify skill next to the other skills. The scripts it uses
 # (shopify_env.py, shopify_crawl.py) ship with claude-seo already. No API keys:
@@ -11,7 +11,7 @@ main() {
     SKILL_DIR="${HOME}/.claude/skills"
 
     echo "════════════════════════════════════════"
-    echo "║   Claude SEO — Shopify Crawler Access ║"
+    echo "║   Claude SEO: Shopify Crawler Access  ║"
     echo "════════════════════════════════════════"
 
     [ ! -d "${SKILL_DIR}/seo" ] && { echo "✗ claude-seo base not installed."; exit 1; }
