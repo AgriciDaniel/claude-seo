@@ -76,3 +76,23 @@ export function latestVersion(names: readonly string[]): string | null {
 
   return versions.length === 0 ? null : [...versions].sort(compareVersions).at(-1) ?? null
 }
+
+/**
+ * The environment claude-seo's runtime.py must see, so it finds the Python
+ * environment claude-seo set up, not one keyed to whichever plugin is calling.
+ *
+ * runtime.py picks its folder from CLAUDE_PLUGIN_DATA, which Claude Code sets
+ * per plugin; inherited from this mod's process it names the wrong plugin.
+ * - An install (`<home>/.claude/plugins/cache/<mkt>/claude-seo/<ver>`): point
+ *   it at claude-seo's own data folder, `<home>/.claude/plugins/data/claude-seo-<mkt>`,
+ *   where `/seo setup` puts the environment.
+ * - A checkout or a custom folder: clear both variables, so runtime.py uses
+ *   its own standalone rule (the checkout's `.venv`).
+ */
+export function runtimeEnvOf(seoRoot: string): Record<string, string> {
+  const match = /^(.*)[\\/]plugins[\\/]cache[\\/]([^\\/]+)[\\/]claude-seo[\\/][^\\/]+[\\/]?$/.exec(seoRoot)
+
+  return match === null || match[1] === undefined || match[2] === undefined
+    ? { CLAUDE_PLUGIN_DATA: '', CLAUDE_PLUGIN_ROOT: '' }
+    : { CLAUDE_PLUGIN_DATA: `${match[1]}/plugins/data/claude-seo-${match[2]}`, CLAUDE_PLUGIN_ROOT: seoRoot }
+}

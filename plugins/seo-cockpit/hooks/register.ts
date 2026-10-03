@@ -4,7 +4,7 @@ import { auditFromPrompt, bandText, compactInstructions, economyModel, isSeoAgen
 import { COLORS, htmlPage } from './lib/charts'
 import { doctorText, spendText } from './lib/format'
 import { classify, type PaidCall } from './lib/paid'
-import { candidatesOf, joinPath, latestVersion, MARKER } from './lib/root'
+import { candidatesOf, joinPath, latestVersion, MARKER, runtimeEnvOf } from './lib/root'
 import { chooseTarget, hostOf, rowOf, ROWS, siteOfAudit, statusLine } from './lib/overview'
 import { auditModel, emptyModel, gscModel, mapsModel, rankingsModel, spendModel, TABS, vitalsModel, type TabId, type TabModel } from './lib/tabs'
 import { combine, isUnpriced, parseCheck, usd, type Verdict } from './lib/verdict'
@@ -108,7 +108,7 @@ async function findRoot($: EngineInterface, ctx: Ctx): Promise<string | null> {
 
 /** Runs one of claude-seo's stdlib-only scripts with the configured Python. */
 async function runScript($: EngineInterface, ctx: Ctx, seoRoot: string, script: string, args: readonly string[]) {
-  return $.process.run([ctx.python, joinPath(seoRoot, 'scripts', script), ...args], { timeoutMs: 20_000 })
+  return $.process.run([ctx.python, joinPath(seoRoot, 'scripts', script), ...args], { timeoutMs: 20_000, env: runtimeEnvOf(seoRoot) })
 }
 
 /** Writes a guarded call's cost to the ledger. Never throws: the call already ran. */
@@ -278,7 +278,7 @@ async function restoreAudit($: EngineInterface, ctx: Ctx): Promise<void> {
 /** Runs a claude-seo script through its managed runtime (for scripts that need its packages) and parses the JSON it prints. */
 async function runtimeJson($: EngineInterface, ctx: Ctx, seoRoot: string, script: string, args: readonly string[]): Promise<{ data: unknown; error: string | null }> {
   try {
-    const { exitCode, stdout, stderr } = await $.process.run([ctx.python, joinPath(seoRoot, 'scripts', 'runtime.py'), 'run', script, ...args], { timeoutMs: 90_000 })
+    const { exitCode, stdout, stderr } = await $.process.run([ctx.python, joinPath(seoRoot, 'scripts', 'runtime.py'), 'run', script, ...args], { timeoutMs: 90_000, env: runtimeEnvOf(seoRoot) })
 
     try {
       return { data: JSON.parse(stdout), error: null }

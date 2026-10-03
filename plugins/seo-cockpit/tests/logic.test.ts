@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { lastDays, spark, spendText } from '../hooks/lib/format'
 import { classify, mcpParts, merchantEndpoints, segmentsOf } from '../hooks/lib/paid'
-import { candidatesOf, latestVersion, parentOf } from '../hooks/lib/root'
+import { candidatesOf, latestVersion, parentOf, runtimeEnvOf } from '../hooks/lib/root'
 import { combine, isUnpriced, parseCheck } from '../hooks/lib/verdict'
 
 describe('classify', () => {
@@ -119,6 +119,15 @@ describe('root', () => {
     expect(latestVersion(['2.4.1', '2.10.0', '2.9.9', 'tmp'])).toBe('2.10.0')
     expect(latestVersion(['tmp'])).toBeNull()
     expect(latestVersion(['2.5.0-rc1', '2.5.0', '2.4.9'])).toBe('2.5.0')
+  })
+
+  test('runtime.py gets claude-seo\'s own data folder, never the calling plugin\'s', () => {
+    expect(runtimeEnvOf('/home/u/.claude/plugins/cache/agricidaniel-claude-seo/claude-seo/2.4.1')).toEqual({
+      CLAUDE_PLUGIN_DATA: '/home/u/.claude/plugins/data/claude-seo-agricidaniel-claude-seo',
+      CLAUDE_PLUGIN_ROOT: '/home/u/.claude/plugins/cache/agricidaniel-claude-seo/claude-seo/2.4.1',
+    })
+    // A checkout: clear both, so runtime.py uses the checkout's own environment.
+    expect(runtimeEnvOf('/home/u/Desktop/Skills/Public/claude-seo')).toEqual({ CLAUDE_PLUGIN_DATA: '', CLAUDE_PLUGIN_ROOT: '' })
   })
 
   test('parentOf trims trailing slashes', () => {
