@@ -327,6 +327,7 @@ def cmd_check(args):
             "approval_reason": "unknown_endpoint",
             "message": f"Unknown endpoint '{endpoint}': cost not in database. Requires explicit approval.",
             "estimated_cost_usd": 0.05,
+            "credentials_in_env": _credentials_in_env(),
         }
         json.dump(result, sys.stdout, indent=2)
         return
@@ -344,6 +345,7 @@ def cmd_check(args):
             "today_spend_usd": round(today_total, 4),
             "this_call_usd": round(total, 4),
             "daily_limit_usd": daily_limit,
+            "credentials_in_env": _credentials_in_env(),
             "message": f"Daily limit ${daily_limit:.2f} would be exceeded. Today's spend: ${today_total:.2f}, this call: ${total:.2f}."
         }
         json.dump(result, sys.stdout, indent=2)

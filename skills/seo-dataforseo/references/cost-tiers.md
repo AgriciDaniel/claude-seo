@@ -17,7 +17,8 @@
 | **Backlinks** | `backlinks_*` | $0.02 | Per sub-call |
 | **Content** | `content_analysis_*` | $0.02 | Search, summary, trends |
 | **Business** | `business_data_*` | $0.05 | Listings search |
-| **AI/GEO** | `ai_optimization_chat_gpt_scraper`, `ai_opt_llm_ment_*` | $0.05 | ChatGPT scraper, LLM mentions |
+| **AI/GEO** | `ai_opt_llm_ment_search` | ~$0.103 | LLM mention search (official response example, checked 2026-09-23) |
+| **AI/GEO** | `ai_optimization_chat_gpt_scraper`, other `ai_opt_llm_ment_*` | $0.05 | ChatGPT scraper, LLM mention aggregates |
 | **Merchant** | `merchant_*` | $0.02 | Google Shopping, Amazon |
 | **Domain** | `domain_analytics_whois_*` | $0.005 | WHOIS data |
 | **Domain** | `domain_analytics_technologies_*` | $0.01 | Tech stack |
