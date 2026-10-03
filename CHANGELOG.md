@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `plugins/seo-cockpit`: an optional mods companion plugin (Claude Code
+  2.1.287+), listed as a second entry in the marketplace. It holds paid SEO
+  API calls against the DataForSEO budget before they run (DataForSEO MCP
+  tools and the Merchant script are priced by `dataforseo_costs.py`; Ahrefs,
+  Firecrawl, image generation, Moz, Keywords Everywhere, Cloud NLP, the
+  Indexing API, and curl or WebFetch calls to SE Ranking and Profound ask
+  first), fails closed, logs what it approved, and adds zero-token
+  `/seo-spend` and `/seo-doctor` commands. Kit tests are written against the
+  2.1.288 typings but not yet executed: mods are switched off remotely for
+  the maintainer's account.
+
+### Changed
+
+- `dataforseo_costs.py check` returns `credentials_in_env` on every result,
+  so a budget approval is not read as proof the call can run.
+
+### Fixed
+
+- Schema hook (`hooks/validate-schema.py`): diagnostics went to stdout,
+  which Claude Code ignores, so Claude never saw them. Critical errors now
+  exit 2 with the errors on stderr (fed back to Claude); warnings exit 0
+  with `hookSpecificOutput.additionalContext` JSON, which Claude reads
+  without an error notice. Wording no longer claims the edit is blocked: a
+  PostToolUse hook runs after the file is written.
+- `ai_opt_llm_ment_search` costs about $0.103 per the official response
+  example, not $0.05 (`dataforseo_costs.py` and both `cost-tiers.md`).
+
 ## [2.4.1] - 2026-09-29
 
 Google-currency patch. Every changed fact was re-checked against its

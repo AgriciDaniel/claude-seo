@@ -57,6 +57,24 @@
         "ai-citation-optimization",
         "synthesis-framework"
       ]
+    },
+    {
+      "name": "seo-cockpit",
+      "source": "./plugins/seo-cockpit",
+      "description": "Optional mods companion for claude-seo (needs Claude Code 2.1.287+). A spend guard that holds paid SEO API calls against the claude-seo budget, and zero-token /seo-spend and /seo-doctor commands.",
+      "author": {
+        "name": "AgriciDaniel",
+        "url": "https://github.com/AgriciDaniel"
+      },
+      "category": "marketing",
+      "homepage": "https://github.com/AgriciDaniel/claude-seo/tree/main/plugins/seo-cockpit",
+      "keywords": [
+        "seo",
+        "mods",
+        "cost-guard",
+        "dataforseo",
+        "budget"
+      ]
     }
   ]
 }

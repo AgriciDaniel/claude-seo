@@ -1,0 +1,30 @@
+{
+  "name": "seo-cockpit",
+  "version": "0.1.0",
+  "description": "Mods companion for claude-seo: a spend guard on paid SEO APIs and zero-token /seo-spend and /seo-doctor commands",
+  "author": {
+    "name": "Agrici Daniel"
+  },
+  "homepage": "https://github.com/AgriciDaniel/claude-seo",
+  "license": "MIT",
+  "userConfig": {
+    "claudeSeoRoot": {
+      "type": "directory",
+      "title": "claude-seo folder",
+      "description": "Where claude-seo is installed. Leave empty to find it next to this plugin.",
+      "default": ""
+    },
+    "python": {
+      "type": "string",
+      "title": "Python command",
+      "description": "Interpreter for the stdlib-only cost ledger script (python3, python, or a full path).",
+      "default": "python3"
+    },
+    "spendGuard": {
+      "type": "boolean",
+      "title": "Spend guard",
+      "description": "Hold paid SEO API calls (DataForSEO, Ahrefs, Firecrawl, image generation, Moz, and others; see the README) against the claude-seo budget before they run.",
+      "default": true
+    }
+  }
+}
