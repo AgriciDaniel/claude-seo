@@ -1,6 +1,6 @@
 {
   "name": "seo-cockpit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Mods companion for claude-seo: a spend guard on paid SEO APIs, a live audit band with a receipt, an economy mode, a visual cockpit (Search Console, rankings, Core Web Vitals, audit, Maps, spend) and zero-token commands",
   "author": {
     "name": "Agrici Daniel"
@@ -49,6 +49,22 @@
       "title": "Page for Core Web Vitals",
       "description": "For the cockpit's Vitals and drift views: a URL or origin. Leave empty to use the Search Console property's site.",
       "default": ""
+    },
+    "googleAccount": {
+      "type": "string",
+      "title": "Google account",
+      "description": "Which Google sign-in claude-seo uses for Search Console. auto: claude-seo's own order (its sign-in, then a service account, then your gcloud account). gcloud: always your account from 'gcloud auth application-default login', for properties you own.",
+      "options": [
+        "auto",
+        "gcloud"
+      ],
+      "default": "auto"
+    },
+    "googleApiKey": {
+      "type": "string",
+      "title": "Google API key",
+      "description": "For Core Web Vitals (CrUX) and PageSpeed. Kept in Claude Code's secure storage. Leave empty to use claude-seo's own setup.",
+      "sensitive": true
     }
   }
 }

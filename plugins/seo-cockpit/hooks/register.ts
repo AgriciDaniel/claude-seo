@@ -32,6 +32,9 @@ type Ctx = {
   site: string
   pageUrl: string
   pane: PaneState & { isOpen: boolean }
+  /** Google settings from /config, handed to claude-seo's scripts only. */
+  googleAccount: string
+  googleApiKey: string
   /** What the person typed in the pane as the site, per working folder. */
   typed: string | null
 }
@@ -106,9 +109,18 @@ async function findRoot($: EngineInterface, ctx: Ctx): Promise<string | null> {
   return null
 }
 
+/** The environment claude-seo's scripts run with: its own runtime folder, plus the Google settings from /config. */
+function scriptEnv(ctx: Ctx, seoRoot: string): Record<string, string> {
+  return {
+    ...runtimeEnvOf(seoRoot),
+    ...(ctx.googleAccount === 'gcloud' && { CLAUDE_SEO_GOOGLE_AUTH: 'adc' }),
+    ...(ctx.googleApiKey !== '' && { GOOGLE_API_KEY: ctx.googleApiKey }),
+  }
+}
+
 /** Runs one of claude-seo's stdlib-only scripts with the configured Python. */
 async function runScript($: EngineInterface, ctx: Ctx, seoRoot: string, script: string, args: readonly string[]) {
-  return $.process.run([ctx.python, joinPath(seoRoot, 'scripts', script), ...args], { timeoutMs: 20_000, env: runtimeEnvOf(seoRoot) })
+  return $.process.run([ctx.python, joinPath(seoRoot, 'scripts', script), ...args], { timeoutMs: 20_000, env: scriptEnv(ctx, seoRoot) })
 }
 
 /** Writes a guarded call's cost to the ledger. Never throws: the call already ran. */
@@ -278,7 +290,7 @@ async function restoreAudit($: EngineInterface, ctx: Ctx): Promise<void> {
 /** Runs a claude-seo script through its managed runtime (for scripts that need its packages) and parses the JSON it prints. */
 async function runtimeJson($: EngineInterface, ctx: Ctx, seoRoot: string, script: string, args: readonly string[]): Promise<{ data: unknown; error: string | null }> {
   try {
-    const { exitCode, stdout, stderr } = await $.process.run([ctx.python, joinPath(seoRoot, 'scripts', 'runtime.py'), 'run', script, ...args], { timeoutMs: 90_000, env: runtimeEnvOf(seoRoot) })
+    const { exitCode, stdout, stderr } = await $.process.run([ctx.python, joinPath(seoRoot, 'scripts', 'runtime.py'), 'run', script, ...args], { timeoutMs: 90_000, env: scriptEnv(ctx, seoRoot) })
 
     try {
       return { data: JSON.parse(stdout), error: null }
@@ -542,7 +554,9 @@ async function cockpitCommand($: EngineInterface, ctx: Ctx, args: string): Promi
 
     await resolveHost($, ctx)
 
-    const opened = await $.ui.open({ id: PANE_ID, title: 'SEO Cockpit', focus: true, rows: 14 })
+    // Ask for room: inline, the engine grants up to what the layout spares (a size the person set wins).
+    // Docked beside the transcript (fullscreen, 110+ columns), the pane is full height anyway.
+    const opened = await $.ui.open({ id: PANE_ID, title: 'SEO Cockpit', focus: true, rows: 40 })
 
     if (opened.isPlaced) {
       ctx.pane.isOpen = true
@@ -636,6 +650,8 @@ export function register(on: On, options: PluginOptions) {
     pageUrl: typeof options.pageUrl === 'string' ? options.pageUrl.trim() : '',
     pane: { view: 'overview', models: {}, loading: new Set(), host: null, hostSource: null, exported: null, isOpen: false },
     typed: null,
+    googleAccount: typeof options.googleAccount === 'string' ? options.googleAccount : 'auto',
+    googleApiKey: typeof options.googleApiKey === 'string' ? options.googleApiKey.trim() : '',
   }
 
   // ------------------------------------------------------------ spend guard

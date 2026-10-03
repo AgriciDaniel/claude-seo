@@ -154,6 +154,28 @@ describe('spend guard', () => {
   })
 })
 
+describe('google settings', () => {
+  test('/config Google settings reach claude-seo\'s scripts, and only them', { options: { googleAccount: 'gcloud', googleApiKey: 'test-key' } }, async ($, on) => {
+    const world = worldOf(on, { scripts: { today: { stdout: {} }, summary: { stdout: {} } } })
+
+    await $.command.run(command('seo-spend'))
+
+    expect(world.envs[0]?.CLAUDE_SEO_GOOGLE_AUTH).toBe('adc')
+    expect(world.envs[0]?.GOOGLE_API_KEY).toBe('test-key')
+    // A checkout: claude-seo uses its own runtime folder, never this plugin's.
+    expect(world.envs[0]?.CLAUDE_PLUGIN_DATA).toBe('')
+  })
+
+  test('auto leaves claude-seo\'s own order alone', async ($, on) => {
+    const world = worldOf(on, { scripts: { today: { stdout: {} }, summary: { stdout: {} } } })
+
+    await $.command.run(command('seo-spend'))
+
+    expect(world.envs[0]?.CLAUDE_SEO_GOOGLE_AUTH).toBeUndefined()
+    expect(world.envs[0]?.GOOGLE_API_KEY).toBeUndefined()
+  })
+})
+
 describe('commands', () => {
   test('the start registers all three commands', async ($, on) => {
     const world = worldOf(on)

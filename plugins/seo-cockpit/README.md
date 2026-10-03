@@ -55,7 +55,8 @@ r: Refresh  e: Export
 ```
 
 - **The site** comes from `/config` if you set one, else from the newest `<domain>-audit/` folder here. With neither, the pane asks for it in place and remembers it for this folder.
-- **Google access** uses claude-seo's own setup. If Search Console says "no access" but you own the property, your service account is not a user on it: either add it in Search Console, or use your own Google account with `gcloud auth application-default login --scopes=https://www.googleapis.com/auth/webmasters.readonly,https://www.googleapis.com/auth/cloud-platform` and start Claude Code with `CLAUDE_SEO_GOOGLE_AUTH=adc`. Core Web Vitals needs `GOOGLE_API_KEY`.
+- **Google access** uses claude-seo's own setup, or the two Google settings in `/config`. If Search Console says "no access" for a property you own, a service account is being used: set "Google account" to `gcloud` after `gcloud auth application-default login --scopes=https://www.googleapis.com/auth/webmasters.readonly,https://www.googleapis.com/auth/cloud-platform`. Core Web Vitals needs a Google API key ("Google API key" in `/config`).
+- **Where it sits:** in a normal terminal the pane opens above the prompt and asks for as many rows as the screen can spare (drag it to resize; your size is kept). In Claude Code's fullscreen layout, 110 columns or wider, it docks beside the conversation at full height.
 - **Everything loads on open**, from free sources only (the audit and grid files, the cost ledger, and Search Console and CrUX through claude-seo's own Google setup). The last result shows at once and is replaced when the fresh one arrives.
 - **Missing data stays visible** as a dim line saying what to do, instead of an error screen.
 - **A row opens its detail** (Enter, a click, or its number): charts and tables for that source, `b` to go back.
@@ -93,6 +94,8 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 | Economy mode | off | Run the five Opus agents on Sonnet |
 | Search Console property | empty | For the cockpit: `sc-domain:example.com` or `https://example.com/`. Empty uses claude-seo's default property |
 | Page for Core Web Vitals | empty | For the Vitals and drift views. Empty uses the property's site |
+| Google account | auto | `auto`: claude-seo's own order (its sign-in, a service account, then your gcloud account). `gcloud`: always your own account from `gcloud auth application-default login`, for properties you own |
+| Google API key | empty | For Core Web Vitals (CrUX). Sensitive: kept in Claude Code's secure storage. Empty uses claude-seo's own setup |
 
 ## What it can and cannot see
 

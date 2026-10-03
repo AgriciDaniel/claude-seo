@@ -141,5 +141,6 @@ export function statusLine(host: string | null, rows: readonly Row[]): string | 
   const score = audit?.line.split(' · ')[0]
   const cwv = vitals === undefined ? undefined : /^(poor|needs work)/.test(vitals.line) ? 'CWV needs work' : 'CWV good'
 
-  return ['SEO', host, score === undefined ? undefined : `audit ${score}`, cwv].filter(Boolean).join(' · ')
+  // The engine prefixes the plugin's name; the line itself starts with the site.
+  return [host, score === undefined ? undefined : `audit ${score}`, cwv].filter(Boolean).join(' · ')
 }

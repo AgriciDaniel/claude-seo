@@ -8,6 +8,8 @@ import type { On } from 'claude-code'
 export type World = {
   /** Every argv the plugin ran, joined by spaces, after the interpreter. */
   runs: string[]
+  /** The environment each run was given, in the same order. */
+  envs: Array<Readonly<Record<string, string>>>
   /** Every question the plugin asked. */
   asked: string[]
   /** Calls that reached the tool beneath the plugin. */
@@ -31,7 +33,7 @@ export type Setup = {
 }
 
 export function worldOf(on: On, setup: Setup = {}): World {
-  const world: World = { runs: [], asked: [], ran: [], commands: [] }
+  const world: World = { runs: [], envs: [], asked: [], ran: [], commands: [] }
 
   // The kit's bottom hook throws for an event no stub answers; a session start needs one.
   on('session.start', () => ({ cwd: '/work' }))
@@ -48,6 +50,7 @@ export function worldOf(on: On, setup: Setup = {}): World {
     const sub = args[1] ?? ''
 
     world.runs.push([script, ...args.slice(1)].join(' '))
+    world.envs.push(e.init?.env ?? {})
 
     const reply = setup.scripts?.[sub]
 
