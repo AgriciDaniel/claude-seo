@@ -41,18 +41,27 @@ seo audit example.com: score 72/100  |  weakest Schema 40, Content 55  |  17 age
 
 **Compaction.** If the conversation is compacted mid-audit, the summary is asked to keep the output folder, which agents finished and which are running, and the findings files written.
 
-**Visual cockpit** (`/seo-cockpit`). A pane with six views of the data claude-seo already collects. The pane opens with focus: keys 1 to 6 pick a view, `r` loads it, `e` exports HTML, `x` closes, Esc returns to the prompt. Nothing is fetched until you press `r`, and no view calls a paid API.
+**Visual cockpit** (`/seo-cockpit`). Opens on one Overview for the site this folder is about, with no setup:
 
-| View | Shows | Source |
-|---|---|---|
-| 1 Search Console | Clicks and impressions per day for 90 days, 28-day KPIs with change against the 28 days before, top queries | `gsc_query.py` |
-| 2 Rankings | Average position over time, queries by position band, striking-distance queries (positions 4 to 15), drift issues over time | `gsc_query.py`, `drift_history.py` |
-| 3 Vitals | LCP, INP and CLS p75 per CrUX period against Google's good and poor thresholds | `crux_history.py` |
-| 4 Audit | Health score, category scores weakest first, critical and high findings, quick wins | newest `*-audit/audit-data.json` |
-| 5 Maps | Geo-grid heatmap, share of local voice, average rank | newest `*-maps/geo-grid-*.json` (saved by `/seo maps grid`) |
-| 6 Spend | DataForSEO spend per day for 30 days, today by endpoint | `dataforseo_costs.py` |
+```
+claude-seo.md  from this folder
+1: ● Audit     85/100 · weakest Schema 76
+2: ● Vitals    good · LCP 703ms · INP 48ms · CLS 0.00
+3: ○ Search    no Search Console access
+4: ○ Rankings  no Search Console access
+5: ○ Maps      no grid yet (/seo maps grid)
+6: ● Spend     today $0.00 · 30 days $0.18
+r: Refresh  e: Export
+```
 
-Charts are drawn with block characters in the terminal and as SVG on the desktop app. Every view names its source and when it was fetched, and the last result of each view is kept for the next session.
+- **The site** comes from `/config` if you set one, else from the newest `<domain>-audit/` folder here. With neither, the pane asks for it in place and remembers it for this folder.
+- **Everything loads on open**, from free sources only (the audit and grid files, the cost ledger, and Search Console and CrUX through claude-seo's own Google setup). The last result shows at once and is replaced when the fresh one arrives.
+- **Missing data stays visible** as a dim line saying what to do, instead of an error screen.
+- **A row opens its detail** (Enter, a click, or its number): charts and tables for that source, `b` to go back.
+- **Keys** work while the pane has focus; otherwise the footer says `ctrl+x tab`. `r` refreshes everything, `e` exports HTML. Esc or Claude Code's own close mark closes the pane, and `/seo-cockpit` again toggles it.
+- **A status line** under the prompt keeps the summary in view: `SEO · claude-seo.md · audit 85/100 · CWV good`.
+
+Charts are drawn with block characters in the terminal and as SVG on the desktop app. Every view names its source and when it was fetched.
 
 **HTML dashboard.** `e` in the pane, or `/seo-cockpit export`, writes one self-contained page (`seo-cockpit-<time>.html` in the working folder) with every view as SVG charts and tables, readable in light and dark. Where no pane can be drawn (the VS Code chat panel), `/seo-cockpit` writes this page instead and says where it is.
 

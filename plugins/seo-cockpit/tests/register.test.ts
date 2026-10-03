@@ -2,9 +2,11 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { APPROVED, BLOCKED, command, NEEDS, SESSION, worldOf } from './fixtures/world'
 
-const SERP = { tool: 'mcp__dataforseo__serp_organic_live_advanced' as const }
-const LLM = { tool: 'mcp__dataforseo__ai_opt_llm_ment_search' as const }
-const AHREFS = { tool: 'mcp__ahrefs__site_explorer' as const }
+// MCP tool inputs are typed from the servers connected on the machine that last loaded the mod,
+// so a test naming servers that machine lacks casts its input.
+const SERP = { tool: 'mcp__dataforseo__serp_organic_live_advanced' } as never
+const LLM = { tool: 'mcp__dataforseo__ai_opt_llm_ment_search' } as never
+const AHREFS = { tool: 'mcp__ahrefs__site_explorer' } as never
 
 describe('spend guard', () => {
   test('a free tool passes untouched and runs nothing', async ($, on) => {
@@ -107,7 +109,7 @@ describe('spend guard', () => {
       answer: 'Approve',
     })
 
-    const result = await $.tool.call({ tool: 'mcp__dataforseo__brand_new_endpoint' })
+    const result = await $.tool.call({ tool: 'mcp__dataforseo__brand_new_endpoint' } as never)
 
     expect(world.asked[0]).toContain('has no listed price')
     expect(world.runs).toEqual(['dataforseo_costs.py check brand_new_endpoint'])

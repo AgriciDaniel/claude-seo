@@ -2,31 +2,44 @@
  * The cockpit pane as an element tree. Pure: register.ts hands in the
  * surface's element constructors and the actions; nothing here touches `$`.
  *
- * Every surface gets text charts (block characters and colored bars). Where
- * the surface draws `Svg` (desktop, and VS Code per the 2.1.288 typings), the
- * charts are drawn as SVG instead.
+ * One Overview (a line per source, in the order a person checks them) and one
+ * detail view per source. Sized to the pane's own width: an inline pane in a
+ * narrow terminal gets the same content in fewer columns, never a wrapped row
+ * of controls. The first row holds no controls, leaving the engine's close
+ * mark at the right edge clear.
+ *
+ * Charts are text (block characters and colored bars) everywhere; where the
+ * surface draws `Svg` (desktop, and VS Code per the 2.1.288 typings), the
+ * detail view draws them as SVG instead.
  */
 
 import type { Elements, RenderElement } from 'claude-code'
 
-import { barRow, endsOf, rankColor, sparkRow, svgOf, type Chart } from '../lib/charts'
-import { TABS, type TabId, type TabModel } from '../lib/tabs'
+import { barRow, endsOf, rankColor, sparkRow, svgOf, COLORS, type Chart } from '../lib/charts'
+import { rowOf, ROWS, type Row } from '../lib/overview'
+import type { TabId, TabModel } from '../lib/tabs'
 
-export type Kit = Pick<Elements['terminal'], 'Box' | 'Text' | 'Button'> & Partial<Pick<Elements['terminal'], 'Markdown'>> & { Svg?: Elements['desktop']['Svg'] }
+export type Kit = Pick<Elements['terminal'], 'Box' | 'Text' | 'Button'> &
+  Partial<Pick<Elements['terminal'], 'Markdown' | 'Input'>> & { Svg?: Elements['desktop']['Svg'] }
 
 export type PaneState = {
-  tab: TabId
-  model: TabModel | null
-  isLoading: boolean
+  /** The Overview, or one source's detail. */
+  view: 'overview' | TabId
+  models: Partial<Record<TabId, TabModel>>
+  loading: ReadonlySet<TabId>
+  /** The site the cockpit is about, and where that came from. */
+  host: string | null
+  hostSource: 'setting' | 'typed' | 'folder' | null
   /** The last HTML export, as a file path. */
   exported: string | null
 }
 
 export type PaneActions = {
-  pick: (tab: TabId) => void
+  open: (tab: TabId) => void
+  back: () => void
   refresh: () => void
   exportHtml: () => void
-  close: () => void
+  setTarget: (value: string) => void
 }
 
 const cut = (text: string, width: number): string => (text.length <= width ? text : `${text.slice(0, Math.max(0, width - 1))}…`)
@@ -91,31 +104,74 @@ function tableView(kit: Kit, table: TabModel['tables'][number], columns: number)
   return [kit.Text({ dimColor: true, children: [cut(line(table.head), columns)] }), ...table.rows.map(row => kit.Text({ children: [cut(line(row), columns)] }))]
 }
 
-/** The whole pane: tab buttons, the tab's content, and the actions. */
-export function paneView(kit: Kit, state: PaneState, columns: number, actions: PaneActions): RenderElement {
-  const { Box, Text, Button } = kit
-  const tabs = Box({
-    flexDirection: 'row',
-    columnGap: 1,
-    // A plain button with a hotkey draws as "1: label", so the label carries no key of its own.
-    children: TABS.map(tab => Button({ key: `tab-${tab.id}`, label: `${tab.id === state.tab ? '▸ ' : ''}${tab.label}`, hotkey: tab.key, plain: true, onPress: () => actions.pick(tab.id) })),
-  })
-  const body: RenderElement[] = []
-  const model = state.model
+const MARK: Record<Row['state'], { mark: string; color?: string }> = {
+  ok: { mark: '●', color: COLORS.good },
+  loading: { mark: '…' },
+  missing: { mark: '○', color: COLORS.muted },
+  error: { mark: '!', color: COLORS.poor },
+}
 
-  if (state.isLoading) {
-    body.push(Text({ dimColor: true, children: ['Loading from claude-seo...'] }))
-  } else if (model === null) {
-    body.push(Text({ dimColor: true, children: ['Press r to load this view. Nothing is fetched until you ask.'] }))
+/** Keys work only while the pane holds focus; say how to get it otherwise. */
+function footer(kit: Kit, state: PaneState, isFocused: boolean, actions: PaneActions, extra: RenderElement[] = []): RenderElement {
+  const { Box, Text, Button } = kit
+  const children: RenderElement[] = isFocused
+    ? [...extra, Button({ key: 'refresh', label: 'Refresh', hotkey: 'r', plain: true, onPress: actions.refresh }), Button({ key: 'export', label: 'Export', hotkey: 'e', plain: true, onPress: actions.exportHtml })]
+    : [Text({ dimColor: true, children: ['ctrl+x tab to use the keys'] })]
+
+  if (state.exported !== null && kit.Markdown !== undefined) {
+    // A Link takes only https (or http://localhost) and refuses the whole tree otherwise; Markdown links may use file:.
+    children.push(kit.Markdown({ text: `[open export](file://${encodeURI(state.exported)})` }))
+  }
+
+  return Box({ flexDirection: 'row', columnGap: 2, marginTop: 1, children })
+}
+
+/** The Overview: which site, then one line per source; missing data stays visible with its fix. */
+export function overviewView(kit: Kit, state: PaneState, columns: number, isFocused: boolean, actions: PaneActions): RenderElement {
+  const { Box, Text, Button } = kit
+  const where = { setting: 'from /config', typed: 'typed here', folder: 'from this folder', none: '' }[state.hostSource ?? 'none']
+  const children: RenderElement[] = [
+    // Row 1 carries no controls: the engine draws its close mark at the right edge.
+    Text({ children: [Text({ bold: true, children: [cut(state.host ?? 'No site yet', Math.max(10, columns - 24))] }), Text({ dimColor: true, children: [where === '' ? '' : `  ${where}`] })] }),
+  ]
+
+  if (state.host === null && kit.Input !== undefined) {
+    children.push(kit.Input({ key: 'target', label: 'Site', placeholder: 'example.com', submitLabel: 'go', autoFocus: true, onSubmit: value => actions.setTarget(value) }))
+  }
+
+  const labelWidth = Math.max(...ROWS.map(row => row.label.length))
+
+  for (const row of ROWS.map(r => rowOf(r.id, state.models[r.id], state.loading.has(r.id)))) {
+    const { mark } = MARK[row.state]
+    // The hotkey draws as "1: " before a plain label; keep the whole line inside the pane.
+    const label = cut(`${mark} ${row.label.padEnd(labelWidth)}  ${row.line}`, Math.max(12, columns - 4))
+
+    children.push(Button({ key: `row-${row.id}`, label, hotkey: row.key, plain: true, onPress: () => actions.open(row.id) }))
+  }
+
+  children.push(footer(kit, state, isFocused, actions))
+
+  return Box({ flexDirection: 'column', children })
+}
+
+/** One source in detail: its numbers, charts and tables, with a way back. */
+export function detailView(kit: Kit, state: PaneState, tab: TabId, columns: number, isFocused: boolean, actions: PaneActions): RenderElement {
+  const { Box, Text, Button } = kit
+  const model = state.models[tab]
+  const label = ROWS.find(row => row.id === tab)?.label ?? tab
+  const body: RenderElement[] = [Text({ children: [Text({ bold: true, children: [model?.heading ?? label] })] })]
+
+  if (model === undefined) {
+    body.push(Text({ dimColor: true, children: [state.loading.has(tab) ? 'checking…' : 'not loaded yet: press r'] }))
   } else {
-    body.push(Text({ bold: true, children: [model.heading] }), Text({ dimColor: true, children: [cut(`${model.source}  ·  fetched ${model.fetchedAt}`, columns * 2)] }))
+    body.push(Text({ dimColor: true, children: [cut(`${model.source} · ${model.fetchedAt}`, columns)] }))
 
     if (model.error !== null) {
-      body.push(Text({ color: '#dc2626', children: [cut(model.error, columns * 3)] }))
+      body.push(Text({ color: COLORS.poor, children: [cut(model.error, columns * 3)] }))
     }
 
-    if (model.kpis.length > 0) {
-      body.push(Box({ flexDirection: 'row', columnGap: 3, children: model.kpis.map(kpi => Text({ children: [`${kpi.label}: `, Text({ bold: true, children: [kpi.value] })] })) }))
+    for (const kpi of model.kpis) {
+      body.push(Text({ children: [`${kpi.label}: `, Text({ bold: true, children: [kpi.value] })] }))
     }
 
     for (const chart of model.charts) {
@@ -129,16 +185,12 @@ export function paneView(kit: Kit, state: PaneState, columns: number, actions: P
     body.push(...model.notes.map(note => Text({ dimColor: true, children: [cut(note, columns * 3)] })))
   }
 
-  const footer: RenderElement[] = [
-    Button({ key: 'refresh', label: 'Refresh', hotkey: 'r', plain: true, onPress: actions.refresh }),
-    Button({ key: 'export', label: 'Export HTML', hotkey: 'e', plain: true, onPress: actions.exportHtml }),
-    Button({ key: 'close', label: 'Close', hotkey: 'x', plain: true, onPress: actions.close }),
-  ]
+  const back = Button({ key: 'back', label: 'Back', hotkey: 'b', plain: true, onPress: actions.back })
 
-  if (state.exported !== null) {
-    // A Link takes only https (or http://localhost) and refuses the whole tree otherwise; Markdown links may use file:.
-    footer.push(kit.Markdown !== undefined ? kit.Markdown({ text: `[open export](file://${encodeURI(state.exported)})` }) : Text({ dimColor: true, children: [state.exported] }))
-  }
+  return Box({ flexDirection: 'column', children: [...body, footer(kit, state, isFocused, actions, isFocused ? [back] : [])] })
+}
 
-  return Box({ flexDirection: 'column', rowGap: 0, children: [tabs, Box({ flexDirection: 'column', marginTop: 1, children: body }), Box({ flexDirection: 'row', columnGap: 2, marginTop: 1, children: footer })] })
+/** The whole pane for its current view. */
+export function paneView(kit: Kit, state: PaneState, columns: number, isFocused: boolean, actions: PaneActions): RenderElement {
+  return state.view === 'overview' ? overviewView(kit, state, columns, isFocused, actions) : detailView(kit, state, state.view, columns, isFocused, actions)
 }

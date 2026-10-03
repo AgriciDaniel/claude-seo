@@ -26,6 +26,8 @@ export type Setup = {
   answer?: string | null
   /** Whether claude-seo is found on disk. */
   hasRoot?: boolean
+  /** Folder listings by path, for tests that need files to exist; any other path is missing. */
+  listing?: Readonly<Record<string, ReadonlyArray<{ name: string; kind: 'file' | 'dir' }>>>
 }
 
 export function worldOf(on: On, setup: Setup = {}): World {
@@ -34,7 +36,11 @@ export function worldOf(on: On, setup: Setup = {}): World {
   // The kit's bottom hook throws for an event no stub answers; a session start needs one.
   on('session.start', () => ({ cwd: '/work' }))
   on('fs.exists', ($, e) => ({ value: setup.hasRoot !== false && e.path.endsWith('scripts/dataforseo_costs.py') }))
-  on('fs.list', () => ({ deny: 'ENOENT' }))
+  on('fs.list', ($, e) => {
+    const entries = setup.listing?.[e.path]
+
+    return (entries === undefined ? { deny: 'ENOENT' } : { value: entries.map(entry => ({ ...entry, size: 0 })) }) as never
+  })
 
   on('process.run', ($, e) => {
     const args = e.argv.slice(1)
