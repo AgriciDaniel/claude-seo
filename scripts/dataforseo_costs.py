@@ -107,7 +107,9 @@ COST_TABLE = {
     "business_data_business_listings_search": 0.05,
     # AI / GEO
     "ai_optimization_chat_gpt_scraper": 0.05,
-    "ai_opt_llm_ment_search": 0.05,
+    # The official response example for /v3/ai_optimization/llm_mentions/search/live
+    # reports cost 0.103 (checked 2026-09-23); the old 0.05 understated it.
+    "ai_opt_llm_ment_search": 0.103,
     "ai_opt_llm_ment_top_domains": 0.05,
     "ai_opt_llm_ment_top_pages": 0.05,
     "ai_opt_llm_ment_agg_metrics": 0.05,
@@ -307,6 +309,10 @@ def cmd_estimate(args):
     json.dump(result, sys.stdout, indent=2)
 
 
+def _credentials_in_env():
+    return bool(os.environ.get("DATAFORSEO_USERNAME") and os.environ.get("DATAFORSEO_PASSWORD"))
+
+
 def cmd_check(args):
     """Check if an API call should proceed (cost + approval logic)."""
     cfg = _load_config()
@@ -366,6 +372,11 @@ def cmd_check(args):
         "total_cost_usd": round(total, 4),
         "today_spend_usd": round(today_total, 4),
         "daily_remaining_usd": round(daily_limit - today_total, 4),
+        # Budget approval says nothing about whether the call can run. Scripts
+        # read these env vars; the MCP server keeps its own copy in its config,
+        # which this script cannot see, so False means "not found here", not
+        # "the call will fail".
+        "credentials_in_env": _credentials_in_env(),
     }
     if needs_approval:
         result["approval_reason"] = approval_reason

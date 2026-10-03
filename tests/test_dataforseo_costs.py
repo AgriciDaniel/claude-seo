@@ -169,3 +169,16 @@ def test_isolated_config_dir_is_honoured(tmp_path) -> None:
     """Tests must never write to the operator's real ledger."""
     _run(tmp_path, "log", "on_page_lighthouse", "0.02")
     assert (tmp_path / "dataforseo-ledger.json").exists()
+
+
+def test_check_reports_whether_credentials_are_in_env(tmp_path, monkeypatch):
+    import subprocess, sys, json, os
+    from pathlib import Path
+    script = Path(__file__).resolve().parents[1] / "scripts" / "dataforseo_costs.py"
+    env = {k: v for k, v in os.environ.items() if not k.startswith("DATAFORSEO_")}
+    env["CLAUDE_SEO_CONFIG_DIR"] = str(tmp_path)
+    run = lambda e: json.loads(subprocess.run(
+        [sys.executable, str(script), "check", "serp_organic_live_advanced"],
+        capture_output=True, text=True, env=e, check=True).stdout)
+    assert run(env)["credentials_in_env"] is False
+    assert run({**env, "DATAFORSEO_USERNAME": "u", "DATAFORSEO_PASSWORD": "p"})["credentials_in_env"] is True
