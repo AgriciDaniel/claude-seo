@@ -9,7 +9,7 @@
 
 import { usd } from './verdict'
 
-export type AgentRun = { type: string; state: 'running' | 'done' | 'failed'; startMs: number; endMs?: number }
+export type AgentRun = { type: string; state: 'running' | 'done' | 'failed'; startMs: number; endMs?: number; agentId?: string }
 
 export type Audit = {
   domain: string

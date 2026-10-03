@@ -13,7 +13,7 @@ const prompt = (text: string) => ({ text, wait: false, origin: { kind: 'composer
 // The kit's inputs for these events carry engine fields a test does not need; the casts keep the tests readable.
 const spawn = (id: string, subagentType: string) =>
   ({ tool_use_id: id, prompt: 'p', description: 'd', subagentType, provider: { plugin: 'claude-seo', tier: 'user' }, parentModel: 'claude-opus-5-5' }) as never
-const turnDone = () => ({ turnId: 't1', text: 'Audit complete.', durationMs: 1000, isAborted: false, reason: 'answer' }) as never
+const turnDone = () => ({ turnId: 't1', answer: 'Audit complete.', durationMs: 1000, isAborted: false, reason: 'answer' }) as never
 
 /** The engine's own answers at the bottom of each event the audit hooks pass on. */
 function engine(on: Parameters<typeof worldOf>[0]) {
@@ -25,7 +25,8 @@ function engine(on: Parameters<typeof worldOf>[0]) {
 
     return { model: e.model ?? 'inherit' }
   })
-  on('turn.complete', () => ({ text: '' }))
+  // As the engine answers: the turn's own answer text.
+  on('turn.complete', ($, e) => ({ text: (e as unknown as { answer: string }).answer }))
   on('session.compact', ($, e) => {
     seen.instructions.push(e.instructions)
 
@@ -58,6 +59,8 @@ describe('audit band and receipt', () => {
 
     expect(result.text).toContain('score 72/100')
     expect(result.text).toContain('weakest Schema 40')
+    // The receipt alone: the answer is not repeated beneath itself.
+    expect(result.text).not.toContain('Audit complete.')
     expect(world.ran.filter(tool => tool === 'Write').length).toBe(2)
   })
 
@@ -68,7 +71,19 @@ describe('audit band and receipt', () => {
     await $.tool.call({ tool: 'Write', file_path: '/work/a.com-audit/audit-data.json', content: DATA })
 
     expect((await $.turn.complete(turnDone())).text).toContain('score 72/100')
-    expect((await $.turn.complete(turnDone())).text).toBe('')
+    expect((await $.turn.complete(turnDone())).text).toBe('Audit complete.')
+  })
+
+  test('other mods\' bands stay visible under ours', async ($, on) => {
+    mock.clock(on)
+    worldOf(on)
+    engine(on)
+    await $.prompt.submit(prompt('/seo audit example.com'))
+
+    const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
+
+    expect(await ui.find({ type: 'Text', text: /seo audit example\.com/ })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: 'drawn by Claude Code' })).toBeDefined()
   })
 
   test('with no audit the band is Claude Code\'s own', async ($, on) => {

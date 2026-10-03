@@ -1,7 +1,7 @@
 import type { EngineInterface, On, PluginOptions, ResultOf } from 'claude-code'
 
 import { auditFromPrompt, bandText, compactInstructions, economyModel, isSeoAgent, noteWrite, receiptText, type Audit } from './lib/audit'
-import { htmlPage } from './lib/charts'
+import { COLORS, htmlPage } from './lib/charts'
 import { doctorText, spendText } from './lib/format'
 import { classify, type PaidCall } from './lib/paid'
 import { candidatesOf, joinPath, latestVersion, MARKER } from './lib/root'
@@ -234,13 +234,48 @@ function stopTicker(ctx: Ctx): void {
   ctx.stopTicker = null
 }
 
+/** The band's clock needs redrawing only while the band shows a running audit. */
+function syncTicker($: EngineInterface, ctx: Ctx): void {
+  const audit = ctx.audit
+
+  if (ctx.isBandOn && !ctx.isBandHidden && audit !== null && audit.finishMs === null) {
+    startTicker($, ctx)
+  } else {
+    stopTicker(ctx)
+  }
+}
+
+/** Sets the audit, redraws, and keeps a copy in the store so a reload mid-audit does not lose it. */
+function setAudit($: EngineInterface, ctx: Ctx, audit: Audit | null): void {
+  ctx.audit = audit
+  syncTicker($, ctx)
+  $.ui.invalidate('ui.render')
+  void $.store.set('audit', audit).catch(() => undefined)
+}
+
 /** Starts following a new audit and shows the band again. */
 function follow($: EngineInterface, ctx: Ctx, audit: Audit): void {
-  ctx.audit = audit
   ctx.isBandHidden = false
   ctx.isReceiptShown = false
-  startTicker($, ctx)
-  $.ui.invalidate('ui.render')
+  setAudit($, ctx, audit)
+}
+
+/** An audit older than this with no result is treated as abandoned. */
+const STALE_MS = 3 * 60 * 60 * 1000
+
+/** After a reload, picks up an audit that was still running. */
+async function restoreAudit($: EngineInterface, ctx: Ctx): Promise<void> {
+  if (ctx.audit !== null) {
+    return
+  }
+
+  const saved = (await $.store.get('audit').catch(() => null)) as Audit | null
+
+  if (saved !== null && typeof saved === 'object' && typeof saved.domain === 'string' && saved.finishMs === null && Date.now() - saved.startMs < STALE_MS) {
+    ctx.audit = saved
+    syncTicker($, ctx)
+    $.ui.invalidate('ui.render')
+  }
 }
 
 /** Runs a claude-seo script through its managed runtime (for scripts that need its packages) and parses the JSON it prints. */
@@ -293,6 +328,17 @@ async function shown($: EngineInterface, path: string | null): Promise<string> {
   const cwd = await $.session.cwd()
 
   return path.startsWith(`${cwd}/`) ? path.slice(cwd.length + 1) : path
+}
+
+/** The store key for a tab's last result: per working folder and property, so one project's data never shows in another. */
+async function cacheKey($: EngineInterface, ctx: Ctx, tab: TabId): Promise<string> {
+  return `tab:${tab}:${await $.session.cwd()}:${ctx.site}`
+}
+
+const isModel = (value: unknown): value is TabModel => {
+  const m = value as Partial<TabModel> | null
+
+  return typeof m === 'object' && m !== null && typeof m.heading === 'string' && Array.isArray(m.kpis) && Array.isArray(m.charts) && Array.isArray(m.tables) && Array.isArray(m.notes)
 }
 
 async function readJson($: EngineInterface, path: string): Promise<unknown> {
@@ -378,7 +424,7 @@ async function loadTab($: EngineInterface, ctx: Ctx, tab: TabId): Promise<void> 
     const model = await buildTab($, ctx, tab)
 
     ctx.pane.models[tab] = model
-    await $.store.set(`tab:${tab}`, model).catch(() => undefined)
+    await $.store.set(await cacheKey($, ctx, tab), model).catch(() => undefined)
   } finally {
     ctx.pane.isLoading = false
     ctx.pane.model = ctx.pane.models[ctx.pane.tab] ?? null
@@ -391,10 +437,10 @@ async function pickTab($: EngineInterface, ctx: Ctx, tab: TabId): Promise<void> 
   ctx.pane.tab = tab
 
   if (ctx.pane.models[tab] === undefined) {
-    const cached = await $.store.get(`tab:${tab}`).catch(() => undefined)
+    const cached = await $.store.get(await cacheKey($, ctx, tab)).catch(() => undefined)
 
-    if (typeof cached === 'object' && cached !== null && 'heading' in cached) {
-      ctx.pane.models[tab] = cached as TabModel
+    if (isModel(cached)) {
+      ctx.pane.models[tab] = cached
     }
   }
 
@@ -416,7 +462,7 @@ async function exportHtml($: EngineInterface, ctx: Ctx, loadAll: boolean): Promi
     return model === undefined ? [] : [{ ...model, source: `${model.source} · fetched ${model.fetchedAt}`, notes: model.error === null ? model.notes : [model.error, ...model.notes] }]
   })
   const cwd = await $.session.cwd()
-  const path = joinPath(cwd, `seo-cockpit-${stamp().replace(/[: ]/g, '-')}.html`)
+  const path = joinPath(cwd, `seo-cockpit-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.html`)
 
   await $.fs.write(path, htmlPage('SEO Cockpit', `Generated ${stamp()} by seo-cockpit from claude-seo data`, sections))
   ctx.pane.exported = path
@@ -433,12 +479,13 @@ async function cockpitCommand($: EngineInterface, ctx: Ctx, args: string): Promi
 
     await pickTab($, ctx, ctx.pane.tab)
 
-    const opened = await $.ui.open({ id: PANE_ID, title: 'SEO Cockpit' })
+    // Focus, so the pane's keys work at once; Esc gives focus back to the prompt.
+    const opened = await $.ui.open({ id: PANE_ID, title: 'SEO Cockpit', focus: true, closeOnEscape: true })
 
     if (opened.isPlaced) {
       ctx.pane.isOpen = true
 
-      return { text: 'seo-cockpit: pane open. Keys 1 to 6 pick a view, r loads it, e exports HTML, x closes.' }
+      return { text: 'seo-cockpit: pane open. Keys 1 to 6 pick a view, r loads it, e exports HTML, x closes, Esc returns to the prompt.' }
     }
 
     // No pane here (the VS Code chat panel, a narrow terminal): the HTML page is the cockpit.
@@ -550,10 +597,20 @@ export function register(on: On, options: PluginOptions) {
 
     if (audit !== null) {
       follow($, ctx, audit)
-    } else if (ctx.audit !== null && ctx.audit.finishMs !== null) {
-      // A finished audit's band stays up until the next prompt.
-      ctx.audit = null
-      $.ui.invalidate('ui.render')
+    } else if (ctx.audit !== null && (ctx.audit.finishMs !== null || Date.now() - ctx.audit.startMs > STALE_MS)) {
+      // A finished audit's band stays up until the next prompt; an abandoned one goes too.
+      setAudit($, ctx, null)
+    }
+
+    return next(e)
+  })
+
+  // A slash command may reach the engine as a command run rather than prompt text; observe both.
+  on('command.run', { command: ['seo', 'claude-seo:seo'] }, async ($, e, next) => {
+    const audit = auditFromPrompt(`/seo ${e.args}`, Date.now())
+
+    if (audit !== null && (ctx.audit === null || ctx.audit.domain !== audit.domain || ctx.audit.finishMs !== null)) {
+      follow($, ctx, audit)
     }
 
     return next(e)
@@ -564,26 +621,35 @@ export function register(on: On, options: PluginOptions) {
       return next(e)
     }
 
-    if (ctx.audit !== null && ctx.audit.finishMs === null) {
-      ctx.audit = { ...ctx.audit, agents: { ...ctx.audit.agents, [e.tool_use_id]: { type: e.subagentType, state: 'running', startMs: Date.now() } } }
-      $.ui.invalidate('ui.render')
+    const isFollowing = ctx.audit !== null && ctx.audit.finishMs === null
+
+    if (ctx.audit !== null && isFollowing) {
+      setAudit($, ctx, { ...ctx.audit, agents: { ...ctx.audit.agents, [e.tool_use_id]: { type: e.subagentType, state: 'running', startMs: Date.now() } } })
     }
 
     const model = ctx.isEconomy && e.model === undefined ? economyModel(e.subagentType) : null
-
-    return next(model === null ? e : { ...e, model })
-  })
-
-  // A foreground Agent call returns when its subagent is done.
-  on('tool.call', { tool: ['Agent', /^Task$/] }, async ($, e, next) => {
-    const result = await next(e)
+    const result = await next(model === null ? e : { ...e, model })
     const run = ctx.audit?.agents[e.tool_use_id]
 
-    if (ctx.audit !== null && run !== undefined) {
+    // The agent's id lets its own turn end close it, which a background agent needs.
+    if (ctx.audit !== null && run !== undefined && result.agentId !== undefined) {
+      setAudit($, ctx, { ...ctx.audit, agents: { ...ctx.audit.agents, [e.tool_use_id]: { ...run, agentId: result.agentId } } })
+    }
+
+    return result
+  })
+
+  // A foreground Agent call returns when its subagent is done; a background one returns at launch.
+  on('tool.call', { tool: 'Agent' }, async ($, e, next) => {
+    const result = await next(e)
+    const run = ctx.audit?.agents[e.tool_use_id]
+    const status = (result.result as { status?: unknown } | undefined)?.status
+    const isLaunchOnly = status === 'async_launched' || status === 'remote_launched'
+
+    if (ctx.audit !== null && run !== undefined && run.state === 'running' && !isLaunchOnly) {
       const state = result.deny !== undefined || result.isError === true ? 'failed' : 'done'
 
-      ctx.audit = { ...ctx.audit, agents: { ...ctx.audit.agents, [e.tool_use_id]: { ...run, state, endMs: Date.now() } } }
-      $.ui.invalidate('ui.render')
+      setAudit($, ctx, { ...ctx.audit, agents: { ...ctx.audit.agents, [e.tool_use_id]: { ...run, state, endMs: Date.now() } } })
     }
 
     return result
@@ -602,8 +668,7 @@ export function register(on: On, options: PluginOptions) {
         if (before === null || before.finishMs !== null) {
           follow($, ctx, after)
         } else {
-          ctx.audit = after
-          $.ui.invalidate('ui.render')
+          setAudit($, ctx, after)
         }
       }
     }
@@ -615,27 +680,38 @@ export function register(on: On, options: PluginOptions) {
     const result = await next(e)
     const audit = ctx.audit
 
+    if (e.agentId !== undefined) {
+      // A subagent finished: close its run (the only signal a background agent gives).
+      const entry = audit === null ? undefined : Object.entries(audit.agents).find(([, run]) => run.agentId === e.agentId && run.state === 'running')
+
+      if (audit !== null && entry !== undefined) {
+        setAudit($, ctx, { ...audit, agents: { ...audit.agents, [entry[0]]: { ...entry[1], state: 'done', endMs: Date.now() } } })
+      }
+
+      return result
+    }
+
     // The receipt goes under the main answer, once, when the audit's data file exists.
-    if (e.agentId !== undefined || audit === null || audit.finishMs !== null || audit.score === null || ctx.isReceiptShown) {
+    if (audit === null || audit.finishMs !== null || audit.score === null || ctx.isReceiptShown) {
       return result
     }
 
     const now = Date.now()
 
-    ctx.audit = { ...audit, finishMs: now }
     ctx.isReceiptShown = true
-    stopTicker(ctx)
-    $.ui.invalidate('ui.render')
+    setAudit($, ctx, { ...audit, finishMs: now })
 
     const receipt = receiptText(audit, now)
+    // `next` resolves to the answer itself; any other text is shown beneath it. Keep another mod's line, never the answer.
+    const theirs = result.text !== '' && result.text !== e.answer ? result.text : ''
 
-    return { ...result, text: result.text ? `${result.text}\n${receipt}` : receipt }
+    return { ...result, text: theirs === '' ? receipt : `${theirs}\n${receipt}` }
   })
 
   on('session.compact', async ($, e, next) => {
     const audit = ctx.audit
 
-    if (audit === null || audit.finishMs !== null) {
+    if (e.agentId !== undefined || audit === null || audit.finishMs !== null) {
       return next(e)
     }
 
@@ -651,21 +727,30 @@ export function register(on: On, options: PluginOptions) {
 
     const { Box, Text, Button } = $.ui.resolve(e)
     const columns = Math.max(20, Math.floor(e.props.bodyColumns) - 10)
+    // Other mods' bands sit below ours rather than being replaced.
+    const theirs = await next(e)
 
     return Box({
-      flexDirection: 'row',
-      columnGap: 1,
+      flexDirection: 'column',
       children: [
-        Text({ color: audit.finishMs === null ? 'cyan' : 'green', children: [bandText(audit, Date.now(), columns, ctx.isEconomy)] }),
-        Button({
-          key: 'seo-cockpit-hide',
-          label: 'hide',
-          plain: true,
-          onPress: () => {
-            ctx.isBandHidden = true
-            $.ui.invalidate('ui.render')
-          },
+        Box({
+          flexDirection: 'row',
+          columnGap: 1,
+          children: [
+            Text({ color: audit.finishMs === null ? COLORS.blue : COLORS.good, children: [bandText(audit, Date.now(), columns, ctx.isEconomy)] }),
+            Button({
+              key: 'seo-cockpit-hide',
+              label: 'hide',
+              plain: true,
+              onPress: () => {
+                ctx.isBandHidden = true
+                syncTicker($, ctx)
+                $.ui.invalidate('ui.render')
+              },
+            }),
+          ],
         }),
+        theirs,
       ],
     })
   })
@@ -682,8 +767,9 @@ export function register(on: On, options: PluginOptions) {
       Box: table.Box,
       Text: table.Text,
       Button: table.Button,
-      ...('Link' in table && { Link: table.Link }),
-      ...('Svg' in table && { Svg: table.Svg }),
+      ...('Markdown' in table && { Markdown: table.Markdown }),
+      // Every table is completed with every element name, so `'Svg' in table` holds on the terminal too, where an Svg draws nothing.
+      ...(e.surface !== 'terminal' && 'Svg' in table && { Svg: table.Svg }),
     }
 
     ctx.pane.isOpen = true
@@ -708,6 +794,7 @@ export function register(on: On, options: PluginOptions) {
 
   on('session.start', async ($, e, next) => {
     await registerCommands($)
+    await restoreAudit($, ctx)
 
     return next(e)
   })

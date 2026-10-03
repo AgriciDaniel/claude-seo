@@ -29,7 +29,7 @@ What is logged: only calls that succeeded and have a price in the cost table. A 
 seo audit example.com  3 running, 9 done  findings 9  spend $0.42  4m12s
 ```
 
-It starts from the `/seo audit <url>` prompt, or from the first file written into a `<domain>-audit/` folder (so an audit asked for in plain words is caught too). Agents count as running when spawned and done when their Agent call returns. Spend is what the guard logged during the audit. The band yields to Claude Code's surveys, has a hide button, and clears at your next prompt after the audit ends.
+It starts from the `/seo audit <url>` prompt or command, or from the first file written into a `<domain>-audit/` folder (so an audit asked for in plain words is caught too). Agents count as running when spawned and done when they finish (a background agent when its own turn ends). Other mods' bands stay visible below this one. A reload mid-audit keeps the band. Spend is what the guard logged during the audit. The band yields to Claude Code's surveys, has a hide button, and clears at your next prompt after the audit ends.
 
 **Receipt.** When the audit writes `audit-data.json`, one line appears under Claude's answer:
 
@@ -41,7 +41,7 @@ seo audit example.com: score 72/100  |  weakest Schema 40, Content 55  |  17 age
 
 **Compaction.** If the conversation is compacted mid-audit, the summary is asked to keep the output folder, which agents finished and which are running, and the findings files written.
 
-**Visual cockpit** (`/seo-cockpit`). A pane with six views of the data claude-seo already collects. Keys 1 to 6 pick a view, `r` loads it, `e` exports HTML, `x` closes. Nothing is fetched until you press `r`, and no view calls a paid API.
+**Visual cockpit** (`/seo-cockpit`). A pane with six views of the data claude-seo already collects. The pane opens with focus: keys 1 to 6 pick a view, `r` loads it, `e` exports HTML, `x` closes, Esc returns to the prompt. Nothing is fetched until you press `r`, and no view calls a paid API.
 
 | View | Shows | Source |
 |---|---|---|
@@ -101,7 +101,6 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 - **Ask before rules:** a call your permission rules would deny can still raise its cost question first.
 - **The band and the pane draw in the terminal and the desktop app,** not in the VS Code chat panel or `claude -p`. The receipt line is plain text and shows wherever the answer does; the cockpit falls back to the HTML dashboard.
 - **The Maps view needs a saved grid.** Grids from before this release were only drawn in the chat; run the scan again to save one.
-- **Background agents** return at once, so they count as done when started. claude-seo's audit runs its agents in the foreground.
 
 ## Status
 
@@ -110,7 +109,7 @@ The kit tests in `tests/` are written against the Claude Code 2.1.288 typings bu
 - type-check (`tsc`, strict)
 - `claude plugin validate --strict`
 - the brain's static scan (reach L2, no critical or high flags)
-- 70 end-to-end scenarios run through a stand-in for the hook chain against the real claude-seo scripts and an isolated ledger (Search Console, CrUX and drift from fixtures, so no Google account was called)
+- 79 end-to-end scenarios run through a stand-in for the hook chain against the real claude-seo scripts and an isolated ledger (Search Console, CrUX and drift from fixtures, so no Google account was called)
 - the 47 pure-logic tests (`logic`, `audit-logic`, `cockpit-logic`), run with a minimal stand-in for the kit's `describe`, `test` and `expect`
 - the HTML export rendered in Chromium, light and dark
 

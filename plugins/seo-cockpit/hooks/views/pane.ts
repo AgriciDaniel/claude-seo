@@ -12,7 +12,7 @@ import type { Elements, RenderElement } from 'claude-code'
 import { barRow, endsOf, rankColor, sparkRow, svgOf, type Chart } from '../lib/charts'
 import { TABS, type TabId, type TabModel } from '../lib/tabs'
 
-export type Kit = Pick<Elements['terminal'], 'Box' | 'Text' | 'Button'> & Partial<Pick<Elements['terminal'], 'Link'>> & { Svg?: Elements['desktop']['Svg'] }
+export type Kit = Pick<Elements['terminal'], 'Box' | 'Text' | 'Button'> & Partial<Pick<Elements['terminal'], 'Markdown'>> & { Svg?: Elements['desktop']['Svg'] }
 
 export type PaneState = {
   tab: TabId
@@ -97,7 +97,8 @@ export function paneView(kit: Kit, state: PaneState, columns: number, actions: P
   const tabs = Box({
     flexDirection: 'row',
     columnGap: 1,
-    children: TABS.map(tab => Button({ key: `tab-${tab.id}`, label: `${tab.id === state.tab ? '▸' : ''}${tab.key} ${tab.label}`, hotkey: tab.key, plain: true, onPress: () => actions.pick(tab.id) })),
+    // A plain button with a hotkey draws as "1: label", so the label carries no key of its own.
+    children: TABS.map(tab => Button({ key: `tab-${tab.id}`, label: `${tab.id === state.tab ? '▸ ' : ''}${tab.label}`, hotkey: tab.key, plain: true, onPress: () => actions.pick(tab.id) })),
   })
   const body: RenderElement[] = []
   const model = state.model
@@ -129,13 +130,14 @@ export function paneView(kit: Kit, state: PaneState, columns: number, actions: P
   }
 
   const footer: RenderElement[] = [
-    Button({ key: 'refresh', label: 'r Refresh', hotkey: 'r', plain: true, onPress: actions.refresh }),
-    Button({ key: 'export', label: 'e Export HTML', hotkey: 'e', plain: true, onPress: actions.exportHtml }),
-    Button({ key: 'close', label: 'x Close', hotkey: 'x', plain: true, onPress: actions.close }),
+    Button({ key: 'refresh', label: 'Refresh', hotkey: 'r', plain: true, onPress: actions.refresh }),
+    Button({ key: 'export', label: 'Export HTML', hotkey: 'e', plain: true, onPress: actions.exportHtml }),
+    Button({ key: 'close', label: 'Close', hotkey: 'x', plain: true, onPress: actions.close }),
   ]
 
   if (state.exported !== null) {
-    footer.push(kit.Link !== undefined ? kit.Link({ href: `file://${encodeURI(state.exported)}`, label: 'open export' }) : Text({ dimColor: true, children: [state.exported] }))
+    // A Link takes only https (or http://localhost) and refuses the whole tree otherwise; Markdown links may use file:.
+    footer.push(kit.Markdown !== undefined ? kit.Markdown({ text: `[open export](file://${encodeURI(state.exported)})` }) : Text({ dimColor: true, children: [state.exported] }))
   }
 
   return Box({ flexDirection: 'column', rowGap: 0, children: [tabs, Box({ flexDirection: 'column', marginTop: 1, children: body }), Box({ flexDirection: 'row', columnGap: 2, marginTop: 1, children: footer })] })
