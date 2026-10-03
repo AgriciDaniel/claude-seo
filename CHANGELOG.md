@@ -33,6 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Google APIs can use the person's own gcloud sign-in
+  (`gcloud auth application-default login`): it is the fallback when no
+  claude-seo OAuth token or service account is configured, and
+  `CLAUDE_SEO_GOOGLE_AUTH=adc` chooses it even when a service account is set.
+  A service account often lacks access to properties the person owns. Only an
+  `authorized_user` gcloud file counts, and it refreshes with the scopes
+  granted at login.
 - `dataforseo_costs.py check` returns `credentials_in_env` on every result,
   so a budget approval is not read as proof the call can run.
 

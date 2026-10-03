@@ -55,6 +55,7 @@ r: Refresh  e: Export
 ```
 
 - **The site** comes from `/config` if you set one, else from the newest `<domain>-audit/` folder here. With neither, the pane asks for it in place and remembers it for this folder.
+- **Google access** uses claude-seo's own setup. If Search Console says "no access" but you own the property, your service account is not a user on it: either add it in Search Console, or use your own Google account with `gcloud auth application-default login --scopes=https://www.googleapis.com/auth/webmasters.readonly,https://www.googleapis.com/auth/cloud-platform` and start Claude Code with `CLAUDE_SEO_GOOGLE_AUTH=adc`. Core Web Vitals needs `GOOGLE_API_KEY`.
 - **Everything loads on open**, from free sources only (the audit and grid files, the cost ledger, and Search Console and CrUX through claude-seo's own Google setup). The last result shows at once and is replaced when the fresh one arrives.
 - **Missing data stays visible** as a dim line saying what to do, instead of an error screen.
 - **A row opens its detail** (Enter, a click, or its number): charts and tables for that source, `b` to go back.

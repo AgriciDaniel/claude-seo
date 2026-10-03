@@ -176,6 +176,57 @@ def get_service_account_credentials(scopes: list):
         return None
 
 
+def _gcloud_adc_path() -> str:
+    """Where `gcloud auth application-default login` writes the user's credentials."""
+    config_dir = os.environ.get("CLOUDSDK_CONFIG")
+    if not config_dir:
+        if sys.platform == "win32" and os.environ.get("APPDATA"):
+            config_dir = os.path.join(os.environ["APPDATA"], "gcloud")
+        else:
+            config_dir = os.path.expanduser("~/.config/gcloud")
+    return os.path.join(config_dir, "application_default_credentials.json")
+
+
+def _load_gcloud_adc() -> Optional[dict]:
+    """The gcloud user sign-in, if one exists. Only `authorized_user` counts:
+    a service account file here is not the person's own access."""
+    path = _gcloud_adc_path()
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if data.get("type") != "authorized_user" or not data.get("refresh_token"):
+        return None
+    return data
+
+
+def _prefers_gcloud() -> bool:
+    """CLAUDE_SEO_GOOGLE_AUTH=adc picks the gcloud sign-in even when a service
+    account is configured (which may not have access to every property)."""
+    return os.environ.get("CLAUDE_SEO_GOOGLE_AUTH", "").strip().lower() in ("adc", "gcloud")
+
+
+def get_gcloud_credentials(scopes: list):
+    """Credentials from the person's own gcloud sign-in
+    (`gcloud auth application-default login`), or None.
+
+    Read from the gcloud file directly, never through google.auth.default(),
+    which would load GOOGLE_APPLICATION_CREDENTIALS (a service account) first.
+    """
+    if _load_gcloud_adc() is None:
+        return None
+    try:
+        from google.oauth2.credentials import Credentials
+        # Refresh with the scopes granted at `gcloud auth application-default login`:
+        # asking for others (say, full webmasters over webmasters.readonly) fails
+        # with invalid_scope. `scopes` is accepted for symmetry and not sent.
+        return Credentials.from_authorized_user_file(_gcloud_adc_path())
+    except Exception as e:
+        print(f"gcloud sign-in could not be used: {type(e).__name__}", file=sys.stderr)
+        return None
+
+
 def _load_oauth_client(creds_path: str) -> Optional[dict]:
     """Load OAuth client credentials from a client_secret JSON file."""
     try:
@@ -323,6 +374,12 @@ def get_oauth_credentials(scopes: list):
     """
     config = load_config()
 
+    # An explicit choice of the person's own gcloud sign-in wins.
+    if _prefers_gcloud():
+        creds = get_gcloud_credentials(scopes)
+        if creds is not None:
+            return creds
+
     # Try OAuth token first
     token_data = _load_oauth_token()
     if token_data and token_data.get("access_token"):
@@ -357,8 +414,8 @@ def get_oauth_credentials(scopes: list):
             except ImportError:
                 print("Error: google-auth required. Install with: pip install google-auth", file=sys.stderr)
 
-    # Fall back to service account
-    return get_service_account_credentials(scopes)
+    # Fall back to service account, then to the person's gcloud sign-in.
+    return get_service_account_credentials(scopes) or get_gcloud_credentials(scopes)
 
 
 def run_oauth_flow(creds_path: str):
@@ -591,7 +648,12 @@ def check_credentials(service: str) -> dict:
     elif SERVICE_AUTH.get(service) == "oauth_or_sa":
         # Check OAuth token first
         token_data = _load_oauth_token()
-        if token_data and token_data.get("access_token"):
+        if _prefers_gcloud() and _load_gcloud_adc() is not None:
+            # Chosen with CLAUDE_SEO_GOOGLE_AUTH=adc: used first, so reported first.
+            result["available"] = True
+            result["method"] = "gcloud_adc"
+            result["account"] = _load_gcloud_adc().get("account")
+        elif token_data and token_data.get("access_token"):
             result["available"] = True
             result["method"] = "oauth_token"
             expired = time.time() > token_data.get("expires_at", 0) - 60
@@ -603,7 +665,11 @@ def check_credentials(service: str) -> dict:
         else:
             # Fall back to service account
             sa_path = config.get("service_account_path")
-            if not sa_path:
+            if not sa_path and _load_gcloud_adc() is not None:
+                result["available"] = True
+                result["method"] = "gcloud_adc"
+                result["account"] = _load_gcloud_adc().get("account")
+            elif not sa_path:
                 result["error"] = (
                     "No OAuth token or service account found. Either:\n"
                     "         1. Run: python scripts/google_auth.py --auth --creds /path/to/client_secret.json\n"
@@ -727,6 +793,12 @@ def print_setup_instructions():
     print("""
 Google SEO API Setup Instructions
 =================================
+
+FASTEST, FOR PROPERTIES YOU OWN: use your own Google account
+   gcloud auth application-default login \\
+     --scopes=https://www.googleapis.com/auth/webmasters.readonly,https://www.googleapis.com/auth/cloud-platform
+   Then set CLAUDE_SEO_GOOGLE_AUTH=adc (needed only if a service account is
+   also configured). Add an API key (step 3) for PageSpeed and CrUX.
 
 1. CREATE A GOOGLE CLOUD PROJECT
    - Go to https://console.cloud.google.com
