@@ -139,12 +139,13 @@ describe('format', () => {
   test('spendText reports today, the week and the month', () => {
     const text = spendText(
       { date: '2026-10-03', total_usd: 0.5, daily_limit_usd: 10, remaining_usd: 9.5, calls: 3, by_endpoint: { backlinks_summary: { cost_usd: 0.4, calls: 2 } } },
-      { daily_totals: { '2026-10-01': { total_usd: 1 }, '2026-10-03': { total_usd: 0.5 } }, grand_total_usd: 4, total_calls: 20 },
+      // The script's own 30-day window reaches into day 31 (2026-09-03 here); the text keeps to 30 calendar days.
+      { daily_totals: { '2026-09-03': { total_usd: 2.5, calls: 17 }, '2026-10-01': { total_usd: 1, calls: 2 }, '2026-10-03': { total_usd: 0.5, calls: 3 } }, grand_total_usd: 4, total_calls: 22 },
     )
 
     expect(text).toContain('today   $0.50 of $10.00 cap, 3 calls')
     expect(text).toContain('7 days  $1.50')
-    expect(text).toContain('30 days $4.00, 20 calls')
+    expect(text).toContain('30 days $1.50, 5 calls')
     expect(text).toContain('backlinks_summary')
   })
 

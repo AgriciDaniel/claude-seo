@@ -20,7 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (agents running and done, findings written, spend, time), a receipt line
   with the health score when an audit finishes, an opt-in economy mode
   that runs the five Opus agents on Sonnet, and compaction instructions
-  that keep audit state. Kit tests are written against the
+  that keep audit state. 0.3.0 adds `/seo-cockpit`: a pane with six views
+  (Search Console, rankings, Core Web Vitals, the audit scorecard, the Maps
+  geo-grid, spend) drawn as text charts in the terminal and SVG on the
+  desktop, and a self-contained HTML dashboard export that also covers the
+  VS Code chat panel, where panes do not draw.
+- `seo-maps`: a geo-grid scan now also saves its grid as
+  `{business}-maps/geo-grid-{keyword}-{date}.json`, for comparison over
+  time and for the seo-cockpit Maps view. Kit tests are written against the
   2.1.288 typings but not yet executed: mods are switched off remotely for
   the maintainer's account.
 

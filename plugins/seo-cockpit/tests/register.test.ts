@@ -153,12 +153,12 @@ describe('spend guard', () => {
 })
 
 describe('commands', () => {
-  test('the start registers both commands', async ($, on) => {
+  test('the start registers all three commands', async ($, on) => {
     const world = worldOf(on)
 
     await $.session.start(SESSION)
 
-    expect(world.commands.sort()).toEqual(['seo-doctor', 'seo-spend'])
+    expect(world.commands.sort()).toEqual(['seo-cockpit', 'seo-doctor', 'seo-spend'])
   })
 
   test('/seo-spend answers from the ledger without a turn', async ($, on) => {

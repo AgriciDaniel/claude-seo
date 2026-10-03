@@ -1,7 +1,7 @@
 {
   "name": "seo-cockpit",
-  "version": "0.2.0",
-  "description": "Mods companion for claude-seo: a spend guard on paid SEO APIs, a live audit band with a receipt, an economy mode, and zero-token /seo-spend and /seo-doctor",
+  "version": "0.3.0",
+  "description": "Mods companion for claude-seo: a spend guard on paid SEO APIs, a live audit band with a receipt, an economy mode, a visual cockpit (Search Console, rankings, Core Web Vitals, audit, Maps, spend) and zero-token commands",
   "author": {
     "name": "Agrici Daniel"
   },
@@ -37,6 +37,18 @@
       "title": "Economy mode",
       "description": "Run the five Opus agents (content, geo, sxo, cluster, drift) on Sonnet to cut audit cost. Their analysis may be less thorough.",
       "default": false
+    },
+    "site": {
+      "type": "string",
+      "title": "Search Console property",
+      "description": "For the cockpit: sc-domain:example.com or https://example.com/. Leave empty to use claude-seo's default property.",
+      "default": ""
+    },
+    "pageUrl": {
+      "type": "string",
+      "title": "Page for Core Web Vitals",
+      "description": "For the cockpit's Vitals and drift views: a URL or origin. Leave empty to use the Search Console property's site.",
+      "default": ""
     }
   }
 }

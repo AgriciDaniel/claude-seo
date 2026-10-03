@@ -1,10 +1,13 @@
 import type { EngineInterface, On, PluginOptions, ResultOf } from 'claude-code'
 
 import { auditFromPrompt, bandText, compactInstructions, economyModel, isSeoAgent, noteWrite, receiptText, type Audit } from './lib/audit'
+import { htmlPage } from './lib/charts'
 import { doctorText, spendText } from './lib/format'
 import { classify, type PaidCall } from './lib/paid'
 import { candidatesOf, joinPath, latestVersion, MARKER } from './lib/root'
+import { auditModel, emptyModel, gscModel, mapsModel, rankingsModel, spendModel, TABS, vitalsModel, type TabId, type TabModel } from './lib/tabs'
 import { combine, isUnpriced, parseCheck, usd, type Verdict } from './lib/verdict'
+import { paneView, type Kit, type PaneState } from './views/pane'
 
 type ToolResult = ResultOf['tool.call']
 
@@ -24,7 +27,22 @@ type Ctx = {
   isReceiptShown: boolean
   /** Stops the once-a-second redraw of the band's clock. */
   stopTicker: (() => void) | null
+  /** Search Console property and the URL for Core Web Vitals, from /config. */
+  site: string
+  pageUrl: string
+  pane: PaneState & { isOpen: boolean; models: Partial<Record<TabId, TabModel>> }
 }
+
+const PANE_ID = 'seo-cockpit'
+
+/** `sc-domain:example.com` or `https://example.com/` as a URL CrUX can read. */
+function urlOfSite(site: string): string {
+  const domain = /^sc-domain:(.+)$/.exec(site.trim())?.[1]
+
+  return domain !== undefined ? `https://${domain}` : site.trim()
+}
+
+const stamp = (): string => new Date().toISOString().slice(0, 16).replace('T', ' ')
 
 const HELD = 'seo-cockpit held this paid call'
 const ALLOW = 'Allow until reload'
@@ -225,10 +243,216 @@ function follow($: EngineInterface, ctx: Ctx, audit: Audit): void {
   $.ui.invalidate('ui.render')
 }
 
+/** Runs a claude-seo script through its managed runtime (for scripts that need its packages) and parses the JSON it prints. */
+async function runtimeJson($: EngineInterface, ctx: Ctx, seoRoot: string, script: string, args: readonly string[]): Promise<{ data: unknown; error: string | null }> {
+  try {
+    const { exitCode, stdout, stderr } = await $.process.run([ctx.python, joinPath(seoRoot, 'scripts', 'runtime.py'), 'run', script, ...args], { timeoutMs: 90_000 })
+
+    try {
+      return { data: JSON.parse(stdout), error: null }
+    } catch {
+      const reason = stderr.trim().split('\n').at(-1) ?? ''
+
+      return { data: null, error: exitCode === 3 ? 'claude-seo runtime is not set up: run /seo setup' : reason || `${script} printed no JSON (exit ${exitCode})` }
+    }
+  } catch (error) {
+    return { data: null, error: error instanceof Error ? error.message : String(error) }
+  }
+}
+
+/** The newest file under the working folder's `*<suffix>` folders whose name passes `test`. */
+async function newestFile($: EngineInterface, suffix: string, test: (name: string) => boolean): Promise<string | null> {
+  let best: { path: string; mtime: number } | null = null
+
+  try {
+    const cwd = await $.session.cwd()
+
+    for (const dir of (await $.fs.list(cwd)).filter(entry => entry.kind === 'dir' && entry.name.endsWith(suffix))) {
+      for (const file of (await $.fs.list(joinPath(cwd, dir.name))).filter(entry => entry.kind === 'file' && test(entry.name))) {
+        const path = joinPath(cwd, dir.name, file.name)
+        const { mtimeMs } = await $.fs.stat(path)
+
+        if (best === null || mtimeMs > best.mtime) {
+          best = { path, mtime: mtimeMs }
+        }
+      }
+    }
+  } catch {
+    // An unreadable folder has nothing to show; the tab says how to make some.
+  }
+
+  return best?.path ?? null
+}
+
+/** A path as shown on screen: relative to the working folder when it is inside it. */
+async function shown($: EngineInterface, path: string | null): Promise<string> {
+  if (path === null) {
+    return ''
+  }
+
+  const cwd = await $.session.cwd()
+
+  return path.startsWith(`${cwd}/`) ? path.slice(cwd.length + 1) : path
+}
+
+async function readJson($: EngineInterface, path: string): Promise<unknown> {
+  try {
+    return JSON.parse(await $.fs.read(path))
+  } catch {
+    return null
+  }
+}
+
+/** Builds one tab's model from claude-seo's own scripts and files. Free: no paid API is called. */
+async function buildTab($: EngineInterface, ctx: Ctx, tab: TabId): Promise<TabModel> {
+  const at = stamp()
+  const label = TABS.find(t => t.id === tab)?.label ?? tab
+  const seoRoot = await findRoot($, ctx)
+
+  if (seoRoot === null) {
+    return emptyModel(label, 'claude-seo', at, 'claude-seo was not found. Set "claude-seo folder" in /config.')
+  }
+
+  const property = ctx.site.trim()
+  const propertyArgs = property === '' ? [] : ['--property', property]
+
+  if (tab === 'gsc' || tab === 'rankings') {
+    const [byDate, byQuery] = await Promise.all([
+      runtimeJson($, ctx, seoRoot, 'gsc_query.py', ['query', '--dimensions', 'date', '--days', '90', '--limit', '1000', '--json', ...propertyArgs]),
+      runtimeJson($, ctx, seoRoot, 'gsc_query.py', ['query', '--dimensions', 'query', '--days', '28', '--limit', tab === 'gsc' ? '10' : '200', '--json', ...propertyArgs]),
+    ])
+
+    if (byDate.error !== null) {
+      return emptyModel(label, 'gsc_query.py', at, byDate.error)
+    }
+
+    if (tab === 'gsc') {
+      return gscModel(byDate.data, byQuery.data, property, at)
+    }
+
+    const target = ctx.pageUrl || urlOfSite(property)
+    const drift = target === '' ? { data: null } : await runtimeJson($, ctx, seoRoot, 'drift_history.py', [target, '--limit', '20'])
+
+    return rankingsModel(byDate.data, byQuery.data, drift.data, property, at)
+  }
+
+  if (tab === 'vitals') {
+    const target = ctx.pageUrl || urlOfSite(property) || (ctx.audit === null ? '' : `https://${ctx.audit.domain}`)
+
+    if (target === '') {
+      return emptyModel(label, 'crux_history.py', at, 'No URL to measure. Set "Search Console property" or "Page for Core Web Vitals" in /config.')
+    }
+
+    const crux = await runtimeJson($, ctx, seoRoot, 'crux_history.py', [target, '--json'])
+
+    return crux.error !== null ? emptyModel(label, 'crux_history.py', at, crux.error) : vitalsModel(crux.data, target, at)
+  }
+
+  if (tab === 'audit') {
+    const path = ctx.audit?.dir != null ? joinPath(ctx.audit.dir, 'audit-data.json') : await newestFile($, '-audit', name => name === 'audit-data.json')
+
+    return auditModel(path === null ? null : await readJson($, path), await shown($, path), at)
+  }
+
+  if (tab === 'maps') {
+    const path = await newestFile($, '-maps', name => /^geo-grid-.*\.json$/.test(name))
+
+    return mapsModel(path === null ? null : await readJson($, path), await shown($, path), at)
+  }
+
+  const [today, summary] = await Promise.all([runScript($, ctx, seoRoot, 'dataforseo_costs.py', ['today']), runScript($, ctx, seoRoot, 'dataforseo_costs.py', ['summary', '--days', '30'])])
+
+  try {
+    return spendModel(JSON.parse(today.stdout), JSON.parse(summary.stdout), at)
+  } catch {
+    return emptyModel(label, 'dataforseo_costs.py', at, 'The spend ledger could not be read.')
+  }
+}
+
+/** Loads a tab into the pane and the cache, redrawing as it goes. */
+async function loadTab($: EngineInterface, ctx: Ctx, tab: TabId): Promise<void> {
+  ctx.pane.isLoading = true
+  $.ui.invalidate('ui.render')
+
+  try {
+    const model = await buildTab($, ctx, tab)
+
+    ctx.pane.models[tab] = model
+    await $.store.set(`tab:${tab}`, model).catch(() => undefined)
+  } finally {
+    ctx.pane.isLoading = false
+    ctx.pane.model = ctx.pane.models[ctx.pane.tab] ?? null
+    $.ui.invalidate('ui.render')
+  }
+}
+
+/** Shows a tab: its last result (this session or the cache) at once; nothing is fetched until asked. */
+async function pickTab($: EngineInterface, ctx: Ctx, tab: TabId): Promise<void> {
+  ctx.pane.tab = tab
+
+  if (ctx.pane.models[tab] === undefined) {
+    const cached = await $.store.get(`tab:${tab}`).catch(() => undefined)
+
+    if (typeof cached === 'object' && cached !== null && 'heading' in cached) {
+      ctx.pane.models[tab] = cached as TabModel
+    }
+  }
+
+  ctx.pane.model = ctx.pane.models[tab] ?? null
+  $.ui.invalidate('ui.render')
+}
+
+/** Writes every loaded tab into one self-contained HTML page in the working folder; returns its path. */
+async function exportHtml($: EngineInterface, ctx: Ctx, loadAll: boolean): Promise<string> {
+  if (loadAll) {
+    for (const tab of TABS) {
+      ctx.pane.models[tab.id] = await buildTab($, ctx, tab.id)
+    }
+  }
+
+  const sections = TABS.flatMap(tab => {
+    const model = ctx.pane.models[tab.id]
+
+    return model === undefined ? [] : [{ ...model, source: `${model.source} · fetched ${model.fetchedAt}`, notes: model.error === null ? model.notes : [model.error, ...model.notes] }]
+  })
+  const cwd = await $.session.cwd()
+  const path = joinPath(cwd, `seo-cockpit-${stamp().replace(/[: ]/g, '-')}.html`)
+
+  await $.fs.write(path, htmlPage('SEO Cockpit', `Generated ${stamp()} by seo-cockpit from claude-seo data`, sections))
+  ctx.pane.exported = path
+  $.ui.invalidate('ui.render')
+
+  return path
+}
+
+async function cockpitCommand($: EngineInterface, ctx: Ctx, args: string): Promise<{ text: string }> {
+  try {
+    if (args.trim().toLowerCase() === 'export') {
+      return { text: `seo-cockpit: dashboard written to ${await exportHtml($, ctx, true)}` }
+    }
+
+    await pickTab($, ctx, ctx.pane.tab)
+
+    const opened = await $.ui.open({ id: PANE_ID, title: 'SEO Cockpit' })
+
+    if (opened.isPlaced) {
+      ctx.pane.isOpen = true
+
+      return { text: 'seo-cockpit: pane open. Keys 1 to 6 pick a view, r loads it, e exports HTML, x closes.' }
+    }
+
+    // No pane here (the VS Code chat panel, a narrow terminal): the HTML page is the cockpit.
+    return { text: `seo-cockpit: no pane on this screen (${opened.reason}). Dashboard written to ${await exportHtml($, ctx, true)}` }
+  } catch (error) {
+    return { text: `seo-cockpit: ${error instanceof Error ? error.message : String(error)}` }
+  }
+}
+
 async function registerCommands($: EngineInterface): Promise<void> {
   await Promise.all([
     $.command.register({ name: 'seo-spend', description: 'claude-seo DataForSEO spend: today, 7 and 30 days, by endpoint', immediate: true }).catch(() => undefined),
     $.command.register({ name: 'seo-doctor', description: 'claude-seo runtime readiness and where it is installed', immediate: true }).catch(() => undefined),
+    $.command.register({ name: 'seo-cockpit', description: 'Charts for Search Console, rankings, Core Web Vitals, the audit, Maps and spend', argumentHint: '[export]', immediate: true }).catch(() => undefined),
   ])
 }
 
@@ -297,6 +521,9 @@ export function register(on: On, options: PluginOptions) {
     isBandHidden: false,
     isReceiptShown: false,
     stopTicker: null,
+    site: typeof options.site === 'string' ? options.site : '',
+    pageUrl: typeof options.pageUrl === 'string' ? options.pageUrl.trim() : '',
+    pane: { tab: 'gsc', model: null, isLoading: false, exported: null, isOpen: false, models: {} },
   }
 
   // ------------------------------------------------------------ spend guard
@@ -443,6 +670,40 @@ export function register(on: On, options: PluginOptions) {
     })
   })
 
+  // ------------------------------------------------------------------- pane
+
+  on('ui.render', { component: 'Pane' }, async ($, e, next) => {
+    if (e.requestId !== PANE_ID) {
+      return next(e)
+    }
+
+    const table = $.ui.resolve(e)
+    const kit: Kit = {
+      Box: table.Box,
+      Text: table.Text,
+      Button: table.Button,
+      ...('Link' in table && { Link: table.Link }),
+      ...('Svg' in table && { Svg: table.Svg }),
+    }
+
+    ctx.pane.isOpen = true
+
+    return paneView(kit, ctx.pane, Math.max(30, Math.floor(e.props.bodyColumns) - 2), {
+      pick: tab => void pickTab($, ctx, tab).catch(() => undefined),
+      refresh: () => void loadTab($, ctx, ctx.pane.tab).catch(() => undefined),
+      exportHtml: () => void exportHtml($, ctx, false).catch(() => undefined),
+      close: () => void $.ui.close({ id: PANE_ID }).catch(() => undefined),
+    })
+  })
+
+  on('ui.close', async ($, e, next) => {
+    if (e.id === PANE_ID) {
+      ctx.pane.isOpen = false
+    }
+
+    return next(e)
+  })
+
   // --------------------------------------------------------------- commands
 
   on('session.start', async ($, e, next) => {
@@ -461,4 +722,6 @@ export function register(on: On, options: PluginOptions) {
   on('command.run', { command: 'seo-spend' }, async ($, e, next) => spendCommand($, ctx))
 
   on('command.run', { command: 'seo-doctor' }, async ($, e, next) => doctorCommand($, ctx))
+
+  on('command.run', { command: 'seo-cockpit' }, async ($, e, next) => cockpitCommand($, ctx, e.args))
 }

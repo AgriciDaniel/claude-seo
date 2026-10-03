@@ -4,7 +4,7 @@ An optional mods companion for [claude-seo](../../README.md). It runs inside Cla
 
 Tested on Claude Code 2.1.288. Mods need Claude Code 2.1.287 or newer; on older builds, install claude-seo alone.
 
-## What it does (0.2.0)
+## What it does (0.3.0)
 
 **Spend guard.** Before a paid SEO API call runs, seo-cockpit checks it against the claude-seo DataForSEO budget (`scripts/dataforseo_costs.py`):
 
@@ -41,10 +41,26 @@ seo audit example.com: score 72/100  |  weakest Schema 40, Content 55  |  17 age
 
 **Compaction.** If the conversation is compacted mid-audit, the summary is asked to keep the output folder, which agents finished and which are running, and the findings files written.
 
+**Visual cockpit** (`/seo-cockpit`). A pane with six views of the data claude-seo already collects. Keys 1 to 6 pick a view, `r` loads it, `e` exports HTML, `x` closes. Nothing is fetched until you press `r`, and no view calls a paid API.
+
+| View | Shows | Source |
+|---|---|---|
+| 1 Search Console | Clicks and impressions per day for 90 days, 28-day KPIs with change against the 28 days before, top queries | `gsc_query.py` |
+| 2 Rankings | Average position over time, queries by position band, striking-distance queries (positions 4 to 15), drift issues over time | `gsc_query.py`, `drift_history.py` |
+| 3 Vitals | LCP, INP and CLS p75 per CrUX period against Google's good and poor thresholds | `crux_history.py` |
+| 4 Audit | Health score, category scores weakest first, critical and high findings, quick wins | newest `*-audit/audit-data.json` |
+| 5 Maps | Geo-grid heatmap, share of local voice, average rank | newest `*-maps/geo-grid-*.json` (saved by `/seo maps grid`) |
+| 6 Spend | DataForSEO spend per day for 30 days, today by endpoint | `dataforseo_costs.py` |
+
+Charts are drawn with block characters in the terminal and as SVG on the desktop app. Every view names its source and when it was fetched, and the last result of each view is kept for the next session.
+
+**HTML dashboard.** `e` in the pane, or `/seo-cockpit export`, writes one self-contained page (`seo-cockpit-<time>.html` in the working folder) with every view as SVG charts and tables, readable in light and dark. Where no pane can be drawn (the VS Code chat panel), `/seo-cockpit` writes this page instead and says where it is.
+
 **Commands that cost no tokens.** These answer directly without starting a turn:
 
 - `/seo-spend`: DataForSEO spend today, over 7 and 30 days, by endpoint, with a 30-day spark row.
 - `/seo-doctor`: claude-seo runtime readiness, install location, and guard state.
+- `/seo-cockpit [export]`: the visual cockpit, or with `export` the HTML dashboard.
 
 ## Install
 
@@ -65,11 +81,14 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 | Spend guard | on | Turn off to let paid calls through unchecked |
 | Audit band | on | The live line above the prompt during an audit |
 | Economy mode | off | Run the five Opus agents on Sonnet |
+| Search Console property | empty | For the cockpit: `sc-domain:example.com` or `https://example.com/`. Empty uses claude-seo's default property |
+| Page for Core Web Vitals | empty | For the Vitals and drift views. Empty uses the property's site |
 
 ## What it can and cannot see
 
 - It reads no credentials and no environment variables. The Python scripts handle auth.
-- It runs only `dataforseo_costs.py` and `runtime.py` from your claude-seo folder.
+- It runs only `dataforseo_costs.py` and `runtime.py` from your claude-seo folder; the cockpit runs `gsc_query.py`, `crux_history.py` and `drift_history.py` through `runtime.py`, so they use claude-seo's own Google setup.
+- It writes one kind of file: the HTML dashboard, in the working folder, when you ask for it.
 - Spend is checked for DataForSEO only. Other providers have no cost table, so you decide.
 - "Allow until reload" is forgotten when the plugin reloads (a restart, or a change in `/config`), after which it asks again.
 
@@ -80,7 +99,8 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 - **`claude -p` and headless runs:** there is no one to ask, so every call that needs approval is held. Calls the budget approves still run.
 - **CLI only:** it needs `$.process` to run the ledger script. Where that is missing, DataForSEO calls are held and the commands report an error.
 - **Ask before rules:** a call your permission rules would deny can still raise its cost question first.
-- **The band draws in the terminal and the desktop app,** not in the VS Code chat panel or `claude -p`. The receipt line is plain text and shows wherever the answer does.
+- **The band and the pane draw in the terminal and the desktop app,** not in the VS Code chat panel or `claude -p`. The receipt line is plain text and shows wherever the answer does; the cockpit falls back to the HTML dashboard.
+- **The Maps view needs a saved grid.** Grids from before this release were only drawn in the chat; run the scan again to save one.
 - **Background agents** return at once, so they count as done when started. claude-seo's audit runs its agents in the foreground.
 
 ## Status
@@ -90,7 +110,9 @@ The kit tests in `tests/` are written against the Claude Code 2.1.288 typings bu
 - type-check (`tsc`, strict)
 - `claude plugin validate --strict`
 - the brain's static scan (reach L2, no critical or high flags)
-- 52 end-to-end scenarios run through a stand-in for the hook chain against the real claude-seo scripts and an isolated ledger
+- 70 end-to-end scenarios run through a stand-in for the hook chain against the real claude-seo scripts and an isolated ledger (Search Console, CrUX and drift from fixtures, so no Google account was called)
+- the 47 pure-logic tests (`logic`, `audit-logic`, `cockpit-logic`), run with a minimal stand-in for the kit's `describe`, `test` and `expect`
+- the HTML export rendered in Chromium, light and dark
 
 ## Development
 
@@ -102,7 +124,3 @@ claude plugin test plugins/seo-cockpit
 ```
 
 Layout: `hooks/register.ts` is the only file that calls `on()`. The rules live in `hooks/lib/` (pure, no `$`), and the tests are in `tests/`.
-
-## Roadmap
-
-- 0.3.0: a visual cockpit pane covering Search Console, rankings and trends, Core Web Vitals, the audit scorecard, the Maps geo-grid, and spend. Charts draw in the terminal and on desktop, with an HTML export for VS Code.
