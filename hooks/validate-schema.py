@@ -313,15 +313,18 @@ def main():
     critical = [e for e in errors if any(kw in e.lower() for kw in critical_keywords)]
     warnings = [e for e in errors if e not in critical]
 
+    # Claude Code reads a hook's stderr, not its stdout: on exit 2 a PostToolUse
+    # hook's stderr is fed back to Claude, and on exit 1 it is shown to the user.
+    # Anything printed to stdout here would be dropped.
     if warnings:
-        print("⚠️  Schema validation warnings:")
+        print("⚠️  Schema validation warnings:", file=sys.stderr)
         for w in warnings:
-            print(f"  - {w}")
+            print(f"  - {w}", file=sys.stderr)
 
     if critical:
-        print("🛑 Schema validation ERRORS (blocking):")
+        print("🛑 Schema validation ERRORS (blocking):", file=sys.stderr)
         for e in critical:
-            print(f"  - {e}")
+            print(f"  - {e}", file=sys.stderr)
         sys.exit(2)  # Block the edit
 
     sys.exit(1)  # Warnings only; proceed

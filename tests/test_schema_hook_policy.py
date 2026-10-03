@@ -68,8 +68,8 @@ def test_graph_members_inherit_context_but_still_require_type(tmp_path: Path) ->
     # represent the emoji markers.
     result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
     assert result.returncode == 1
-    assert "Missing @type" in result.stdout
-    assert "Missing @context" not in result.stdout
+    assert "Missing @type" in result.stderr
+    assert "Missing @context" not in result.stderr
 
 
 def test_deprecated_graph_member_still_blocks(tmp_path: Path) -> None:
@@ -87,8 +87,8 @@ def test_non_object_graph_members_are_reported_without_crashing(tmp_path: Path) 
     }
     result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
     assert result.returncode == 1
-    assert "@graph member 1 must be an object" in result.stdout
-    assert "@graph member 2 must be an object" in result.stdout
+    assert "@graph member 1 must be an object" in result.stderr
+    assert "@graph member 2 must be an object" in result.stderr
 
 
 def test_graph_must_be_a_list(tmp_path: Path) -> None:
@@ -98,7 +98,7 @@ def test_graph_must_be_a_list(tmp_path: Path) -> None:
     }
     result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
     assert result.returncode == 1
-    assert "@graph must be a list" in result.stdout
+    assert "@graph must be a list" in result.stderr
 
 
 def test_replace_placeholder_matches_tokens_not_normal_words(tmp_path: Path) -> None:
