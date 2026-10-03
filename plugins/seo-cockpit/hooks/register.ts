@@ -1,5 +1,6 @@
 import type { EngineInterface, On, PluginOptions, ResultOf } from 'claude-code'
 
+import { auditFromPrompt, bandText, compactInstructions, economyModel, isSeoAgent, noteWrite, receiptText, type Audit } from './lib/audit'
 import { doctorText, spendText } from './lib/format'
 import { classify, type PaidCall } from './lib/paid'
 import { candidatesOf, joinPath, latestVersion, MARKER } from './lib/root'
@@ -15,6 +16,14 @@ type Ctx = {
   /** Paid tools the person allowed until the plugin reloads. */
   allowed: Set<string>
   root: string | null
+  isEconomy: boolean
+  isBandOn: boolean
+  /** The audit being followed, kept after it finishes until the next prompt. */
+  audit: Audit | null
+  isBandHidden: boolean
+  isReceiptShown: boolean
+  /** Stops the once-a-second redraw of the band's clock. */
+  stopTicker: (() => void) | null
 }
 
 const HELD = 'seo-cockpit held this paid call'
@@ -118,6 +127,10 @@ async function runAndLog($: EngineInterface, ctx: Ctx, seoRoot: string, checks: 
 
   const logged = await Promise.all(checks.map(check => logCost($, ctx, seoRoot, check.endpoint, 'costUsd' in check.verdict ? check.verdict.costUsd : 0)))
   const total = checks.reduce((sum, check) => sum + ('costUsd' in check.verdict ? check.verdict.costUsd : 0), 0)
+
+  if (ctx.audit !== null && ctx.audit.finishMs === null) {
+    ctx.audit = { ...ctx.audit, spentUsd: ctx.audit.spentUsd + total }
+  }
   // The skills tell Claude to log each call itself; say it is done so it is not counted twice.
   const note = logged.every(Boolean)
     ? `seo-cockpit logged this call to the claude-seo DataForSEO ledger (${names}, about ${usd(total)}). Do not run dataforseo_costs.py log for it.`
@@ -189,6 +202,29 @@ async function guard($: EngineInterface, ctx: Ctx, paid: PaidCall, run: () => Pr
   }
 }
 
+/** Redraws the band once a second while an audit runs, so its clock moves. */
+function startTicker($: EngineInterface, ctx: Ctx): void {
+  if (ctx.stopTicker === null) {
+    const timer = $.clock.every(1000, () => $.ui.invalidate('ui.render'))
+
+    ctx.stopTicker = () => timer.cancel()
+  }
+}
+
+function stopTicker(ctx: Ctx): void {
+  ctx.stopTicker?.()
+  ctx.stopTicker = null
+}
+
+/** Starts following a new audit and shows the band again. */
+function follow($: EngineInterface, ctx: Ctx, audit: Audit): void {
+  ctx.audit = audit
+  ctx.isBandHidden = false
+  ctx.isReceiptShown = false
+  startTicker($, ctx)
+  $.ui.invalidate('ui.render')
+}
+
 async function registerCommands($: EngineInterface): Promise<void> {
   await Promise.all([
     $.command.register({ name: 'seo-spend', description: 'claude-seo DataForSEO spend: today, 7 and 30 days, by endpoint', immediate: true }).catch(() => undefined),
@@ -255,6 +291,12 @@ export function register(on: On, options: PluginOptions) {
     isGuardOn: options.spendGuard !== false,
     allowed: new Set<string>(),
     root: null,
+    isEconomy: options.economy === true,
+    isBandOn: options.auditBand !== false,
+    audit: null,
+    isBandHidden: false,
+    isReceiptShown: false,
+    stopTicker: null,
   }
 
   // ------------------------------------------------------------ spend guard
@@ -273,6 +315,133 @@ export function register(on: On, options: PluginOptions) {
       ? next(e)
       : { deny: `${HELD}: the spend guard failed, so the call did not run. Run /seo-doctor, or turn the spend guard off in /config.` },
   )
+
+  // ---------------------------------------------------------- audit progress
+
+  on('prompt.submit', async ($, e, next) => {
+    const audit = auditFromPrompt(e.text, Date.now())
+
+    if (audit !== null) {
+      follow($, ctx, audit)
+    } else if (ctx.audit !== null && ctx.audit.finishMs !== null) {
+      // A finished audit's band stays up until the next prompt.
+      ctx.audit = null
+      $.ui.invalidate('ui.render')
+    }
+
+    return next(e)
+  })
+
+  on('agent.spawn', async ($, e, next) => {
+    if (!isSeoAgent(e.subagentType)) {
+      return next(e)
+    }
+
+    if (ctx.audit !== null && ctx.audit.finishMs === null) {
+      ctx.audit = { ...ctx.audit, agents: { ...ctx.audit.agents, [e.tool_use_id]: { type: e.subagentType, state: 'running', startMs: Date.now() } } }
+      $.ui.invalidate('ui.render')
+    }
+
+    const model = ctx.isEconomy && e.model === undefined ? economyModel(e.subagentType) : null
+
+    return next(model === null ? e : { ...e, model })
+  })
+
+  // A foreground Agent call returns when its subagent is done.
+  on('tool.call', { tool: ['Agent', /^Task$/] }, async ($, e, next) => {
+    const result = await next(e)
+    const run = ctx.audit?.agents[e.tool_use_id]
+
+    if (ctx.audit !== null && run !== undefined) {
+      const state = result.deny !== undefined || result.isError === true ? 'failed' : 'done'
+
+      ctx.audit = { ...ctx.audit, agents: { ...ctx.audit.agents, [e.tool_use_id]: { ...run, state, endMs: Date.now() } } }
+      $.ui.invalidate('ui.render')
+    }
+
+    return result
+  })
+
+  on('tool.call', { tool: ['Write', 'Edit'] }, async ($, e, next) => {
+    const result = await next(e)
+    const path = fieldOf(e, 'file_path')
+
+    if (path !== undefined && result.deny === undefined && result.isError !== true) {
+      const before = ctx.audit
+      // A Write carries the whole file; an Edit only a fragment, so its score is not read.
+      const after = noteWrite(before, path, e.tool === 'Write' ? fieldOf(e, 'content') : undefined, Date.now())
+
+      if (after !== null && after !== before) {
+        if (before === null || before.finishMs !== null) {
+          follow($, ctx, after)
+        } else {
+          ctx.audit = after
+          $.ui.invalidate('ui.render')
+        }
+      }
+    }
+
+    return result
+  })
+
+  on('turn.complete', async ($, e, next) => {
+    const result = await next(e)
+    const audit = ctx.audit
+
+    // The receipt goes under the main answer, once, when the audit's data file exists.
+    if (e.agentId !== undefined || audit === null || audit.finishMs !== null || audit.score === null || ctx.isReceiptShown) {
+      return result
+    }
+
+    const now = Date.now()
+
+    ctx.audit = { ...audit, finishMs: now }
+    ctx.isReceiptShown = true
+    stopTicker(ctx)
+    $.ui.invalidate('ui.render')
+
+    const receipt = receiptText(audit, now)
+
+    return { ...result, text: result.text ? `${result.text}\n${receipt}` : receipt }
+  })
+
+  on('session.compact', async ($, e, next) => {
+    const audit = ctx.audit
+
+    if (audit === null || audit.finishMs !== null) {
+      return next(e)
+    }
+
+    return next({ ...e, instructions: [e.instructions, compactInstructions(audit)].filter(Boolean).join('\n\n') })
+  })
+
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const audit = ctx.audit
+
+    if (!ctx.isBandOn || audit === null || ctx.isBandHidden || e.props.hasSurvey) {
+      return next(e)
+    }
+
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const columns = Math.max(20, Math.floor(e.props.bodyColumns) - 10)
+
+    return Box({
+      flexDirection: 'row',
+      columnGap: 1,
+      children: [
+        Text({ color: audit.finishMs === null ? 'cyan' : 'green', children: [bandText(audit, Date.now(), columns, ctx.isEconomy)] }),
+        Button({
+          key: 'seo-cockpit-hide',
+          label: 'hide',
+          plain: true,
+          onPress: () => {
+            ctx.isBandHidden = true
+            $.ui.invalidate('ui.render')
+          },
+        }),
+      ],
+    })
+  })
 
   // --------------------------------------------------------------- commands
 

@@ -16,7 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Firecrawl, image generation, Moz, Keywords Everywhere, Cloud NLP, the
   Indexing API, and curl or WebFetch calls to SE Ranking and Profound ask
   first), fails closed, logs what it approved, and adds zero-token
-  `/seo-spend` and `/seo-doctor` commands. Kit tests are written against the
+  `/seo-spend` and `/seo-doctor` commands. 0.2.0 adds a live audit band
+  (agents running and done, findings written, spend, time), a receipt line
+  with the health score when an audit finishes, an opt-in economy mode
+  that runs the five Opus agents on Sonnet, and compaction instructions
+  that keep audit state. Kit tests are written against the
   2.1.288 typings but not yet executed: mods are switched off remotely for
   the maintainer's account.
 

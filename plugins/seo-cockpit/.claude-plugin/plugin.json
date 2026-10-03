@@ -1,7 +1,7 @@
 {
   "name": "seo-cockpit",
-  "version": "0.1.0",
-  "description": "Mods companion for claude-seo: a spend guard on paid SEO APIs and zero-token /seo-spend and /seo-doctor commands",
+  "version": "0.2.0",
+  "description": "Mods companion for claude-seo: a spend guard on paid SEO APIs, a live audit band with a receipt, an economy mode, and zero-token /seo-spend and /seo-doctor",
   "author": {
     "name": "Agrici Daniel"
   },
@@ -25,6 +25,18 @@
       "title": "Spend guard",
       "description": "Hold paid SEO API calls (DataForSEO, Ahrefs, Firecrawl, image generation, Moz, and others; see the README) against the claude-seo budget before they run.",
       "default": true
+    },
+    "auditBand": {
+      "type": "boolean",
+      "title": "Audit band",
+      "description": "Show a live line above the prompt while a /seo audit runs: agents running and done, findings written, spend, time.",
+      "default": true
+    },
+    "economy": {
+      "type": "boolean",
+      "title": "Economy mode",
+      "description": "Run the five Opus agents (content, geo, sxo, cluster, drift) on Sonnet to cut audit cost. Their analysis may be less thorough.",
+      "default": false
     }
   }
 }

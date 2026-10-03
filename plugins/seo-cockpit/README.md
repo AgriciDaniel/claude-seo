@@ -4,7 +4,7 @@ An optional mods companion for [claude-seo](../../README.md). It runs inside Cla
 
 Tested on Claude Code 2.1.288. Mods need Claude Code 2.1.287 or newer; on older builds, install claude-seo alone.
 
-## What it does (0.1.0)
+## What it does (0.2.0)
 
 **Spend guard.** Before a paid SEO API call runs, seo-cockpit checks it against the claude-seo DataForSEO budget (`scripts/dataforseo_costs.py`):
 
@@ -22,6 +22,24 @@ The guard fails closed: if it cannot check a paid call before it runs, the call 
 Shell lines are checked one command at a time, so a cost check chained in front of a paid script does not hide it. The Merchant script is priced by what it bills: `search` (Google, or Amazon with `--marketplace amazon`), `sellers`, or `compare` (both).
 
 What is logged: only calls that succeeded and have a price in the cost table. A failed call, or an endpoint with no listed price, is not logged; Claude is told to log the real cost from the response instead.
+
+**Audit band.** While a `/seo audit` runs, a line above the prompt shows it live:
+
+```
+seo audit example.com  3 running, 9 done  findings 9  spend $0.42  4m12s
+```
+
+It starts from the `/seo audit <url>` prompt, or from the first file written into a `<domain>-audit/` folder (so an audit asked for in plain words is caught too). Agents count as running when spawned and done when their Agent call returns. Spend is what the guard logged during the audit. The band yields to Claude Code's surveys, has a hide button, and clears at your next prompt after the audit ends.
+
+**Receipt.** When the audit writes `audit-data.json`, one line appears under Claude's answer:
+
+```
+seo audit example.com: score 72/100  |  weakest Schema 40, Content 55  |  17 agents  |  12 findings files  |  spend $0.42  |  6m03s  |  example.com-audit/FULL-AUDIT-REPORT.md
+```
+
+**Economy mode** (off by default). Runs the five agents that use Opus (content, geo, sxo, cluster, drift) on Sonnet, to cut the cost of an audit. Their analysis may be less thorough. An agent call that names its own model is left alone.
+
+**Compaction.** If the conversation is compacted mid-audit, the summary is asked to keep the output folder, which agents finished and which are running, and the findings files written.
 
 **Commands that cost no tokens.** These answer directly without starting a turn:
 
@@ -45,6 +63,8 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 | claude-seo folder | empty | Where claude-seo lives. When empty, it looks next to this plugin (a checkout) and in the plugin cache (an install) |
 | Python command | `python3` | Runs the stdlib-only ledger scripts |
 | Spend guard | on | Turn off to let paid calls through unchecked |
+| Audit band | on | The live line above the prompt during an audit |
+| Economy mode | off | Run the five Opus agents on Sonnet |
 
 ## What it can and cannot see
 
@@ -60,6 +80,8 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 - **`claude -p` and headless runs:** there is no one to ask, so every call that needs approval is held. Calls the budget approves still run.
 - **CLI only:** it needs `$.process` to run the ledger script. Where that is missing, DataForSEO calls are held and the commands report an error.
 - **Ask before rules:** a call your permission rules would deny can still raise its cost question first.
+- **The band draws in the terminal and the desktop app,** not in the VS Code chat panel or `claude -p`. The receipt line is plain text and shows wherever the answer does.
+- **Background agents** return at once, so they count as done when started. claude-seo's audit runs its agents in the foreground.
 
 ## Status
 
@@ -68,7 +90,7 @@ The kit tests in `tests/` are written against the Claude Code 2.1.288 typings bu
 - type-check (`tsc`, strict)
 - `claude plugin validate --strict`
 - the brain's static scan (reach L2, no critical or high flags)
-- 34 end-to-end scenarios run through a stand-in for the hook chain against the real claude-seo scripts and an isolated ledger
+- 52 end-to-end scenarios run through a stand-in for the hook chain against the real claude-seo scripts and an isolated ledger
 
 ## Development
 
@@ -83,5 +105,4 @@ Layout: `hooks/register.ts` is the only file that calls `on()`. The rules live i
 
 ## Roadmap
 
-- 0.2.0: an audit progress band (agents running and done, findings written, spend), a receipt when an audit finishes, an economy mode that routes the Opus agents to Sonnet, and compaction that keeps audit state.
 - 0.3.0: a visual cockpit pane covering Search Console, rankings and trends, Core Web Vitals, the audit scorecard, the Maps geo-grid, and spend. Charts draw in the terminal and on desktop, with an HTML export for VS Code.
