@@ -13,6 +13,7 @@ Two failure classes are covered:
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -35,6 +36,18 @@ def _run(tmp_path: Path, filename: str, head: str) -> subprocess.CompletedProces
         [sys.executable, str(HOOK), str(target)],
         capture_output=True, encoding="utf-8", errors="replace",
     )
+
+
+def _warnings(result: subprocess.CompletedProcess) -> str:
+    """The warnings a warnings-only run hands Claude: exit 0, JSON additionalContext on stdout."""
+    if result.returncode != 0 or not result.stdout.strip():
+        return ""
+    return json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def _clean(result: subprocess.CompletedProcess) -> bool:
+    """Nothing to report: exit 0 and nothing on either stream."""
+    return result.returncode == 0 and result.stdout == "" and result.stderr == ""
 
 
 # --- false negatives -------------------------------------------------------
@@ -70,12 +83,12 @@ def test_uppercase_tag_and_attribute_are_validated(tmp_path: Path) -> None:
 
 def test_other_script_types_are_ignored(tmp_path: Path) -> None:
     head = f'<script type="module">{RETIRED}</script><script type="text/javascript">var x = {RETIRED};</script>'
-    assert _run(tmp_path, "page.html", head).returncode == 0
+    assert _clean(_run(tmp_path, "page.html", head))
 
 
 def test_valid_block_with_extra_attributes_passes(tmp_path: Path) -> None:
     head = f'<script data-testid="ld" type="application/ld+json" nonce="abc">{VALID}</script>'
-    assert _run(tmp_path, "page.html", head).returncode == 0
+    assert _clean(_run(tmp_path, "page.html", head))
 
 
 # --- false positives on templates -------------------------------------------
@@ -84,33 +97,32 @@ def test_valid_block_with_extra_attributes_passes(tmp_path: Path) -> None:
 def test_jsx_expression_body_is_not_reported(tmp_path: Path) -> None:
     head = '<script type="application/ld+json">{JSON.stringify(schema)}</script>'
     result = _run(tmp_path, "page.tsx", head)
-    assert result.returncode == 0
-    assert result.stderr == ""
+    assert _clean(result)
 
 
 def test_jsx_identifier_body_is_not_reported(tmp_path: Path) -> None:
     result = _run(tmp_path, "Page.jsx", '<script type="application/ld+json">{jsonLd}</script>')
-    assert result.returncode == 0
+    assert _clean(result)
 
 
 def test_vue_mustache_body_is_not_reported(tmp_path: Path) -> None:
     result = _run(tmp_path, "Page.vue", '<script type="application/ld+json">{{ jsonLd }}</script>')
-    assert result.returncode == 0
+    assert _clean(result)
 
 
 def test_svelte_html_body_is_not_reported(tmp_path: Path) -> None:
     head = '<script type="application/ld+json">{@html JSON.stringify(schema)}</script>'
-    assert _run(tmp_path, "Page.svelte", head).returncode == 0
+    assert _clean(_run(tmp_path, "Page.svelte", head))
 
 
 def test_php_echo_body_is_not_reported(tmp_path: Path) -> None:
     head = '<script type="application/ld+json"><?php echo json_encode($schema); ?></script>'
-    assert _run(tmp_path, "page.php", head).returncode == 0
+    assert _clean(_run(tmp_path, "page.php", head))
 
 
 def test_ejs_body_is_not_reported(tmp_path: Path) -> None:
     head = '<script type="application/ld+json"><%- JSON.stringify(schema) %></script>'
-    assert _run(tmp_path, "page.ejs", head).returncode == 0
+    assert _clean(_run(tmp_path, "page.ejs", head))
 
 
 def test_literal_json_in_component_file_is_still_validated(tmp_path: Path) -> None:
@@ -122,8 +134,7 @@ def test_malformed_object_literal_in_html_is_still_reported(tmp_path: Path) -> N
     result = _run(
         tmp_path, "page.html", '<script type="application/ld+json">{name: "unquoted"}</script>'
     )
-    assert result.returncode == 1
-    assert "Invalid JSON" in result.stderr
+    assert "Invalid JSON" in _warnings(result)
 
 
 # --- @context forms ---------------------------------------------------------
@@ -132,8 +143,7 @@ def test_malformed_object_literal_in_html_is_still_reported(tmp_path: Path) -> N
 def test_context_with_trailing_slash_is_accepted(tmp_path: Path) -> None:
     head = '<script type="application/ld+json">{"@context":"https://schema.org/","@type":"Organization","name":"X"}</script>'
     result = _run(tmp_path, "page.html", head)
-    assert result.returncode == 0
-    assert result.stderr == ""
+    assert _clean(result)
 
 
 def test_context_object_with_schema_vocab_is_accepted(tmp_path: Path) -> None:
@@ -142,7 +152,7 @@ def test_context_object_with_schema_vocab_is_accepted(tmp_path: Path) -> None:
         '{"@context":{"@vocab":"https://schema.org/"},"@type":"Organization","name":"X"}'
         "</script>"
     )
-    assert _run(tmp_path, "page.html", head).returncode == 0
+    assert _clean(_run(tmp_path, "page.html", head))
 
 
 def test_context_list_containing_schema_org_is_accepted(tmp_path: Path) -> None:
@@ -151,14 +161,13 @@ def test_context_list_containing_schema_org_is_accepted(tmp_path: Path) -> None:
         '{"@context":["https://schema.org",{"ex":"https://example.com/ns#"}],"@type":"Organization","name":"X"}'
         "</script>"
     )
-    assert _run(tmp_path, "page.html", head).returncode == 0
+    assert _clean(_run(tmp_path, "page.html", head))
 
 
 def test_foreign_context_is_still_reported(tmp_path: Path) -> None:
     head = '<script type="application/ld+json">{"@context":"https://example.com/ns","@type":"Organization"}</script>'
     result = _run(tmp_path, "page.html", head)
-    assert result.returncode == 1
-    assert "@context should be" in result.stderr
+    assert "@context should be" in _warnings(result)
 
 
 # --- tokenizer regressions (a quoted attribute value may contain ">") ------
@@ -189,15 +198,13 @@ def test_attribute_value_containing_angle_bracket_is_detected(tmp_path: Path) ->
     """
     head = f'<script type="application/ld+json" data-cond="a>b">{VALID}</script>'
     result = _run(tmp_path, "page.html", head)
-    assert result.returncode == 0
-    assert result.stderr == ""
+    assert _clean(result)
 
 
 def test_jsx_json_stringify_inside_ldjson_script_is_not_flagged(tmp_path: Path) -> None:
     head = '<script type="application/ld+json">{JSON.stringify(schema)}</script>'
     result = _run(tmp_path, "page.jsx", head)
-    assert result.returncode == 0
-    assert result.stderr == ""
+    assert _clean(result)
 
 
 def test_renal_replacement_therapy_string_is_not_flagged(tmp_path: Path) -> None:
@@ -208,8 +215,7 @@ def test_renal_replacement_therapy_string_is_not_flagged(tmp_path: Path) -> None
         "</script>"
     )
     result = _run(tmp_path, "page.html", head)
-    assert result.returncode == 0
-    assert result.stderr == ""
+    assert _clean(result)
 
 
 def test_top_level_graph_is_detected(tmp_path: Path) -> None:

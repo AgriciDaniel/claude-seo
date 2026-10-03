@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """Post-edit schema validation hook for Claude Code.
 
-Validates JSON-LD schema after file edits. Returns exit code 2 to block
-if critical validation errors found.
+Validates JSON-LD schema after file edits. The file is already written when
+a PostToolUse hook runs, so nothing here can undo the edit; the hook makes
+sure Claude reads what is wrong:
+
+- critical errors (placeholders, deprecated or retired types): exit 2, with
+  the errors on stderr, which Claude Code feeds back to Claude;
+- warnings only: exit 0, with the warnings as hookSpecificOutput
+  additionalContext JSON on stdout, which Claude reads without an error
+  notice (exit 1 would show them to the user only).
 
 Hook configuration in ~/.claude/settings.json:
 {
@@ -313,21 +320,21 @@ def main():
     critical = [e for e in errors if any(kw in e.lower() for kw in critical_keywords)]
     warnings = [e for e in errors if e not in critical]
 
-    # Claude Code reads a hook's stderr, not its stdout: on exit 2 a PostToolUse
-    # hook's stderr is fed back to Claude, and on exit 1 it is shown to the user.
-    # Anything printed to stdout here would be dropped.
-    if warnings:
-        print("⚠️  Schema validation warnings:", file=sys.stderr)
-        for w in warnings:
-            print(f"  - {w}", file=sys.stderr)
-
     if critical:
-        print("🛑 Schema validation ERRORS (blocking):", file=sys.stderr)
+        # Exit 2: Claude Code feeds stderr back to Claude (stdout is ignored).
+        print("🛑 Schema validation ERRORS (flagged for Claude, fix before shipping):", file=sys.stderr)
         for e in critical:
             print(f"  - {e}", file=sys.stderr)
-        sys.exit(2)  # Block the edit
+        if warnings:
+            print("⚠️  Also warnings:", file=sys.stderr)
+            for w in warnings:
+                print(f"  - {w}", file=sys.stderr)
+        sys.exit(2)
 
-    sys.exit(1)  # Warnings only; proceed
+    # Warnings only: exit 0 with JSON, so Claude reads them as context.
+    context = "Schema validation warnings for " + filepath + ":\n" + "\n".join(f"- {w}" for w in warnings)
+    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": context}}))
+    sys.exit(0)
 
 
 if __name__ == "__main__":
