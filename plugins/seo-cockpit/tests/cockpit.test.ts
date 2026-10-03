@@ -15,6 +15,7 @@ describe('cockpit', () => {
       return { value: { isPlaced: true } } as never
     })
     on('store.get', () => ({ value: undefined }))
+    on('session.cwd', () => ({ value: '/work' }))
     on('ui.render', () => ({ type: 'Text', props: {}, children: ['engine'] }) as never)
 
     const result = await $.command.run(command('seo-cockpit'))

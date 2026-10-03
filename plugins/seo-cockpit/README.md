@@ -104,14 +104,15 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 
 ## Status
 
-The kit tests in `tests/` are written against the Claude Code 2.1.288 typings but have not yet been executed: mods are switched off remotely for the maintainer's account (`claude plugin test` refuses to run). Verified on 2026-10-03:
+Verified on Claude Code 2.1.288, 2026-10-03:
 
-- type-check (`tsc`, strict)
-- `claude plugin validate --strict`
+- `claude plugin test`: 74 of 74 kit tests pass (spend guard, commands, audit band and receipt, economy mode, compaction, cockpit pane and export, and the pure logic)
+- type-check (`tsc`, strict) and `claude plugin validate --strict`
 - the brain's static scan (reach L2, no critical or high flags)
-- 79 end-to-end scenarios run through a stand-in for the hook chain against the real claude-seo scripts and an isolated ledger (Search Console, CrUX and drift from fixtures, so no Google account was called)
-- the 47 pure-logic tests (`logic`, `audit-logic`, `cockpit-logic`), run with a minimal stand-in for the kit's `describe`, `test` and `expect`
+- a real `/seo audit` of claude-seo.md (85/100) with the cockpit run on its live data: CrUX, the audit scorecard, the cost ledger, and the Search Console permission message
 - the HTML export rendered in Chromium, light and dark
+
+Not yet observed: a live interactive session drawing the pane and band (`claude --plugin-dir`).
 
 ## Development
 

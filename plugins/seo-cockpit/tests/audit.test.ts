@@ -30,7 +30,7 @@ function engine(on: Parameters<typeof worldOf>[0]) {
   on('session.compact', ($, e) => {
     seen.instructions.push(e.instructions)
 
-    return { messages: [] } as never
+    return { messages: e.messages }
   })
   on('ui.render', () => ({ type: 'Text', props: {}, children: ['drawn by Claude Code'] }) as never)
 
@@ -102,7 +102,8 @@ describe('audit band and receipt', () => {
     const seen = engine(on)
 
     await $.prompt.submit(prompt('/seo audit example.com'))
-    await $.session.compact({ trigger: 'auto', messages: [] } as never)
+    // A compaction always leaves at least one message; the engine refuses an empty list.
+    await $.session.compact({ trigger: 'auto', messages: [{ role: 'user', text: 'Audit example.com', toolUses: [] }] })
 
     expect(seen.instructions[0]).toContain('A claude-seo audit of example.com is in progress')
   })
