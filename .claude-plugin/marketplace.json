@@ -5,13 +5,13 @@
     "name": "AgriciDaniel"
   },
   "metadata": {
-    "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions (Matomo, DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse). v2.4.1 brings Google guidance current through 2026-09-28, including the September 2026 spam update; v2.4.0 added /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access)."
+    "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions (Matomo, DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Unlighthouse). v2.4.2 adds seo-cockpit (a mods companion: spend guard, live audit band, and a visual cockpit) and Google sign-in through your own gcloud account; v2.4.1 brought Google guidance current through 2026-09-28; v2.4.0 added /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access)."
   },
   "plugins": [
     {
       "name": "claude-seo",
       "source": "./",
-      "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions. v2.4.1 brings Google guidance current through 2026-09-28, including the September 2026 spam update; v2.4.0 added /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access).",
+      "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions. v2.4.2 adds the seo-cockpit companion and gcloud sign-in; v2.4.1 brought Google guidance current through 2026-09-28; v2.4.0 added /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access).",
       "author": {
         "name": "AgriciDaniel",
         "url": "https://github.com/AgriciDaniel"

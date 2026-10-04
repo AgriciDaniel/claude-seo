@@ -8,7 +8,7 @@ const WIDE = { ...NARROW, viewport: { columns: 160, rows: 50 }, props: { ...NARR
 
 const AUDIT = JSON.stringify({ summary: { health_score: 85 }, categories: [{ name: 'Schema', score: 76, findings: [] }, { name: 'Technical SEO', score: 94, findings: [] }], meta: { site: 'https://claude-seo.md' } })
 
-/** The listing of a folder holding one audit, as ~/Desktop/seo-cockpit-preview did. */
+/** The listing of a working folder holding one audit. */
 const LISTING = { '/work': [{ name: 'claude-seo.md-audit', kind: 'dir' as const }], '/work/claude-seo.md-audit': [{ name: 'audit-data.json', kind: 'file' as const }] }
 
 /** The rest of that folder: its files' contents, and the engine calls the pane makes. */

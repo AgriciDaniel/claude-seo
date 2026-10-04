@@ -2,7 +2,7 @@
 
 An optional mods companion for [claude-seo](../../README.md). It runs inside Claude Code as a mod (a function-hook plugin), so it can enforce things a skill can only ask for.
 
-Tested on Claude Code 2.1.288. Mods need Claude Code 2.1.287 or newer; on older builds, install claude-seo alone.
+Tested on Claude Code 2.1.288 and 2.1.289. Mods need Claude Code 2.1.287 or newer; on older builds, install claude-seo alone.
 
 ## What it does (0.3.0)
 
@@ -118,15 +118,15 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 
 ## Status
 
-Verified on Claude Code 2.1.288, 2026-10-03:
+Verified on Claude Code 2.1.289, 2026-10-04:
 
-- `claude plugin test`: 74 of 74 kit tests pass (spend guard, commands, audit band and receipt, economy mode, compaction, cockpit pane and export, and the pure logic)
+- `claude plugin test`: 85 of 85 kit tests pass (spend guard, Google settings, commands, audit band and receipt, economy mode, compaction, the cockpit Overview and details, site choice, export, and the pure logic)
 - type-check (`tsc`, strict) and `claude plugin validate --strict`
-- the brain's static scan (reach L2, no critical or high flags)
-- a real `/seo audit` of claude-seo.md (85/100) with the cockpit run on its live data: CrUX, the audit scorecard, the cost ledger, and the Search Console permission message
+- a static security scan (reach L2, no critical or high flags)
+- live in Claude Code on a real site: the cockpit inline and docked, every Overview row with live CrUX and Search Console data, `/seo-spend` and `/seo-doctor`
 - the HTML export rendered in Chromium, light and dark
 
-Not yet observed: a live interactive session drawing the pane and band (`claude --plugin-dir`).
+Not yet observed live: the audit band during a running `/seo audit` (covered by kit tests).
 
 ## Development
 

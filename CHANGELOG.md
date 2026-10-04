@@ -7,29 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.2] - 2026-10-04
+
+seo-cockpit, Google sign-in through your own account, and a schema-hook fix.
+
 ### Added
 
-- `plugins/seo-cockpit`: an optional mods companion plugin (Claude Code
-  2.1.287+), listed as a second entry in the marketplace. It holds paid SEO
-  API calls against the DataForSEO budget before they run (DataForSEO MCP
-  tools and the Merchant script are priced by `dataforseo_costs.py`; Ahrefs,
-  Firecrawl, image generation, Moz, Keywords Everywhere, Cloud NLP, the
-  Indexing API, and curl or WebFetch calls to SE Ranking and Profound ask
-  first), fails closed, logs what it approved, and adds zero-token
-  `/seo-spend` and `/seo-doctor` commands. 0.2.0 adds a live audit band
-  (agents running and done, findings written, spend, time), a receipt line
-  with the health score when an audit finishes, an opt-in economy mode
-  that runs the five Opus agents on Sonnet, and compaction instructions
-  that keep audit state. 0.3.0 adds `/seo-cockpit`: a pane with six views
-  (Search Console, rankings, Core Web Vitals, the audit scorecard, the Maps
-  geo-grid, spend) drawn as text charts in the terminal and SVG on the
-  desktop, and a self-contained HTML dashboard export that also covers the
-  VS Code chat panel, where panes do not draw.
+- `plugins/seo-cockpit` 0.3.3: an optional mods companion plugin (Claude
+  Code 2.1.287+), a second entry in the marketplace
+  (`/plugin install seo-cockpit@agricidaniel-claude-seo`).
+  - Spend guard: holds paid SEO API calls against the DataForSEO budget
+    before they run (DataForSEO MCP tools and the Merchant script are priced
+    by `dataforseo_costs.py`; Ahrefs, Firecrawl, image generation, Moz,
+    Keywords Everywhere, Cloud NLP, the Indexing API, and curl or WebFetch
+    calls to SE Ranking and Profound ask first). It fails closed and logs
+    only successful priced calls.
+  - Live audit band (agents running and done, findings written, spend,
+    time), a receipt line with the health score when an audit finishes, an
+    opt-in economy mode that runs the five Opus agents on Sonnet, and
+    compaction instructions that keep audit state.
+  - `/seo-cockpit [site | export]`: one Overview (Audit, Vitals, Search,
+    Rankings, Maps, Spend) for a site taken from the folder, a site you
+    chose, or a Default site from `/config`, from any folder. Everything
+    free loads on open; a row opens its charts. Text charts in the terminal,
+    SVG on the desktop, an HTML dashboard export where panes do not draw
+    (the VS Code chat panel). A status line keeps the summary under the
+    prompt.
+  - Zero-token `/seo-spend` and `/seo-doctor`.
+  - Settings in `/config`: Default site, Audits folder, Google account
+    (`auto` or `gcloud`) and a sensitive Google API key.
+  - Verified on Claude Code 2.1.289: 85 kit tests (`claude plugin test`),
+    `claude plugin validate --strict`, and a live run on a real site.
 - `seo-maps`: a geo-grid scan now also saves its grid as
   `{business}-maps/geo-grid-{keyword}-{date}.json`, for comparison over
-  time and for the seo-cockpit Maps view. Kit tests are written against the
-  2.1.288 typings but not yet executed: mods are switched off remotely for
-  the maintainer's account.
+  time and for the seo-cockpit Maps view.
 
 ### Changed
 
