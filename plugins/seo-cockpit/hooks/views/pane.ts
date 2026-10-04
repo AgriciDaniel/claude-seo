@@ -29,7 +29,7 @@ export type PaneState = {
   loading: ReadonlySet<TabId>
   /** The site the cockpit is about, and where that came from. */
   host: string | null
-  hostSource: 'setting' | 'typed' | 'folder' | null
+  hostSource: 'setting' | 'typed' | 'folder' | 'last' | null
   /** The last HTML export, as a file path. */
   exported: string | null
 }
@@ -129,14 +129,15 @@ function footer(kit: Kit, state: PaneState, isFocused: boolean, actions: PaneAct
 /** The Overview: which site, then one line per source; missing data stays visible with its fix. */
 export function overviewView(kit: Kit, state: PaneState, columns: number, isFocused: boolean, actions: PaneActions): RenderElement {
   const { Box, Text, Button } = kit
-  const where = { setting: 'from /config', typed: 'typed here', folder: 'from this folder', none: '' }[state.hostSource ?? 'none']
+  const where = { setting: 'from /config', typed: 'typed here', folder: 'from this folder', last: 'last used', none: '' }[state.hostSource ?? 'none']
   const children: RenderElement[] = [
     // Row 1 carries no controls: the engine draws its close mark at the right edge.
     Text({ children: [Text({ bold: true, children: [cut(state.host ?? 'No site yet', Math.max(10, columns - 24))] }), Text({ dimColor: true, children: [where === '' ? '' : `  ${where}`] })] }),
   ]
 
-  if (state.host === null && kit.Input !== undefined) {
-    children.push(kit.Input({ key: 'target', label: 'Site', placeholder: 'example.com', submitLabel: 'go', autoFocus: true, onSubmit: value => actions.setTarget(value) }))
+  // No site, or only the last one used elsewhere: offer the field to set this folder's own.
+  if ((state.host === null || state.hostSource === 'last') && kit.Input !== undefined) {
+    children.push(kit.Input({ key: 'target', label: 'Site', placeholder: state.host ?? 'example.com', submitLabel: 'go', ...(state.host === null && { autoFocus: true }), onSubmit: value => actions.setTarget(value) }))
   }
 
   const labelWidth = Math.max(...ROWS.map(row => row.label.length))

@@ -78,6 +78,24 @@ describe('cockpit', () => {
     expect(await ui.find({ key: 'target' })).toBeDefined()
   })
 
+  test('in a folder with no audit, the last site used anywhere is shown, and can be changed', async ($, on) => {
+    worldOf(on)
+    on('session.cwd', () => ({ value: '/elsewhere' }))
+    on('store.get', ($, e) => ({ value: e.key === 'target:last' ? 'claude-seo.md' : undefined }))
+    on('store.set', () => ({ value: undefined }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: { isPlaced: true } }) as never)
+    on('ui.render', () => ({ type: 'Text', props: {}, children: ['engine'] }) as never)
+    mock.clock(on)
+
+    expect((await $.command.run(command('seo-cockpit'))).text).toBe('Cockpit open for claude-seo.md.')
+
+    const ui = await $.ui.mount({ ...NARROW, surface: 'terminal' })
+
+    expect(await ui.find({ type: 'Text', text: /last used/ })).toBeDefined()
+    expect(await ui.find({ key: 'target' })).toBeDefined()
+  })
+
   test('with no pane on screen, it writes the HTML dashboard instead', async ($, on) => {
     worldOf(on)
 

@@ -381,10 +381,21 @@ async function resolveHost($: EngineInterface, ctx: Ctx): Promise<void> {
   }
 
   const setting = ctx.pageUrl || ctx.site
-  const host = chooseTarget(setting, ctx.typed, inferred)
+  let host = chooseTarget(setting, ctx.typed, inferred)
+  let source: PaneState['hostSource'] = host === null ? null : hostOf(setting) !== null ? 'setting' : ctx.typed !== null && hostOf(ctx.typed) !== null ? 'typed' : 'folder'
+
+  // Nothing here says which site: use the last one seen anywhere, and say so.
+  if (host === null) {
+    const last = await $.store.get('target:last').catch(() => undefined)
+
+    host = typeof last === 'string' ? hostOf(last) : null
+    source = host === null ? null : 'last'
+  } else {
+    void $.store.set('target:last', host).catch(() => undefined)
+  }
 
   ctx.pane.host = host
-  ctx.pane.hostSource = host === null ? null : hostOf(setting) !== null ? 'setting' : ctx.typed !== null && hostOf(ctx.typed) !== null ? 'typed' : 'folder'
+  ctx.pane.hostSource = source
 }
 
 /** Builds one source's model from claude-seo's own scripts and files. Free: no paid API is called. */
