@@ -208,7 +208,7 @@ PDF reports are generated via [WeasyPrint](https://weasyprint.org/) (A4 layout) 
 
 ### How does Claude SEO handle local SEO?
 
-Three layers. **Google Business Profile signals**: categories, hours, photos, posts, products, attributes. **NAP consistency** across citations: name, address, phone matched against major directories with deviation flagging. **Review intelligence**: rating trends, sentiment, response coverage. For multi-location businesses, Claude SEO enforces a 30-page warning threshold and a 50-page hard stop to prevent doorway-page violations (configurable). The `/seo maps` workflow adds geo-grid rank tracking, GBP profile auditing, and competitor radius mapping. Local schema generation covers `LocalBusiness` with all required and recommended properties (geo coordinates, opening hours, areaServed). Phase F (v2) added a GBP deprecation linter that detects retired chat-field references and `.business.site` URLs.
+Three layers. **Google Business Profile signals**: categories, hours, photos, posts, products, attributes. **NAP consistency** across citations: name, address, phone matched against major directories with deviation flagging. **Review intelligence**: rating trends, sentiment, response coverage. For multi-location businesses, Claude SEO enforces a 30-page warning threshold and a 50-page hard stop to prevent doorway-page violations (configurable). The `/seo maps` workflow adds geo-grid rank tracking, GBP profile auditing, and competitor radius mapping. Local schema generation covers `LocalBusiness` with all required and recommended properties (geo coordinates, opening hours, areaServed). v2 added a GBP deprecation linter that detects retired chat-field references and `.business.site` URLs.
 
 ## Compared to manual / agency / commercial tools
 
@@ -313,19 +313,6 @@ Full methodology: [skills/seo/references/thinking-framework.md](skills/seo/refer
 
 ## What's New in v2
 
-v2.0.0 is the largest release in the plugin's history. Six build phases, all shipped:
-
-- **Phase A: Headless rendering everywhere.** Shared `scripts/render_page.py` with Playwright Chromium plus [trafilatura](https://github.com/adbar/trafilatura) and [htmldate](https://github.com/adbar/htmldate). Every audit subagent gets SPA-aware fetching via `--render auto` (auto-detected on Next.js, React, Vue, Nuxt, Astro islands). Closes the SPA limitation that capped v1.x.
-- **Phase B: QRG-aligned content quality gates.** Filler detector and AI-pattern humanizer keyed to QRG §4.6.5 and §4.6.6, claim-verification scanner, expired-domain heritage check via WHOIS, primary-source Google updates changelog.
-- **Phase C: Technical and CWV depth.** LCP subparts via CrUX (TTFB, load delay, load duration, render delay), Speculation Rules and bfcache detection, IndexNow submitter for Bing / Yandex / Seznam / Naver, Unlighthouse multi-page Lighthouse wrapper.
-- **Phase D: Schema completeness.** Four explicit generators (Reservation, OrderAction, DiscussionForumPosting, ProfilePage), e-commerce schema validator (`hasMerchantReturnPolicy`, `shippingDetails`, `MemberProgram`, EU `energyEfficiencyClass`, ProductGroup variants), dual validator (Rich Results Test plus Schema Markup Validator).
-- **Phase E: AI search reframing and 5 new MCP extensions,** including SE Ranking (AI Share-of-Voice), Profound (LLM citation tracker), Bing Webmaster plus IndexNow, and Unlighthouse. Plus the parasite-SEO risk scanner per Google's November 2024 [site reputation abuse policy](https://developers.google.com/search/blog/2024/11/site-reputation-abuse-update).
-- **Phase F: Local, international, and privacy polish.** Google Business Profile deprecation linter (chat field and `.business.site` URLs, with Q&A treated as category/region-limited), DMA consent-mode-v2 click-through diagnostic, machine-translation QA flag per January 2025 QRG.
-
-Test coverage grew from 39 (v1.9.9) to 410 across the v2 line; the url_safety suite alone runs 91 SSRF and DNS-rebinding bypass cases, closing the obfuscated-IPv4, FQDN-trailing-dot, and redirect-rebinding bypass classes. Full migration notes and breaking changes: [docs/MIGRATION-v1-to-v2.md](docs/MIGRATION-v1-to-v2.md).
-
-### Since v2.0.0
-
 - **v2.1.0 (May 2026): currency refresh.** May 2026 core update, Google I/O 2026 (custom version of Gemini 2.5 powers AI Mode), FAQ rich results retired 2026-05-07 (QAPage remains the type for genuine Q&A pages, FAQ markup itself just no longer yields rich results).
 - **v2.2.0 (June 2026): security + portability.** Installer credential-injection fix, SSRF authority-confusion bypass closed, Google API keys moved to the `X-Goog-Api-Key` header, secret-scan CI gate, Windows/macOS fixes; suite at 326.
 - **v2.2.1 (June 2026): Google-currency reconfirmation + full command audit.** Lighthouse 13.4.0 guidance, including the Agentic Browsing category (added in 13.2.0, on by default since 13.3.0), Google Search ignores llms.txt, an internally-reweighted E-E-A-T scorecard (Trust highest, per Google's 'trust is most important'); every `/seo` command and subcommand audited and COMMANDS.md brought to 100% coverage.
@@ -344,7 +331,7 @@ Test coverage grew from 39 (v1.9.9) to 410 across the v2 line; the url_safety su
 
 Two real boundaries worth being upfront about.
 
-**Heavy client-side hydration timing.** Phase A's headless renderer handles most SPAs out of the box (`--render auto` detects empty `<div id="root">` shells and switches to Playwright). Edge cases that still produce noisy findings: pages with hydration tied to scroll position past the fold, pages that fetch critical content after user interaction (modal opens, tab clicks), pages with race-condition-prone third-party widget mounts. For these, manually triggering the `seo-visual` subagent and comparing its Playwright snapshot to the raw-HTML subagents' findings is the recommended workflow.
+**Heavy client-side hydration timing.** The headless renderer handles most SPAs out of the box (`--render auto` detects empty `<div id="root">` shells and switches to Playwright). Edge cases that still produce noisy findings: pages with hydration tied to scroll position past the fold, pages that fetch critical content after user interaction (modal opens, tab clicks), pages with race-condition-prone third-party widget mounts. For these, manually triggering the `seo-visual` subagent and comparing its Playwright snapshot to the raw-HTML subagents' findings is the recommended workflow.
 
 **Local-only without enrichment.** The free tier makes no third-party API calls by default (audits still fetch the target URLs you point them at). Adding Google API credentials (Tier 0 through 3) unlocks real field data and live indexation status; without them, Core Web Vitals are lab estimates only and indexation is inferred from page-level signals. Adding optional MCP extensions similarly unlocks competitive and AI-citation data but requires their respective accounts.
 
@@ -394,7 +381,7 @@ Full Banana docs: [extensions/banana/README.md](extensions/banana/README.md).
 
 ### SE Ranking, Profound, Bing Webmaster, Unlighthouse (new in v2)
 
-Added in Phase E:
+Added in v2:
 
 - **SE Ranking:** AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode
 - **Profound:** LLM citation tracker with time-series data
@@ -446,7 +433,7 @@ Different surface area, different tradeoffs. **Screaming Frog** crawls deeper an
 
 ### Does Claude SEO work on single-page applications (Next.js, React, Vue)?
 
-Yes. Phase A of v2 shipped a shared headless renderer (`scripts/render_page.py`) backed by Playwright Chromium. Audit subagents call `render_page.py --mode auto`, which auto-detects SPA hallmarks (empty `<div id="root">` shells, single bundle script, hydration markers) and switches to a rendered fetch. The lower-level `scripts/fetch_page.py` wrapper supports `--render auto` as an opt-in wrapper mode; its default is `--render never` for raw HTTP. Use `render_page.py --mode always` or `fetch_page.py --render always` to force rendering. Content extraction uses [trafilatura](https://github.com/adbar/trafilatura) for boilerplate removal. Publication dates come from [htmldate](https://github.com/adbar/htmldate). Known nuance: pages with scroll-bound hydration or post-interaction content fetches still produce noisy findings; see the [Limitations](#limitations) section for the recommended `seo-visual` cross-check workflow on those edge cases.
+Yes. v2 shipped a shared headless renderer (`scripts/render_page.py`) backed by Playwright Chromium. Audit subagents call `render_page.py --mode auto`, which auto-detects SPA hallmarks (empty `<div id="root">` shells, single bundle script, hydration markers) and switches to a rendered fetch. The lower-level `scripts/fetch_page.py` wrapper supports `--render auto` as an opt-in wrapper mode; its default is `--render never` for raw HTTP. Use `render_page.py --mode always` or `fetch_page.py --render always` to force rendering. Content extraction uses [trafilatura](https://github.com/adbar/trafilatura) for boilerplate removal. Publication dates come from [htmldate](https://github.com/adbar/htmldate). Known nuance: pages with scroll-bound hydration or post-interaction content fetches still produce noisy findings; see the [Limitations](#limitations) section for the recommended `seo-visual` cross-check workflow on those edge cases.
 
 ### What Google APIs does Claude SEO use, and are they required?
 
