@@ -511,15 +511,21 @@ async function loadAll($: EngineInterface, ctx: Ctx): Promise<void> {
   $.ui.status(statusLine(ctx.pane.host, rows))
 }
 
-/** The person typed the site in the pane: remember it for this folder and load again. */
+/** Remembers a site the person gave: for this folder, and as the last one used anywhere. */
+async function rememberTarget($: EngineInterface, ctx: Ctx, value: string): Promise<void> {
+  ctx.typed = value.trim()
+  ctx.pane.models = {}
+  await $.store.set(`target:${await $.session.cwd()}`, ctx.typed).catch(() => undefined)
+  await $.store.set('target:last', hostOf(ctx.typed)).catch(() => undefined)
+}
+
+/** The person typed the site in the pane: remember it and load again. */
 async function setTarget($: EngineInterface, ctx: Ctx, value: string): Promise<void> {
   if (hostOf(value) === null) {
     return
   }
 
-  ctx.typed = value.trim()
-  ctx.pane.models = {}
-  await $.store.set(`target:${await $.session.cwd()}`, ctx.typed).catch(() => undefined)
+  await rememberTarget($, ctx, value)
   await loadAll($, ctx)
 }
 
@@ -551,12 +557,27 @@ async function exportHtml($: EngineInterface, ctx: Ctx, loadAllFirst: boolean): 
 async function cockpitCommand($: EngineInterface, ctx: Ctx, args: string): Promise<{ text: string }> {
   // The engine already names the plugin above a command's answer; the text is the outcome only.
   try {
-    if (args.trim().toLowerCase() === 'export') {
+    const arg = args.trim()
+
+    if (arg.toLowerCase() === 'export') {
       return { text: `Dashboard written to ${await exportHtml($, ctx, true)}` }
     }
 
-    // A second /seo-cockpit closes it, as the official modernization pane does.
-    if (ctx.pane.isOpen) {
+    // `/seo-cockpit claude-seo.md`: that site, remembered for this folder and as the last one used.
+    if (arg !== '') {
+      if (hostOf(arg) === null) {
+        return { text: `"${arg}" is not a site. Try /seo-cockpit example.com, or /seo-cockpit export.` }
+      }
+
+      await rememberTarget($, ctx, arg)
+
+      if (ctx.pane.isOpen) {
+        void loadAll($, ctx).catch(() => undefined)
+
+        return { text: `Cockpit switched to ${hostOf(arg)}.` }
+      }
+    } else if (ctx.pane.isOpen) {
+      // A second /seo-cockpit closes it, as the official modernization pane does.
       await $.ui.close({ id: PANE_ID }).catch(() => undefined)
       ctx.pane.isOpen = false
 
@@ -588,7 +609,7 @@ async function registerCommands($: EngineInterface): Promise<void> {
   await Promise.all([
     $.command.register({ name: 'seo-spend', description: 'claude-seo DataForSEO spend: today, 7 and 30 days, by endpoint', immediate: true }).catch(() => undefined),
     $.command.register({ name: 'seo-doctor', description: 'claude-seo runtime readiness and where it is installed', immediate: true }).catch(() => undefined),
-    $.command.register({ name: 'seo-cockpit', description: 'Charts for Search Console, rankings, Core Web Vitals, the audit, Maps and spend', argumentHint: '[export]', immediate: true }).catch(() => undefined),
+    $.command.register({ name: 'seo-cockpit', description: 'Charts for Search Console, rankings, Core Web Vitals, the audit, Maps and spend', argumentHint: '[site | export]', immediate: true }).catch(() => undefined),
   ])
 }
 

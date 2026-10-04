@@ -96,6 +96,30 @@ describe('cockpit', () => {
     expect(await ui.find({ key: 'target' })).toBeDefined()
   })
 
+  test('/seo-cockpit <site> opens that site and remembers it here and as the last one', async ($, on) => {
+    worldOf(on)
+
+    const saved: Record<string, unknown> = {}
+
+    on('session.cwd', () => ({ value: '/elsewhere' }))
+    on('store.get', ($, e) => ({ value: saved[e.key] }))
+    on('store.set', ($, e) => {
+      saved[e.key] = e.value
+
+      return { value: undefined }
+    })
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: { isPlaced: true } }) as never)
+    on('ui.render', () => ({ type: 'Text', props: {}, children: ['engine'] }) as never)
+    mock.clock(on)
+
+    expect((await $.command.run(command('seo-cockpit', 'claude-seo.md'))).text).toBe('Cockpit open for claude-seo.md.')
+    expect(saved['target:/elsewhere']).toBe('claude-seo.md')
+    expect(saved['target:last']).toBe('claude-seo.md')
+    expect((await $.command.run(command('seo-cockpit', 'claude-ads.md'))).text).toBe('Cockpit switched to claude-ads.md.')
+    expect((await $.command.run(command('seo-cockpit', 'not a site'))).text).toContain('is not a site')
+  })
+
   test('with no pane on screen, it writes the HTML dashboard instead', async ($, on) => {
     worldOf(on)
 

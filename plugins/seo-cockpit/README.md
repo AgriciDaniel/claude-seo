@@ -71,7 +71,7 @@ Charts are drawn with block characters in the terminal and as SVG on the desktop
 
 - `/seo-spend`: DataForSEO spend today, over 7 and 30 days, by endpoint, with a 30-day spark row.
 - `/seo-doctor`: claude-seo runtime readiness, install location, and guard state.
-- `/seo-cockpit [export]`: the visual cockpit, or with `export` the HTML dashboard.
+- `/seo-cockpit [site | export]`: the visual cockpit (for a given site, remembered), or with `export` the HTML dashboard.
 
 ## Install
 
