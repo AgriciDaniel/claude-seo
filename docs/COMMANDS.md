@@ -719,6 +719,25 @@ All commands accept `--days` (default 28), `--limit` (default 50),
 
 ---
 
+### `/seo posthog [command]`
+
+PostHog analytics via the PostHog MCP server (extension). **Prerequisites:** PostHog extension installed (`./extensions/posthog/install.sh`) and the PostHog MCP server connected and authenticated (`/mcp`). No credentials are stored by claude-seo. Queries run as HogQL through the MCP `exec` tool (`call execute-sql`).
+
+Use as a GA4 alternative or supplement when the site already sends `$pageview` events to PostHog. PostHog has no keyword data; use `/seo google` for Search Console.
+```
+/seo posthog check                 # Confirm the MCP is connected and $pageview events exist
+/seo posthog organic               # Organic search visits per day (28d)
+/seo posthog top-pages             # Top organic landing pages
+/seo posthog device                # Organic traffic by device type
+/seo posthog country               # Organic traffic by country
+/seo posthog referrers             # Referrer / channel breakdown
+```
+
+Options: days (default 28) and limit (default 50). The audit orchestrator
+spawns the `seo-posthog` agent automatically when the MCP is connected.
+
+---
+
 ### `/seo profound [command] <brand>`
 
 LLM brand-citation tracking via Profound (extension). **Prerequisites:** Profound extension installed.
