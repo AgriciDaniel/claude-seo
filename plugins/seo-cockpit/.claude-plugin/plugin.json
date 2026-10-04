@@ -1,6 +1,6 @@
 {
   "name": "seo-cockpit",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Mods companion for claude-seo: a spend guard on paid SEO APIs, a live audit band with a receipt, an economy mode, a visual cockpit (Search Console, rankings, Core Web Vitals, audit, Maps, spend) and zero-token commands",
   "author": {
     "name": "Agrici Daniel"
@@ -40,14 +40,14 @@
     },
     "site": {
       "type": "string",
-      "title": "Search Console property",
-      "description": "For the cockpit: sc-domain:example.com or https://example.com/. Leave empty to use claude-seo's default property.",
+      "title": "Default site",
+      "description": "The site the cockpit opens on when the folder shows none: claude-seo.md, sc-domain:claude-seo.md or https://claude-seo.md/. A site chosen in a folder, or that folder's audit, still comes first.",
       "default": ""
     },
     "pageUrl": {
       "type": "string",
       "title": "Page for Core Web Vitals",
-      "description": "For the cockpit's Vitals and drift views: a URL or origin. Leave empty to use the Search Console property's site.",
+      "description": "For the Vitals and drift views of the default site: a URL or origin. Leave empty to use the site's home page.",
       "default": ""
     },
     "googleAccount": {

@@ -45,9 +45,26 @@ export function siteOfAudit(folder: string, data: unknown): string | null {
   return fromData ?? hostOf(folder.replace(/-audit$/, ''))
 }
 
-/** The target in order: the person's setting, what they typed in the pane, then what the folder shows. */
-export function chooseTarget(setting: string, typed: string | null, inferred: string | null): string | null {
-  return hostOf(setting) ?? (typed === null ? null : hostOf(typed)) ?? inferred
+/**
+ * The target, most specific first: what the person chose for this folder
+ * (typed in the pane, or `/seo-cockpit <site>`), the site this folder's audit
+ * is about, then the default from /config. The caller falls back to the last
+ * site used when all three are empty.
+ */
+export function chooseTarget(setting: string, typed: string | null, inferred: string | null): { host: string | null; source: 'typed' | 'folder' | 'setting' | null } {
+  const chosen = typed === null ? null : hostOf(typed)
+
+  if (chosen !== null) {
+    return { host: chosen, source: 'typed' }
+  }
+
+  if (inferred !== null) {
+    return { host: inferred, source: 'folder' }
+  }
+
+  const fallback = hostOf(setting)
+
+  return fallback === null ? { host: null, source: null } : { host: fallback, source: 'setting' }
 }
 
 const kpi = (model: TabModel, label: string): string | undefined => model.kpis.find(k => k.label === label)?.value

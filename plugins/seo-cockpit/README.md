@@ -54,7 +54,7 @@ claude-seo.md  from this folder
 r: Refresh  e: Export
 ```
 
-- **The site** comes from `/config` if you set one, else from the newest `<domain>-audit/` folder here. With neither, the pane asks for it in place and remembers it for this folder.
+- **The site**, most specific first: one you chose in this folder (typed in the pane, or `/seo-cockpit <site>`), the site of this folder's newest `<domain>-audit/`, your **Default site** from `/config`, then the last site you used. Set a Default site once and the cockpit opens on it from any folder; the Audit row finds that site's audit wherever it was last seen.
 - **Google access** uses claude-seo's own setup, or the two Google settings in `/config`. If Search Console says "no access" for a property you own, a service account is being used: set "Google account" to `gcloud` after `gcloud auth application-default login --scopes=https://www.googleapis.com/auth/webmasters.readonly,https://www.googleapis.com/auth/cloud-platform`. Core Web Vitals needs a Google API key ("Google API key" in `/config`).
 - **Where it sits:** in a normal terminal the pane opens above the prompt and asks for as many rows as the screen can spare (drag it to resize; your size is kept). In Claude Code's fullscreen layout, 110 columns or wider, it docks beside the conversation at full height.
 - **Everything loads on open**, from free sources only (the audit and grid files, the cost ledger, and Search Console and CrUX through claude-seo's own Google setup). The last result shows at once and is replaced when the fresh one arrives.
@@ -92,7 +92,7 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 | Spend guard | on | Turn off to let paid calls through unchecked |
 | Audit band | on | The live line above the prompt during an audit |
 | Economy mode | off | Run the five Opus agents on Sonnet |
-| Search Console property | empty | For the cockpit: `sc-domain:example.com` or `https://example.com/`. Empty uses claude-seo's default property |
+| Default site | empty | The site the cockpit opens on when a folder shows none (`claude-seo.md`, `sc-domain:claude-seo.md` or `https://claude-seo.md/`). A site chosen in a folder, or its audit, comes first |
 | Page for Core Web Vitals | empty | For the Vitals and drift views. Empty uses the property's site |
 | Google account | auto | `auto`: claude-seo's own order (its sign-in, a service account, then your gcloud account). `gcloud`: always your own account from `gcloud auth application-default login`, for properties you own |
 | Google API key | empty | For Core Web Vitals (CrUX). Sensitive: kept in Claude Code's secure storage. Empty uses claude-seo's own setup |

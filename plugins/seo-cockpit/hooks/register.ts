@@ -350,6 +350,37 @@ const isModel = (value: unknown): value is TabModel => {
   return typeof m === 'object' && m !== null && typeof m.heading === 'string' && Array.isArray(m.kpis) && Array.isArray(m.charts) && Array.isArray(m.tables) && Array.isArray(m.notes)
 }
 
+/** The audit for a site: a live one, this folder's if it is about that site, else the one remembered for it. */
+async function auditFor($: EngineInterface, ctx: Ctx, host: string | null): Promise<[unknown, string]> {
+  if (ctx.audit?.dir != null && (host === null || ctx.audit.domain === host)) {
+    const path = joinPath(ctx.audit.dir, 'audit-data.json')
+
+    return [await readJson($, path), await shown($, path)]
+  }
+
+  const here = await newestFile($, '-audit', name => name === 'audit-data.json')
+
+  if (here !== null) {
+    const data = await readJson($, here)
+
+    if (host === null || siteOfAudit(here.split(/[/\\]/).at(-2) ?? '', data) === host) {
+      return [data, await shown($, here)]
+    }
+  }
+
+  const remembered = host === null ? undefined : await $.store.get(`audit:${host}`).catch(() => undefined)
+
+  if (typeof remembered === 'string') {
+    const data = await readJson($, remembered)
+
+    if (data !== null) {
+      return [data, remembered]
+    }
+  }
+
+  return [null, '']
+}
+
 async function readJson($: EngineInterface, path: string): Promise<unknown> {
   try {
     return JSON.parse(await $.fs.read(path))
@@ -358,7 +389,7 @@ async function readJson($: EngineInterface, path: string): Promise<unknown> {
   }
 }
 
-/** The site the cockpit is about: /config, then what was typed in the pane, then what this folder shows. */
+/** The site the cockpit is about: this folder's choice, its audit, the /config default, then the last site used. */
 async function resolveHost($: EngineInterface, ctx: Ctx): Promise<void> {
   const cwd = await $.session.cwd().catch(() => '')
 
@@ -377,12 +408,18 @@ async function resolveHost($: EngineInterface, ctx: Ctx): Promise<void> {
       const folder = path.split(/[/\\]/).at(-2) ?? ''
 
       inferred = siteOfAudit(folder, await readJson($, path))
+
+      // Remember where this site's audit lives, so the Audit row works from any folder.
+      if (inferred !== null) {
+        void $.store.set(`audit:${inferred}`, path).catch(() => undefined)
+      }
     }
   }
 
-  const setting = ctx.pageUrl || ctx.site
-  let host = chooseTarget(setting, ctx.typed, inferred)
-  let source: PaneState['hostSource'] = host === null ? null : hostOf(setting) !== null ? 'setting' : ctx.typed !== null && hostOf(ctx.typed) !== null ? 'typed' : 'folder'
+  const setting = ctx.site || ctx.pageUrl
+  const chosen = chooseTarget(setting, ctx.typed, inferred)
+  let host = chosen.host
+  let source: PaneState['hostSource'] = chosen.source
 
   // Nothing here says which site: use the last one seen anywhere, and say so.
   if (host === null) {
@@ -409,10 +446,10 @@ async function buildTab($: EngineInterface, ctx: Ctx, tab: TabId): Promise<TabMo
   }
 
   const host = ctx.pane.host
-  // An explicit property wins; otherwise the site's domain property, the usual Search Console setup.
-  const property = ctx.site.trim() || (host === null ? '' : `sc-domain:${host}`)
+  // The /config property and page apply only to the site they name; any other site uses its domain property and home page.
+  const property = host === null ? '' : hostOf(ctx.site) === host ? ctx.site.trim() : `sc-domain:${host}`
   const propertyArgs = property === '' ? [] : ['--property', property]
-  const url = ctx.pageUrl || (host === null ? '' : `https://${host}`)
+  const url = host === null ? '' : hostOf(ctx.pageUrl) === host ? ctx.pageUrl : `https://${host}`
 
   if (tab === 'gsc' || tab === 'rankings') {
     // With no site, claude-seo would fall back to its own default property, which may be another site.
@@ -449,9 +486,7 @@ async function buildTab($: EngineInterface, ctx: Ctx, tab: TabId): Promise<TabMo
   }
 
   if (tab === 'audit') {
-    const path = ctx.audit?.dir != null ? joinPath(ctx.audit.dir, 'audit-data.json') : await newestFile($, '-audit', name => name === 'audit-data.json')
-
-    return auditModel(path === null ? null : await readJson($, path), await shown($, path), at)
+    return auditModel(...(await auditFor($, ctx, host)), at)
   }
 
   if (tab === 'maps') {

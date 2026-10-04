@@ -129,7 +129,7 @@ function footer(kit: Kit, state: PaneState, isFocused: boolean, actions: PaneAct
 /** The Overview: which site, then one line per source; missing data stays visible with its fix. */
 export function overviewView(kit: Kit, state: PaneState, columns: number, isFocused: boolean, actions: PaneActions): RenderElement {
   const { Box, Text, Button } = kit
-  const where = { setting: 'from /config', typed: 'typed here', folder: 'from this folder', last: 'last used', none: '' }[state.hostSource ?? 'none']
+  const where = { setting: 'default', typed: 'chosen here', folder: 'from this folder', last: 'last used', none: '' }[state.hostSource ?? 'none']
   const children: RenderElement[] = [
     // Row 1 carries no controls: the engine draws its close mark at the right edge.
     Text({ children: [Text({ bold: true, children: [cut(state.host ?? 'No site yet', Math.max(10, columns - 24))] }), Text({ dimColor: true, children: [where === '' ? '' : `  ${where}`] })] }),

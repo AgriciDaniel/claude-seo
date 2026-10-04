@@ -120,6 +120,39 @@ describe('cockpit', () => {
     expect((await $.command.run(command('seo-cockpit', 'not a site'))).text).toContain('is not a site')
   })
 
+  test('the default site opens from any folder, with its remembered audit', { options: { site: 'claude-seo.md' } }, async ($, on) => {
+    worldOf(on)
+    on('session.cwd', () => ({ value: '/anywhere' }))
+    on('store.get', ($, e) => ({ value: e.key === 'audit:claude-seo.md' ? '/work/claude-seo.md-audit/audit-data.json' : undefined }))
+    on('store.set', () => ({ value: undefined }))
+    on('fs.read', ($, e) => (e.path.endsWith('audit-data.json') ? { value: AUDIT } : { deny: 'ENOENT' }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: { isPlaced: true } }) as never)
+    on('ui.render', () => ({ type: 'Text', props: {}, children: ['engine'] }) as never)
+    mock.clock(on)
+
+    expect((await $.command.run(command('seo-cockpit'))).text).toBe('Cockpit open for claude-seo.md.')
+
+    const ui = await $.ui.mount({ ...NARROW, surface: 'terminal' })
+
+    expect(await ui.find({ type: 'Text', text: /default/ })).toBeDefined()
+    await ui.press({ key: 'refresh' })
+    expect(await ui.find({ key: 'row-audit' })).toBeDefined()
+  })
+
+  test('a site chosen in a folder beats the default', { options: { site: 'claude-seo.md' } }, async ($, on) => {
+    worldOf(on)
+    on('session.cwd', () => ({ value: '/client' }))
+    on('store.get', ($, e) => ({ value: e.key === 'target:/client' ? 'client.example' : undefined }))
+    on('store.set', () => ({ value: undefined }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: { isPlaced: true } }) as never)
+    on('ui.render', () => ({ type: 'Text', props: {}, children: ['engine'] }) as never)
+    mock.clock(on)
+
+    expect((await $.command.run(command('seo-cockpit'))).text).toBe('Cockpit open for client.example.')
+  })
+
   test('with no pane on screen, it writes the HTML dashboard instead', async ($, on) => {
     worldOf(on)
 
