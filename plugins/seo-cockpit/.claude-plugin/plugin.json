@@ -1,6 +1,6 @@
 {
   "name": "seo-cockpit",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Mods companion for claude-seo: a spend guard on paid SEO APIs, a live audit band with a receipt, an economy mode, a visual cockpit (Search Console, rankings, Core Web Vitals, audit, Maps, spend) and zero-token commands",
   "author": {
     "name": "Agrici Daniel"
@@ -48,6 +48,12 @@
       "type": "string",
       "title": "Page for Core Web Vitals",
       "description": "For the Vitals and drift views of the default site: a URL or origin. Leave empty to use the site's home page.",
+      "default": ""
+    },
+    "auditsFolder": {
+      "type": "directory",
+      "title": "Audits folder",
+      "description": "Where you keep your audits (the <site>-audit/ folders /seo audit writes). The cockpit finds the shown site's audit there from any folder.",
       "default": ""
     },
     "googleAccount": {

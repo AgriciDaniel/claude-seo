@@ -254,10 +254,17 @@ def query_search_analytics(
     except Exception as e:
         error_str = str(e)
         if "403" in error_str:
+            hint = (
+                " A domain property is written sc-domain:example.com."
+                if not site_url.startswith(("sc-domain:", "http://", "https://"))
+                else ""
+            )
             result["error"] = (
-                f"Permission denied for property '{site_url}'. "
-                "Ensure the service account email is added as a user in "
-                "Google Search Console > Settings > Users and permissions."
+                f"Permission denied for property '{site_url}'.{hint} "
+                "The signed-in Google account has no access to it: add that account "
+                "(a service account email, or your own) in Google Search Console > "
+                "Settings > Users and permissions, or use your own account with "
+                "CLAUDE_SEO_GOOGLE_AUTH=adc after gcloud auth application-default login."
             )
         elif "404" in error_str:
             result["error"] = (

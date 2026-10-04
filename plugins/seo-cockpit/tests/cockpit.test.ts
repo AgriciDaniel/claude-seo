@@ -140,6 +140,30 @@ describe('cockpit', () => {
     expect(await ui.find({ key: 'row-audit' })).toBeDefined()
   })
 
+  test('a bare default site queries the sc-domain property, and the audits folder finds its audit', { options: { site: 'claude-seo.md', auditsFolder: '/audits' } }, async ($, on) => {
+    const world = worldOf(on, { scripts: { run: { stdout: { error: null, rows: [] } } } })
+
+    on('session.cwd', () => ({ value: '/anywhere' }))
+    on('store.get', () => ({ value: undefined }))
+    on('store.set', () => ({ value: undefined }))
+    on('fs.read', ($, e) => (e.path === '/audits/claude-seo.md-audit/audit-data.json' ? { value: AUDIT } : { deny: 'ENOENT' }))
+    on('ui.status', () => ({ value: undefined }))
+    on('ui.open', () => ({ value: { isPlaced: true } }) as never)
+    on('ui.render', () => ({ type: 'Text', props: {}, children: ['engine'] }) as never)
+    mock.clock(on)
+
+    await $.command.run(command('seo-cockpit'))
+
+    const ui = await $.ui.mount({ ...WIDE, surface: 'terminal' })
+
+    await ui.press({ key: 'refresh' })
+    // Search Console needs sc-domain:claude-seo.md; the bare name is not a property.
+    expect(world.runs.some(run => run.includes('--property sc-domain:claude-seo.md'))).toBe(true)
+    expect(world.runs.some(run => / --property claude-seo\.md/.test(run))).toBe(false)
+    await ui.press({ key: 'row-audit' })
+    expect(await ui.find({ type: 'Text', text: /85\/100/ })).toBeDefined()
+  })
+
   test('a site chosen in a folder beats the default', { options: { site: 'claude-seo.md' } }, async ($, on) => {
     worldOf(on)
     on('session.cwd', () => ({ value: '/client' }))

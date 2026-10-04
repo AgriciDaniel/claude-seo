@@ -94,6 +94,7 @@ Auto-update is off by default for third-party marketplaces. Run `claude plugin u
 | Economy mode | off | Run the five Opus agents on Sonnet |
 | Default site | empty | The site the cockpit opens on when a folder shows none (`claude-seo.md`, `sc-domain:claude-seo.md` or `https://claude-seo.md/`). A site chosen in a folder, or its audit, comes first |
 | Page for Core Web Vitals | empty | For the Vitals and drift views. Empty uses the property's site |
+| Audits folder | empty | Where you keep your `<site>-audit/` folders. The cockpit finds the shown site's audit there from any folder |
 | Google account | auto | `auto`: claude-seo's own order (its sign-in, a service account, then your gcloud account). `gcloud`: always your own account from `gcloud auth application-default login`, for properties you own |
 | Google API key | empty | For Core Web Vitals (CrUX). Sensitive: kept in Claude Code's secure storage. Empty uses claude-seo's own setup |
 

@@ -35,6 +35,8 @@ type Ctx = {
   /** Google settings from /config, handed to claude-seo's scripts only. */
   googleAccount: string
   googleApiKey: string
+  /** Where the person keeps their audits (`<site>-audit/` folders), found from any working folder. */
+  auditsFolder: string
   /** What the person typed in the pane as the site, per working folder. */
   typed: string | null
 }
@@ -378,6 +380,20 @@ async function auditFor($: EngineInterface, ctx: Ctx, host: string | null): Prom
     }
   }
 
+  // The audits folder from /config: `<site>-audit/audit-data.json`, with or without www.
+  if (host !== null && ctx.auditsFolder !== '') {
+    for (const name of [`${host}-audit`, `www.${host}-audit`]) {
+      const path = joinPath(ctx.auditsFolder, name, 'audit-data.json')
+      const data = await readJson($, path)
+
+      if (data !== null) {
+        void $.store.set(`audit:${host}`, path).catch(() => undefined)
+
+        return [data, path]
+      }
+    }
+  }
+
   return [null, '']
 }
 
@@ -435,6 +451,17 @@ async function resolveHost($: EngineInterface, ctx: Ctx): Promise<void> {
   ctx.pane.hostSource = source
 }
 
+/**
+ * The Search Console property for a site. A /config value counts only when it
+ * is a real property (`sc-domain:` or a URL prefix) for that site; a bare name
+ * such as `claude-seo.md` is not a property and becomes `sc-domain:claude-seo.md`.
+ */
+function propertyFor(setting: string, host: string): string {
+  const value = setting.trim()
+
+  return hostOf(value) === host && /^(sc-domain:|https?:\/\/)/i.test(value) ? value : `sc-domain:${host}`
+}
+
 /** Builds one source's model from claude-seo's own scripts and files. Free: no paid API is called. */
 async function buildTab($: EngineInterface, ctx: Ctx, tab: TabId): Promise<TabModel> {
   const at = stamp()
@@ -447,7 +474,7 @@ async function buildTab($: EngineInterface, ctx: Ctx, tab: TabId): Promise<TabMo
 
   const host = ctx.pane.host
   // The /config property and page apply only to the site they name; any other site uses its domain property and home page.
-  const property = host === null ? '' : hostOf(ctx.site) === host ? ctx.site.trim() : `sc-domain:${host}`
+  const property = host === null ? '' : propertyFor(ctx.site, host)
   const propertyArgs = property === '' ? [] : ['--property', property]
   const url = host === null ? '' : hostOf(ctx.pageUrl) === host ? ctx.pageUrl : `https://${host}`
 
@@ -718,6 +745,7 @@ export function register(on: On, options: PluginOptions) {
     pane: { view: 'overview', models: {}, loading: new Set(), host: null, hostSource: null, exported: null, isOpen: false },
     typed: null,
     googleAccount: typeof options.googleAccount === 'string' ? options.googleAccount : 'auto',
+    auditsFolder: typeof options.auditsFolder === 'string' ? options.auditsFolder.trim() : '',
     googleApiKey: typeof options.googleApiKey === 'string' ? options.googleApiKey.trim() : '',
   }
 
