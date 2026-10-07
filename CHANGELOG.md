@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `ga4_report.py` failed in the Claude Code sandbox on macOS. Its gRPC
+  client connects to the sandbox's HTTP proxy through a dual-stack IPv6
+  socket (`::ffff:127.0.0.1`), which the sandbox refuses with
+  `Operation not permitted`. The GA4 client now uses the REST transport.
+
 ## [2.4.2] - 2026-10-04
 
 seo-cockpit, Google sign-in through your own account, and a schema-hook fix.

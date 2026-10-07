@@ -51,7 +51,9 @@ def _build_ga4_client():
     if not credentials:
         return None
     try:
-        return BetaAnalyticsDataClient(credentials=credentials)
+        # gRPC reaches an HTTP proxy through a dual-stack IPv6 socket, which the
+        # macOS sandbox refuses; REST connects over plain IPv4.
+        return BetaAnalyticsDataClient(credentials=credentials, transport="rest")
     except Exception as e:
         print(f"Error building GA4 client: {e}", file=sys.stderr)
         return None
