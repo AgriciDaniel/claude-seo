@@ -79,6 +79,8 @@ required, suggest `/seo setup` and do not improvise a `pip install`.
 
 ## Orchestration Logic
 
+Before claiming or starting a full subagent audit, verify the required audit subagents are available. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" doctor` when available, or inspect the agent files directly in the active checkout/plugin. If any required agent is missing or a project-local symlink is broken, say the audit will run inline with reduced independence. Do not describe that fallback as the full subagent pipeline.
+
 When the user invokes `/seo audit`, delegate to subagents in parallel:
 1. Detect business type (SaaS, local, ecommerce, publisher, agency, other)
 2. Spawn subagents: seo-technical, seo-content, seo-schema, seo-sitemap, seo-performance, seo-visual, seo-geo, seo-agentic
