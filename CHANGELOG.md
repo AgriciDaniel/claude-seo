@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Google API calls made through google-api-python-client (Search Console,
+  Indexing, YouTube) ignored `HTTPS_PROXY`. httplib2 tunnels through a proxy only when PySocks
+  is installed; without it, it connects directly over HTTPS and fails where
+  egress goes only through a proxy, such as the Claude Code sandbox
+  (`Unable to find the server at oauth2.googleapis.com`). `PySocks` is now
+  in `requirements.txt`; rerun `/seo setup` to pick it up.
+
 ## [2.4.2] - 2026-10-04
 
 seo-cockpit, Google sign-in through your own account, and a schema-hook fix.
