@@ -23,8 +23,14 @@ import sys
 import time
 from typing import Optional
 
-CONFIG_PATH = os.path.expanduser("~/.config/claude-seo/google-api.json")
-TOKEN_PATH = os.path.expanduser("~/.config/claude-seo/oauth-token.json")
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from profile_paths import config_dir_fields, describe_config_dir, profile_dir_or_exit  # noqa: E402
+
+_PROFILE_DIR = profile_dir_or_exit()
+CONFIG_PATH = str(_PROFILE_DIR / "google-api.json")
+TOKEN_PATH = str(_PROFILE_DIR / "oauth-token.json")
 
 # Service-to-scope mapping
 SCOPES = {
@@ -93,8 +99,9 @@ def load_config() -> dict:
     """
     Load configuration from config file with environment variable fallbacks.
 
-    Reads ~/.config/claude-seo/google-api.json first. Any missing fields
-    are filled from environment variables.
+    Reads CONFIG_PATH (google-api.json in the profile directory, see
+    profile_paths.py) first. Any missing fields are filled from environment
+    variables.
 
     Returns:
         Dictionary with keys: service_account_path, api_key,
@@ -178,7 +185,7 @@ def get_service_account_credentials(scopes: list):
 
 def _gcloud_adc_path() -> str:
     """Where `gcloud auth application-default login` writes the user's credentials."""
-    config_dir = os.environ.get("CLOUDSDK_CONFIG")
+    config_dir = os.path.expanduser(os.environ.get("CLOUDSDK_CONFIG", ""))
     if not config_dir:
         if sys.platform == "win32" and os.environ.get("APPDATA"):
             config_dir = os.path.join(os.environ["APPDATA"], "gcloud")
@@ -559,9 +566,6 @@ def validate_url(url: str) -> bool:
     # Lazy import: avoids a hard requirement on url_safety for callers that
     # only need google_auth's other helpers (e.g. token refresh) and keeps
     # the import graph one-directional.
-    _scripts_dir = os.path.dirname(os.path.abspath(__file__))
-    if _scripts_dir not in sys.path:
-        sys.path.insert(0, _scripts_dir)
     from url_safety import validate_url as _validate_url
 
     return _validate_url(url)
@@ -828,8 +832,8 @@ FASTEST, FOR PROPERTIES YOU OWN: use your own Google account
      Paste email, set Viewer role
 
 6. CREATE CONFIG FILE
-   mkdir -p ~/.config/claude-seo
-   Save to ~/.config/claude-seo/google-api.json:
+   mkdir -p """ + '"' + os.path.dirname(CONFIG_PATH) + '"' + """
+   Save to """ + CONFIG_PATH + """:
 
    {
      "service_account_path": "/path/to/service_account.json",
@@ -944,11 +948,16 @@ def main():
 
         if args.json:
             tier_info = detect_tier()
-            output = {"tier": tier_info, "services": results}
+            output = {
+                "tier": tier_info,
+                **config_dir_fields(CONFIG_PATH),
+                "services": results,
+            }
             print(json.dumps(output, indent=2))
         else:
             tier_info = detect_tier()
             print(f"Credential Tier: {tier_info['tier']} -- {tier_info['description']}")
+            print(f"Config directory: {describe_config_dir(CONFIG_PATH)}")
             print()
             for svc, result in results.items():
                 status = "OK" if result["available"] else "MISSING"

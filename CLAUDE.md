@@ -90,8 +90,9 @@ claude-seo/
     seo-flow.md                  # FLOW framework integration
   hooks/                           # Quality gate hooks
     hooks.json                   # PostToolUse schema validation
-  scripts/                         # 60 Python execution scripts
+  scripts/                         # 61 Python execution scripts
     google_auth.py               # Credential management (OAuth, SA, API key, 4-tier detection)
+    profile_paths.py             # Credential directory (CLAUDE_SEO_PROFILE_DIR, default ~/.config/claude-seo)
     backlinks_auth.py            # Backlink API credential management (Moz, Bing)
     moz_api.py                   # Moz Link Explorer API (DA/PA, spam, domains, anchors)
     bing_webmaster.py            # Bing Webmaster Tools API (registered-site links/comparison)
@@ -218,7 +219,7 @@ claude-seo/
 - **URL validation**: All scripts that connect to user-supplied URLs must use `scripts/url_safety.py` (`validate_url_strict()` plus the pinned safe request helpers). This blocks private IPs, loopback, metadata endpoints, redirect rebinding, and DNS rebinding.
 - **OAuth tokens**: Never store `client_secret` in the token file. Read it from the client_secret.json file at runtime.
 - **No hardcoded paths**: Use `os.path.dirname(os.path.abspath(__file__))` for relative paths, never a user-specific absolute path
-- **Config location**: `~/.config/claude-seo/google-api.json` and `~/.config/claude-seo/backlinks-api.json` (user-space, not in repo)
+- **Config location**: `~/.config/claude-seo/google-api.json` and `~/.config/claude-seo/backlinks-api.json`; `CLAUDE_SEO_PROFILE_DIR` moves them, with `oauth-token.json` and `matomo.json`, into a per-project directory (user-space, not in repo)
 
 ## Report Generation Rules
 

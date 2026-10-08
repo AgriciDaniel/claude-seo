@@ -33,6 +33,14 @@ same guarded write pattern the `backlinks_auth` module uses for the Moz and
 Bing keys. The token is deliberately kept out of `~/.claude/settings.json`,
 which is a general-purpose config file that tooling reads, prints, and syncs.
 
+For a per-project profile, run the installer with `CLAUDE_SEO_PROFILE_DIR`
+set to the directory that project uses. It then writes `matomo.json` there
+instead of `~/.config/claude-seo/`:
+
+```bash
+CLAUDE_SEO_PROFILE_DIR=~/.config/claude-seo/profiles/project-xyz ./extensions/matomo/install.sh
+```
+
 Environment variables still take precedence for any field the file does not
 supply, and remain the right choice on a shared machine or in CI:
 
@@ -123,6 +131,8 @@ have both GA4 and Matomo configured.
 This removes the skill, the agent, and
 `~/.config/claude-seo/matomo.json`, and clears any `MATOMO_*` entries a
 pre-v2.4.0 installer had left in `~/.claude/settings.json`.
+
+A `matomo.json` in a `CLAUDE_SEO_PROFILE_DIR` profile stays; remove it by hand.
 
 PowerShell manual removal:
 

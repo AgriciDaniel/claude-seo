@@ -204,7 +204,7 @@ A 4-tier credential system lets you start with zero keys and add data as needed.
 | 2 | + GA4 property config | + GA4 organic traffic, top landing pages, device / country breakdown |
 | 3 | + Ads developer token | + Keyword Planner search volume and competition data |
 
-PDF reports are generated via [WeasyPrint](https://weasyprint.org/) (A4 layout) with matplotlib charts at 200 DPI. Run `/seo google setup` for the credential wizard. All credentials live under `~/.config/claude-seo/` with `0o600` permissions; nothing is checked into the repo.
+PDF reports are generated via [WeasyPrint](https://weasyprint.org/) (A4 layout) with matplotlib charts at 200 DPI. Run `/seo google setup` for the credential wizard. All credentials live under `~/.config/claude-seo/`, or in a per-project directory set by `CLAUDE_SEO_PROFILE_DIR`, with `0o600` permissions; nothing is checked into the repo.
 
 ### How does Claude SEO handle local SEO?
 
@@ -437,7 +437,7 @@ Yes. v2 shipped a shared headless renderer (`scripts/render_page.py`) backed by 
 
 ### What Google APIs does Claude SEO use, and are they required?
 
-None are required. Claude SEO is fully functional with zero API keys. A 4-tier credential system lets you upgrade gradually: Tier 0 (API key only) unlocks PageSpeed Insights, CrUX, and CrUX History (25-week trend data). Tier 1 (+ OAuth or service account) adds Search Console with queries, URL Inspection, sitemap status, and the Indexing API for eligible JobPosting pages or BroadcastEvent in VideoObject pages; the API does not guarantee indexing. Tier 2 (+ GA4 property config) adds organic traffic, top landing pages, and device / country breakdowns. Tier 3 (+ Ads developer token) adds Keyword Planner search volume and competition data. The credential setup wizard runs via `/seo google setup`. All credentials live under `~/.config/claude-seo/` with `0o600` file permissions; nothing is checked into the repo and nothing is transmitted beyond Google's own endpoints.
+None are required. Claude SEO is fully functional with zero API keys. A 4-tier credential system lets you upgrade gradually: Tier 0 (API key only) unlocks PageSpeed Insights, CrUX, and CrUX History (25-week trend data). Tier 1 (+ OAuth or service account) adds Search Console with queries, URL Inspection, sitemap status, and the Indexing API for eligible JobPosting pages or BroadcastEvent in VideoObject pages; the API does not guarantee indexing. Tier 2 (+ GA4 property config) adds organic traffic, top landing pages, and device / country breakdowns. Tier 3 (+ Ads developer token) adds Keyword Planner search volume and competition data. The credential setup wizard runs via `/seo google setup`. All credentials live under `~/.config/claude-seo/`, or in a per-project directory set by `CLAUDE_SEO_PROFILE_DIR`, with `0o600` file permissions; nothing is checked into the repo and nothing is transmitted beyond Google's own endpoints.
 
 ### Is Claude SEO free?
 

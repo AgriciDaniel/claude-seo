@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `CLAUDE_SEO_PROFILE_DIR` points `google_auth.py`, `backlinks_auth.py`
+  and `matomo_auth.py` at a per-project directory for `google-api.json`,
+  `oauth-token.json`, `backlinks-api.json` and `matomo.json`. Set it in a
+  project's `.claude/settings.local.json` under `env`. Unset, the scripts
+  use `~/.config/claude-seo/` as before. The DataForSEO budget stays
+  global. The Matomo installer writes into the profile when the variable
+  is set.
+- `--check` in the three auth scripts prints the config directory it
+  reads, and `--check --json` returns it as `config_dir` and reports
+  `config_dir_exists`.
+
 ## [2.4.2] - 2026-10-04
 
 seo-cockpit, Google sign-in through your own account, and a schema-hook fix.

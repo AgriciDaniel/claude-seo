@@ -85,7 +85,9 @@ The `client_email` field is what you add to GSC and GA4.
 mkdir -p ~/.config/claude-seo
 ```
 
-Save to `~/.config/claude-seo/google-api.json`:
+With a per-project profile, create the directory that `google_auth.py --check` prints instead.
+
+Save to `google-api.json` in the config directory that `google_auth.py --check` prints (default `~/.config/claude-seo/`, or `CLAUDE_SEO_PROFILE_DIR` when the project sets it, see Per-Project Profiles):
 
 ```json
 {
@@ -95,6 +97,8 @@ Save to `~/.config/claude-seo/google-api.json`:
   "ga4_property_id": "properties/123456789"
 }
 ```
+
+The service account key can live anywhere; `service_account_path` points to it.
 
 ### Property URL Formats
 
@@ -121,6 +125,29 @@ Credential Tier: 2 -- Full (API key + Service Account + GA4)
   [OK] Google Indexing API v3
   [OK] GA4 Data API v1beta
 ```
+
+## Per-Project Profiles
+
+Each project can use its own Google account and properties.
+Set `CLAUDE_SEO_PROFILE_DIR` in the project's `.claude/settings.local.json`:
+
+```json
+{
+  "env": {
+    "CLAUDE_SEO_PROFILE_DIR": "~/.config/claude-seo/profiles/project-xyz"
+  }
+}
+```
+
+The scripts then read and write `google-api.json`, `oauth-token.json`, `backlinks-api.json` and `matomo.json` only in that directory.
+They do not fall back to `~/.config/claude-seo/`, so put the shared `api_key` into each profile or set `GOOGLE_API_KEY`.
+The DataForSEO budget stays global, shared by all projects.
+The value must be an absolute path or start with `~/`; the filesystem root and the home directory are rejected.
+`google_auth.py --check` prints the directory it reads.
+Keep the profile in a private directory outside any git repository: it holds API keys and the OAuth token.
+
+The gcloud sign-in (`gcloud auth application-default login`) lives outside the profile.
+To use a different gcloud account per project, also set `CLOUDSDK_CONFIG` in the same `env` block.
 
 ## Environment Variable Alternatives
 

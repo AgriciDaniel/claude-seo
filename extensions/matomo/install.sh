@@ -55,8 +55,9 @@ main() {
     cp "${SOURCE_DIR}/agents/seo-matomo.md" "${AGENTS_DIR}/seo-matomo.md"
     echo "✓ Installed agent: ${AGENTS_DIR}/seo-matomo.md"
 
-    # Credentials go to ~/.config/claude-seo/matomo.json (0600, atomic), not
-    # into ~/.claude/settings.json: settings.json is a general-purpose config
+    # Credentials go to matomo.json (0600, atomic) in ~/.config/claude-seo/,
+    # or in $CLAUDE_SEO_PROFILE_DIR when it is set, not into
+    # ~/.claude/settings.json: settings.json is a general-purpose config
     # file that tooling reads, prints, and syncs, and an API token has no
     # business in it. matomo_auth.py still falls back to the MATOMO_*
     # environment variables, which stays the right choice on a shared machine.
@@ -88,7 +89,6 @@ PY
     echo "Done. Verify with:"
     echo "  \"\${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo\" run matomo_auth.py --check"
     echo "  \"\${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo\" run matomo_report.py check --json"
-    echo "Credentials live in ~/.config/claude-seo/matomo.json (0600)."
     echo "MATOMO_URL / MATOMO_API_TOKEN / MATOMO_SITE_ID still override the file."
     echo "Full docs: extensions/matomo/docs/MATOMO-SETUP.md"
 }
