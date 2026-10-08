@@ -52,7 +52,9 @@ except ImportError as _import_exc:  # pragma: no cover - hard dependency
         "Install with: pip install -r requirements.txt"
     ) from _import_exc
 
-CONFIG_PATH = os.path.expanduser("~/.config/claude-seo/matomo.json")
+from profile_paths import config_dir_fields, describe_config_dir, profile_dir_or_exit  # noqa: E402
+
+CONFIG_PATH = str(profile_dir_or_exit() / "matomo.json")
 DEFAULT_TIMEOUT = 15
 USER_AGENT = "ClaudeSEO/2.3.0"
 LOCAL_TARGETS_ENV = "CLAUDE_SEO_LOCAL_TARGETS"
@@ -167,8 +169,9 @@ def load_config() -> dict:
     """
     Load configuration from config file with environment variable fallbacks.
 
-    Reads ~/.config/claude-seo/matomo.json first. Any missing fields
-    are filled from environment variables.
+    Reads CONFIG_PATH (matomo.json in the profile directory, see
+    profile_paths.py) first. Any missing fields are filled from environment
+    variables.
 
     Returns:
         Dictionary with keys: matomo_url, matomo_token, matomo_site_id.
@@ -618,11 +621,13 @@ def main() -> int:
             tier_info = detect_tier()
             output = {"status": "success" if status["available"] else "error",
                       "tier": tier_info,
+                      **config_dir_fields(CONFIG_PATH),
                       "credentials": status}
             print(json.dumps(output, indent=2))
         else:
             tier_info = detect_tier()
             print(f"Matomo Tier: {tier_info['tier']} -- {tier_info['description']}")
+            print(f"Config directory: {describe_config_dir(CONFIG_PATH)}")
             print()
             tag = "OK" if status["available"] else "MISSING"
             print(f"  [{tag}] Matomo Reporting API")

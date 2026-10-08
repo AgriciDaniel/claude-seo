@@ -33,7 +33,7 @@ Predict clicks, impressions, and cost for keywords.
 
 ## Configuration
 
-Add to `~/.config/claude-seo/google-api.json`:
+Add to `google-api.json` in the config directory (default `~/.config/claude-seo/`, or `CLAUDE_SEO_PROFILE_DIR` when the project sets it):
 
 ```json
 {
