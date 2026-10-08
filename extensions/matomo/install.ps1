@@ -30,11 +30,12 @@ Copy-Item (Join-Path $SourceDir "skills/seo-matomo/SKILL.md") (Join-Path $SkillT
 $AgentTarget = Join-Path $AgentsDir "seo-matomo.md"
 New-Item -ItemType Directory -Path $AgentsDir -Force | Out-Null
 Copy-Item (Join-Path $SourceDir "agents/seo-matomo.md") $AgentTarget -Force
-# Credentials go to ~/.config/claude-seo/matomo.json (0600 on POSIX, an
-# icacls-restricted ACL on Windows), written atomically via os.replace, not
-# into ~/.claude/settings.json: settings.json is a general-purpose config file
-# that tooling reads, prints, and syncs, and an API token has no business in
-# it. matomo_auth.py still falls back to the MATOMO_* environment variables.
+# Credentials go to matomo.json (0600 on POSIX, an icacls-restricted ACL on
+# Windows, written atomically via os.replace) in ~/.config/claude-seo/, or in
+# $env:CLAUDE_SEO_PROFILE_DIR when it is set, not into ~/.claude/settings.json:
+# settings.json is a general-purpose config file that tooling reads, prints,
+# and syncs, and an API token has no business in it. matomo_auth.py still
+# falls back to the MATOMO_* environment variables.
 if (-not (Test-Path $MatomoAuth)) { throw "$MatomoAuth not found" }
 $py = @"
 import importlib.util, os, sys

@@ -32,7 +32,7 @@ Before executing any command, check credentials:
 "${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_auth.py --check --json
 ```
 
-Config file: `~/.config/claude-seo/google-api.json`
+Config file: `~/.config/claude-seo/google-api.json`, or `google-api.json` in `CLAUDE_SEO_PROFILE_DIR` when a project sets one (see `references/auth-setup.md`, Per-Project Profiles).
 ```json
 {
   "service_account_path": "/path/to/service_account.json",
