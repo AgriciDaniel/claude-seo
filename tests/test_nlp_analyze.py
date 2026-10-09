@@ -89,3 +89,31 @@ def test_entities_only_skips_v2_annotate_text_call() -> None:
 
     assert calls == [nlp_analyze.NLP_V1_ENTITIES_ENDPOINT]
     assert result["error"] is None
+
+
+def test_each_endpoint_gets_its_own_language_field_name() -> None:
+    """v1 analyzeEntities names the field "language" and rejects "languageCode"
+    with HTTP 400; v2 annotateText names it "languageCode"."""
+    bodies: dict[str, dict] = {}
+
+    def fake_post(url: str, **kwargs):
+        bodies[url] = kwargs["json"]
+        if url == nlp_analyze.NLP_V1_ENTITIES_ENDPOINT:
+            return FakeResponse({"entities": []})
+        return FakeResponse({"documentSentiment": {"score": 0.0, "magnitude": 0.0}})
+
+    with patch.object(nlp_analyze.requests, "post", side_effect=fake_post):
+        nlp_analyze.analyze_text(
+            "O Quénia tem corredores de maratona.",
+            features=["entities", "sentiment"],
+            api_key="AI" + "zaSyDUMMYSECRET",
+            language="pt",
+        )
+
+    v1_document = bodies[nlp_analyze.NLP_V1_ENTITIES_ENDPOINT]["document"]
+    v2_document = bodies[nlp_analyze.NLP_ENDPOINT]["document"]
+    assert v1_document["language"] == "pt"
+    assert "languageCode" not in v1_document
+    assert v2_document["languageCode"] == "pt"
+    assert "language" not in v2_document
+    assert v1_document["content"] == v2_document["content"]
