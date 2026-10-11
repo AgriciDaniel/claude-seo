@@ -1,0 +1,56 @@
+{
+  "summary": {
+    "health_score": 73,
+    "business_type": "Publisher + lead-gen marketplace (unlisted/pre-IPO shares, India)",
+    "top_findings": [
+      "Homepage is thin in server-rendered HTML (~140 words, no H2s, 'Loading...' placeholder)",
+      "Product schema on share pages misuses brand, exposes PAN, and has no offers",
+      "/shares duplicates the homepage title and near-duplicates its description; /legal title mismatched",
+      "Three inconsistent share-page slug patterns across 183 share URLs",
+      "Share pages are thin (~260 words sampled); /blog HTML is 3.8 MB"
+    ],
+    "quick_wins": [
+      "Unique title/description for /shares and /legal",
+      "Fix Product schema brand/offers and remove PAN",
+      "Add server-rendered intro and H2s to the homepage",
+      "Normalise share slugs with 301s",
+      "Paginate /blog"
+    ]
+  },
+  "categories": [
+    {"name": "Technical SEO", "score": 78, "what_works": ["HTTPS+HSTS", "self-canonicals", "robots.txt and sitemap (431 URLs)", "correct 404 status", "apex 308 to www"], "findings": [
+      {"title": "CSP allows unsafe-inline and unsafe-eval", "severity": "Medium", "description": "script-src includes 'unsafe-inline' 'unsafe-eval'.", "recommendation": "Move to nonce-based CSP."},
+      {"title": "Sitemap changefreq/priority and robots Host directive are ignored", "severity": "Low", "description": "Non-functional metadata.", "recommendation": "Remove; keep accurate lastmod."}
+    ]},
+    {"name": "Content Quality", "score": 70, "what_works": ["SEBI disclaimer", "structured blog posts with author/date", "news sources and disclosure"], "findings": [
+      {"title": "Thin share pages", "severity": "High", "description": "Sampled share page ~262 words.", "recommendation": "Expand to 500+ unique words or consolidate/noindex stubs."},
+      {"title": "Weak trust signals", "severity": "Medium", "description": "No visible author credentials, regulatory details or price methodology.", "recommendation": "Add bios, registration info and a methodology page."}
+    ]},
+    {"name": "On-Page SEO", "score": 68, "what_works": ["titles 53-75 chars", "descriptions present", "single H1 per page"], "findings": [
+      {"title": "/shares duplicates homepage title/description", "severity": "High", "description": "Both use 'Buy & Sell Unlisted Shares in India | Unlisted Valley'.", "recommendation": "Write unique metadata."},
+      {"title": "Homepage has H1 only and thin text", "severity": "High", "description": "~140 words, no H2, client-loaded company data.", "recommendation": "Add server-rendered sections and links."},
+      {"title": "Templated share titles stutter", "severity": "Medium", "description": "'...Limited Price Unlisted Share Price Today'.", "recommendation": "Fix the template."}
+    ]},
+    {"name": "Schema / Structured Data", "score": 72, "what_works": ["Organization", "BreadcrumbList", "BlogPosting", "NewsArticle", "ItemList"], "findings": [
+      {"title": "Product schema misused on share pages", "severity": "High", "description": "Brand name is the page title text, no offers, PAN/CIN exposed.", "recommendation": "Correct brand, remove PAN, add offers only with real price."},
+      {"title": "Organization emitted twice per page", "severity": "Low", "description": "Standalone block plus @graph copy.", "recommendation": "Keep one."}
+    ]},
+    {"name": "Performance (CWV)", "score": null, "what_works": ["TTFB 0.3-0.7s", "CDN cache HIT"], "findings": [
+      {"title": "Core Web Vitals not measured", "severity": "Info", "description": "No CrUX/PSI access in this run.", "recommendation": "Run /seo google pagespeed with credentials."},
+      {"title": "/blog HTML is 3.8 MB", "severity": "Medium", "description": "All 238 posts on one URL.", "recommendation": "Paginate."}
+    ]},
+    {"name": "AI Search Readiness", "score": 76, "what_works": ["llms.txt present", "no AI crawlers blocked", "question-style headings on posts"], "findings": [
+      {"title": "Share pages lack dated definitional lead and sources", "severity": "Low", "description": "Price data has no visible as-of date or source.", "recommendation": "Add last-updated marker and sources."}
+    ]},
+    {"name": "Images", "score": 80, "what_works": ["no missing alt attributes", "lazy loading on lists"], "findings": [
+      {"title": "Blog images lack width/height", "severity": "Low", "description": "CLS risk; 13 of 26 listing images have empty alt.", "recommendation": "Add dimensions; confirm decorative."}
+    ]}
+  ],
+  "action_plan": {"phases": [
+    {"name": "Phase 1: Critical Fixes", "timeframe": "Week 1", "items": ["Unique /shares and /legal metadata", "Fix Product schema", "Enrich homepage server HTML"]},
+    {"name": "Phase 2: High-Impact Improvements", "timeframe": "Weeks 2-3", "items": ["Consolidate share slugs with 301s", "Paginate /blog", "Title template cleanup"]},
+    {"name": "Phase 3: Content & Authority", "timeframe": "Month 2", "items": ["Deepen share pages", "Author bios and methodology page", "Review blog cannibalisation"]},
+    {"name": "Phase 4: Monitoring & Iteration", "timeframe": "Ongoing", "items": ["PageSpeed/CrUX and GSC monitoring", "Full crawl", "Drift baseline"]}
+  ]},
+  "artifacts": {"findings_dir": "findings/", "screenshots_dir": "screenshots/"}
+}
