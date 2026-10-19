@@ -30,6 +30,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -160,6 +161,33 @@ class LedgerError(RuntimeError):
     """The ledger could not be read or written safely."""
 
 
+# How long a Windows writer waits for the ledger lock before giving up.
+# msvcrt's own blocking mode (LK_LOCK) gives up after 10 one-second retries,
+# which a handful of concurrent writers can exceed, so we poll LK_NBLCK.
+LOCK_TIMEOUT_SECONDS = 60.0
+_LOCK_POLL_INITIAL = 0.05
+_LOCK_POLL_MAX = 0.1
+
+
+def _msvcrt_lock(handle):
+    """Lock byte 0 of the handle with msvcrt, retrying until a deadline."""
+    deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
+    delay = _LOCK_POLL_INITIAL
+    while True:
+        handle.seek(0)
+        try:
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            return
+        except OSError as exc:
+            if time.monotonic() >= deadline:
+                raise LedgerError(
+                    f"Timed out after {LOCK_TIMEOUT_SECONDS:g}s waiting for the "
+                    "spend ledger lock; another process is holding it."
+                ) from exc
+        time.sleep(delay)
+        delay = min(delay * 1.5, _LOCK_POLL_MAX)
+
+
 def _lock(handle, exclusive):
     """Take an advisory lock on an open handle, blocking until acquired.
 
@@ -170,9 +198,7 @@ def _lock(handle, exclusive):
         fcntl.flock(handle, fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH)
     elif msvcrt is not None:
         # msvcrt has no shared mode, so readers take an exclusive lock too.
-        # LK_LOCK retries 10 times at 1s intervals, then raises OSError.
-        handle.seek(0)
-        msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+        _msvcrt_lock(handle)
     else:
         raise LedgerError(
             "No file-locking primitive available (neither fcntl nor msvcrt). "

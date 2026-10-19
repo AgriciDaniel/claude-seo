@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows ledger lock in `scripts/dataforseo_costs.py` and
+  `extensions/banana/scripts/cost_tracker.py`: `msvcrt.LK_LOCK` gives up
+  after 10 one-second retries and raises `OSError`, so under contention a
+  concurrent writer could crash instead of waiting (seen as an intermittent
+  `test_banana_cost_tracker.py` failure on the Windows runner). The lock now
+  polls `LK_NBLCK` every 50-100 ms for up to `LOCK_TIMEOUT_SECONDS` (60 s)
+  and then raises `LedgerError` with a clear message. The POSIX `fcntl` path
+  is unchanged.
+
 ## [2.4.2] - 2026-10-04
 
 seo-cockpit, Google sign-in through your own account, and a schema-hook fix.

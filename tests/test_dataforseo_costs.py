@@ -13,6 +13,7 @@ Every test runs against an isolated CLAUDE_SEO_CONFIG_DIR, never the real
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -145,6 +146,79 @@ def test_ledger_write_is_atomic_no_temp_files_left(tmp_path) -> None:
 
     leftovers = list(tmp_path.glob(".dataforseo-ledger.*.tmp"))
     assert leftovers == [], f"temp files left behind: {leftovers}"
+
+
+# ---------------------------------------------------------------------------
+# Windows lock retry (msvcrt mocked, so this runs on every platform)
+# ---------------------------------------------------------------------------
+
+
+class _FakeMsvcrt:
+    """msvcrt stand-in whose non-blocking lock fails a set number of times."""
+
+    LK_NBLCK = 2
+    LK_LOCK = 1
+    LK_UNLCK = 0
+
+    def __init__(self, failures):
+        self.failures = failures
+        self.calls = []
+
+    def locking(self, fd, mode, nbytes):
+        self.calls.append(mode)
+        if self.failures:
+            self.failures -= 1
+            raise OSError(13, "Permission denied")
+
+
+class _FakeClock:
+    """Replaces the module's `time` so retries need no real waiting."""
+
+    def __init__(self):
+        self.now = 0.0
+        self.sleeps = []
+
+    def monotonic(self):
+        return self.now
+
+    def sleep(self, seconds):
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+
+def _load_windows_module(monkeypatch, tmp_path, failures):
+    monkeypatch.setenv("CLAUDE_SEO_CONFIG_DIR", str(tmp_path))
+    spec = importlib.util.spec_from_file_location("_ledger_under_test", _SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    fake = _FakeMsvcrt(failures)
+    clock = _FakeClock()
+    monkeypatch.setattr(module, "fcntl", None)
+    monkeypatch.setattr(module, "msvcrt", fake)
+    monkeypatch.setattr(module, "time", clock)
+    return module, fake, clock
+
+
+def test_windows_lock_retries_until_acquired(monkeypatch, tmp_path) -> None:
+    """Contention raises OSError from LK_NBLCK; the lock must wait it out."""
+    module, fake, clock = _load_windows_module(monkeypatch, tmp_path, failures=25)
+    with open(tmp_path / "lockfile", "a+") as handle:
+        module._lock(handle, exclusive=True)
+    assert fake.calls == [fake.LK_NBLCK] * 26
+    assert len(clock.sleeps) == 25
+    assert all(0 < s <= module._LOCK_POLL_MAX for s in clock.sleeps)
+    # 25 retries take well past LK_LOCK's 10-attempt ceiling without failing.
+
+
+def test_windows_lock_times_out_with_a_clear_error(monkeypatch, tmp_path) -> None:
+    """A lock that never frees raises LedgerError at the deadline, not OSError."""
+    module, fake, clock = _load_windows_module(monkeypatch, tmp_path, failures=10**9)
+    with open(tmp_path / "lockfile", "a+") as handle:
+        with pytest.raises(module.LedgerError, match="Timed out"):
+            module._lock(handle, exclusive=True)
+    assert clock.now >= module.LOCK_TIMEOUT_SECONDS
+    assert clock.now < module.LOCK_TIMEOUT_SECONDS + 1
+    assert fake.LK_LOCK not in fake.calls
 
 
 # ---------------------------------------------------------------------------
