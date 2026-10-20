@@ -3,6 +3,10 @@
 FAQPage must NOT block because it remains a valid Schema.org type, even though
 Google retired its rich results in May 2026 and no AI or ranking benefit is
 confirmed. Genuinely deprecated types must still block the edit (exit 2).
+
+A node may also declare several types ("@type": ["LocalBusiness",
+"FinancialService"]). Every type is checked on its own, and a node that lists
+one retired type among several still blocks.
 """
 
 from __future__ import annotations
@@ -61,6 +65,38 @@ def test_deprecated_type_still_blocks(tmp_path):
     assert _run(tmp_path, "ClaimReview") == 2
 
 
+def test_multiple_types_are_validated_like_a_single_type(tmp_path: Path) -> None:
+    # A list-valued @type used to crash the hook with
+    # "TypeError: cannot use 'list' as a dict key", which lost every finding
+    # for the file. The node has to validate like a single-typed one.
+    payload = {
+        "@context": "https://schema.org",
+        "@type": ["LocalBusiness", "FinancialService"],
+        "name": "Example Advisory",
+    }
+    assert _clean(_run_payload(tmp_path, payload, capture_output=True, encoding="utf-8"))
+
+
+def test_deprecated_type_inside_a_type_list_still_blocks(tmp_path: Path) -> None:
+    payload = {
+        "@context": "https://schema.org",
+        "@type": ["HowTo", "Article"],
+    }
+    result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
+    assert result.returncode == 2
+    assert "Block 1: @type 'HowTo' is deprecated September 2023" in result.stderr
+
+
+def test_non_string_type_entries_do_not_crash(tmp_path: Path) -> None:
+    # A @type that is not a string cannot name a type; it must be ignored
+    # instead of crashing the membership check the way a list did.
+    payload = {
+        "@context": "https://schema.org",
+        "@type": [{"name": "Organization"}, 42, None],
+    }
+    assert _clean(_run_payload(tmp_path, payload, capture_output=True, encoding="utf-8"))
+
+
 def test_valid_top_level_graph_does_not_require_container_type(tmp_path: Path) -> None:
     payload = {
         "@context": "https://schema.org",
@@ -91,6 +127,16 @@ def test_deprecated_graph_member_still_blocks(tmp_path: Path) -> None:
         "@graph": [{"@type": "ClaimReview", "name": "Old markup"}],
     }
     assert _run_payload(tmp_path, payload).returncode == 2
+
+
+def test_deprecated_type_inside_a_graph_member_type_list_blocks(tmp_path: Path) -> None:
+    payload = {
+        "@context": "https://schema.org",
+        "@graph": [{"@type": ["LocalBusiness", "ClaimReview"], "name": "Old markup"}],
+    }
+    result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
+    assert result.returncode == 2
+    assert "ClaimReview" in result.stderr
 
 
 def test_non_object_graph_members_are_reported_without_crashing(tmp_path: Path) -> None:
