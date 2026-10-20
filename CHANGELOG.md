@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `hooks/validate-schema.py`: a JSON-LD node whose `@type` is a list no longer
+  crashes the hook with `TypeError: cannot use 'list' as a dict key`. Every
+  type in the list is validated on its own, so a retired type listed among
+  several still blocks the edit.
+
 ## [2.4.2] - 2026-10-04
 
 seo-cockpit, Google sign-in through your own account, and a schema-hook fix.
