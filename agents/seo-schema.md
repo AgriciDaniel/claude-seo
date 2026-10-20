@@ -38,8 +38,8 @@ When analyzing pages:
 ## Validation Checklist
 
 For any schema block, verify:
-1. ✅ @context is "https://schema.org"
-2. ✅ @type is valid and not deprecated
+1. ✅ @context is "https://schema.org" (checked once, on the document; `@graph` entries inherit it)
+2. ✅ @type is valid and not deprecated (checked on entity nodes; a `@graph` container needs none)
 3. ✅ All required properties present
 4. ✅ Property values match expected types
 5. ✅ No placeholder text (e.g., "[Business Name]")

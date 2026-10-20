@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `skills/seo-schema/SKILL.md`, `agents/seo-schema.md` and
+  `scripts/parse_html.py`: a valid JSON-LD `@graph` document was reported as
+  broken markup. A `@graph` container is not an entity, so it needs no
+  `@type`, and the `@context` it declares is inherited by the entries it
+  holds. `parse_html.py` now keeps that `@context` on the flattened entries,
+  and the skill and the agent check `@context` once per document and `@type`
+  on entity nodes, the way `hooks/validate-schema.py` already did.
+
 ## [2.4.2] - 2026-10-04
 
 seo-cockpit, Google sign-in through your own account, and a schema-hook fix.
