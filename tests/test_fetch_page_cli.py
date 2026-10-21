@@ -53,6 +53,7 @@ RENDERED_RESULT = {
     "render_engine": "playwright-chromium",
     "render_ms": 12.5,
     "mode_used": "rendered",
+    "too_large": False,
     "error": None,
 }
 

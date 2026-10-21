@@ -46,6 +46,7 @@ A dict with::
     render_engine     'playwright-chromium' or None
     render_ms         elapsed wall-clock for the render step
     mode_used         'rendered' or 'raw'
+    too_large         True when the raw body hit the size cap (MAX_PAGE_BYTES)
     error             str or None
 
 SSRF
@@ -104,10 +105,12 @@ _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
+    MAX_PAGE_BYTES,
     URLSafetyError,
-    decode_response_text,
+    decode_body,
     make_safe_playwright_route_handler,
     new_guarded_context,
+    read_bounded,
     safe_requests_get,
     validate_url_strict,
 )
@@ -439,6 +442,7 @@ def render_page(
         "render_engine": None,
         "render_ms": None,
         "mode_used": None,
+        "too_large": False,
         "error": None,
     }
 
@@ -459,8 +463,18 @@ def render_page(
 
     # Step 1: raw fetch (always; needed for SPA detection and as a baseline).
     try:
-        resp = safe_requests_get(norm_url, timeout=30, allow_redirects=True)
-        result["raw_content"] = decode_response_text(resp)
+        resp = safe_requests_get(norm_url, timeout=30, allow_redirects=True, stream=True)
+        # Streamed so the body is read under the cap; .content must not be
+        # read after this.
+        try:
+            raw, result["too_large"] = read_bounded(resp, MAX_PAGE_BYTES)
+        finally:
+            resp.close()
+        result["raw_content"] = decode_body(raw, resp.headers.get("Content-Type", ""))
+        if result["too_large"]:
+            result["render_diagnostics"].append(
+                "raw body exceeded the size cap; raw_content holds the part read before it"
+            )
         if resp.history:
             result["redirect_chain"] = [
                 {"url": r.url, "status_code": r.status_code} for r in resp.history

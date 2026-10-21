@@ -283,10 +283,14 @@ def test_render_page_never_mode_against_example_com() -> None:
 
 
 def _fake_response(text: str, status: int = 200, url: str = "https://x.example/"):
+    body = text.encode("utf-8")
     return SimpleNamespace(
-        text=text, content=text.encode("utf-8"), status_code=status,
+        text=text, content=body, status_code=status,
         headers={"Content-Type": "text/html"},
         url=url, history=[],
+        # render_page streams the raw body through url_safety.read_bounded.
+        iter_content=lambda chunk_size=1: iter([body]),
+        close=lambda: None,
     )
 
 
@@ -571,7 +575,7 @@ def test_render_page_result_dict_has_all_documented_fields() -> None:
         "extracted_text", "publication_date", "accessibility_tree",
         "accessibility_error", "accessibility_partial",
         "headers", "redirect_chain", "console_errors", "render_engine",
-        "render_diagnostics", "render_ms", "mode_used", "error",
+        "render_diagnostics", "render_ms", "mode_used", "too_large", "error",
     }
     assert set(result.keys()) == expected_fields
 

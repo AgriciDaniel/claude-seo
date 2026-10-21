@@ -82,5 +82,6 @@ def test_issue_314_fetching_scripts_use_the_shared_decoder():
     for name in ("render_page.py", "parse_html.py", "nlp_analyze.py", "preload_check.py",
                  "parasite_risk.py", "ucp_check.py", "gbp_deprecation_lint.py"):
         text = (scripts / name).read_text(encoding="utf-8")
-        assert "decode_response_text(" in text, name
+        # decode_body is the same shared decoder, for streamed bodies.
+        assert "decode_response_text(" in text or "decode_body(" in text, name
         assert "resp.text" not in text, name

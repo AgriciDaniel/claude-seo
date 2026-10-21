@@ -41,6 +41,7 @@ from url_safety import (  # noqa: E402
     validate_url_strict,
 )
 from url_safety import DEFAULT_USER_AGENT as DEFAULT_USER_AGENT  # noqa: E402,F401
+from url_safety import MAX_PAGE_BYTES as _MAX_PAGE_BYTES  # noqa: E402
 
 # DEFAULT_USER_AGENT and the header block now live in url_safety, the lower
 # layer that both this script and the safe_requests_* helpers go through, so
@@ -65,9 +66,8 @@ DEFAULT_HEADERS = dict(DEFAULT_REQUEST_HEADERS)
 # that fetches through the safe helpers decodes the same way (issue #314).
 _decode_response_content = decode_response_text
 
-# Largest body read, counted after decompression. Real HTML pages are far
-# smaller; the cap stops a decompression bomb or an endless stream.
-MAX_PAGE_BYTES = 10 * 1024 * 1024
+# Largest body read, counted after decompression (shared with render_page).
+MAX_PAGE_BYTES = _MAX_PAGE_BYTES
 
 
 def fetch_page(
@@ -217,6 +217,7 @@ def _as_render_result(result: dict, *, mode_used: str) -> dict:
         "render_engine": None,
         "render_ms": None,
         "mode_used": mode_used,
+        "too_large": bool(result.get("too_large")),
         "error": result.get("error"),
     }
 
