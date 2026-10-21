@@ -599,7 +599,7 @@ def test_route_handler_continues_when_both_ipv4_and_ipv6_public() -> None:
         assert route.action == "continue"
 
 
-def test_guarded_context_blocks_service_workers_and_closes_websockets() -> None:
+def test_guarded_context_blocks_service_workers_and_never_connects_websockets() -> None:
     calls: dict = {"routes": [], "ws_routes": []}
     context = SimpleNamespace(
         route=lambda url, handler: calls["routes"].append((url, handler)),
