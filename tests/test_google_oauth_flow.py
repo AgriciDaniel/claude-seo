@@ -8,6 +8,7 @@ redirect server on a free port and never touch Google.
 from __future__ import annotations
 
 import base64
+import errno
 import hashlib
 import json
 import os
@@ -95,13 +96,21 @@ def _run_flow_with_browser(isolated, monkeypatch, browser):
         return True
 
     monkeypatch.setattr("webbrowser.open", open_browser)
-    try:
-        google_auth.run_oauth_flow(str(isolated))
-    finally:
-        # The flow returns once the server has answered; let the "browser"
-        # finish reading that answer before the test inspects it.
-        if "thread" in opened:
-            opened["thread"].join(timeout=30)
+    # _free_port() releases the port before the flow binds it, so another
+    # process can take it in between. Retry on a fresh port when that happens.
+    for attempt in range(5):
+        try:
+            google_auth.run_oauth_flow(str(isolated))
+            break
+        except OSError as e:
+            if e.errno not in (errno.EADDRINUSE, getattr(errno, "WSAEADDRINUSE", None)) or attempt == 4:
+                raise
+            monkeypatch.setattr(google_auth, "OAUTH_REDIRECT_URI", f"http://localhost:{_free_port()}")
+        finally:
+            # The flow returns once the server has answered; let the "browser"
+            # finish reading that answer before the test inspects it.
+            if "thread" in opened:
+                opened["thread"].join(timeout=30)
     return opened["url"], exchanged
 
 
@@ -145,11 +154,11 @@ def test_stray_and_forged_requests_do_not_end_the_wait(isolated, monkeypatch):
 def test_a_silent_connection_does_not_block_the_real_redirect(isolated, monkeypatch):
     monkeypatch.setattr(google_auth, "OAUTH_WAIT_SECONDS", 30)
     monkeypatch.setattr(google_auth, "OAUTH_REQUEST_TIMEOUT", 1)
-    port = urllib.parse.urlparse(google_auth.OAUTH_REDIRECT_URI).port
     idle = []
 
     def browser(url):
         state = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["state"][0]
+        port = urllib.parse.urlparse(google_auth.OAUTH_REDIRECT_URI).port
         idle.append(socket.create_connection(("localhost", port)))  # connects, sends nothing
         # The server drops the idle connection after OAUTH_REQUEST_TIMEOUT.
         _get(_redirect({"state": state, "code": "real-code"}), timeout=20)
@@ -182,6 +191,55 @@ def test_timeout_keeps_the_pending_flow_for_manual_exchange(isolated, monkeypatc
     path = google_auth._pending_flow_path()
     if os.name == "posix":
         assert os.stat(path).st_mode & 0o777 == 0o600
+
+
+def test_timeout_restarts_the_pending_clock(isolated, monkeypatch):
+    # The manual window printed on timeout must run from the timeout, not
+    # from before the wait: a person who pastes the URL late in that window
+    # still has a pending sign-in.
+    monkeypatch.setattr(google_auth, "OAUTH_WAIT_SECONDS", 1)
+    base = time.time()
+    clock = {"offset": 0.0}
+    monkeypatch.setattr(google_auth.time, "time", lambda: base + clock["offset"])
+
+    def browser(url):
+        clock["offset"] = 400.0  # the person took a long time in the browser
+
+    with pytest.raises(SystemExit):
+        _run_flow_with_browser(isolated, monkeypatch, browser)
+    clock["offset"] = 400.0 + google_auth.OAUTH_PENDING_MAX_AGE - 10
+    assert google_auth._load_pending_flow() is not None
+
+
+def test_non_ascii_state_is_rejected_not_raised(isolated, monkeypatch):
+    statuses = []
+
+    def browser(url):
+        state = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["state"][0]
+        statuses.append(_get(f"{google_auth.OAUTH_REDIRECT_URI}/?state=%C3%A9&code=x"))
+        statuses.append(_get(_redirect({"state": state, "code": "real-code"})))
+
+    _url, exchanged = _run_flow_with_browser(isolated, monkeypatch, browser)
+    assert statuses == [400, 200]
+    assert exchanged["code"] == "real-code"
+
+    google_auth._save_pending_flow("good-state", "v" * 64)
+    code, _verifier, error = google_auth._manual_exchange_inputs(
+        f"{google_auth.OAUTH_REDIRECT_URI}/?state=%C3%A9&code=x"
+    )
+    assert code is None and "pending sign-in" in error
+
+
+def test_exchange_without_a_pending_flow_fails_before_any_request(isolated, monkeypatch, capsys):
+    calls: list = []
+    monkeypatch.setattr(urllib.request, "urlopen", _fake_urlopen(calls))
+    monkeypatch.setattr(sys, "argv", ["google_auth.py", "--exchange", "--creds", str(isolated), "--code", "bare-code"])
+    with pytest.raises(SystemExit) as exc:
+        google_auth.main()
+    assert exc.value.code == 1
+    assert "No pending sign-in" in capsys.readouterr().err
+    assert calls == []
+    assert not os.path.exists(google_auth.TOKEN_PATH)
 
 
 def test_manual_exchange_checks_state_of_a_pasted_url(isolated):

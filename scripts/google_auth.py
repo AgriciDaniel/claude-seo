@@ -370,6 +370,15 @@ def _load_pending_flow() -> Optional[dict]:
     return data
 
 
+def _states_match(returned: str, expected: str) -> bool:
+    """Constant-time state check that also handles non-ASCII input.
+
+    hmac.compare_digest refuses str values with non-ASCII characters, so a
+    crafted ``state`` would raise instead of being rejected. Compare bytes.
+    """
+    return hmac.compare_digest(returned.encode("utf-8"), expected.encode("utf-8"))
+
+
 def _manual_exchange_inputs(code_or_url: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
     """Turn --exchange --code input into (code, code_verifier, error).
 
@@ -379,7 +388,11 @@ def _manual_exchange_inputs(code_or_url: str) -> tuple[Optional[str], Optional[s
     import urllib.parse
 
     pending = _load_pending_flow()
-    verifier = pending["code_verifier"] if pending else None
+    if not pending:
+        # Every sign-in sends a PKCE challenge, so Google refuses a code
+        # exchanged without its verifier. Say so instead of sending it.
+        return None, None, "No pending sign-in (missing or expired). Run --auth again."
+    verifier = pending["code_verifier"]
     value = code_or_url.strip()
     if not value.lower().startswith(("http://", "https://")):
         return value, verifier, None
@@ -389,10 +402,9 @@ def _manual_exchange_inputs(code_or_url: str) -> tuple[Optional[str], Optional[s
     code = params.get("code", [None])[0]
     if not code:
         return None, None, "The pasted URL has no 'code' parameter."
-    if pending:
-        returned_state = params.get("state", [""])[0]
-        if not hmac.compare_digest(returned_state, pending["state"]):
-            return None, None, "The pasted URL does not belong to the pending sign-in. Run --auth again."
+    returned_state = params.get("state", [""])[0]
+    if not _states_match(returned_state, pending["state"]):
+        return None, None, "The pasted URL does not belong to the pending sign-in. Run --auth again."
     return code, verifier, None
 
 
@@ -568,7 +580,7 @@ def run_oauth_flow(creds_path: str):
         def do_GET(self):
             params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             returned_state = params.get("state", [""])[0]
-            if not hmac.compare_digest(returned_state, state):
+            if not _states_match(returned_state, state):
                 # Not our redirect (a stray request or a forged one): refuse
                 # it and keep waiting for the real one.
                 self.send_response(400)
@@ -621,6 +633,9 @@ def run_oauth_flow(creds_path: str):
         sys.exit(1)
 
     if not result["code"]:
+        # Restart the pending flow's clock so the manual window below is
+        # measured from now, not from before the wait.
+        _save_pending_flow(state, code_verifier)
         print("\nAuthentication failed or timed out.", file=sys.stderr)
         print("If the browser showed 'localhost refused to connect', copy the full URL")
         print(f"from the browser address bar within {OAUTH_PENDING_MAX_AGE // 60} minutes and run:")
