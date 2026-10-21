@@ -158,6 +158,27 @@ def capture_screenshot(
     return result
 
 
+def _within(path: str, root: str) -> bool:
+    """True when ``path`` is ``root`` or inside it (both already resolved)."""
+    try:
+        return os.path.commonpath([path, root]) == root
+    except ValueError:  # different drives on Windows
+        return False
+
+
+def safe_output_dir(path: str) -> str | None:
+    """Resolve ``path`` and return it when it lies within the current
+    directory or the home directory, else None.
+
+    Both roots are resolved too: a plain string prefix check let
+    ``/home/user2`` pass for ``/home/user``, and a symlinked home (for
+    example ``/home`` -> ``/var/home``) never matched a resolved path.
+    """
+    resolved = os.path.realpath(path)
+    roots = (os.path.realpath(os.getcwd()), os.path.realpath(os.path.expanduser("~")))
+    return resolved if any(_within(resolved, root) for root in roots) else None
+
+
 def main():
     parser = argparse.ArgumentParser(description="Capture web page screenshots")
     parser.add_argument("url", help="URL to capture")
@@ -170,15 +191,13 @@ def main():
     args = parser.parse_args()
 
     # Sanitize output path - prevent directory traversal
-    output_dir = os.path.realpath(args.output)
-    cwd = os.getcwd()
-    home = os.path.expanduser("~")
-    if not (output_dir.startswith(cwd) or output_dir.startswith(home)):
+    output_dir = safe_output_dir(args.output)
+    if output_dir is None:
         print("Error: Output path must be within current directory or home directory", file=sys.stderr)
         sys.exit(1)
 
     # Create output directory
-    os.makedirs(args.output, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
 
     try:
         normalized_url, parsed_url = normalize_url(args.url)
@@ -193,7 +212,7 @@ def main():
 
     for viewport in viewports:
         filename = f"{base_name}_{viewport}.png"
-        output_path = os.path.join(args.output, filename)
+        output_path = os.path.join(output_dir, filename)
 
         print(f"Capturing {viewport} screenshot...")
         result = capture_screenshot(

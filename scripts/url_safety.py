@@ -845,6 +845,28 @@ def decode_body(raw: bytes, content_type: str = "") -> str:
     return raw.decode("utf-8", errors="replace")
 
 
+def read_bounded(response, max_bytes: int) -> tuple[bytes, bool]:
+    """Read a ``stream=True`` response body, stopping past ``max_bytes``.
+
+    Counts bytes after decompression, so a small gzip body that inflates
+    without bound (a decompression bomb) is cut off. Returns the bytes read
+    before the chunk that crossed the cap, and whether the cap was hit.
+    Decode the result with :func:`decode_body`, not ``response.content``.
+    """
+    chunks = []
+    size = 0
+    too_large = False
+    for chunk in response.iter_content(chunk_size=65536):
+        if not chunk:
+            continue
+        size += len(chunk)
+        if size > max_bytes:
+            too_large = True
+            break
+        chunks.append(chunk)
+    return b"".join(chunks), too_large
+
+
 def _with_default_headers(kwargs: dict) -> dict:
     """Fill in DEFAULT_REQUEST_HEADERS for header keys the caller did not set."""
     headers = dict(DEFAULT_REQUEST_HEADERS)

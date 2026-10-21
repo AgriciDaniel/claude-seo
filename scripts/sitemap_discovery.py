@@ -22,7 +22,7 @@ _SCRIPTS = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 
-from url_safety import URLSafetyError, safe_requests_session, validate_url  # noqa: E402
+from url_safety import URLSafetyError, read_bounded, safe_requests_session, validate_url  # noqa: E402
 
 COMMON_PATHS = (
     "/sitemap.xml",
@@ -93,17 +93,7 @@ def _bounded_fetch(url: str, max_bytes: int) -> dict:
             result["status_code"] = response.status_code
             result["content_type"] = response.headers.get("Content-Type", "")
             result["final_url"] = response.url
-            chunks = []
-            size = 0
-            for chunk in response.iter_content(chunk_size=65536):
-                if not chunk:
-                    continue
-                size += len(chunk)
-                if size > max_bytes:
-                    result["too_large"] = True
-                    break
-                chunks.append(chunk)
-            result["content"] = b"".join(chunks)
+            result["content"], result["too_large"] = read_bounded(response, max_bytes)
             response.close()
     except URLSafetyError:
         result["error"] = "URL safety validation failed"

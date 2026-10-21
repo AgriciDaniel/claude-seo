@@ -34,7 +34,9 @@ if _SCRIPTS_DIR not in sys.path:
 from url_safety import (  # noqa: E402
     DEFAULT_REQUEST_HEADERS,
     URLSafetyError,
+    decode_body,
     decode_response_text,
+    read_bounded,
     safe_requests_session,
     validate_url_strict,
 )
@@ -63,6 +65,10 @@ DEFAULT_HEADERS = dict(DEFAULT_REQUEST_HEADERS)
 # that fetches through the safe helpers decodes the same way (issue #314).
 _decode_response_content = decode_response_text
 
+# Largest body read, counted after decompression. Real HTML pages are far
+# smaller; the cap stops a decompression bomb or an endless stream.
+MAX_PAGE_BYTES = 10 * 1024 * 1024
+
 
 def fetch_page(
     url: str,
@@ -70,6 +76,7 @@ def fetch_page(
     follow_redirects: bool = True,
     max_redirects: int = 5,
     user_agent: Optional[str] = None,
+    max_bytes: int = MAX_PAGE_BYTES,
 ) -> dict:
     """
     Fetch a web page and return response details.
@@ -85,10 +92,13 @@ def fetch_page(
         follow_redirects: Whether to follow redirects
         max_redirects: Maximum number of redirects to follow
         user_agent: Override the default User-Agent
+        max_bytes: Stop reading the body past this many bytes (after
+            decompression); ``too_large`` is then True and ``content`` holds
+            the part read.
 
     Returns:
         Dictionary with url, status_code, content, headers, redirect_chain,
-        redirect_details, and error.
+        redirect_details, too_large, and error.
     """
     result: dict = {
         "url": url,
@@ -97,6 +107,7 @@ def fetch_page(
         "headers": {},
         "redirect_chain": [],
         "redirect_details": [],
+        "too_large": False,
         "error": None,
     }
 
@@ -124,11 +135,18 @@ def fetch_page(
                 headers=headers,
                 timeout=timeout,
                 allow_redirects=follow_redirects,
+                stream=True,
             )
+            # Streamed so the body is read under the cap, inside the pinned
+            # session; .content must not be read after this.
+            try:
+                raw, result["too_large"] = read_bounded(response, max_bytes)
+            finally:
+                response.close()
 
         result["url"] = response.url
         result["status_code"] = response.status_code
-        result["content"] = _decode_response_content(response)
+        result["content"] = decode_body(raw, response.headers.get("Content-Type", ""))
         result["headers"] = dict(response.headers)
 
         if response.history:
@@ -191,7 +209,11 @@ def _as_render_result(result: dict, *, mode_used: str) -> dict:
         "headers": result.get("headers", {}),
         "redirect_chain": redirect_chain,
         "console_errors": [],
-        "render_diagnostics": [],
+        "render_diagnostics": (
+            ["body exceeded the size cap; content holds the part read before it"]
+            if result.get("too_large")
+            else []
+        ),
         "render_engine": None,
         "render_ms": None,
         "mode_used": mode_used,
