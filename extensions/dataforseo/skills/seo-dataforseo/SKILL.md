@@ -381,13 +381,13 @@ Additional DataForSEO MCP tools are available for internal use but do not have d
 
 When DataForSEO MCP tools are available, other claude-seo skills can leverage live data:
 
-- **seo-audit**:Spawn `seo-dataforseo` agent for real SERP, backlink, on-page, and listings data
-- **seo-technical**:Use `on_page_instant_pages` / `on_page_lighthouse` for real crawl data, `domain_analytics_technologies_domain_technologies` for stack detection
-- **seo-content**:Use `kw_data_google_ads_search_volume`, `dataforseo_labs_bulk_keyword_difficulty`, `dataforseo_labs_search_intent` for real keyword metrics, `content_analysis_summary` for content quality
-- **seo-page**:Use `serp_organic_live_advanced` for real SERP positions, `backlinks_summary` for link data
-- **seo-images**:No Google Images SERP tool on the pinned MCP server; use any `images` element from `serp_organic_live_advanced`, cross-referenced with the on-page image audit
-- **seo-geo**:Use `ai_optimization_chat_gpt_scraper` for real ChatGPT visibility, `ai_opt_llm_ment_search` for LLM mention tracking
-- **seo-plan**:Use `dataforseo_labs_google_competitors_domain`, `dataforseo_labs_google_domain_intersection`, `dataforseo_labs_bulk_traffic_estimation` for real competitive intelligence
+- **seo-audit**: Spawn `seo-dataforseo` agent for real SERP, backlink, on-page, and listings data
+- **seo-technical**: Use `on_page_instant_pages` / `on_page_lighthouse` for real crawl data, `domain_analytics_technologies_domain_technologies` for stack detection
+- **seo-content**: Use `kw_data_google_ads_search_volume`, `dataforseo_labs_bulk_keyword_difficulty`, `dataforseo_labs_search_intent` for real keyword metrics, `content_analysis_summary` for content quality
+- **seo-page**: Use `serp_organic_live_advanced` for real SERP positions, `backlinks_summary` for link data
+- **seo-images**: No Google Images SERP tool on the pinned MCP server; use any `images` element from `serp_organic_live_advanced`, cross-referenced with the on-page image audit
+- **seo-geo**: Use `ai_optimization_chat_gpt_scraper` for real ChatGPT visibility, `ai_opt_llm_ment_search` for LLM mention tracking
+- **seo-plan**: Use `dataforseo_labs_google_competitors_domain`, `dataforseo_labs_google_domain_intersection`, `dataforseo_labs_bulk_traffic_estimation` for real competitive intelligence
 
 ## Error Handling
 

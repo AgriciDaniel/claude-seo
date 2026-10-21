@@ -20,16 +20,16 @@ to Gemini's natural language format:
 
 ## Common Prompt Mistakes
 
-1. **Keyword stuffing**:stacking generic quality terms ("8K, masterpiece, best quality") adds nothing. Use only "ultra-realistic, high resolution" at the end
-2. **Tag lists**:Gemini wants prose, not "red car, sunset, mountain, cinematic"
-3. **Missing lighting**:The single biggest quality differentiator
-4. **No composition direction**:Results in generic centered framing
-5. **Vague style**:"make it look cool" vs specific art direction
-6. **Ignoring aspect ratio**:Always set before generating
-7. **Overlong prompts**:Diminishing returns past ~200 words; be precise, not verbose
-8. **Text longer than ~25 characters**:Rendering degrades rapidly past this limit
-9. **Burying key details at the end**:In long prompts, details placed last may be deprioritized; put critical specifics (exact text, key constraints) in the first third of the prompt
-10. **Not iterating with follow-up prompts**:Use `gemini_chat` for progressive refinement instead of trying to get everything right in one generation
+1. **Keyword stuffing**: stacking generic quality terms ("8K, masterpiece, best quality") adds nothing. Use only "ultra-realistic, high resolution" at the end
+2. **Tag lists**: Gemini wants prose, not "red car, sunset, mountain, cinematic"
+3. **Missing lighting**: The single biggest quality differentiator
+4. **No composition direction**: Results in generic centered framing
+5. **Vague style**: "make it look cool" vs specific art direction
+6. **Ignoring aspect ratio**: Always set before generating
+7. **Overlong prompts**: Diminishing returns past ~200 words; be precise, not verbose
+8. **Text longer than ~25 characters**: Rendering degrades rapidly past this limit
+9. **Burying key details at the end**: In long prompts, details placed last may be deprioritized; put critical specifics (exact text, key constraints) in the first third of the prompt
+10. **Not iterating with follow-up prompts**: Use `gemini_chat` for progressive refinement instead of trying to get everything right in one generation
 
 ## Safety Filter Rephrase Strategies
 
@@ -48,11 +48,11 @@ When a prompt is blocked, the only path forward is rephrasing.
 
 ### Rephrase Patterns
 
-1. **Abstraction**:Replace specific dangerous elements with abstract concepts
-2. **Artistic framing**:Frame content as art, editorial, or documentary
-3. **Metaphor**:Use symbolic language instead of literal descriptions
-4. **Positive emphasis**:Describe what IS present, not what's dangerous
-5. **Context shift**:Move from threatening to educational/professional context
+1. **Abstraction**: Replace specific dangerous elements with abstract concepts
+2. **Artistic framing**: Frame content as art, editorial, or documentary
+3. **Metaphor**: Use symbolic language instead of literal descriptions
+4. **Positive emphasis**: Describe what IS present, not what's dangerous
+5. **Context shift**: Move from threatening to educational/professional context
 
 ### Example Rephrases
 

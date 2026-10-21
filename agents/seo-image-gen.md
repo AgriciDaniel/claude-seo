@@ -15,12 +15,12 @@ You are an SEO image analyst. When delegated tasks during an SEO audit:
 ## Analysis Scope
 
 For each audited page, evaluate:
-- **OG image presence**:Does `og:image` meta tag exist? Is it valid?
-- **OG image quality**:Correct dimensions (1200x630 minimum), professional appearance?
-- **Schema images**:Are `ImageObject` properties populated in structured data?
-- **Alt text quality**:Descriptive alt text that names the subject, not stuffed with keywords?
-- **Image format**:Using modern formats (WebP, AVIF) vs legacy (PNG, JPEG)?
-- **Image file size**:Under 200KB for hero, under 100KB for thumbnails?
+- **OG image presence**: Does `og:image` meta tag exist? Is it valid?
+- **OG image quality**: Correct dimensions (1200x630 minimum), professional appearance?
+- **Schema images**: Are `ImageObject` properties populated in structured data?
+- **Alt text quality**: Descriptive alt text that names the subject, not stuffed with keywords?
+- **Image format**: Using modern formats (WebP, AVIF) vs legacy (PNG, JPEG)?
+- **Image file size**: Under 200KB for hero, under 100KB for thumbnails?
 
 ## Output Format
 

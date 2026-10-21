@@ -151,21 +151,21 @@ branding, high resolution, dramatic contrast.
 
 ### Key Tactics That Make Prompts Work
 
-1. **Name real cameras**:"Sony A7R IV", "Canon EOS R5", "iPhone 16 Pro Max" anchor realism
-2. **Specify exact lens**:"85mm f/1.4" gives the model precise depth-of-field information
-3. **Use age + ethnicity + features**:"24yo with olive skin, hazel eyes" beats "a person"
-4. **Name brands for styling**:"Lululemon mat", "Tom Ford suit" triggers specific visual associations
-5. **Include micro-details**:"sweat droplets on collarbones", "baby hairs stuck to neck"
-6. **Add platform context**:"Instagram aesthetic", "commercial photography for advertising"
-7. **Describe textures**:"crinkle-textured", "metallic silver", "frosted glass"
-8. **Use action verbs**:"mid-run", "posing confidently", "captured mid-stride"
-9. **End with "ultra-realistic, high resolution"**:these two specific anchors help on Gemini. Avoid generic stacking like "8K, masterpiece, best quality" which adds no value
-10. **For products, say "prominently displayed"**:ensures the product/logo isn't hidden
+1. **Name real cameras**: "Sony A7R IV", "Canon EOS R5", "iPhone 16 Pro Max" anchor realism
+2. **Specify exact lens**: "85mm f/1.4" gives the model precise depth-of-field information
+3. **Use age + ethnicity + features**: "24yo with olive skin, hazel eyes" beats "a person"
+4. **Name brands for styling**: "Lululemon mat", "Tom Ford suit" triggers specific visual associations
+5. **Include micro-details**: "sweat droplets on collarbones", "baby hairs stuck to neck"
+6. **Add platform context**: "Instagram aesthetic", "commercial photography for advertising"
+7. **Describe textures**: "crinkle-textured", "metallic silver", "frosted glass"
+8. **Use action verbs**: "mid-run", "posing confidently", "captured mid-stride"
+9. **End with "ultra-realistic, high resolution"**: these two specific anchors help on Gemini. Avoid generic stacking like "8K, masterpiece, best quality" which adds no value
+10. **For products, say "prominently displayed"**: ensures the product/logo isn't hidden
 
 ### Anti-Patterns (What NOT to Do)
 
-- **"A dark-themed Instagram ad showing..."**:too meta, describes the concept not the image
-- **"A sleek SaaS dashboard visualization..."**:abstract, no visual anchors
-- **"Modern, clean, professional..."**:vague adjectives that mean nothing to the model
-- **"A bold call to action with..."**:describes marketing intent, not visual content
-- **Describing what the viewer should feel**:instead, describe what creates that feeling
+- **"A dark-themed Instagram ad showing..."**: too meta, describes the concept not the image
+- **"A sleek SaaS dashboard visualization..."**: abstract, no visual anchors
+- **"Modern, clean, professional..."**: vague adjectives that mean nothing to the model
+- **"A bold call to action with..."**: describes marketing intent, not visual content
+- **Describing what the viewer should feel**: instead, describe what creates that feeling

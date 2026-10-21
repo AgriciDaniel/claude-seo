@@ -1,6 +1,6 @@
 ---
 name: seo-image-gen
-description: "AI image generation for SEO assets: OG/social preview images, blog hero images, schema images, product photography, infographics. Powered by Gemini via nanobanana-mcp. Requires banana extension installed. Use when user says \"generate image\", \"OG image\", \"social preview\", \"hero image\", \"blog image\", \"product photo\", \"infographic\", \"seo image\", \"create visual\", \"image-gen\", \"favicon\", \"schema image\", \"pinterest pin\", \"generate visual\", \"banner\", or \"thumbnail\"."
+description: "AI image generation for SEO assets: OG/social preview images, blog hero images, schema images, product photography, infographics. Powered by Gemini via nanobanana-mcp. Requires banana extension installed. Use when the user wants an SEO asset and says \"OG image\", \"social preview\", \"hero image\", \"blog image\", \"product photo\", \"infographic\", \"seo image\", \"image-gen\", \"favicon\", \"schema image\", or \"pinterest pin\". Not for general artwork, banners, or thumbnails unrelated to SEO."
 argument-hint: "[og|hero|product|infographic|custom|batch] <description>"
 user-invocable: true
 license: MIT
@@ -92,14 +92,14 @@ for SEO-specific preset templates.
 
 After every successful generation, guide the user on:
 
-1. **Alt text**:Write descriptive alt text that names the subject of the generated image
-2. **File naming**:Rename to SEO-friendly format: `keyword-description-widthxheight.webp`
-3. **WebP conversion**:Convert to WebP for optimal page speed:
+1. **Alt text**: Write descriptive alt text that names the subject of the generated image
+2. **File naming**: Rename to SEO-friendly format: `keyword-description-widthxheight.webp`
+3. **WebP conversion**: Convert to WebP for optimal page speed:
    ```bash
    magick output.png -quality 85 output.webp
    ```
-4. **File size**:Target under 200KB for hero images, under 100KB for thumbnails
-5. **Schema markup**:Suggest `ImageObject` schema for the generated image:
+4. **File size**: Target under 200KB for hero images, under 100KB for thumbnails
+5. **Schema markup**: Suggest `ImageObject` schema for the generated image:
    ```json
    {
      "@type": "ImageObject",
@@ -109,7 +109,7 @@ After every successful generation, guide the user on:
      "caption": "Descriptive caption with target keyword"
    }
    ```
-6. **OG meta tags**:For social preview images, remind about:
+6. **OG meta tags**: For social preview images, remind about:
    ```html
    <meta property="og:image" content="https://example.com/images/og-image.webp" />
    <meta property="og:image:width" content="1200" />
@@ -171,8 +171,8 @@ Load on-demand. Do NOT load all at startup:
 ## Response Format
 
 After generating, always provide:
-1. **Image path**:where it was saved
-2. **Crafted prompt**:show what was sent to the API (educational)
-3. **Settings**:model, aspect ratio, resolution
-4. **SEO checklist**:alt text suggestion, file naming, WebP conversion
-5. **Schema snippet**:ImageObject or og:image markup if applicable
+1. **Image path**: where it was saved
+2. **Crafted prompt**: show what was sent to the API (educational)
+3. **Settings**: model, aspect ratio, resolution
+4. **SEO checklist**: alt text suggestion, file naming, WebP conversion
+5. **Schema snippet**: ImageObject or og:image markup if applicable

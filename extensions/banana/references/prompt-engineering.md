@@ -156,8 +156,8 @@ mid-century modern typeface feel.
 
 ### Text Rendering Tips
 - Quote exact text: `with the text "OPEN DAILY" in bold condensed sans-serif`
-- **25 characters or less**:this is the practical limit for reliable rendering
-- **2-3 distinct phrases max**:more text fragments degrade quality
+- **25 characters or less**: this is the practical limit for reliable rendering
+- **2-3 distinct phrases max**: more text fragments degrade quality
 - Describe font characteristics, not font names
 - Specify placement: "centered at the top third", "along the bottom edge"
 - High contrast: light text on dark, or vice versa

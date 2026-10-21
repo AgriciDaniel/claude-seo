@@ -2,8 +2,9 @@
 name: seo-cluster
 description: >
   Cluster keywords by SERP overlap and design hub-and-spoke content architecture
-  with internal links. Use for planning only; use the blog-cluster command to
-  execute article production.
+  with internal links. Use for planning; `/seo cluster execute` then writes the
+  posts with claude-blog's blog-write skill when it is installed, or content
+  briefs when it is not.
 user-invocable: true
 argument-hint: "<seed-keyword or url>"
 license: MIT
@@ -194,7 +195,10 @@ When `/seo cluster execute` is invoked:
 ### Check for claude-blog
 
 ```
-Test: Does ~/.claude/skills/blog/SKILL.md exist?
+Test: Is a `blog-write` skill available in this session (any plugin namespace,
+for example claude-blog:blog-write)? If unsure, check both install layouts:
+  ~/.claude/skills/blog/SKILL.md                                (manual install)
+  ~/.claude/plugins/cache/*/claude-blog/*/skills/blog/SKILL.md   (plugin install)
 ```
 
 **If claude-blog IS installed:**
