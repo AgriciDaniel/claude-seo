@@ -17,7 +17,7 @@ REF_DIR = REPO_ROOT / "skills" / "seo-flow" / "references"
 # and 403 rate limits, so these tests only run when explicitly enabled; CI sets
 # the flag together with GH_TOKEN.
 network = pytest.mark.skipif(
-    not os.environ.get("CLAUDE_SEO_NETWORK_TESTS"),
+    os.environ.get("CLAUDE_SEO_NETWORK_TESTS") != "1",
     reason="live GitHub API call; set CLAUDE_SEO_NETWORK_TESTS=1 to run",
 )
 
