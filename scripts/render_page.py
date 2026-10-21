@@ -107,6 +107,7 @@ from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     URLSafetyError,
     decode_response_text,
     make_safe_playwright_route_handler,
+    new_guarded_context,
     safe_requests_get,
     validate_url_strict,
 )
@@ -508,7 +509,9 @@ def render_page(
         try:
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
-                context = browser.new_context(
+                context = new_guarded_context(
+                    browser,
+                    route_handler,
                     viewport={"width": vp["width"], "height": vp["height"]},
                     device_scale_factor=vp["device_scale"],
                     user_agent=user_agent or USER_AGENT,

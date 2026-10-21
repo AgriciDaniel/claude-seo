@@ -25,6 +25,7 @@ if _SCRIPTS_DIR not in sys.path:
 from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     URLSafetyError,
     make_safe_playwright_route_handler,
+    new_guarded_context,
     validate_url_strict,
 )
 
@@ -99,7 +100,7 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             browser = p.chromium.launch(headless=True)
 
             # Desktop analysis
-            desktop = browser.new_context(viewport={"width": 1920, "height": 1080})
+            desktop = new_guarded_context(browser, route_handler, viewport={"width": 1920, "height": 1080})
             page = desktop.new_page()
             page.route("**/*", route_handler)
             page.goto(url, wait_until="networkidle", timeout=timeout)
@@ -154,7 +155,7 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             desktop.close()
 
             # Mobile analysis
-            mobile = browser.new_context(viewport={"width": 375, "height": 812})
+            mobile = new_guarded_context(browser, route_handler, viewport={"width": 375, "height": 812})
             page = mobile.new_page()
             page.route("**/*", route_handler)
             page.goto(url, wait_until="networkidle", timeout=timeout)

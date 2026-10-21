@@ -40,6 +40,7 @@ if _SCRIPTS_DIR not in sys.path:
 from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     URLSafetyError,
     make_safe_playwright_route_handler,
+    new_guarded_context,
     validate_url_strict,
 )
 
@@ -125,7 +126,9 @@ def capture_screenshot(
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True)
-            context = browser.new_context(
+            context = new_guarded_context(
+                browser,
+                route_handler,
                 viewport={"width": vp["width"], "height": vp["height"]},
                 device_scale_factor=2 if viewport == "mobile" else 1,
             )

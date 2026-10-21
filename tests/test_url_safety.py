@@ -599,6 +599,36 @@ def test_route_handler_continues_when_both_ipv4_and_ipv6_public() -> None:
         assert route.action == "continue"
 
 
+def test_guarded_context_blocks_service_workers_and_closes_websockets() -> None:
+    calls: dict = {"routes": [], "ws_routes": []}
+    context = SimpleNamespace(
+        route=lambda url, handler: calls["routes"].append((url, handler)),
+        route_web_socket=lambda url, handler: calls["ws_routes"].append((url, handler)),
+    )
+
+    def new_context(**kwargs):
+        calls["kwargs"] = kwargs
+        return context
+
+    handler = url_safety.make_safe_playwright_route_handler()
+    result = url_safety.new_guarded_context(
+        SimpleNamespace(new_context=new_context), handler, viewport={"width": 1, "height": 1}
+    )
+    assert result is context
+    assert calls["kwargs"] == {"service_workers": "block", "viewport": {"width": 1, "height": 1}}
+    assert calls["routes"] == [("**/*", handler)]
+    assert [url for url, _ in calls["ws_routes"]] == ["**/*"]
+    # The handler must leave the socket mocked: it never connects it to a
+    # server, and never calls close() (which deadlocks the sync API).
+    touched: list = []
+    ws = SimpleNamespace(
+        connect_to_server=lambda: touched.append("connect"),
+        close=lambda **_kw: touched.append("close"),
+    )
+    calls["ws_routes"][0][1](ws)
+    assert touched == []
+
+
 # ---------------------------------------------------------------------------
 # OAuth token file permission hardening (Phase H)
 # ---------------------------------------------------------------------------

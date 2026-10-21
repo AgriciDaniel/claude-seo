@@ -1002,6 +1002,45 @@ def make_safe_playwright_route_handler(
     return handler
 
 
+def new_guarded_context(browser, route_handler, **context_kwargs):  # type: ignore[no-untyped-def]
+    """
+    Create a Playwright browser context with the SSRF guard on every page.
+
+    ``page.route()`` does not see WebSocket traffic or requests a service
+    worker makes, so page JavaScript could still reach loopback or LAN
+    hosts through them. This context:
+
+    * blocks service worker registration (``service_workers="block"``),
+      so every request stays visible to the route handler;
+    * routes every request of every page, popups included, through
+      ``route_handler`` (a page-level route still takes precedence);
+    * routes every WebSocket to a handler that never calls
+      ``connect_to_server()``, so Playwright mocks the socket and no
+      connection ever reaches a server (Playwright 1.48+). The handler
+      must not call ``ws.close()``: in the sync API that deadlocks the
+      navigation.
+
+    Args:
+        browser: a Playwright ``Browser``.
+        route_handler: the callback from
+            :func:`make_safe_playwright_route_handler`.
+        **context_kwargs: passed to ``browser.new_context()`` (viewport,
+            user_agent, and so on).
+
+    Returns:
+        The new ``BrowserContext``.
+    """
+    context = browser.new_context(service_workers="block", **context_kwargs)
+    context.route("**/*", route_handler)
+    context.route_web_socket("**/*", _never_connect_web_socket)
+    return context
+
+
+def _never_connect_web_socket(ws) -> None:  # type: ignore[no-untyped-def]
+    """Leave the routed WebSocket mocked: it is never connected to a server."""
+    return None
+
+
 def _cli() -> None:
     """Tiny CLI for manual SSRF-policy checks. Not used by other scripts."""
     import argparse

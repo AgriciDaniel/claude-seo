@@ -357,12 +357,23 @@ class _FakePlaywrightManager:
             def detach(self):
                 return None
 
+        # Recorded on the page so tests can assert how the context was guarded.
+        page.context_kwargs = None
+        page.context_routes = []
+        page.context_ws_routes = []
         context = SimpleNamespace(
             new_page=lambda: page,
             new_cdp_session=lambda _page: _Session(),
+            route=lambda url, handler: page.context_routes.append((url, handler)),
+            route_web_socket=lambda url, handler: page.context_ws_routes.append((url, handler)),
         )
+
+        def new_context(**kwargs):
+            page.context_kwargs = kwargs
+            return context
+
         browser = SimpleNamespace(
-            new_context=lambda **_kwargs: context,
+            new_context=new_context,
             close=lambda: None,
         )
         self.playwright = SimpleNamespace(
@@ -395,6 +406,19 @@ def test_render_uses_domcontentloaded_for_persistent_socket_pages() -> None:
     assert result["error"] is None
     assert page.goto_options["wait_until"] == "domcontentloaded"
     assert result["render_diagnostics"] == []
+
+
+def test_render_context_blocks_service_workers_and_websockets() -> None:
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    result = _render_with_fake_browser(page)
+    assert result["error"] is None
+    assert page.context_kwargs["service_workers"] == "block"
+    assert page.context_kwargs["user_agent"]
+    assert [url for url, _handler in page.context_routes] == ["**/*"]
+    assert [url for url, _handler in page.context_ws_routes] == ["**/*"]
+    import url_safety
+
+    assert page.context_ws_routes[0][1] is url_safety._never_connect_web_socket
 
 
 def test_render_navigation_timeout_returns_degraded_dom() -> None:
