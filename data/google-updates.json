@@ -6,7 +6,7 @@
     "https://developers.google.com/search/updates",
     "https://blog.google/products/search/"
   ],
-  "last_verified": "2026-09-28",
+  "last_verified": "2026-10-22",
   "policy": "Every entry must cite a Google-owned URL. Third-party-only claims belong in unverified[]. Bump last_verified each time an entry is added or revised.",
   "_schema_doc": {
     "updates[]": {
@@ -429,7 +429,42 @@
       "name": "September 2026 Spam Update",
       "kind": "spam",
       "source": "https://status.search.google.com/incidents/XhUDXP7A67iHCD2kmbVu",
-      "notes": "Global, all-language rollout began September 24 at 09:15 PDT and was still active on September 28, 2026; Google estimates up to two weeks and named no specific target."
+      "notes": "Global, all-language rollout from September 24 at 09:15 PDT to October 8, 2026 (13 days 16 hours on the dashboard); Google named no specific target."
+    },
+    {
+      "date": "2026-10-01",
+      "name": "Generative AI content guidance updated",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/fundamentals/using-gen-ai-content",
+      "notes": "The guide on using generative AI content was updated with information from the Search Quality Rater Guidelines."
+    },
+    {
+      "date": "2026-10-06",
+      "name": "Retry-After added to the reduce crawl rate docs",
+      "kind": "documentation",
+      "source": "https://developers.google.com/crawling/docs/crawlers-fetchers/reduce-crawl-rate",
+      "notes": "The emergency crawl rate reduction section was restructured and now documents the Retry-After HTTP header with examples."
+    },
+    {
+      "date": "2026-10-08",
+      "name": "UGC Fresh Data Program documented",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/appearance/ugc-fresh-data-program",
+      "notes": "New page describing Google's UGC Fresh Data Program for user-generated content sites."
+    },
+    {
+      "date": "2026-10-16",
+      "name": "Indexing API quota page updated",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/apis/indexing-api/v3/quota-pricing",
+      "notes": "Current quota limits and process documented (default 200 publish requests per day, 180 getMetadata and 380 total requests per minute); the outdated quota request form was removed. Quota is viewed in the Google API Console."
+    },
+    {
+      "date": "2026-10-21",
+      "name": "Control what you share with Google Search docs updated",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/crawling-indexing/control-what-you-share",
+      "notes": "The page now covers existing options such as the robots meta tag, data-nosnippet, and X-Robots-Tag alongside the Search generative AI control."
     }
   ],
   "unverified": [
@@ -441,7 +476,7 @@
         "https://sites.libsyn.com/479997/website/googles-september-2026-spam-update-is-here-and-it-came-with-a-secret-ai-spam-detector"
       ],
       "primary_source_check": "https://status.search.google.com/incidents/XhUDXP7A67iHCD2kmbVu",
-      "status": "Unverifiable as of 2026-09-28. The paper (research.google, PDF created 2026-05-28) describes YouTube channel-cluster forensics, reports only 'early deployment results', and never mentions Google Search or any spam update. Audit scripts MUST NOT encode SAFE as a Search ranking system."
+      "status": "Unverifiable as of 2026-10-22, after the rollout completed on October 8. The paper (research.google, PDF created 2026-05-28) describes YouTube channel-cluster forensics, reports only 'early deployment results', and never mentions Google Search or any spam update. Audit scripts MUST NOT encode SAFE as a Search ranking system."
     },
     {
       "date": "2026-09-24",
@@ -450,7 +485,7 @@
         "https://www.seroundtable.com/google-september-2026-spam-update-42163.html"
       ],
       "primary_source_check": "https://status.search.google.com/incidents/XhUDXP7A67iHCD2kmbVu",
-      "status": "Unverifiable as a Google statement as of 2026-09-28. SER asserts it without a quote; Google's own posts say only that it is 'a normal spam update'. Do not tell users links are safe or unaffected."
+      "status": "Unverifiable as a Google statement as of 2026-10-22, after the rollout completed on October 8. SER asserts it without a quote; Google's own posts say only that it is 'a normal spam update'. Do not tell users links are safe or unaffected."
     },
     {
       "date": "2026-09-28",
@@ -460,7 +495,7 @@
         "https://sites.libsyn.com/479997/website/googles-september-2026-spam-update-is-here-and-it-came-with-a-secret-ai-spam-detector"
       ],
       "primary_source_check": "https://status.search.google.com/incidents/XhUDXP7A67iHCD2kmbVu",
-      "status": "Secondary observations only; vendor scores and case examples are not reproducible here and do not establish causation or targets. Use only as context while the rollout is active."
+      "status": "Secondary observations only; vendor scores and case examples are not reproducible here and do not establish causation or targets. The rollout completed on October 8, 2026; use only as background context for that window."
     },
     {
       "date": "2026-09-06",

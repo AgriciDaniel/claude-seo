@@ -167,7 +167,7 @@ Posts (with scheduling), Services menu, Attributes (including identity: Women-le
 | May 2026 Core | May 21-Jun 2 | Second core update of 2026 | Dates confirmed |
 | June 2026 Spam | Jun 24-26 | Normal spam update, all languages | Dates confirmed |
 | August 2026 Spam | Aug 18-21 | Normal spam update | Dates confirmed |
-| September 2026 Spam | Sep 24, active on Sep 28 (up to two weeks) | Normal spam update; Google named no target | Dates confirmed |
+| September 2026 Spam | Sep 24-Oct 8 (13 d 16 h) | Normal spam update; Google named no target | Dates confirmed |
 | "Diversity Update" | 2025 | Harder to rank in both map pack AND organic simultaneously | Study (Sterling Sky) |
 
 > **Note:** core-update *rollout dates* are Google-confirmed (Search Status Dashboard); the **"Impact" descriptions are third-party interpretation**; Google's only on-record statement for broad core updates is generic ("better surface relevant, satisfying content from all types of sites"). Do not present impact framing as Google fact.
