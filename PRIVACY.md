@@ -17,7 +17,7 @@ Optional extensions make API calls to third-party services when you invoke their
 
 | Extension | Service | Data Sent | Privacy Policy |
 |-----------|---------|-----------|---------------|
-| **DataForSEO** | api.dataforseo.com | URLs and domains you analyze | [DataForSEO Privacy](https://dataforseo.com/privacy-policy) |
+| **DataForSEO** | api.dataforseo.com (through the MCP server, and directly from `dataforseo_merchant.py`) | URLs, domains and product queries you analyze | [DataForSEO Privacy](https://dataforseo.com/privacy-policy) |
 | **Firecrawl** | api.firecrawl.dev | URLs you crawl or scrape | [Firecrawl Privacy](https://www.firecrawl.dev/privacy) |
 | **Banana (Gemini)** | generativelanguage.googleapis.com | Image generation prompts | [Google AI Privacy](https://ai.google.dev/terms) |
 | **Ahrefs** | Official `@ahrefs/mcp` server (Ahrefs API) | Domains and URLs you analyze | [Ahrefs Privacy](https://ahrefs.com/privacy) |
@@ -25,7 +25,7 @@ Optional extensions make API calls to third-party services when you invoke their
 | **Profound** | Profound API (tryprofound.com) | Brands and domains you track | [Profound Privacy](https://tryprofound.com/privacy) |
 | **Bing Webmaster / IndexNow** | Bing Webmaster Tools API and IndexNow endpoints | Domains, submitted URLs, and key-verification URL data | [Microsoft Privacy](https://privacy.microsoft.com/) |
 | **Matomo** | Your own Matomo instance (self-hosted or Matomo Cloud); no claude-seo vendor is contacted | `idSite`, the report parameters (method, period, date range, segment, row limit), and `token_auth` in the POST body | [Matomo Privacy](https://matomo.org/privacy-policy/) (Cloud); self-hosted = your own policy |
-| **Unlighthouse** | Local only — no third-party vendor | Runs Lighthouse locally against the target URL; only the target site is contacted (to crawl it). Nothing is sent to a third-party vendor. | N/A (runs locally) |
+| **Unlighthouse** | Local only, no third-party vendor | Runs Lighthouse locally against the target URL; only the target site is contacted (to crawl it). Nothing is sent to a third-party vendor. | N/A (runs locally) |
 
 ## Backlink APIs
 
@@ -55,7 +55,8 @@ vendor, telemetry endpoint, or third party sees any of it, and the URLs of the
 site you analyze are read back from your own Matomo, not sent to it.
 
 Both scripts reach the instance through `scripts/url_safety.py`, the same
-SSRF-guarded, DNS-pinned path as every other outbound request in claude-seo.
+SSRF-guarded, DNS-pinned path claude-seo uses for every user-supplied or
+page-derived URL. Calls to fixed vendor API hosts go to those hosts directly.
 A self-hosted instance on a private address is reached by naming it in the
 `CLAUDE_SEO_LOCAL_TARGETS` allowlist; redirects away from the instance are
 refused rather than followed. See SECURITY.md and
@@ -73,11 +74,20 @@ When configured with Google API credentials, these scripts transmit data to Goog
 | `indexing_notify.py` | Indexing API | URLs to submit for indexing |
 | `ga4_report.py` | Analytics Data | Authenticated query for your GA4 properties |
 | `crux_history.py` | CrUX History | URL or origin to query |
+| `lcp_subparts.py` | CrUX | URL or origin to query |
+| `lighthouse_agentic.py` | PageSpeed Insights | URL to analyze |
 | `nlp_analyze.py` | Cloud Natural Language | Text content for entity / sentiment / category analysis |
 | `keyword_planner.py` | Google Ads (Keyword Planner) | Seed keywords for volume, CPC, and competition lookups |
 | `youtube_search.py` | YouTube Data API v3 | Search queries for YouTube SEO research |
 
 Google API usage is governed by [Google's Privacy Policy](https://policies.google.com/privacy) and the [Google API Terms of Service](https://developers.google.com/terms).
+
+## Flow references
+
+`sync_flow.py` downloads the public Flow framework references from
+`api.github.com` (the `AgriciDaniel/flow` repository) when you run a Flow sync.
+It sends no data about your sites; the request carries only a GitHub token if
+you have one set for the `gh` CLI.
 
 ## Credentials
 

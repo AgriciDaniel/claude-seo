@@ -284,7 +284,7 @@ Promoting reviewed release changes:
   pushes are user-authorized per-release.
 - **`aimh` accepts day-to-day pushes.** No release-gate ceremony required
   for the private remote.
-- **v2.2.5 is tagged on both repositories.** Each tag points to that
+- **Every release is tagged on both repositories.** Each tag points to that
   repository's reviewed release commit.
 - **Never force-sync the histories.** Preserve reviewed divergence and never
   rewrite either remote without explicit per-operation authorization.
