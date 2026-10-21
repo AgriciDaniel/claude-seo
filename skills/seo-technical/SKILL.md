@@ -112,6 +112,17 @@ Allow: /
   - Referrer-Policy
 - HSTS preload: check preload list inclusion for high-security sites
 - **Back-button hijacking** (spam-policy violation, malicious practices): flag pages that defeat the Back button via `history.pushState`/`replaceState` (including scripts injected by third-party ad/library platforms). Added to Google's spam policies 2026-04-13; **enforcement live since 2026-06-15** (manual actions + automated demotions): treat as Critical.
+- **Server stack CVE exposure** (read-only, owner-authorized sites only): detect
+  when the site runs a server-side stack carrying a known critical CVE, so the
+  owner can patch or take it offline. Read the stack from a normal response
+  (`X-Powered-By`, `Set-Cookie: PHPSESSID`, WordPress `wp-json`/`generator`
+  signals, static/Node markers like `_next/static`); never fuzz or send
+  exploit payloads, and never probe a site the operator does not control. The
+  current PHP critical-RCE advisory (CVE-2026-109618 / CVE-2026-109619, CVSS
+  9.2, fixed in PHP 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35), detection signals, and
+  reporting bands are in `references/stack-cve-exposure.md`. Treat a confirmed
+  below-fixed PHP version as Critical; a managed or static host with no PHP
+  signal is not exposed by this advisory.
 
 ### 4. URL Structure
 - Clean URLs: descriptive, hyphenated, no query parameters for content
