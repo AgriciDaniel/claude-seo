@@ -9,16 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- 🚨 **Server stack CVE exposure check** in `seo-technical` (Security category).
-  A read-only, owner-authorized detection pass that flags a site running a
-  server-side stack with a known critical CVE, so the owner can patch or take it
-  offline. Reads the stack from a normal response (`X-Powered-By`, PHP session
-  cookie, WordPress signals, static/Node markers); it never fuzzes, sends
-  exploit payloads, or probes a site the operator does not control. Ships the
-  current PHP critical-RCE advisory (CVE-2026-109618 / CVE-2026-109619, CVSS
-  9.2, fixed in PHP 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35), detection signals, and
-  reporting bands in `skills/seo-technical/references/stack-cve-exposure.md`. A
-  managed or static host with no PHP signal is reported as not exposed.
+- **Server stack CVE exposure check** in `seo-technical` (Security category).
+  A read-only detection pass that flags a site running a server-side stack with
+  a known critical CVE, so the owner can patch or take it offline. Reads the
+  stack from the normal response for the audited URL (`X-Powered-By`, PHP
+  session cookie, WordPress signals, static/Node markers); it never fuzzes or
+  sends exploit payloads, and asks whether the user owns the site before
+  requesting any other path. Ships the current PHP critical-RCE advisory
+  (CVE-2026-109618 / CVE-2026-109619, CVSS v4.0 9.2, fixed in PHP 8.5.12 /
+  8.4.27 / 8.3.36 / 8.2.35; no upstream release for 8.1 and older), the
+  php.net interim mitigations, detection signals, and reporting bands in
+  `skills/seo-technical/references/stack-cve-exposure.md`, with sources
+  (php.net, both GitHub advisories, UK NCSC). A version string below the fixed
+  list is reported as High (likely exposed, confirm with the host), because
+  distributions backport fixes without changing it; Critical needs the owner
+  to confirm an unpatched build. A managed or static host with no PHP signal is
+  reported as not exposed.
 
 ## [2.4.2] - 2026-10-04
 
