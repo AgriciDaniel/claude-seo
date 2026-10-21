@@ -466,3 +466,35 @@ def test_claude_md_script_inventory_lists_every_tracked_script():
     listed = set(re.findall(r"^\s{4}([a-z0-9_]+\.py)\s", (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8"), re.M))
     assert tracked - listed == set(), f"unlisted scripts: {sorted(tracked - listed)}"
     assert listed - tracked == set(), f"listed but not shipped: {sorted(listed - tracked)}"
+
+
+def test_no_nested_plugin_manifest_inside_the_plugin_root():
+    """Claude Desktop skips a plugin whose folder holds another plugin.json (#344).
+
+    The claude-seo marketplace entry uses ``source: "./"``, so the whole
+    repository is the plugin folder. Only the root manifest may exist.
+    """
+    root_manifest = (REPO_ROOT / ".claude-plugin" / "plugin.json").resolve()
+    nested = [
+        p.relative_to(REPO_ROOT).as_posix()
+        for p in REPO_ROOT.rglob("plugin.json")
+        if p.parent.name == ".claude-plugin"
+        and p.resolve() != root_manifest
+        and not {".git", ".venv", "node_modules"} & set(p.relative_to(REPO_ROOT).parts)
+    ]
+    assert not nested, f"nested plugin manifests break Claude Desktop installs: {nested}"
+
+
+def test_seo_cockpit_installs_from_a_pinned_branch():
+    """seo-cockpit is served from the seo-cockpit branch, pinned to a commit."""
+    mp = json.loads(MARKETPLACE_JSON.read_text(encoding="utf-8"))
+    entries = {e["name"]: e for e in mp["plugins"]}
+    assert mp["plugins"][0]["name"] == "claude-seo"
+    assert mp["plugins"][0]["source"] == "./"
+    source = entries["seo-cockpit"]["source"]
+    assert isinstance(source, dict), "seo-cockpit must not be a relative path inside the plugin root"
+    assert source["source"] == "git-subdir"
+    assert source["url"] == "AgriciDaniel/claude-seo"
+    assert source["path"] == "plugins/seo-cockpit"
+    assert source["ref"] == "seo-cockpit"
+    assert re.fullmatch(r"[0-9a-f]{40}", source["sha"]), source.get("sha")

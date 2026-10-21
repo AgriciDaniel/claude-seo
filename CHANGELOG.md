@@ -26,6 +26,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to confirm an unpatched build. A managed or static host with no PHP signal is
   reported as not exposed.
 
+### Fixed
+
+- **Claude Desktop installs claude-seo again (#344).** The claude-seo plugin
+  folder is the whole repository, and since v2.4.2 it held a second plugin
+  manifest at `plugins/seo-cockpit/.claude-plugin/plugin.json`, which Claude
+  Desktop refuses ("plugin.json must be at .claude-plugin/plugin.json at the
+  plugin root ... found nested"). seo-cockpit now lives on the `seo-cockpit`
+  branch of this repository and the marketplace installs it from there with a
+  `git-subdir` source pinned to a commit. It stays optional, keeps its install
+  id (`seo-cockpit@agricidaniel-claude-seo`) and moves to 0.3.4 (author and
+  homepage fields only). A new test fails if any nested plugin manifest
+  returns to the claude-seo tree.
+
 ## [2.4.2] - 2026-10-04
 
 seo-cockpit, Google sign-in through your own account, and a schema-hook fix.

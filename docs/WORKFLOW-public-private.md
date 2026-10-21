@@ -110,6 +110,32 @@ documentation, and links to those materials. Workflow state is repository
 specific. Any other difference must be reviewed and explained before release.
 Never force-sync the repositories to make their SHAs or trees identical.
 
+## seo-cockpit branch
+
+seo-cockpit is a separate plugin, so its files must not sit inside the
+claude-seo plugin folder (the whole repository, `source: "./"`). Claude
+Desktop skips a plugin whose folder contains another plugin's
+`.claude-plugin/plugin.json` (issue #344). The cockpit therefore lives on the
+`seo-cockpit` branch, under `plugins/seo-cockpit/`, and `main` carries no
+`plugins/` folder. `tests/test_manifest_consistency.py` enforces both rules.
+
+- **Base.** The branch is built on public release history only, never on a
+  private commit, because the same commit is published on `origin`. It must
+  never contain `research/` or other private-only files.
+- **Marketplace entry.** Both marketplaces install the cockpit with a
+  `git-subdir` source: `url` `AgriciDaniel/claude-seo`, `path`
+  `plugins/seo-cockpit`, `ref` `seo-cockpit` and a pinned 40-character `sha`.
+  The private marketplace points at the public repository too, so this entry
+  is identical in both trees and is not part of the identity divergence.
+- **Cockpit release.** Commit the change on `seo-cockpit`, run
+  `claude plugin validate plugins/seo-cockpit --strict` and
+  `claude plugin test plugins/seo-cockpit`, push the branch to `origin` (and
+  `aimh`), then bump `sha` in `.claude-plugin/marketplace.json` on `main` in
+  the next claude-seo release. Users get the new cockpit only when that `sha`
+  moves, so cockpit updates stay release-controlled.
+- **Order.** Push the `seo-cockpit` branch before the `main` commit that pins
+  its `sha`, so no published marketplace points at a commit GitHub lacks.
+
 ## Why two repos?
 
 - The **public** repo is the user-facing artifact. Everything visible

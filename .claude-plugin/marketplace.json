@@ -60,14 +60,20 @@
     },
     {
       "name": "seo-cockpit",
-      "source": "./plugins/seo-cockpit",
+      "source": {
+        "source": "git-subdir",
+        "url": "AgriciDaniel/claude-seo",
+        "path": "plugins/seo-cockpit",
+        "ref": "seo-cockpit",
+        "sha": "cf97b4785f4241b9367d654c60c7207dc3afcf68"
+      },
       "description": "Optional mods companion for claude-seo (needs Claude Code 2.1.287+). A spend guard that holds paid SEO API calls against the claude-seo budget, and zero-token /seo-spend and /seo-doctor commands.",
       "author": {
         "name": "AgriciDaniel",
         "url": "https://github.com/AgriciDaniel"
       },
       "category": "marketing",
-      "homepage": "https://github.com/AgriciDaniel/claude-seo/tree/main/plugins/seo-cockpit",
+      "homepage": "https://github.com/AgriciDaniel/claude-seo/tree/seo-cockpit/plugins/seo-cockpit",
       "keywords": [
         "seo",
         "mods",
