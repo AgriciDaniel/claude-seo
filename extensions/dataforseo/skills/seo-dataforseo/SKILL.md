@@ -345,7 +345,7 @@ Search business listings for local SEO competitive analysis.
 
 ### `/seo dataforseo ai-scrape <query>`
 
-Scrape what ChatGPT web search returns for a query. ChatGPT visibility check: see which sources ChatGPT cites for your target keywords.
+Scrape what ChatGPT web search returns for a query. ChatGPT visibility check: see which sources ChatGPT cites for your target keywords. Check Google AI Overviews and AI Mode with GSC gen-AI reports when available.
 
 **MCP tools:** `ai_optimization_chat_gpt_scraper`
 

@@ -121,7 +121,7 @@ Fetch YouTube search results. Valuable for GEO. YouTube mentions correlate most 
 
 ### `/seo dataforseo youtube <video_id>`
 
-Deep analysis of a specific YouTube video: info, comments, and subtitles. Some third-party studies report a 0.737 correlation between YouTube mentions and AI visibility, so treat this as a methodology-dependent GEO signal.
+Deep analysis of a specific YouTube video: info, comments, and subtitles. Treat YouTube mentions as a useful GEO signal, but AI visibility correlations are methodology-dependent.
 
 **MCP tools:** `serp_youtube_video_info_live_advanced`, `serp_youtube_video_comments_live_advanced`, `serp_youtube_video_subtitles_live_advanced`
 
