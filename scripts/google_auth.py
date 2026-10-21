@@ -16,9 +16,13 @@ Usage:
 """
 
 import argparse
+import base64
+import hashlib
+import hmac
 import json
 import os
 import re
+import secrets
 import sys
 import time
 from typing import Optional
@@ -50,6 +54,13 @@ OAUTH_SCOPES = (
     "https://www.googleapis.com/auth/analytics.readonly"
 )
 OAUTH_REDIRECT_URI = "http://localhost:8085"
+# How long --auth waits for the browser redirect, and how long the pending
+# sign-in (state + PKCE verifier) stays usable for a manual --exchange.
+OAUTH_WAIT_SECONDS = 300
+OAUTH_PENDING_MAX_AGE = 600
+# A redirect connection that sends no request is dropped after this many
+# seconds, so it cannot hold the single-threaded server.
+OAUTH_REQUEST_TIMEOUT = 10
 
 # Human-readable service names
 SERVICE_NAMES = {
@@ -266,7 +277,12 @@ def _load_oauth_token() -> Optional[dict]:
 
 
 def _save_oauth_token(token_data: dict):
-    """Save OAuth token to TOKEN_PATH with secure (0o600) permissions.
+    """Save OAuth token to TOKEN_PATH with secure (0o600) permissions."""
+    _write_private_json(TOKEN_PATH, token_data)
+
+
+def _write_private_json(path: str, data: dict):
+    """Write JSON to ``path`` with secure (0o600) permissions.
 
     Belt-and-suspenders sequence:
         1. Pre-chmod any existing file (closes a v1.9.x umask=022 legacy).
@@ -277,13 +293,13 @@ def _save_oauth_token(token_data: dict):
            os.path.exists()/os.open() TOCTOU race where an external
            creator could install a 0o644 file between the two calls.
 
-    The token file is never world-readable, even briefly.
+    The file is never world-readable, even briefly.
     """
-    os.makedirs(os.path.dirname(TOKEN_PATH), exist_ok=True)
-    if os.path.exists(TOKEN_PATH):
-        _chmod_quiet(TOKEN_PATH, 0o600)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    if os.path.exists(path):
+        _chmod_quiet(path, 0o600)
     flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-    fd = os.open(TOKEN_PATH, flags, 0o600)
+    fd = os.open(path, flags, 0o600)
     # fchmod on the open fd guarantees 0o600 even if the file existed at
     # open time (in which case os.open's mode arg is ignored by the OS).
     # os.fdopen takes ownership of fd: it closes the fd whether the
@@ -295,7 +311,89 @@ def _save_oauth_token(token_data: dict):
     except OSError:
         pass  # FS may not support fchmod (e.g. some Windows filesystems)
     with os.fdopen(fd, "w") as f:
-        json.dump(token_data, f, indent=2)
+        json.dump(data, f, indent=2)
+
+
+def _pending_flow_path() -> str:
+    """Where an unfinished --auth keeps its state and PKCE verifier."""
+    return os.path.join(os.path.dirname(TOKEN_PATH), "oauth-pending.json")
+
+
+def _pkce_pair() -> tuple[str, str]:
+    """Return a PKCE (code_verifier, S256 code_challenge) pair (RFC 7636)."""
+    verifier = secrets.token_urlsafe(64)
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return verifier, challenge
+
+
+def _save_pending_flow(state: str, code_verifier: str):
+    """Persist the pending sign-in so a manual --exchange can finish it."""
+    _write_private_json(_pending_flow_path(), {
+        "state": state,
+        "code_verifier": code_verifier,
+        "redirect_uri": OAUTH_REDIRECT_URI,
+        "created_at": time.time(),
+    })
+
+
+def _clear_pending_flow():
+    try:
+        os.remove(_pending_flow_path())
+    except OSError:
+        pass
+
+
+def _load_pending_flow() -> Optional[dict]:
+    """Load the pending sign-in, or None when absent, unreadable or expired."""
+    path = _pending_flow_path()
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return None
+    try:
+        age = time.time() - float(data["created_at"])
+    except (KeyError, TypeError, ValueError):
+        age = -1
+    if (
+        not isinstance(data, dict)
+        or not data.get("state")
+        or not data.get("code_verifier")
+        or data.get("redirect_uri") != OAUTH_REDIRECT_URI
+        or not 0 <= age <= OAUTH_PENDING_MAX_AGE
+    ):
+        _clear_pending_flow()
+        return None
+    return data
+
+
+def _manual_exchange_inputs(code_or_url: str) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    """Turn --exchange --code input into (code, code_verifier, error).
+
+    Accepts the bare code or the full redirect URL from the address bar.
+    When a URL is pasted, its ``state`` must match the pending sign-in.
+    """
+    import urllib.parse
+
+    pending = _load_pending_flow()
+    verifier = pending["code_verifier"] if pending else None
+    value = code_or_url.strip()
+    if not value.lower().startswith(("http://", "https://")):
+        return value, verifier, None
+    params = urllib.parse.parse_qs(urllib.parse.urlparse(value).query)
+    if "error" in params:
+        return None, None, f"Google returned an error: {params['error'][0]}"
+    code = params.get("code", [None])[0]
+    if not code:
+        return None, None, "The pasted URL has no 'code' parameter."
+    if pending:
+        returned_state = params.get("state", [""])[0]
+        if not hmac.compare_digest(returned_state, pending["state"]):
+            return None, None, "The pasted URL does not belong to the pending sign-in. Run --auth again."
+    return code, verifier, None
 
 
 def _persist_oauth_client_path(creds_path: str):
@@ -349,7 +447,7 @@ def _refresh_oauth_token(client: dict, token_data: dict) -> Optional[dict]:
 
     try:
         req = urllib.request.Request(client.get("token_uri", "https://oauth2.googleapis.com/token"), data=params)
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
             new_data = json.loads(resp.read())
         token_data["access_token"] = new_data["access_token"]
         token_data["expires_at"] = time.time() + new_data.get("expires_in", 3600)
@@ -438,22 +536,52 @@ def run_oauth_flow(creds_path: str):
         print("Error: Could not load OAuth client credentials.", file=sys.stderr)
         sys.exit(1)
 
+    # state binds the redirect to this run (CSRF); PKCE binds the code to
+    # this machine. Both are kept on disk for the manual --exchange path.
+    _clear_pending_flow()
+    state = secrets.token_urlsafe(32)
+    code_verifier, code_challenge = _pkce_pair()
+    _save_pending_flow(state, code_verifier)
+
     auth_url = (
-        f"{client.get('auth_uri', 'https://accounts.google.com/o/oauth2/auth')}"
-        f"?client_id={client['client_id']}"
-        f"&redirect_uri={urllib.parse.quote(OAUTH_REDIRECT_URI)}"
-        f"&response_type=code"
-        f"&scope={urllib.parse.quote(OAUTH_SCOPES)}"
-        f"&access_type=offline&prompt=consent"
+        client.get("auth_uri", "https://accounts.google.com/o/oauth2/auth")
+        + "?"
+        + urllib.parse.urlencode({
+            "client_id": client["client_id"],
+            "redirect_uri": OAUTH_REDIRECT_URI,
+            "response_type": "code",
+            "scope": OAUTH_SCOPES,
+            "access_type": "offline",
+            "prompt": "consent",
+            "state": state,
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+        })
     )
 
-    auth_code = [None]
+    result = {"code": None, "error": None}
 
     class Handler(http.server.BaseHTTPRequestHandler):
+        # A connection that never sends a request must not stall the wait.
+        timeout = OAUTH_REQUEST_TIMEOUT
+
         def do_GET(self):
             params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            if "code" in params:
-                auth_code[0] = params["code"][0]
+            returned_state = params.get("state", [""])[0]
+            if not hmac.compare_digest(returned_state, state):
+                # Not our redirect (a stray request or a forged one): refuse
+                # it and keep waiting for the real one.
+                self.send_response(400)
+                self.end_headers()
+                return
+            if "error" in params:
+                result["error"] = params["error"][0]
+                self.send_response(400)
+                self.send_header("Content-Type", "text/html")
+                self.end_headers()
+                self.wfile.write(b"<h1>Authentication was not completed.</h1><p>Close this tab.</p>")
+            elif "code" in params:
+                result["code"] = params["code"][0]
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html")
                 self.end_headers()
@@ -461,63 +589,87 @@ def run_oauth_flow(creds_path: str):
             else:
                 self.send_response(400)
                 self.end_headers()
+
         def log_message(self, *a):
             pass
 
-    server = http.server.HTTPServer(("localhost", 8085), Handler)
-    server.timeout = 300
+    port = urllib.parse.urlparse(OAUTH_REDIRECT_URI).port or 80
+    server = http.server.HTTPServer(("localhost", port), Handler)
 
     print(f"\nOpen this URL in your browser:\n\n{auth_url}\n")
-    print("Waiting up to 5 minutes for authentication...")
+    print(f"Waiting up to {OAUTH_WAIT_SECONDS} seconds for authentication...")
 
     try:
         webbrowser.open(auth_url)
     except Exception:
         pass
 
-    server.handle_request()
-    server.server_close()
+    deadline = time.monotonic() + OAUTH_WAIT_SECONDS
+    try:
+        while result["code"] is None and result["error"] is None:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            server.timeout = remaining
+            server.handle_request()
+    finally:
+        server.server_close()
 
-    if not auth_code[0]:
+    if result["error"]:
+        _clear_pending_flow()
+        print(f"\nGoogle returned an error: {result['error']}", file=sys.stderr)
+        sys.exit(1)
+
+    if not result["code"]:
         print("\nAuthentication failed or timed out.", file=sys.stderr)
         print("If the browser showed 'localhost refused to connect', copy the full URL")
-        print("from the browser address bar and run:")
-        print(f"  python scripts/google_auth.py --exchange --creds {creds_path} --code 'THE_CODE'")
+        print(f"from the browser address bar within {OAUTH_PENDING_MAX_AGE // 60} minutes and run:")
+        print(f"  python scripts/google_auth.py --exchange --creds {creds_path} --code 'THE_FULL_URL'")
         sys.exit(1)
 
     # Exchange code for tokens
-    _exchange_code(client, auth_code[0], creds_path)
+    _exchange_code(client, result["code"], creds_path, code_verifier)
 
 
-def _exchange_code(client: dict, code: str, creds_path: Optional[str] = None):
+def _exchange_code(
+    client: dict,
+    code: str,
+    creds_path: Optional[str] = None,
+    code_verifier: Optional[str] = None,
+):
     """Exchange an authorization code for tokens.
 
     If creds_path is provided, persist its absolute path to the user config
     as 'oauth_client_path' so subsequent refresh flows can locate the
-    client_secret file without re-prompting.
+    client_secret file without re-prompting. ``code_verifier`` is the PKCE
+    verifier of the sign-in that produced ``code``.
     """
     import urllib.parse
     import urllib.request
 
-    params = urllib.parse.urlencode({
+    fields = {
         "code": code,
         "client_id": client["client_id"],
         "client_secret": client["client_secret"],
         "redirect_uri": OAUTH_REDIRECT_URI,
         "grant_type": "authorization_code",
-    }).encode()
+    }
+    if code_verifier:
+        fields["code_verifier"] = code_verifier
+    params = urllib.parse.urlencode(fields).encode()
 
     try:
         req = urllib.request.Request(
             client.get("token_uri", "https://oauth2.googleapis.com/token"), data=params
         )
-        with urllib.request.urlopen(req) as resp:
+        with urllib.request.urlopen(req, timeout=30) as resp:
             token_data = json.loads(resp.read())
         token_data["expires_at"] = time.time() + token_data.get("expires_in", 3600)
         token_data["client_id"] = client["client_id"]
         # SECURITY: Never store client_secret in token file. It stays in client_secret.json only.
         token_data.pop("client_secret", None)
         _save_oauth_token(token_data)
+        _clear_pending_flow()
         print("OAuth token saved successfully!")
 
         # Persist oauth_client_path so refresh works after process restart.
@@ -891,7 +1043,7 @@ def main():
     )
     parser.add_argument(
         "--code",
-        help="Authorization code to exchange (for --exchange)",
+        help="Authorization code, or the full redirect URL from the address bar (for --exchange)",
     )
 
     args = parser.parse_args()
@@ -909,7 +1061,11 @@ def main():
             sys.exit(1)
         client = _load_oauth_client(args.creds)
         if client:
-            _exchange_code(client, args.code, args.creds)
+            code, code_verifier, error = _manual_exchange_inputs(args.code)
+            if error:
+                print(f"Error: {error}", file=sys.stderr)
+                sys.exit(1)
+            _exchange_code(client, code, args.creds, code_verifier)
         return
 
     if args.setup:
