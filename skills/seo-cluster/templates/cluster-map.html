@@ -339,6 +339,7 @@
     // === END CLUSTER DATA ===
 
     const COLORS = ["#4E79A7", "#F28E2B", "#E15759", "#76B7B2", "#59A14F", "#EDC948", "#B07AA1", "#FF9DA7"];
+    const LINK_TYPES = ["mandatory", "recommended", "optional"];
 
     (function render() {
       const data = CLUSTER_DATA;
@@ -353,7 +354,7 @@
       document.getElementById("stat-posts").textContent = data.meta.totalPosts;
       document.getElementById("stat-clusters").textContent = data.meta.totalClusters;
       document.getElementById("stat-links").textContent = data.meta.totalLinks;
-      document.getElementById("stat-words").textContent = data.meta.estimatedWords.toLocaleString();
+      document.getElementById("stat-words").textContent = (Number(data.meta.estimatedWords) || 0).toLocaleString();
 
       // Layout calculations
       const numClusters = data.clusters.length;
@@ -406,12 +407,13 @@
         const fromPos = nodePositions[link.from];
         const toPos = nodePositions[link.to];
         if (!fromPos || !toPos) return;
-        const linkClass = "link-line " + link.type;
+        const linkType = LINK_TYPES.indexOf(link.type) >= 0 ? link.type : "optional";
+        const linkClass = "link-line " + linkType;
         const linkId = "link-" + idx;
         svgContent += '<line id="' + linkId + '" class="' + linkClass + '" '
           + 'x1="' + fromPos.x + '" y1="' + fromPos.y + '" '
           + 'x2="' + toPos.x + '" y2="' + toPos.y + '" '
-          + 'data-from="' + link.from + '" data-to="' + link.to + '"/>';
+          + 'data-from="' + escapeHtml(link.from) + '" data-to="' + escapeHtml(link.to) + '"/>';
         linkElements.push(linkId);
       });
 
@@ -428,7 +430,7 @@
 
       // Draw spoke nodes
       data.clusters.forEach(function(cluster, ci) {
-        const color = cluster.color || COLORS[ci % COLORS.length];
+        const color = safeColor(cluster.color, COLORS[ci % COLORS.length]);
         cluster.posts.forEach(function(post, pi) {
           const nodeId = "cluster-" + ci + "-post-" + pi;
           const pos = nodePositions[nodeId];
@@ -471,11 +473,11 @@
 
         let html = '<div class="tooltip-title">' + escapeHtml(info.title) + '</div>';
         html += '<div class="tooltip-detail"><span>Keyword:</span><span>' + escapeHtml(info.keyword) + '</span></div>';
-        html += '<div class="tooltip-detail"><span>Volume:</span><span>' + (info.volume || "N/A") + '</span></div>';
+        html += '<div class="tooltip-detail"><span>Volume:</span><span>' + escapeHtml(info.volume || "N/A") + '</span></div>';
         html += '<div class="tooltip-detail"><span>Template:</span><span>' + escapeHtml(info.template) + '</span></div>';
-        html += '<div class="tooltip-detail"><span>Words:</span><span>' + info.wordCount.toLocaleString() + '</span></div>';
+        html += '<div class="tooltip-detail"><span>Words:</span><span>' + (Number(info.wordCount) || 0).toLocaleString() + '</span></div>';
         if (info.status) {
-          html += '<div class="tooltip-detail"><span>Status:</span><span>' + info.status + '</span></div>';
+          html += '<div class="tooltip-detail"><span>Status:</span><span>' + escapeHtml(info.status) + '</span></div>';
         }
 
         tooltip.innerHTML = html;
@@ -567,14 +569,25 @@
     })();
 
     // Utility functions
+    // Escapes text and attribute values alike (quotes included): every
+    // field below comes from SERP data the page does not control.
     function escapeHtml(str) {
-      var div = document.createElement("div");
-      div.textContent = str;
-      return div.innerHTML;
+      return String(str == null ? "" : str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    // Only #RRGGBB reaches fill/stroke: darken() parses exactly that form.
+    function safeColor(value, fallback) {
+      return /^#[0-9a-fA-F]{6}$/.test(value || "") ? value : fallback;
     }
 
     function truncate(str, maxLen) {
       if (!str) return "";
+      str = String(str);
       return str.length > maxLen ? str.substring(0, maxLen - 1) + "\u2026" : str;
     }
 

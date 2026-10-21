@@ -166,7 +166,11 @@ Generate `cluster-map.html` using the template at `templates/cluster-map.html`.
      meta: { totalPosts, totalClusters, totalLinks, estimatedWords }
    }
    ```
-3. Replace the `CLUSTER_DATA` placeholder in the template with the actual JSON
+3. Replace the `CLUSTER_DATA` placeholder in the template with the actual JSON.
+   Serialize it as real JSON (for example `json.dumps`) and then write every
+   `<` as `\u003c`, so a SERP title containing `</script>` cannot end the
+   script block. Use `#RRGGBB` cluster colors; anything else falls back to the
+   default palette.
 4. Write the completed HTML file to the output directory
 5. Inform user: "Open `cluster-map.html` in a browser to explore the interactive cluster map."
 
