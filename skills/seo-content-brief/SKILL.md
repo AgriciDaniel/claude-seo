@@ -2,7 +2,7 @@
 name: seo-content-brief
 description: >
   Generate competitive SEO content briefs with per-section word counts,
-  competitor scoring, keyword density guidance, and page-type templates.
+  competitor scoring, keyword placement guidance, and page-type templates.
   Supports both new page briefs and improve-existing-page briefs.
   Use when user says "content brief", "write a brief", "content outline",
   "blog brief", "service page brief", "brief for", "writing brief",
@@ -93,7 +93,7 @@ For non-hub pages (single service page, blog post), use site structure to sugges
 - These are internal thinking tools only. The output must read as plain, professional advice.
 - Write for a business owner or content writer, not an SEO academic
 
-## Keyword Density and Placement
+## Keyword Placement
 
 Read `references/keyword-density.md` for the full rules. Summary:
 
@@ -118,7 +118,7 @@ Read `references/keyword-density.md` for the full rules. Summary:
 - 5-8 closely related supporting terms distributed through body content
 - 10-15 broader semantic terms covering related concepts
 - Use in H2-H6 subheadings where natural
-- Synonyms improve readability and do NOT count toward keyword density
+- Synonyms and close variations improve readability; there is no density target to count them toward
 
 **Per-section keyword guidance:** For each section in the outline, specify:
 - Which keyword (primary or secondary) belongs in the heading

@@ -92,7 +92,7 @@ for SEO-specific preset templates.
 
 After every successful generation, guide the user on:
 
-1. **Alt text**:Write descriptive, keyword-rich alt text for the generated image
+1. **Alt text**:Write descriptive alt text that names the subject of the generated image
 2. **File naming**:Rename to SEO-friendly format: `keyword-description-widthxheight.webp`
 3. **WebP conversion**:Convert to WebP for optimal page speed:
    ```bash

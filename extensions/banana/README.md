@@ -69,7 +69,7 @@ an optimized prompt using a proven 6-component Reasoning Brief system:
 ## Post-Generation SEO Checklist
 
 After every generation, Claude provides:
-- Alt text suggestion (keyword-rich, descriptive)
+- Alt text suggestion (descriptive, names the subject)
 - SEO-friendly file naming convention
 - WebP conversion command
 - ImageObject schema snippet

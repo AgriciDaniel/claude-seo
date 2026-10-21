@@ -37,7 +37,7 @@ metadata:
   - Invalid date formats
 - Flag deprecated types (see below)
 
-## Schema Type Status (as of June 2026)
+## Schema Type Status (checked October 2026)
 
 Read `../seo/references/schema-types.md` for the full list. Key rules:
 

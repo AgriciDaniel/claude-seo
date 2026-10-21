@@ -27,14 +27,14 @@ Google's documentation explicitly recommends JSON-LD over Microdata and RDFa.
 | NewsArticle | News content | Same as Article + news-specific context |
 | Review | Individual reviews | reviewRating, author, itemReviewed, reviewBody |
 | AggregateRating | Rating summaries | ratingValue, reviewCount, bestRating, worstRating |
-| BreadcrumbList | Navigation | itemListElement with position, name, item |
+| BreadcrumbList | Navigation | itemListElement with position, name, item; breadcrumb rich results show on desktop only, not mobile (since 2025-01-22) |
 | WebSite | Site-level | name, url, potentialAction (SearchAction is machine-readable only; no Google sitelinks search box benefit) |
 | WebPage | Page-level | name, description, datePublished, dateModified |
 | Person | Author/team | name, jobTitle, url, sameAs, image, worksFor |
 | ContactPage | Contact pages | name, url |
 | VideoObject | Video content | name, description, thumbnailUrl, uploadDate, duration, contentUrl; creator (Person or Organization with name or alternateName) recommended since 2026-09-24; interactionStatistic (recommended since 2019) supports WatchAction, LikeAction, CommentAction, ShareAction (clarified 2026-09-24; real counts only) |
 | ImageObject | Image content | contentUrl, caption, creator, copyrightHolder |
-| Event | Events | name, startDate, endDate, location, organizer, offers |
+| Event | Events | name, startDate, endDate, location, organizer, offers; eligible only for events bookable by the general public and held at a physical location (since 2025-06-05) |
 | JobPosting | Job listings | title, description, datePosted, hiringOrganization, jobLocation |
 | Course | Educational content | name, description, provider, hasCourseInstance |
 | DiscussionForumPosting | Forum threads | headline, author, datePublished, text, url |

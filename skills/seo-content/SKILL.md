@@ -87,7 +87,7 @@ Compare against page type minimums:
 
 ### Keyword Optimization
 - Primary keyword in title, H1, first 100 words
-- Natural density (1-3%)
+- Natural use of the topic, entities, and close variations (no target percentage; Google publishes none and treats unnatural repetition as keyword stuffing)
 - Semantic variations present
 - No keyword stuffing
 

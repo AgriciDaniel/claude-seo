@@ -117,7 +117,9 @@ def notify_url(
         elif "429" in error_str:
             result["error"] = (
                 f"Quota exceeded. Daily limit: {DAILY_QUOTA} publish requests. "
-                "Apply for a quota increase at https://developers.google.com/search/apis/indexing-api/v3/quota-increase"
+                "Check your quota in the Google API Console "
+                "(https://console.cloud.google.com/apis/api/indexing.googleapis.com/quotas); "
+                "see https://developers.google.com/search/apis/indexing-api/v3/quota-pricing"
             )
         elif "400" in error_str:
             result["error"] = f"Invalid URL or request: {e}"
