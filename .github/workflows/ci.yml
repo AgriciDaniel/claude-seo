@@ -11,13 +11,13 @@ permissions:
 
 jobs:
   lint:
-    name: Python Syntax Check
+    name: Python syntax and lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
 
@@ -27,21 +27,30 @@ jobs:
           python3 -m py_compile "${PYFILES[@]}"
           echo "All ${#PYFILES[@]} scripts passed syntax check"
 
-  test:
-    name: Test suite (manifests + sync_flow)
-    runs-on: ubuntu-latest
-    env:
-      # gh CLI honors GH_TOKEN automatically; sync_flow.py uses gh for auth.
-      # Without this, anonymous API requests hit GitHub's 60/hr per-IP rate
-      # limit and the sync_flow dry-run test fails on shared-runner IPs.
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v7
+      - name: Lint with ruff
+        # Uses the [tool.ruff] settings in pyproject.toml. Pinned so a new ruff
+        # release cannot turn the job red without a change in this repo.
+        run: |
+          pip install ruff==0.17.1
+          ruff check .
 
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v7
+  test:
+    name: Test suite (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The supported floor, a middle release, and the newest release.
+        python-version: ["3.10", "3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Install runtime + test deps
         # Tests import scripts that import url_safety.py (and others), which
@@ -54,7 +63,10 @@ jobs:
 
       - name: Run pytest
         env:
-          CLAUDE_SEO_NETWORK_TESTS: "1"
+          # The live GitHub API tests run on one leg only, so the matrix does
+          # not triple the calls. gh honors GH_TOKEN, which keeps sync_flow.py
+          # clear of the anonymous 60/hr per-IP rate limit on shared runners.
+          CLAUDE_SEO_NETWORK_TESTS: ${{ matrix.python-version == '3.10' && '1' || '' }}
           GH_TOKEN: ${{ github.token }}
         run: pytest tests/ -v
 
@@ -62,7 +74,7 @@ jobs:
     name: Secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Scan tracked files for leaked credentials
         run: |
@@ -92,12 +104,14 @@ jobs:
       matrix:
         os: [windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
+          cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Install runtime + test deps
         run: pip install -r requirements.txt pytest
@@ -115,10 +129,10 @@ jobs:
     name: Dependency audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
 
