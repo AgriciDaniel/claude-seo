@@ -108,7 +108,8 @@ Read `references/keyword-density.md` for the full rules. Summary:
 3. URL slug
 4. Meta description
 5. First paragraph / first 100 words
-6. At least one image alt text
+
+Image alt text describes the image; it is not a required keyword placement.
 
 **Primary keyword does NOT need to appear in:**
 - Every H2 or H3 (subtopics carry context naturally if H1 covers it)

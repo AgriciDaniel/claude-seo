@@ -63,8 +63,9 @@ jobs:
 
       - name: Run pytest
         env:
-          # The live GitHub API tests run on one leg only, so the matrix does
-          # not triple the calls. gh honors GH_TOKEN, which keeps sync_flow.py
+          # The live GitHub API tests run on the 3.10 leg only, so the matrix
+          # does not triple the calls (the portability job also runs them on
+          # Windows and macOS). gh honors GH_TOKEN, which keeps sync_flow.py
           # clear of the anonymous 60/hr per-IP rate limit on shared runners.
           CLAUDE_SEO_NETWORK_TESTS: ${{ matrix.python-version == '3.10' && '1' || '' }}
           GH_TOKEN: ${{ github.token }}

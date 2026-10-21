@@ -53,7 +53,7 @@ metadata:
 - Never recommend HowTo (deprecated) or FAQ for rich results (retired May 2026); existing FAQPage need not be removed, use QAPage for genuine Q&A
 
 ### Images
-- Alt text: present, descriptive, includes keywords where natural
+- Alt text: present and descriptive, naming the image's subject; the topic appears only where it naturally fits
 - File size: flag >200KB (warning), >500KB (critical)
 - Format: recommend WebP/AVIF over JPEG/PNG
 - Dimensions: width/height set for CLS prevention

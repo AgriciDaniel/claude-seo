@@ -27,7 +27,8 @@ The primary keyword MUST appear in all of these:
 3. **URL slug** (lowercase, hyphenated)
 4. **Meta description** (naturally integrated)
 5. **First paragraph / first 100 words** (establishes topic immediately)
-6. **At least one image alt text** (reinforces topic for image search)
+
+Image alt text is not on this list. Write it to describe the image; the topic appears there only when the image actually shows it.
 
 ## Locations Where It Is NOT Required
 
@@ -56,5 +57,5 @@ The primary keyword MUST appear in all of these:
 1. **Exact-match obsession:** Using the exact phrase every time instead of natural variations. Google understands synonyms and related terms.
 2. **Heading stuffing:** Putting the primary keyword in every H2 and H3. One H1 mention plus 1-2 H2 mentions is sufficient.
 3. **Ignoring first 100 words:** The opening paragraph is the highest-value placement after the title and H1.
-4. **Forgetting image alt text:** A free placement opportunity that also helps image search rankings.
+4. **Forgetting image alt text:** Every meaningful image needs descriptive alt text that names its subject. It helps accessibility and image search; it is not a keyword slot.
 5. **Counting density at all:** "Web design", "website design", and "site design" all describe the same topic. Judge whether the page covers the topic clearly, not how often one exact string appears.
