@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.3] - 2026-10-22
+
+Security and accuracy fixes from a full audit, and Claude Desktop installs again.
+
 ### Added
 
 - **Server stack CVE exposure check** in `seo-technical` (Security category).
@@ -26,6 +30,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to confirm an unpatched build. A managed or static host with no PHP signal is
   reported as not exposed.
 
+### Changed
+
+- **Data and guidance corrected against primary sources.**
+  - The September 2026 spam update is recorded as complete (Sep 24 to Oct 8,
+    13 d 16 h), with Google's October documentation changes added to the
+    updates ledger.
+  - Keyword density targets are gone from `seo-page`, `seo-content` and
+    `seo-content-brief`; alt text is "descriptive, naming the subject", not
+    keyword-rich.
+  - The Gemini image model reference had read a 2025 release date as a
+    shutdown date; `gemini-2.5-flash-image` is current until at least
+    2027-03-15.
+  - The Indexing API quota link (a 404) now points to the API Console quota
+    page.
+  - Breadcrumb (desktop only) and Event (publicly bookable, physical
+    location) rich result limits are documented.
+- Clearer skill triggers ("Use when" on `seo-geo`, `seo-local`,
+  `seo-technical`, `seo-agentic`; `seo-image-gen` only for SEO assets), the
+  hub and audit skills agree on when the backlinks agent runs, and the
+  extension copies of the DataForSEO and image agents match the core ones,
+  including `model` and `maxTurns`.
+- CI runs ruff, tests Python 3.10, 3.12 and 3.14, pins GitHub Actions to
+  commit SHAs, and no longer exposes `GH_TOKEN` to install steps.
+- SECURITY.md and PRIVACY.md describe what the code does, including which
+  calls go to fixed vendor hosts and how to verify a signed release tag.
+
 ### Fixed
 
 - **Claude Desktop installs claude-seo again (#344).** The claude-seo plugin
@@ -38,6 +68,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   id (`seo-cockpit@agricidaniel-claude-seo`) and moves to 0.3.4 (author and
   homepage fields only). A new test fails if any nested plugin manifest
   returns to the claude-seo tree.
+
+### Security
+
+- **Google sign-in is bound to its run.** The OAuth flow now sends a random
+  `state` and a PKCE S256 challenge, and the exchange sends the matching
+  `code_verifier`. The local redirect server waits up to 300 s for the request
+  with the right `state`; stray or forged requests get a 400 and no longer end
+  the sign-in, and a silent connection is dropped after 10 s. Both token calls
+  time out after 30 s. The redirect URI (`http://localhost:8085`) is unchanged,
+  so existing OAuth clients keep working.
+- **Manual sign-in.** A pending sign-in is saved (0600) as
+  `oauth-pending.json` next to the token and is valid for 10 minutes after
+  the browser wait ends. `--exchange --code` now also accepts the full
+  redirect URL and checks its `state`; with no valid pending sign-in it stops
+  with "No pending sign-in (missing or expired). Run --auth again." instead of
+  sending a request that cannot succeed.
+- **Headless renders block service workers and WebSockets.** A new
+  `url_safety.new_guarded_context()` is used by `render_page.py`,
+  `capture_screenshot.py` and `analyze_visual.py`: service workers are
+  blocked, every request goes through the SSRF route handler, and WebSockets
+  are routed to a handler that never connects them.
+- **Body size caps.** `fetch_page.py` and the raw path of `render_page.py`
+  stop after 10 MiB of decompressed body and report `too_large`; redirect
+  bodies are capped at 64 KiB before requests reads them, so a 3xx gzip bomb
+  cannot exhaust memory. `sitemap_discovery.py` uses the same shared reader.
+- **Untrusted content rules everywhere.** Every agent and every skill, core
+  and extension, now states that fetched pages, SERP results and API payloads
+  are untrusted data, never instructions. The `seo-cluster` agent no longer
+  has Bash, which it never used.
+- `capture_screenshot.py` checks the output folder with resolved paths, so a
+  sibling such as `/home/user2` no longer passes for `/home/user`.
+- The cluster map template escapes every SERP field it writes into the page,
+  allowlists colors and link types, and the skill embeds its data with `<`
+  escaped, so a crafted SERP title cannot run script in the generated file.
+- The schema validation hook has a 30 s timeout.
 
 ## [2.4.2] - 2026-10-04
 
