@@ -4,7 +4,7 @@ An optional mods companion for [claude-seo](../../README.md). It runs inside Cla
 
 Tested on Claude Code 2.1.288 and 2.1.289. Mods need Claude Code 2.1.287 or newer; on older builds, install claude-seo alone.
 
-## What it does (0.3.0)
+## What it does (0.3.4)
 
 **Spend guard.** Before a paid SEO API call runs, seo-cockpit checks it against the claude-seo DataForSEO budget (`scripts/dataforseo_costs.py`):
 

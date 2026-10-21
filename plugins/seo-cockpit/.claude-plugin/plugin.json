@@ -1,11 +1,12 @@
 {
   "name": "seo-cockpit",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Mods companion for claude-seo: a spend guard on paid SEO APIs, a live audit band with a receipt, an economy mode, a visual cockpit (Search Console, rankings, Core Web Vitals, audit, Maps, spend) and zero-token commands",
   "author": {
-    "name": "Agrici Daniel"
+    "name": "AgriciDaniel",
+    "url": "https://github.com/AgriciDaniel"
   },
-  "homepage": "https://github.com/AgriciDaniel/claude-seo",
+  "homepage": "https://github.com/AgriciDaniel/claude-seo/tree/seo-cockpit/plugins/seo-cockpit",
   "license": "MIT",
   "userConfig": {
     "claudeSeoRoot": {
