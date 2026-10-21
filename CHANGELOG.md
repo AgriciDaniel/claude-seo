@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- 🚨 **Server stack CVE exposure check** in `seo-technical` (Security category).
+  A read-only, owner-authorized detection pass that flags a site running a
+  server-side stack with a known critical CVE, so the owner can patch or take it
+  offline. Reads the stack from a normal response (`X-Powered-By`, PHP session
+  cookie, WordPress signals, static/Node markers); it never fuzzes, sends
+  exploit payloads, or probes a site the operator does not control. Ships the
+  current PHP critical-RCE advisory (CVE-2026-109618 / CVE-2026-109619, CVSS
+  9.2, fixed in PHP 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35), detection signals, and
+  reporting bands in `skills/seo-technical/references/stack-cve-exposure.md`. A
+  managed or static host with no PHP signal is reported as not exposed.
+
 ## [2.4.2] - 2026-10-04
 
 seo-cockpit, Google sign-in through your own account, and a schema-hook fix.
