@@ -6,7 +6,7 @@ description: >
   hub-and-spoke content architecture, and generates internal link matrices.
 model: opus
 maxTurns: 40
-tools: WebSearch, WebFetch, Read, Write, Bash, Glob, Grep
+tools: WebSearch, WebFetch, Read, Write, Glob, Grep
 ---
 
 <!-- Original concept: Lutfiya Miller, Semantic Cluster Engine (Pro Hub Challenge) -->
