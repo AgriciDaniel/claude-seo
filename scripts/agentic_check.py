@@ -64,7 +64,13 @@ from urllib.parse import urljoin, urlparse
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from url_safety import URLSafetyError, decode_body, safe_requests_get  # noqa: E402
+from url_safety import (  # noqa: E402
+    MAX_JSON_DEPTH,
+    URLSafetyError,
+    decode_body,
+    json_depth_exceeds,
+    safe_requests_get,
+)
 
 CHECKED_ON = "2026-09-23"
 MAX_BODY = 2_000_000
@@ -646,6 +652,9 @@ def validate_ai_catalog(raw: str) -> dict:
     The JSON Schema pass is not reproduced; ``lighthouse_agentic.py`` reports it.
     """
     errors, warnings = [], []
+    if json_depth_exceeds(raw):
+        return {"errors": [f"malformed JSON: nested deeper than {MAX_JSON_DEPTH} levels"],
+                "warnings": [], "entries": 0}
     try:
         data = json.loads(raw)
     except (ValueError, RecursionError) as exc:  # RecursionError: absurdly deep nesting
@@ -760,6 +769,9 @@ def audit_well_known(root: str) -> tuple[list, dict]:
             row["soft_404"] = True
             status, fix = "warn", ("Returns HTML with 200. Serve a real 404 or the JSON "
                                    "document; soft 404s mislead discovery clients.")
+        elif rec["status"] == 200 and json_depth_exceeds(rec["text"]):
+            row["valid_json"] = False
+            status, fix = "fail", f"Document is nested deeper than {MAX_JSON_DEPTH} levels."
         elif rec["status"] == 200:
             try:
                 json.loads(rec["text"])

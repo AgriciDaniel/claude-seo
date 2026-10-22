@@ -42,6 +42,27 @@ def test_deeply_nested_well_known_document_is_a_finding(monkeypatch):
     assert all(c["status"] == "fail" for c in checks)
 
 
+def test_json_depth_limit_is_independent_of_stack_size(monkeypatch):
+    """300 levels fail and 200 levels pass on every Python and C stack size."""
+    too_deep = "[" * 300 + "]" * 300
+    shallow = "[" * 200 + "]" * 200
+    assert ac.validate_ai_catalog(too_deep)["errors"] == [
+        f"malformed JSON: nested deeper than {ac.MAX_JSON_DEPTH} levels"]
+    assert ac.validate_ai_catalog(shallow)["errors"] == ["root must be a JSON object"]
+    for body, valid in ((too_deep, False), (shallow, True)):
+        monkeypatch.setattr(ac, "fetch", lambda url, headers=None, body=body: _rec(
+            200, body, {"content-type": "application/json"}))
+        checks, data = ac.audit_well_known("https://e.test")
+        assert all(row["valid_json"] is valid for row in data.values())
+
+
+def test_json_depth_scan_skips_brackets_inside_strings():
+    from url_safety import json_depth_exceeds
+    assert not json_depth_exceeds(json.dumps({"a": "[" * 1000, "b": "{\\\"[[["}))
+    assert json_depth_exceeds(json.dumps({"a": [[[]]]}), max_depth=3)
+    assert not json_depth_exceeds(json.dumps({"a": [[]]}), max_depth=3)
+
+
 def test_ucp_profile_hostile_shapes_do_not_crash():
     assert ucp_check.parse_profile(DEEP)["issues"]
     profile = {"ucp": {"version": "2026-08-25", "services": {"dev.ucp.shopping": [

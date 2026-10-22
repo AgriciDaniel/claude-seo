@@ -876,6 +876,33 @@ def read_bounded(response, max_bytes: int) -> tuple[bytes, bool]:
     return b"".join(chunks), too_large
 
 
+# Deepest JSON nesting a fetched document may have. Real discovery and
+# profile documents stay under 20 levels. From Python 3.14 the json module's
+# recursion limit follows the C stack size, so a 100k-deep document may parse
+# on one machine and raise on another; check depth first for one answer.
+MAX_JSON_DEPTH = 256
+
+_JSON_DEPTH_TOKEN_RE = re.compile(r'"(?:[^"\\]|\\.)*"|[\[\]{}]')
+
+
+def json_depth_exceeds(text: str, max_depth: int = MAX_JSON_DEPTH) -> bool:
+    """Return True when ``text`` nests arrays or objects past ``max_depth``.
+
+    Brackets inside JSON strings are skipped. The scan does not validate the
+    document; call it before ``json.loads`` and treat True as a finding.
+    """
+    depth = 0
+    for match in _JSON_DEPTH_TOKEN_RE.finditer(text):
+        token = match.group()
+        if token in "[{":
+            depth += 1
+            if depth > max_depth:
+                return True
+        elif token in "]}":
+            depth -= 1
+    return False
+
+
 def _bound_redirect_body(response, *args, **kwargs):  # type: ignore[no-untyped-def]
     """``response`` hook: read at most MAX_REDIRECT_BODY_BYTES of a 3xx body.
 
