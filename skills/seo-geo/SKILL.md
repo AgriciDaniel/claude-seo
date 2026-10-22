@@ -50,8 +50,8 @@ with their source and date, or leave them out.
 
 ## Critical Insight: Brand Mentions > Backlinks
 
-**Brand mentions correlate 3x more strongly with AI visibility than backlinks.**
-(Ahrefs study of 75,000 brands, published 2025-12-12; it follows Ahrefs' May 2025 AI Overviews study)
+**In Ahrefs' study of 75,000 brands, brand mentions correlated about 3x more strongly with AI visibility than backlinks did.**
+(Published 2025-12-12; it follows Ahrefs' May 2025 AI Overviews study. This is a correlation across brands, not evidence that adding mentions causes citations.)
 
 | Signal | Correlation with AI Citations |
 |--------|------------------------------|
@@ -66,6 +66,8 @@ with their source and date, or leave them out.
 ---
 
 ## GEO Analysis Criteria (Updated)
+
+The category weights below (25/20/15/20/20) are this skill's own heuristic for prioritizing a checklist, not a measured model. Never present the resulting score as a predicted citation rate.
 
 ### 1. Citability Score (25%)
 
@@ -92,7 +94,7 @@ your most citable, self-contained answer rather than burying it below the fold.
 
 ### 2. Structural Readability (20%)
 
-**92% of AI Overview citations come from top-10 ranking pages**, but 47% come from pages ranking below position 5, demonstrating different selection logic.
+Third-party studies report that **most AI Overview citations come from top-10 ranking pages** (figures around 92%), with a large share from below position 5. The source is not recorded here and the figures were not re-verified; quote them only with a source.
 
 **Strong signals:**
 - Clean H1->H2->H3 heading hierarchy
@@ -124,7 +126,7 @@ Multi-modal content can support selection in AI answers (third-party claims only
 **Strong signals:**
 - Author byline with credentials
 - Publication date and last-updated date
-- **Recency**, content under 3 months old is ~3x more likely to be cited in AI answers; pages left stale 6+ months lose citation eligibility (SE Ranking, 1.3M-citation study). A scheduled refresh program is one of the highest-leverage GEO plays.
+- **Recency**: in SE Ranking's 1.3M-citation study, content updated within 3 months was cited about 3x more often. That is a correlation; no AI search system documents a staleness cutoff. Refresh pages whose facts, prices or screenshots have changed rather than on a fixed clock.
 - Citations to primary sources (studies, official docs, data)
 - Organization credentials and affiliations
 - Expert quotes with attribution
@@ -339,7 +341,7 @@ Treat a stale ledger (`freshness.stale`) as incomplete.
 
 Generate `GEO-ANALYSIS.md` with:
 
-1. **GEO Readiness Score: XX/100**
+1. **GEO Readiness Score: XX/100** (a heuristic checklist score; see the note under GEO Analysis Criteria)
 2. **Platform breakdown** (Google AIO, ChatGPT, Perplexity): give a score only for platforms measured with a tool (for example DataForSEO or SE Ranking); otherwise report qualitative readiness and say it was not measured
 3. **AI Crawler Access Status** -- report each crawler separately with the
    capability it governs. Training access (`GPTBot`, `Google-Extended`, `CCBot`,
