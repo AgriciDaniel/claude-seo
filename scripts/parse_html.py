@@ -61,6 +61,17 @@ def _has_rel_token(tag, token: str) -> bool:
     return any(isinstance(value, str) and value.lower() == token for value in rel or [])
 
 
+def _element_text(tag) -> str:
+    """Return a tag's visible text with each run of whitespace collapsed to one space.
+
+    ``get_text(strip=True)`` strips every text node before joining them, so the
+    spaces next to inline tags are lost (``for <em>every</em> dollar`` becomes
+    ``foreverydollar``). Joining the unstripped text and collapsing whitespace
+    keeps those spaces and also folds newlines in multi-line headings.
+    """
+    return " ".join(tag.get_text().split())
+
+
 def _detect_lazy_method(img) -> str:
     """Return a coarse classification of the image's lazy-loading mechanism.
 
@@ -124,7 +135,7 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     # Title
     title_tag = soup.find("title")
     if title_tag:
-        result["title"] = title_tag.get_text(strip=True)
+        result["title"] = _element_text(title_tag)
 
     # Meta tags
     for meta in soup.find_all("meta"):
@@ -166,7 +177,7 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     # Headings
     for tag in ["h1", "h2", "h3"]:
         for heading in soup.find_all(tag):
-            text = heading.get_text(strip=True)
+            text = _element_text(heading)
             if text:
                 result[tag].append(text)
                 # Flag suspiciously short or purely numeric headings (likely counters/stats)
@@ -210,7 +221,7 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
 
             link_data = {
                 "href": full_url,
-                "text": a.get_text(strip=True)[:100],
+                "text": _element_text(a)[:100],
                 "rel": a.get("rel", []),
             }
 
