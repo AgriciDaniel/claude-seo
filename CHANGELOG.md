@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`seo-geo` states third-party findings as correlations.** The Ahrefs
+  brand-mention result and the SE Ranking recency result were written as
+  rules ("pages left stale 6+ months lose citation eligibility"); no AI search
+  system documents such a cutoff. The 92%/47% AI Overview figures now carry
+  their unverified status, and the GEO Readiness Score's 25/20/15/20/20 weights
+  are labelled the skill's own heuristic, not a predicted citation rate.
+
 ## [2.5.0] - 2026-10-22
 
 Security and accuracy fixes from a full audit, and Claude Desktop installs again.
