@@ -7,7 +7,7 @@ license: MIT
 compatibility: "Requires nanobanana MCP server"
 metadata:
   author: AgriciDaniel
-  version: "2.4.3"
+  version: "2.5.0"
   category: seo
 ---
 
