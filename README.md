@@ -28,7 +28,7 @@
   <a href="https://claude.com/product/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-Plugin-blue" alt="Claude Code plugin" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://github.com/AgriciDaniel/claude-seo/releases"><img src="https://img.shields.io/github/v/release/AgriciDaniel/claude-seo" alt="Version" /></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-1065%20passing-brightgreen" alt="Tests" /></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-1077%20passing-brightgreen" alt="Tests" /></a>
   <a href="https://github.com/AgriciDaniel/claude-seo"><img src="https://img.shields.io/github/stars/AgriciDaniel/claude-seo?style=flat" alt="GitHub stars" /></a>
   <a href="https://www.skool.com/ai-marketing-hub-pro"><img src="https://img.shields.io/badge/AI%20Marketing%20Hub-Pro%20community-purple" alt="AI Marketing Hub Pro community" /></a>
 </p>
