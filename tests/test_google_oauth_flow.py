@@ -152,15 +152,15 @@ def test_stray_and_forged_requests_do_not_end_the_wait(isolated, monkeypatch):
 
 
 def test_a_silent_connection_does_not_block_the_real_redirect(isolated, monkeypatch):
-    monkeypatch.setattr(google_auth, "OAUTH_WAIT_SECONDS", 30)
-    monkeypatch.setattr(google_auth, "OAUTH_REQUEST_TIMEOUT", 1)
+    monkeypatch.setattr(google_auth, "SIGNIN_WAIT_SECONDS", 30)
+    monkeypatch.setattr(google_auth, "SIGNIN_REQUEST_TIMEOUT", 1)
     idle = []
 
     def browser(url):
         state = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["state"][0]
         port = urllib.parse.urlparse(google_auth.OAUTH_REDIRECT_URI).port
         idle.append(socket.create_connection(("localhost", port)))  # connects, sends nothing
-        # The server drops the idle connection after OAUTH_REQUEST_TIMEOUT.
+        # The server drops the idle connection after SIGNIN_REQUEST_TIMEOUT.
         _get(_redirect({"state": state, "code": "real-code"}), timeout=20)
 
     started = time.monotonic()
@@ -183,7 +183,7 @@ def test_google_error_with_our_state_stops_and_clears_the_pending_flow(isolated,
 
 
 def test_timeout_keeps_the_pending_flow_for_manual_exchange(isolated, monkeypatch):
-    monkeypatch.setattr(google_auth, "OAUTH_WAIT_SECONDS", 1)
+    monkeypatch.setattr(google_auth, "SIGNIN_WAIT_SECONDS", 1)
     with pytest.raises(SystemExit):
         _run_flow_with_browser(isolated, monkeypatch, lambda url: None)
     pending = google_auth._load_pending_flow()
@@ -197,7 +197,7 @@ def test_timeout_restarts_the_pending_clock(isolated, monkeypatch):
     # The manual window printed on timeout must run from the timeout, not
     # from before the wait: a person who pastes the URL late in that window
     # still has a pending sign-in.
-    monkeypatch.setattr(google_auth, "OAUTH_WAIT_SECONDS", 1)
+    monkeypatch.setattr(google_auth, "SIGNIN_WAIT_SECONDS", 1)
     base = time.time()
     clock = {"offset": 0.0}
     monkeypatch.setattr(google_auth.time, "time", lambda: base + clock["offset"])
@@ -207,7 +207,7 @@ def test_timeout_restarts_the_pending_clock(isolated, monkeypatch):
 
     with pytest.raises(SystemExit):
         _run_flow_with_browser(isolated, monkeypatch, browser)
-    clock["offset"] = 400.0 + google_auth.OAUTH_PENDING_MAX_AGE - 10
+    clock["offset"] = 400.0 + google_auth.SIGNIN_PENDING_MAX_AGE - 10
     assert google_auth._load_pending_flow() is not None
 
 
@@ -255,7 +255,7 @@ def test_manual_exchange_checks_state_of_a_pasted_url(isolated):
 def test_expired_pending_flow_is_refused(isolated, monkeypatch):
     google_auth._save_pending_flow("s", "v" * 64)
     real_time = time.time
-    monkeypatch.setattr(google_auth.time, "time", lambda: real_time() + google_auth.OAUTH_PENDING_MAX_AGE + 5)
+    monkeypatch.setattr(google_auth.time, "time", lambda: real_time() + google_auth.SIGNIN_PENDING_MAX_AGE + 5)
     assert google_auth._load_pending_flow() is None
     assert not os.path.exists(google_auth._pending_flow_path())
 

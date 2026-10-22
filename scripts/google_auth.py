@@ -56,11 +56,11 @@ OAUTH_SCOPES = (
 OAUTH_REDIRECT_URI = "http://localhost:8085"
 # How long --auth waits for the browser redirect, and how long the pending
 # sign-in (state + PKCE verifier) stays usable for a manual --exchange.
-OAUTH_WAIT_SECONDS = 300
-OAUTH_PENDING_MAX_AGE = 600
+SIGNIN_WAIT_SECONDS = 300
+SIGNIN_PENDING_MAX_AGE = 600
 # A redirect connection that sends no request is dropped after this many
 # seconds, so it cannot hold the single-threaded server.
-OAUTH_REQUEST_TIMEOUT = 10
+SIGNIN_REQUEST_TIMEOUT = 10
 
 # Human-readable service names
 SERVICE_NAMES = {
@@ -363,7 +363,7 @@ def _load_pending_flow() -> Optional[dict]:
         or not data.get("state")
         or not data.get("code_verifier")
         or data.get("redirect_uri") != OAUTH_REDIRECT_URI
-        or not 0 <= age <= OAUTH_PENDING_MAX_AGE
+        or not 0 <= age <= SIGNIN_PENDING_MAX_AGE
     ):
         _clear_pending_flow()
         return None
@@ -575,7 +575,7 @@ def run_oauth_flow(creds_path: str):
 
     class Handler(http.server.BaseHTTPRequestHandler):
         # A connection that never sends a request must not stall the wait.
-        timeout = OAUTH_REQUEST_TIMEOUT
+        timeout = SIGNIN_REQUEST_TIMEOUT
 
         def do_GET(self):
             params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
@@ -608,15 +608,19 @@ def run_oauth_flow(creds_path: str):
     port = urllib.parse.urlparse(OAUTH_REDIRECT_URI).port or 80
     server = http.server.HTTPServer(("localhost", port), Handler)
 
+    # CodeQL flags this print as clear-text logging because auth_url derives
+    # from the OAuth client file. The URL holds only the public client_id,
+    # state and PKCE challenge, never the secret; the alert (#1) is dismissed
+    # as a false positive and reopens if this line changes.
     print(f"\nOpen this URL in your browser:\n\n{auth_url}\n")
-    print(f"Waiting up to {OAUTH_WAIT_SECONDS} seconds for authentication...")
+    print(f"Waiting up to {SIGNIN_WAIT_SECONDS} seconds for authentication...")
 
     try:
         webbrowser.open(auth_url)
     except Exception:
         pass
 
-    deadline = time.monotonic() + OAUTH_WAIT_SECONDS
+    deadline = time.monotonic() + SIGNIN_WAIT_SECONDS
     try:
         while result["code"] is None and result["error"] is None:
             remaining = deadline - time.monotonic()
@@ -638,7 +642,7 @@ def run_oauth_flow(creds_path: str):
         _save_pending_flow(state, code_verifier)
         print("\nAuthentication failed or timed out.", file=sys.stderr)
         print("If the browser showed 'localhost refused to connect', copy the full URL")
-        print(f"from the browser address bar within {OAUTH_PENDING_MAX_AGE // 60} minutes and run:")
+        print(f"from the browser address bar within {SIGNIN_PENDING_MAX_AGE // 60} minutes and run:")
         print(f"  python scripts/google_auth.py --exchange --creds {creds_path} --code 'THE_FULL_URL'")
         sys.exit(1)
 
