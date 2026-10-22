@@ -33,6 +33,10 @@
   <a href="https://www.skool.com/ai-marketing-hub-pro"><img src="https://img.shields.io/badge/AI%20Marketing%20Hub-Pro%20community-purple" alt="AI Marketing Hub Pro community" /></a>
 </p>
 
+<p align="center">
+  <a href="https://trendshift.io/repositories/21053"><img src="https://trendshift.io/api/badge/repositories/21053" alt="AgriciDaniel/claude-seo on Trendshift: GitHub Trending #12 Repository Of The Day" width="250" height="55" /></a>
+</p>
+
 **Claude SEO is a free SEO plugin for Claude Code.** Give it any website and it runs a full SEO audit in 10 to 15 minutes, then hands you a clear action plan, sorted by what matters most.
 
 It checks everything a good SEO consultant would:
@@ -345,6 +349,16 @@ Optional add-ons that bring in more data. Claude SEO works fully without them.
 - **Unlighthouse:** Lighthouse scores for every page of your site
 
 Setup guides live in [`extensions/`](extensions/).
+
+## Star history
+
+<a href="https://www.star-history.com/#AgriciDaniel/claude-seo&Date">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=AgriciDaniel/claude-seo&type=Date&theme=dark" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=AgriciDaniel/claude-seo&type=Date" />
+    <img alt="Claude SEO GitHub stars over time" src="https://api.star-history.com/svg?repos=AgriciDaniel/claude-seo&type=Date" width="720" />
+  </picture>
+</a>
 
 ## More from the same family
 
