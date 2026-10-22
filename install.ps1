@@ -9,12 +9,29 @@ Write-Host "|   Claude Code SEO Skill              |" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Supported range. scripts/runtime.py (MIN_PYTHON, MAX_PYTHON) is the source
+# of truth; tests/test_python_range.py keeps this copy in step.
+$MinMinor = 11
+$MaxMinor = 14
+$script:SeenPython = @()
+
 function Resolve-Python {
+    # An override must be supported; it is never silently replaced.
+    if ($env:CLAUDE_SEO_PYTHON) {
+        return Test-PythonCandidate -Exe $env:CLAUDE_SEO_PYTHON -Args @()
+    }
+
+    # The default interpreter first, so an existing runtime keeps its Python.
+    # 'py -3' means the newest installed, which can be one we do not support yet.
     $candidates = @(
         @{ Exe = 'py'; Args = @('-3') },
         @{ Exe = 'python3'; Args = @() },
         @{ Exe = 'python'; Args = @() }
     )
+    for ($minor = $MaxMinor; $minor -ge $MinMinor; $minor--) {
+        $candidates += @{ Exe = 'py'; Args = @("-3.$minor") }
+        $candidates += @{ Exe = "python3.$minor"; Args = @() }
+    }
 
     foreach ($candidate in $candidates) {
         $resolved = Test-PythonCandidate -Exe $candidate.Exe -Args $candidate.Args
@@ -72,15 +89,18 @@ function Test-PythonCandidate {
         return $null
     }
 
-    $probeCode = 'import sys; print(sys.executable); print(sys.version.split()[0]); raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'
+    $probeCode = "import sys; print(sys.executable); print(sys.version.split()[0]); raise SystemExit(0 if (3, $MinMinor) <= sys.version_info[:2] <= (3, $MaxMinor) else 1)"
     $probe = Invoke-External -Exe $Exe -Args @($Args + @('-c', $probeCode)) -Quiet
     $probeText = ($probe.Output -join "`n")
 
-    if ($probe.ExitCode -ne 0) {
+    if ($probeText -match 'Microsoft Store|WindowsApps|App execution alias|was not found') {
         return $null
     }
 
-    if ($probeText -match 'Microsoft Store|WindowsApps|App execution alias|was not found') {
+    if ($probe.ExitCode -ne 0) {
+        if ($probe.ExitCode -eq 1 -and $probe.Output.Count -ge 2 -and "$($probe.Output[1])" -match '^\d+\.\d+') {
+            $script:SeenPython += "$($probe.Output[1]) ($(@($Exe) + $Args -join ' '))"
+        }
         return $null
     }
 
@@ -90,7 +110,13 @@ function Test-PythonCandidate {
 # Check prerequisites
 $python = Resolve-Python
 if ($null -eq $python) {
-    Write-Host "[x] Python is required but was not found (tried 'py -3', 'python3', and 'python')." -ForegroundColor Red
+    $found = 'no Python'
+    if ($script:SeenPython.Count -gt 0) { $found = $script:SeenPython -join ', ' }
+    if ($env:CLAUDE_SEO_PYTHON) {
+        Write-Host "[x] CLAUDE_SEO_PYTHON must be Python 3.$MinMinor to 3.$MaxMinor. Found: $found." -ForegroundColor Red
+    } else {
+        Write-Host "[x] Claude SEO needs Python 3.$MinMinor to 3.$MaxMinor. Found: $found. Install Python 3.$MaxMinor from python.org or set CLAUDE_SEO_PYTHON." -ForegroundColor Red
+    }
     exit 1
 }
 

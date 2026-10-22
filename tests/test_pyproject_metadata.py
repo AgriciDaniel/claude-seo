@@ -20,7 +20,7 @@ def test_pyproject_has_authors_and_keywords() -> None:
 def test_pyproject_has_minimal_ruff_config_only() -> None:
     text = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     assert "[tool.ruff]" in text
-    assert 'target-version = "py310"' in text
+    assert 'target-version = "py311"' in text
     assert "line-length = 100" in text
     assert "[tool.ruff.lint]" in text
     assert 'select = ["E", "F", "W", "I"]' in text
@@ -41,6 +41,7 @@ def test_requirements_keep_security_and_compatibility_floors() -> None:
         "lxml_html_clean": (0, 4, 5),   # advisories fixed in 0.4.4 and 0.4.5
         "urllib3": (2, 7, 0),
         "numpy": (2, 2, 6),
+        "pillow": (13, 0, 0),           # 28 advisories fixed only in 13.0.0
         "google-auth-httplib2": (0, 4, 0),
         "google-ads": (25, 0, 0),
     }

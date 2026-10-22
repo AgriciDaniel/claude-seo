@@ -85,10 +85,18 @@ jobs:
           if ($failed) { exit 1 }
           Write-Host "All extension PowerShell scripts parse."
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
+        id: py
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.10"
+          python-version: "3.11"
+
+      - name: Pin the installer to setup-python through CLAUDE_SEO_PYTHON
+        shell: pwsh
+        env:
+          PYTHON_PATH: ${{ steps.py.outputs.python-path }}
+        run: |
+          "CLAUDE_SEO_PYTHON=$env:PYTHON_PATH" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Prepare isolated user profile
         shell: pwsh
@@ -130,10 +138,20 @@ jobs:
           $ErrorActionPreference = "Stop"
           $skillRoot = Join-Path $env:USERPROFILE ".claude\skills\seo"
           $runtime = Join-Path $skillRoot "scripts\runtime.py"
-          $doctor = & py -3 $runtime doctor --json
+          # Run the runtime with the interpreter the installer chose, read from
+          # the venv it built. 'py -3' may be a different, unsupported Python.
+          $cfg = Get-Content (Join-Path $skillRoot ".venv\pyvenv.cfg")
+          $python = (($cfg | Where-Object { $_ -match '^executable\s*=' }) -split '=', 2)[1].Trim()
+          $version = (($cfg | Where-Object { $_ -match '^version\s*=' }) -split '=', 2)[1].Trim()
+          if ($version -notmatch '^3\.(1[1-4])\.') { throw "Installer chose unsupported Python $version" }
+          if ($env:CLAUDE_SEO_PYTHON -and ((Resolve-Path $python).Path -ne (Resolve-Path $env:CLAUDE_SEO_PYTHON).Path)) {
+            throw "Installer ignored CLAUDE_SEO_PYTHON ($python)"
+          }
+          Write-Host "Installer chose Python $version at $python"
+          $doctor = & $python $runtime doctor --json
           if ($LASTEXITCODE -ne 0) { throw "runtime doctor failed" }
           $doctor | ConvertFrom-Json | Out-Null
-          $updates = & py -3 $runtime run seo_updates.py --limit 1 --json
+          $updates = & $python $runtime run seo_updates.py --limit 1 --json
           if ($LASTEXITCODE -ne 0) { throw "seo_updates failed" }
           $parsedUpdates = $updates | ConvertFrom-Json
           if ($parsedUpdates.count -ne 1) { throw "Expected one Google update" }
@@ -216,10 +234,12 @@ jobs:
           if ($failed) { exit 1 }
           Write-Host "All extension PowerShell scripts parse."
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
+        # No CLAUDE_SEO_PYTHON here: the image's 'py -3' may be newer than the
+        # supported range, and the installer must fall back on its own.
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Prepare isolated user profile
         shell: powershell
@@ -261,10 +281,20 @@ jobs:
           $ErrorActionPreference = "Stop"
           $skillRoot = Join-Path $env:USERPROFILE ".claude\skills\seo"
           $runtime = Join-Path $skillRoot "scripts\runtime.py"
-          $doctor = & py -3 $runtime doctor --json
+          # Run the runtime with the interpreter the installer chose, read from
+          # the venv it built. 'py -3' may be a different, unsupported Python.
+          $cfg = Get-Content (Join-Path $skillRoot ".venv\pyvenv.cfg")
+          $python = (($cfg | Where-Object { $_ -match '^executable\s*=' }) -split '=', 2)[1].Trim()
+          $version = (($cfg | Where-Object { $_ -match '^version\s*=' }) -split '=', 2)[1].Trim()
+          if ($version -notmatch '^3\.(1[1-4])\.') { throw "Installer chose unsupported Python $version" }
+          if ($env:CLAUDE_SEO_PYTHON -and ((Resolve-Path $python).Path -ne (Resolve-Path $env:CLAUDE_SEO_PYTHON).Path)) {
+            throw "Installer ignored CLAUDE_SEO_PYTHON ($python)"
+          }
+          Write-Host "Installer chose Python $version at $python"
+          $doctor = & $python $runtime doctor --json
           if ($LASTEXITCODE -ne 0) { throw "runtime doctor failed" }
           $doctor | ConvertFrom-Json | Out-Null
-          $updates = & py -3 $runtime run seo_updates.py --limit 1 --json
+          $updates = & $python $runtime run seo_updates.py --limit 1 --json
           if ($LASTEXITCODE -ne 0) { throw "seo_updates failed" }
           $parsedUpdates = $updates | ConvertFrom-Json
           if ($parsedUpdates.count -ne 1) { throw "Expected one Google update" }

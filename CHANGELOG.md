@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Security and accuracy fixes from a full audit, and Claude Desktop installs again.
 
+**Python 3.11 to 3.14 is now required.** Python 3.10 reached end of life on
+2026-10-01, and the Pillow 13.0.0 security release (28 advisories, no 12.x
+backport) needs 3.11. Python 3.15 is not supported yet because the Google Ads
+client library declares `< 3.15`. If your default Python is outside the range,
+the launcher and `install.ps1` now pick a supported one on their own, or you
+can set `CLAUDE_SEO_PYTHON`; `/seo setup` then rebuilds the runtime once.
+
 ### Added
 
 - **Server stack CVE exposure check** in `seo-technical` (Security category).
@@ -51,8 +58,20 @@ Security and accuracy fixes from a full audit, and Claude Desktop installs again
   hub and audit skills agree on when the backlinks agent runs, and the
   extension copies of the DataForSEO and image agents match the core ones,
   including `model` and `maxTurns`.
-- CI runs ruff, tests Python 3.10, 3.12 and 3.14, pins GitHub Actions to
-  commit SHAs, and no longer exposes `GH_TOKEN` to install steps.
+- The supported Python range lives in one place (`MIN_PYTHON` and
+  `MAX_PYTHON` in `scripts/runtime.py`), and a test keeps the launcher,
+  `install.ps1`, `pyproject.toml`, CI and the docs in step with it.
+  `scripts/claude-seo` and `install.ps1` skip a default interpreter outside the
+  range (on Windows, `py -3` picks the newest installed Python, which can be
+  3.15) and fall back to the newest supported one, and `install.ps1` now honors
+  `CLAUDE_SEO_PYTHON`. `/seo setup` refuses an unsupported interpreter with a
+  clear message, and `/seo doctor` reports it.
+- `requirements.txt` sets `pillow>=13.0.0` (it arrives through matplotlib and
+  WeasyPrint).
+- CI runs ruff, tests Python 3.11, 3.12 and 3.14, audits dependencies on both
+  3.11 and 3.14, pins GitHub Actions to commit SHAs, and no longer exposes
+  `GH_TOKEN` to install steps. The Windows smoke test covers both a pinned
+  `CLAUDE_SEO_PYTHON` and a runner whose default Python is too new.
 - SECURITY.md and PRIVACY.md describe what the code does, including which
   calls go to fixed vendor hosts and how to verify a signed release tag.
 
@@ -221,8 +240,10 @@ as third-party instead of being stated as fact.
 - Six reference files over 200 lines were split at section boundaries into
   sibling files, with no content removed.
 - Em dashes removed from skills, agents, scripts, extensions and docs.
-- Python 3.10 reaches end of life in October 2026; the docs now recommend
-  3.11 or newer. The floor is unchanged in this patch.
+- `agentic_check.py` rejects a well-known or ARD document nested deeper than
+  256 levels before parsing it. On Python 3.14 the JSON parser's limit follows
+  the machine's stack size, so the same hostile document could pass on one
+  machine and fail on another.
 - `google_report.py` PDFs, `lcp_subparts.py` text output and the installer
   banners no longer print em dashes; `gsc_inspect.py` flags the deprecated
   `mobile_usability` field. The README v2.2.1 note now dates the Agentic

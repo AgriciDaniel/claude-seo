@@ -24,6 +24,11 @@ from pathlib import Path
 from typing import Any
 
 RUNTIME_SCHEMA = 1
+# Supported interpreter range. scripts/claude-seo and install.ps1 repeat these
+# bounds, and tests/test_python_range.py keeps every copy in step. 3.15 waits
+# on google-ads, whose wheels declare Python < 3.15.
+MIN_PYTHON = (3, 11)
+MAX_PYTHON = (3, 14)
 LOCK_STALE_SECONDS = 30 * 60
 SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*\.py$")
 EXTENSION_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
@@ -157,6 +162,19 @@ def _expected(root: Path) -> dict[str, Any]:
     }
 
 
+def _python_supported() -> bool:
+    return MIN_PYTHON <= sys.version_info[:2] <= MAX_PYTHON
+
+
+def _python_range_message() -> str:
+    found = f"{sys.version_info.major}.{sys.version_info.minor}"
+    return (
+        f"Claude SEO needs Python {MIN_PYTHON[0]}.{MIN_PYTHON[1]} to "
+        f"{MAX_PYTHON[0]}.{MAX_PYTHON[1]}. Found {found} ({sys.executable}). "
+        "Install a supported Python or set CLAUDE_SEO_PYTHON."
+    )
+
+
 def _status(root: Path) -> dict[str, Any]:
     data_dir, mode = _data_dir(root)
     venv = data_dir / ".venv"
@@ -164,6 +182,8 @@ def _status(root: Path) -> dict[str, Any]:
     state = _load_state(data_dir)
     expected = _expected(root)
     reasons: list[str] = []
+    if not _python_supported():
+        reasons.append(f"python {expected['python']} is outside the supported range")
     if not python.is_file():
         reasons.append("managed environment is missing")
     for key in ("runtime_schema", "requirements_sha256", "python"):
@@ -271,6 +291,9 @@ class SetupLock:
 
 
 def command_setup(args: argparse.Namespace) -> int:
+    if not _python_supported():
+        print(_python_range_message(), file=sys.stderr)
+        return 2
     root = _root()
     status = _status(root)
     data_dir: Path = status["data_dir"]

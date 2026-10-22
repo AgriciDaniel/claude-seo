@@ -16,10 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Check Python syntax
         run: |
@@ -41,7 +41,7 @@ jobs:
       fail-fast: false
       matrix:
         # The supported floor, a middle release, and the newest release.
-        python-version: ["3.10", "3.12", "3.14"]
+        python-version: ["3.11", "3.12", "3.14"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -63,11 +63,11 @@ jobs:
 
       - name: Run pytest
         env:
-          # The live GitHub API tests run on the 3.10 leg only, so the matrix
+          # The live GitHub API tests run on the 3.11 leg only, so the matrix
           # does not triple the calls (the portability job also runs them on
           # Windows and macOS). gh honors GH_TOKEN, which keeps sync_flow.py
           # clear of the anonymous 60/hr per-IP rate limit on shared runners.
-          CLAUDE_SEO_NETWORK_TESTS: ${{ matrix.python-version == '3.10' && '1' || '' }}
+          CLAUDE_SEO_NETWORK_TESTS: ${{ matrix.python-version == '3.11' && '1' || '' }}
           GH_TOKEN: ${{ github.token }}
         run: pytest tests/ -v
 
@@ -107,10 +107,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.11
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.10"
+          python-version: "3.11"
           cache: pip
           cache-dependency-path: requirements.txt
 
@@ -127,15 +127,21 @@ jobs:
         run: pytest tests/ -v
 
   dep-audit:
-    name: Dependency audit
+    # Bounded ranges resolve to different releases per Python (numpy and
+    # contourpy differ between 3.11 and 3.14), so audit both ends of the range.
+    name: Dependency audit (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Python 3.10
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install pip-audit
         run: pip install pip-audit

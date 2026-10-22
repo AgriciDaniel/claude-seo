@@ -1,6 +1,6 @@
 # Claude SEO - Python Dependencies
 # Bounded version pinning with security-conscious minimums
-# Last updated: September 23, 2026 (v2.4.0 floors)
+# Last updated: October 22, 2026 (Python 3.11 floor, Pillow 13)
 
 beautifulsoup4>=4.15.0,<5.0.0     # No known CVEs
 requests>=2.34.2,<3.0.0           # CVE-2024-47081, CVE-2024-35195 fixes
@@ -19,6 +19,7 @@ matplotlib>=3.9.0,<4.0.0              # No known CVEs
 numpy>=2.2.6,<3.0.0                   # Direct import in google_report.py; matplotlib>=3.9 is the first numpy 2 release line
 weasyprint>=70.0,<71.0                # PYSEC-2026-3940 fixed in 70.0
 openpyxl>=3.1.5,<4.0.0                # No known CVEs (Excel export)
+pillow>=13.0.0,<14.0.0                # Transitive via matplotlib and weasyprint; GHSA-22hg-r758-rrw9 and 27 more fixed in 13.0.0
 
 # Google API dependencies (for seo-google skill)
 google-api-python-client>=2.196.0,<3.0.0   # No known CVEs

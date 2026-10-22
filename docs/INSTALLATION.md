@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- **Python 3.10+** with pip (3.10 reaches end of life in October 2026; prefer 3.11 or newer)
+- **Python 3.11 to 3.14** with pip. Python 3.10 reached end of life in October 2026, and 3.15 waits on the Google Ads client library
 - **Git** for cloning the repository
 - **Claude Code CLI** installed and configured
 

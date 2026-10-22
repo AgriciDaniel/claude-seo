@@ -15,25 +15,61 @@ if [[ ! -f "${runtime}" ]]; then
     exit 2
 fi
 
+# Supported range. runtime.py (MIN_PYTHON, MAX_PYTHON) is the source of
+# truth; tests/test_python_range.py keeps this copy and install.ps1 in step.
+min_minor=11
+max_minor=14
+
+# Prints major.minor for the interpreter given as arguments, or nothing.
+probe_version() {
+    local version
+    version="$("$@" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)" || return 1
+    printf '%s' "${version%$'\r'}"
+}
+
+in_range() {
+    [[ "$1" =~ ^3\.([0-9]+)$ ]] || return 1
+    (( BASH_REMATCH[1] >= min_minor && BASH_REMATCH[1] <= max_minor ))
+}
+
+range_text="3.${min_minor} to 3.${max_minor}"
+
 # An override is an executable path, not a shell command. Keeping it as one
 # array element prevents command injection and supports paths containing spaces.
 if [[ -n "${CLAUDE_SEO_PYTHON:-}" ]]; then
-    if "${CLAUDE_SEO_PYTHON}" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
+    found="$(probe_version "${CLAUDE_SEO_PYTHON}" || true)"
+    if in_range "${found}"; then
         exec "${CLAUDE_SEO_PYTHON}" "${runtime}" "$@"
     fi
-    echo "CLAUDE_SEO_PYTHON is not a usable Python 3.10+ executable." >&2
+    echo "CLAUDE_SEO_PYTHON must be Python ${range_text}. Found ${found:-no usable Python} at ${CLAUDE_SEO_PYTHON}." >&2
     exit 2
 fi
 
-if command -v py >/dev/null 2>&1 && py -3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
-    exec py -3 "${runtime}" "$@"
-fi
-if command -v python3 >/dev/null 2>&1 && python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
-    exec python3 "${runtime}" "$@"
-fi
-if command -v python >/dev/null 2>&1 && python -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1; then
-    exec python "${runtime}" "$@"
-fi
+# Prefer the default interpreter when it is supported, so an existing runtime
+# keeps the Python it was built with. Otherwise take the newest supported
+# versioned one. The choice must be stable: runtime.py rebuilds when it changes.
+seen=""
+try_python() {
+    local found
+    command -v "$1" >/dev/null 2>&1 || return 1
+    found="$(probe_version "$@")" || return 1
+    if in_range "${found}"; then
+        exec "$@" "${runtime}" "${script_args[@]+"${script_args[@]}"}"
+    fi
+    seen="${seen}${seen:+, }${found} ($*)"
+    return 1
+}
 
-echo "Claude SEO requires Python 3.10 or newer. Tried CLAUDE_SEO_PYTHON, py -3, python3, and python." >&2
+script_args=("$@")
+try_python py -3 || true
+try_python python3 || true
+try_python python || true
+minor=${max_minor}
+while (( minor >= min_minor )); do
+    try_python py "-3.${minor}" || true
+    try_python "python3.${minor}" || true
+    minor=$(( minor - 1 ))
+done
+
+echo "Claude SEO needs Python ${range_text}. Found: ${seen:-no Python}. Install Python 3.${max_minor} from python.org or set CLAUDE_SEO_PYTHON to a supported interpreter." >&2
 exit 2

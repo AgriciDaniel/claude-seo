@@ -228,8 +228,11 @@ User Request (e.g., /seo page)
 
 Bundled tools are dispatched through `scripts/claude-seo` and
 `scripts/runtime.py`, never through a working-directory-relative Python command.
-The launcher resolves Python 3.10 or newer, while the standard-library runtime
-provides three operations: `run`, `setup`, and read-only `doctor`.
+The launcher resolves a Python in the supported range (3.11 to 3.14, set by
+`MIN_PYTHON` and `MAX_PYTHON` in `runtime.py`): `CLAUDE_SEO_PYTHON` if set,
+then the default interpreter if it is in range, then the newest versioned one.
+The standard-library runtime provides three operations: `run`, `setup`, and
+read-only `doctor`.
 
 The launcher lives in `scripts/` beside `runtime.py`, which it resolves as a
 sibling. A top-level `bin/` directory is not allowed: the claude.ai-hosted

@@ -319,7 +319,7 @@ Claude SEO runs inside Claude Code, so the pages and data it analyzes are sent t
 <summary><b>Good to know: requirements, limits and uninstall</b></summary>
 <br />
 
-**Requirements.** Claude Code 1.0.33 or newer and Python 3.10 or newer (3.11 or newer recommended). `/seo setup` installs the headless browser for you.
+**Requirements.** Claude Code 1.0.33 or newer and Python 3.11 to 3.14. `/seo setup` installs the headless browser for you.
 
 **Cost of a full audit.** Five agents that need more judgment run on Opus and the rest on Sonnet, so a full `/seo audit` uses more of your Claude plan than a single-page check. You can change any agent's model in its file under [`agents/`](agents/).
 
