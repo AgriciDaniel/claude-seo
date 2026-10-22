@@ -144,7 +144,9 @@ jobs:
           $python = (($cfg | Where-Object { $_ -match '^executable\s*=' }) -split '=', 2)[1].Trim()
           $version = (($cfg | Where-Object { $_ -match '^version\s*=' }) -split '=', 2)[1].Trim()
           if ($version -notmatch '^3\.(1[1-4])\.') { throw "Installer chose unsupported Python $version" }
-          if ($env:CLAUDE_SEO_PYTHON -and ((Resolve-Path $python).Path -ne (Resolve-Path $env:CLAUDE_SEO_PYTHON).Path)) {
+          # pyvenv.cfg records the realpath, so compare against the override's realpath.
+          $override = if ($env:CLAUDE_SEO_PYTHON) { & $env:CLAUDE_SEO_PYTHON -c "import os, sys; print(os.path.realpath(sys.executable))" }
+          if ($override -and ($python -ne $override.Trim())) {
             throw "Installer ignored CLAUDE_SEO_PYTHON ($python)"
           }
           Write-Host "Installer chose Python $version at $python"
@@ -241,6 +243,19 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Report the image's default Python
+        shell: powershell
+        run: |
+          # Shows whether this run exercised the out-of-range fallback. Only a
+          # notice: setup-python's 3.11 is also on PATH, so install succeeds
+          # either way, and the image decides what 'py -3' is.
+          $default = (& py -3 -c "import sys; print('%d.%d' % sys.version_info[:2])" 2>$null)
+          if ($default -match '^3\.(1[1-4])$') {
+            Write-Host "::notice::py -3 is $default (in range); the fallback path was not exercised."
+          } else {
+            Write-Host "::notice::py -3 is $default (out of range); the installer must skip it."
+          }
+
       - name: Prepare isolated user profile
         shell: powershell
         run: |
@@ -287,7 +302,9 @@ jobs:
           $python = (($cfg | Where-Object { $_ -match '^executable\s*=' }) -split '=', 2)[1].Trim()
           $version = (($cfg | Where-Object { $_ -match '^version\s*=' }) -split '=', 2)[1].Trim()
           if ($version -notmatch '^3\.(1[1-4])\.') { throw "Installer chose unsupported Python $version" }
-          if ($env:CLAUDE_SEO_PYTHON -and ((Resolve-Path $python).Path -ne (Resolve-Path $env:CLAUDE_SEO_PYTHON).Path)) {
+          # pyvenv.cfg records the realpath, so compare against the override's realpath.
+          $override = if ($env:CLAUDE_SEO_PYTHON) { & $env:CLAUDE_SEO_PYTHON -c "import os, sys; print(os.path.realpath(sys.executable))" }
+          if ($override -and ($python -ne $override.Trim())) {
             throw "Installer ignored CLAUDE_SEO_PYTHON ($python)"
           }
           Write-Host "Installer chose Python $version at $python"

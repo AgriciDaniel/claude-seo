@@ -882,7 +882,9 @@ def read_bounded(response, max_bytes: int) -> tuple[bytes, bool]:
 # on one machine and raise on another; check depth first for one answer.
 MAX_JSON_DEPTH = 256
 
-_JSON_DEPTH_TOKEN_RE = re.compile(r'"(?:[^"\\]|\\.)*"|[\[\]{}]')
+# The closing quote is optional so an unterminated string ends the scan in one
+# pass; requiring it made hostile input like '"\\' * n take quadratic time.
+_JSON_DEPTH_TOKEN_RE = re.compile(r'"(?:[^"\\]|\\[\s\S])*"?|[\[\]{}]')
 
 
 def json_depth_exceeds(text: str, max_depth: int = MAX_JSON_DEPTH) -> bool:

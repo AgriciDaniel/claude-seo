@@ -65,13 +65,13 @@ can set `CLAUDE_SEO_PYTHON`; `/seo setup` then rebuilds the runtime once.
   range (on Windows, `py -3` picks the newest installed Python, which can be
   3.15) and fall back to the newest supported one, and `install.ps1` now honors
   `CLAUDE_SEO_PYTHON`. `/seo setup` refuses an unsupported interpreter with a
-  clear message, and `/seo doctor` reports it.
+  clear message.
 - `requirements.txt` sets `pillow>=13.0.0` (it arrives through matplotlib and
   WeasyPrint).
 - CI runs ruff, tests Python 3.11, 3.12 and 3.14, audits dependencies on both
   3.11 and 3.14, pins GitHub Actions to commit SHAs, and no longer exposes
-  `GH_TOKEN` to install steps. The Windows smoke test covers both a pinned
-  `CLAUDE_SEO_PYTHON` and a runner whose default Python is too new.
+  `GH_TOKEN` to install steps. The Windows smoke test covers a pinned
+  `CLAUDE_SEO_PYTHON` and the installer's own interpreter choice.
 - SECURITY.md and PRIVACY.md describe what the code does, including which
   calls go to fixed vendor hosts and how to verify a signed release tag.
 
@@ -90,6 +90,10 @@ can set `CLAUDE_SEO_PYTHON`; `/seo setup` then rebuilds the runtime once.
 
 ### Security
 
+- `agentic_check.py` rejects a well-known or ARD document nested deeper than
+  256 levels before parsing it. On Python 3.14 the JSON parser's limit follows
+  the machine's stack size, so the same hostile document could pass on one
+  machine and fail on another.
 - **Google sign-in is bound to its run.** The OAuth flow now sends a random
   `state` and a PKCE S256 challenge, and the exchange sends the matching
   `code_verifier`. The local redirect server waits up to 300 s for the request
@@ -240,10 +244,8 @@ as third-party instead of being stated as fact.
 - Six reference files over 200 lines were split at section boundaries into
   sibling files, with no content removed.
 - Em dashes removed from skills, agents, scripts, extensions and docs.
-- `agentic_check.py` rejects a well-known or ARD document nested deeper than
-  256 levels before parsing it. On Python 3.14 the JSON parser's limit follows
-  the machine's stack size, so the same hostile document could pass on one
-  machine and fail on another.
+- Python 3.10 reaches end of life in October 2026; the docs now recommend
+  3.11 or newer. The floor is unchanged in this patch.
 - `google_report.py` PDFs, `lcp_subparts.py` text output and the installer
   banners no longer print em dashes; `gsc_inspect.py` flags the deprecated
   `mobile_usability` field. The README v2.2.1 note now dates the Agentic

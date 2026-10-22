@@ -63,6 +63,15 @@ def test_json_depth_scan_skips_brackets_inside_strings():
     assert not json_depth_exceeds(json.dumps({"a": [[]]}), max_depth=3)
 
 
+def test_json_depth_scan_is_linear_on_unterminated_strings():
+    import time
+
+    from url_safety import json_depth_exceeds
+    start = time.monotonic()
+    assert not json_depth_exceeds('"\\' * 1_000_000)
+    assert time.monotonic() - start < 2.0
+
+
 def test_ucp_profile_hostile_shapes_do_not_crash():
     assert ucp_check.parse_profile(DEEP)["issues"]
     profile = {"ucp": {"version": "2026-08-25", "services": {"dev.ucp.shopping": [
