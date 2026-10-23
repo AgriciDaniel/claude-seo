@@ -14,6 +14,8 @@ metadata:
 
 ## Process
 
+Before claiming a full subagent audit, verify the required audit subagents are available. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" doctor` or inspect the agent files when the plugin host does not expose that command. If any required agent is missing or a project-local symlink is broken, say the audit will run inline with reduced independence. Do not describe that fallback as the full subagent pipeline.
+
 1. **Render homepage**: use `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run render_page.py <url> --mode auto --json` to capture raw HTML, rendered HTML, extracted text, SPA status, and accessibility data when needed
 2. **Detect business type**: analyze homepage signals per seo orchestrator
 3. **Crawl site**: follow internal links up to 500 pages, respect robots.txt
