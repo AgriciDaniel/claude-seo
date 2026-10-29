@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- CrUX History reports an increase from a zero CLS baseline as degrading, with
+  an undefined percentage (`null` in JSON), instead of stable with a 0% change.
+
 ## [2.5.0] - 2026-10-22
 
 Security and accuracy fixes from a full audit, and Claude Desktop installs again.

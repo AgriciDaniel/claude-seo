@@ -214,6 +214,7 @@ def detect_trends(metrics: dict) -> dict:
     Returns:
         Dictionary mapping metric names to trend info:
         direction (improving/stable/degrading), change_pct, latest, earliest.
+        change_pct is None for an increase from zero, where a percentage is undefined.
     """
     trends = {}
 
@@ -235,13 +236,15 @@ def detect_trends(metrics: dict) -> dict:
         avg_last = sum(last_4) / len(last_4)
 
         if avg_first == 0:
-            change_pct = 0
+            change_pct = 0 if avg_last == 0 else None
         else:
             change_pct = ((avg_last - avg_first) / avg_first) * 100
 
         # For CWV, lower is better (except CLS where lower is also better)
         # So a negative change_pct means improvement
-        if abs(change_pct) < 5:
+        if change_pct is None:
+            direction = "degrading"
+        elif abs(change_pct) < 5:
             direction = "stable"
         elif change_pct < 0:
             direction = "improving"
@@ -250,7 +253,7 @@ def detect_trends(metrics: dict) -> dict:
 
         trends[metric_name] = {
             "direction": direction,
-            "change_pct": round(change_pct, 1),
+            "change_pct": round(change_pct, 1) if change_pct is not None else None,
             "earliest_avg": round(avg_first, 3) if data.get("unit") == "" else round(avg_first),
             "latest_avg": round(avg_last, 3) if data.get("unit") == "" else round(avg_last),
             "label": data.get("label", metric_name),
@@ -325,7 +328,8 @@ def main():
             change = trend.get("change_pct", 0)
             earliest = trend.get("earliest_avg")
             latest = trend.get("latest_avg")
-            print(f"  {label}: {arrow} ({change:+.1f}%) | {earliest} -> {latest}")
+            change_text = f"{change:+.1f}%" if change is not None else "n/a: zero baseline"
+            print(f"  {label}: {arrow} ({change_text}) | {earliest} -> {latest}")
 
 
 if __name__ == "__main__":
