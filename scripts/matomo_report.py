@@ -318,6 +318,9 @@ def top_pages_report(site_id: str, url: str, token: str,
     full = organic_traffic_report(site_id, url, token, days=days, limit=limit)
     if full["status"] != "success":
         return full
+    if pages_error := full["data"].get("pages_error"):
+        return _envelope("error", None, pages_error,
+                         method="Actions.getEntryPageUrls")
     return _envelope("success", {
         "site_id": site_id,
         "date_range": full["data"]["date_range"],
