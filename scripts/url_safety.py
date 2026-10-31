@@ -153,6 +153,8 @@ __all__ = [
     "safe_requests_head",
     "safe_requests_session",
     "make_safe_playwright_route_handler",
+    "is_same_origin",
+    "validate_custom_headers",
     "DEFAULT_USER_AGENT",
     "DEFAULT_REQUEST_HEADERS",
 ]
@@ -1615,13 +1617,29 @@ class _ProxyGuardSession(requests.Session):
     pin; any other host must be public.
     """
 
-    def __init__(self, validated_url: str, *, public_only: bool = False) -> None:
+    def __init__(
+        self,
+        validated_url: str,
+        *,
+        public_only: bool = False,
+        extra_headers: Optional[dict[str, str]] = None,
+    ) -> None:
         super().__init__()
         self._validated_url = validated_url
         self._validated_host = _hostname_or_none(validated_url)
         self._public_only = public_only
+        self._extra_headers = validate_custom_headers(extra_headers) if extra_headers else None
+
+    def rebuild_auth(self, prepared_request, response):  # type: ignore[no-untyped-def]
+        super().rebuild_auth(prepared_request, response)
+        if self._extra_headers and not is_same_origin(self._validated_url, prepared_request.url):
+            for k in self._extra_headers:
+                prepared_request.headers.pop(k, None)
 
     def send(self, request, **kwargs):  # type: ignore[no-untyped-def]
+        if self._extra_headers and not is_same_origin(self._validated_url, request.url or ""):
+            for k in self._extra_headers:
+                request.headers.pop(k, None)
         proxies = kwargs.get("proxies")
         if proxies is None:
             proxies = requests.utils.resolve_proxies(
@@ -1646,6 +1664,55 @@ class _ProxyGuardSession(requests.Session):
         return super().send(request, **kwargs)
 
 
+def is_same_origin(url1: str, url2: str) -> bool:
+    """Whether two URLs share the exact scheme, hostname, and port."""
+    if not url1 or not url2:
+        return False
+    p1 = urlparse(url1)
+    p2 = urlparse(url2)
+    s1 = p1.scheme.lower()
+    s2 = p2.scheme.lower()
+    if not s1 or not s2 or s1 != s2:
+        return False
+    h1 = (p1.hostname or "").lower()
+    h2 = (p2.hostname or "").lower()
+    if not h1 or not h2 or h1 != h2:
+        return False
+    port1 = p1.port or (443 if s1 == "https" else (80 if s1 == "http" else None))
+    port2 = p2.port or (443 if s2 == "https" else (80 if s2 == "http" else None))
+    return port1 == port2
+
+
+def validate_custom_headers(headers: Optional[dict[str, str]]) -> dict[str, str]:
+    """Validate and sanitize custom HTTP request headers.
+
+    Raises ``ValueError`` if any header name or value:
+      * is not a string,
+      * specifies 'Host' (case-insensitive), or
+      * contains carriage return (CR, \\r) or line feed (LF, \\n).
+
+    Returns a clean copy of the headers dictionary with stripped keys and values.
+    """
+    if not headers:
+        return {}
+    clean: dict[str, str] = {}
+    for name, value in headers.items():
+        if not isinstance(name, str) or not isinstance(value, str):
+            raise ValueError("Header names and values must be strings")
+        s_name = name.strip()
+        s_value = value.strip()
+        if not s_name:
+            raise ValueError("Header name cannot be empty")
+        if s_name.lower() == "host":
+            raise ValueError("Custom 'Host' header is not allowed")
+        if "\r" in s_name or "\n" in s_name:
+            raise ValueError(f"Header name '{s_name}' contains illegal newline characters")
+        if "\r" in s_value or "\n" in s_value:
+            raise ValueError(f"Header '{s_name}' value contains illegal newline characters")
+        clean[s_name] = s_value
+    return clean
+
+
 def _hostname_or_none(url: str) -> Optional[str]:
     """The normalized hostname of ``url``, or ``None`` if it has none."""
     try:
@@ -1659,17 +1726,17 @@ def _proxy_configured(proxies: Optional[dict]) -> bool:
     return bool(proxies) or bool(requests.utils.getproxies())
 
 
-def _pinned_request(method: str, url: str, **kwargs):  # type: ignore[no-untyped-def]
+def _pinned_request(method: str, url: str, *, extra_headers: Optional[dict[str, str]] = None, **kwargs):  # type: ignore[no-untyped-def]
     """``requests.get`` / ``requests.head``, guarding hops sent through a proxy.
 
     With no proxy configured this is the plain ``requests`` call it always
     was. With one, the same request runs on a :class:`_ProxyGuardSession`,
     which is what ``requests.get`` does internally with a plain ``Session``.
     """
-    if not _proxy_configured(kwargs.get("proxies")):
+    if not _proxy_configured(kwargs.get("proxies")) and not extra_headers:
         return getattr(requests, method)(url, **kwargs)
     kwargs.setdefault("allow_redirects", method != "head")
-    with _ProxyGuardSession(url) as session:
+    with _ProxyGuardSession(url, extra_headers=extra_headers) as session:
         return session.request(method, url, **kwargs)
 
 
@@ -1677,6 +1744,7 @@ def safe_requests_get(
     url: str,
     *,
     timeout: int = 30,
+    extra_headers: Optional[dict[str, str]] = None,
     **kwargs,
 ) -> requests.Response:
     """
@@ -1691,10 +1759,15 @@ def safe_requests_get(
     parsed = urlparse(norm_url)
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     assert parsed.hostname is not None  # validate_url_strict guarantees this
+    validated_headers = validate_custom_headers(extra_headers) if extra_headers else None
+    if validated_headers:
+        req_headers = dict(kwargs.get("headers") or {})
+        req_headers.update(validated_headers)
+        kwargs["headers"] = req_headers
     kwargs = _with_redirect_body_cap(_with_default_headers(kwargs))
     exempt = _validated_proxy_hosts(norm_url, kwargs.get("proxies"))
     with _pin_dns(parsed.hostname, pinned_ip, port, exempt_hosts=exempt):
-        return _pinned_request("get", norm_url, timeout=timeout, **kwargs)
+        return _pinned_request("get", norm_url, timeout=timeout, extra_headers=validated_headers, **kwargs)
 
 
 def safe_requests_head(
@@ -1722,7 +1795,12 @@ def safe_requests_head(
 
 
 @contextmanager
-def safe_requests_session(url: str, *, public_only: bool = False) -> Iterator[requests.Session]:
+def safe_requests_session(
+    url: str,
+    *,
+    public_only: bool = False,
+    extra_headers: Optional[dict[str, str]] = None,
+) -> Iterator[requests.Session]:
     """
     Yield a ``requests.Session`` whose connections to ``url``'s hostname
     are DNS-pinned. Callers may make multiple requests to that host
@@ -1737,7 +1815,8 @@ def safe_requests_session(url: str, *, public_only: bool = False) -> Iterator[re
     parsed = urlparse(norm_url)
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     assert parsed.hostname is not None
-    session = _ProxyGuardSession(norm_url, public_only=public_only)
+    validated_headers = validate_custom_headers(extra_headers) if extra_headers else None
+    session = _ProxyGuardSession(norm_url, public_only=public_only, extra_headers=validated_headers)
     # Session hooks apply to every request made on it, including each
     # redirect hop, unless a request passes its own response hooks.
     session.hooks["response"].append(_bound_redirect_body)
@@ -1751,6 +1830,9 @@ def safe_requests_session(url: str, *, public_only: bool = False) -> Iterator[re
 
 def make_safe_playwright_route_handler(
     blocked_resource_types: Optional[set] = None,
+    *,
+    extra_headers: Optional[dict[str, str]] = None,
+    target_url: Optional[str] = None,
 ):
     """
     Build a Playwright ``page.route()`` callback that aborts subresource
@@ -1768,12 +1850,17 @@ def make_safe_playwright_route_handler(
             ``script``, ``xhr``, ``fetch``, ``websocket``, ``manifest``,
             ``other``) to abort regardless of IP. Used for fast
             "skip images and fonts" renders.
+        extra_headers: custom HTTP request headers to include only on
+            requests matching the audited origin of ``target_url``.
+        target_url: the top-level URL being audited. Required if
+            ``extra_headers`` is supplied.
 
     Returns:
         Callable ``(route, request) -> None`` suitable for
         ``page.route("**/*", handler)``.
     """
     blocked = set(blocked_resource_types or ())
+    validated_headers = validate_custom_headers(extra_headers) if extra_headers else None
 
     def handler(route, request):  # type: ignore[no-untyped-def]
         try:
@@ -1824,7 +1911,14 @@ def make_safe_playwright_route_handler(
             if not ips or any(not is_safe_ip(ip) for ip in ips):
                 route.abort()
                 return
-            route.continue_()
+
+            if validated_headers and target_url and is_same_origin(target_url, request.url):
+                req_h = getattr(request, "headers", None)
+                h = dict(req_h() if callable(req_h) else (req_h or {}))
+                h.update(validated_headers)
+                route.continue_(headers=h)
+            else:
+                route.continue_()
         except Exception:  # pragma: no cover - fail-closed
             try:
                 route.abort()

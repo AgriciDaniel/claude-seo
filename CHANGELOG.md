@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Custom HTTP request headers (`--header` / `-H`)** in `fetch_page.py` and `render_page.py`.
+  Allows testing and auditing password-protected staging and beta sites by passing
+  custom credentials or headers. Headers are restricted strictly to the audited
+  origin, stripping them on redirect or subresource calls, with `Host` and
+  CR/LF values rejected (fixes #338).
+
 ## [2.6.2] - 2026-11-15
 
 ### Security

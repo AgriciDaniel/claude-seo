@@ -129,7 +129,9 @@ try:
     )
 except ImportError:  # pragma: no cover - exercised in environments without playwright
     sync_playwright = None
-    PlaywrightTimeout = Exception  # type: ignore[assignment,misc]
+
+    class PlaywrightTimeout(Exception):  # type: ignore[no-redef]
+        """Placeholder when playwright is not installed."""
 
 try:
     import trafilatura
@@ -159,6 +161,7 @@ from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     new_guarded_context,
     read_bounded,
     safe_requests_get,
+    validate_custom_headers,
     validate_url_strict,
 )
 
@@ -692,6 +695,7 @@ def render_page(
     extract_content: bool = True,
     extract_accessibility: bool = False,
     user_agent: Optional[str] = None,
+    extra_headers: Optional[dict[str, str]] = None,
 ) -> dict:
     """Render or fetch ``url`` per the chosen mode. See module docstring.
 
@@ -734,6 +738,8 @@ def render_page(
         result["error"] = f"Invalid viewport: {viewport!r}"
         return result
 
+    valid_extra = validate_custom_headers(extra_headers) if extra_headers else None
+
     # Pre-flight SSRF check.
     try:
         norm_url, _pinned_ip = validate_url_strict(url)
@@ -744,7 +750,13 @@ def render_page(
 
     # Step 1: raw fetch (always; needed for SPA detection and as a baseline).
     try:
-        resp = safe_requests_get(norm_url, timeout=30, allow_redirects=True, stream=True)
+        resp = safe_requests_get(
+            norm_url,
+            extra_headers=valid_extra,
+            timeout=30,
+            allow_redirects=True,
+            stream=True,
+        )
         # Streamed so the body is read under the cap; .content must not be
         # read after this.
         try:
@@ -798,7 +810,11 @@ def render_page(
 
         vp = VIEWPORTS[viewport]
         blocked = set(block_resources or [])
-        route_handler = make_safe_playwright_route_handler(blocked)
+        route_handler = make_safe_playwright_route_handler(
+            blocked,
+            extra_headers=valid_extra,
+            target_url=norm_url,
+        )
         start = time.monotonic()
 
         try:
@@ -1023,8 +1039,33 @@ def _cli() -> None:
             "normal --json output contains summaries only"
         ),
     )
+    parser.add_argument(
+        "--header",
+        "-H",
+        action="append",
+        default=[],
+        help="Custom HTTP header in 'Name: Value' format (can be repeated)",
+    )
     parser.add_argument("--output", "-o", help="write HTML content to file")
     args = parser.parse_args()
+
+    extra_headers: dict[str, str] = {}
+    for raw_header in args.header:
+        if ":" in raw_header:
+            name, val = raw_header.split(":", 1)
+            name = name.strip()
+            val = val.strip()
+            try:
+                validate_custom_headers({name: val})
+            except ValueError as exc:
+                print(f"Error: {exc}", file=sys.stderr)
+                sys.exit(2)
+            extra_headers[name] = val
+        else:
+            print(
+                f"Warning: header '{raw_header}' ignored (must be in 'Name: Value' format)",
+                file=sys.stderr,
+            )
 
     effective_mode = "always" if args.a11y_tree else args.mode
     res = render_page(
@@ -1035,6 +1076,7 @@ def _cli() -> None:
         block_resources=args.block or None,
         extract_content=not args.no_extract,
         extract_accessibility=args.a11y_tree,
+        extra_headers=extra_headers or None,
     )
 
     full_content = res.get("content") or res.get("raw_content") or ""

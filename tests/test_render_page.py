@@ -933,3 +933,14 @@ def test_render_in_strict_mode_reports_the_sandbox_failure(monkeypatch) -> None:
     assert result["raw_fallback_available"] is True
     assert result["sandbox"] is None  # no browser was launched
     assert page.goto_options is None  # the browser never started
+
+
+def test_render_page_cli_rejects_invalid_headers(capsys, monkeypatch) -> None:
+    monkeypatch.setattr(sys, "argv", [
+        "render_page.py", "https://example.com", "-H", "Host: evil.com"
+    ])
+    with pytest.raises(SystemExit) as exc:
+        render_page._cli()
+    assert exc.value.code == 2
+    assert "Custom 'Host' header is not allowed" in capsys.readouterr().err
+
