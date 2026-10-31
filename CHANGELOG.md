@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `CLAUDE_SEO_TRUSTED_PROXIES` names a configured HTTP proxy on loopback or a
+  private address that the operator trusts. Some sandboxes send every request
+  through a CONNECT proxy on the sandbox itself, and nothing leaves any other
+  way: Anthropic-hosted Claude Code cloud sessions set `HTTPS_PROXY` to a proxy
+  on 127.0.0.1. Since v2.3.0 that proxy is refused, so every live fetch failed
+  there (#280). The variable is a comma-separated list of `host` or `host:port`
+  entries with the ranges of `CLAUDE_SEO_LOCAL_TARGETS` (loopback, RFC 1918,
+  RFC 6598); link-local and the cloud metadata endpoints are refused even when
+  listed, and a listed name is re-checked when it resolves. It names proxies
+  only: it never allows an audit target, and `CLAUDE_SEO_LOCAL_TARGETS` never
+  trusts a proxy. Unset, the policy is unchanged.
+
 ## [2.5.0] - 2026-10-22
 
 Security and accuracy fixes from a full audit, and Claude Desktop installs again.
