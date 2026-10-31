@@ -177,3 +177,70 @@ def test_text_output_is_unchanged(fetch_result, save_html, tmp_path, capsys):
     assert captured.out == expected + "\n"
     assert "URL: https://example.com/final" in captured.err
     assert "Status: 200" in captured.err
+
+
+def test_fetch_page_custom_headers_merged(monkeypatch):
+    captured_headers = {}
+
+    class DummyResponse:
+        url = "https://example.com"
+        status_code = 200
+        headers = {"Content-Type": "text/html"}
+        history = []
+        def close(self): pass
+
+    class DummySession:
+        max_redirects = 5
+        def get(self, url, headers=None, **kwargs):
+            nonlocal captured_headers
+            captured_headers = headers
+            return DummyResponse()
+        def __enter__(self): return self
+        def __exit__(self, *args): pass
+
+    monkeypatch.setattr(fetch_page, "validate_url_strict", lambda u: (u, "93.184.216.34"))
+    monkeypatch.setattr(fetch_page, "safe_requests_session", lambda u: DummySession())
+    monkeypatch.setattr(fetch_page, "read_bounded", lambda r, cap: (b"<html></html>", False))
+
+    res = fetch_page.fetch_page(
+        "https://example.com",
+        extra_headers={"X-SEO-Beta": "secret-key", "Authorization": "Bearer abc"},
+    )
+    assert res["status_code"] == 200
+    assert captured_headers.get("X-SEO-Beta") == "secret-key"
+    assert captured_headers.get("Authorization") == "Bearer abc"
+    assert "User-Agent" in captured_headers
+
+
+def test_fetch_page_cli_parses_header_flags(monkeypatch, capsys):
+    called_with = {}
+
+    def mock_fetch(url, **kwargs):
+        called_with.update(kwargs)
+        return {
+            "url": url,
+            "status_code": 200,
+            "content": "ok",
+            "headers": {},
+            "redirect_chain": [],
+            "redirect_details": [],
+            "too_large": False,
+            "error": None,
+        }
+
+    monkeypatch.setattr(fetch_page, "fetch_page", mock_fetch)
+    monkeypatch.setattr(sys, "argv", [
+        "fetch_page.py",
+        "https://example.com",
+        "--header", "X-Custom-Auth: key123",
+        "-H", "X-Env: staging",
+        "-H", "malformed_header",
+    ])
+
+    fetch_page.main()
+    assert called_with["extra_headers"] == {
+        "X-Custom-Auth": "key123",
+        "X-Env": "staging",
+    }
+    captured = capsys.readouterr()
+    assert "Warning: header 'malformed_header' ignored" in captured.err
