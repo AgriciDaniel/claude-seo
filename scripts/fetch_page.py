@@ -77,6 +77,7 @@ def fetch_page(
     max_redirects: int = 5,
     user_agent: Optional[str] = None,
     max_bytes: int = MAX_PAGE_BYTES,
+    extra_headers: Optional[dict[str, str]] = None,
 ) -> dict:
     """
     Fetch a web page and return response details.
@@ -95,6 +96,7 @@ def fetch_page(
         max_bytes: Stop reading the body past this many bytes (after
             decompression); ``too_large`` is then True and ``content`` holds
             the part read.
+        extra_headers: Custom HTTP headers to include with the request.
 
     Returns:
         Dictionary with url, status_code, content, headers, redirect_chain,
@@ -126,6 +128,8 @@ def fetch_page(
     headers = dict(DEFAULT_HEADERS)
     if user_agent:
         headers["User-Agent"] = user_agent
+    if extra_headers:
+        headers.update(extra_headers)
 
     try:
         with safe_requests_session(norm_url) as session:
@@ -269,6 +273,16 @@ def main():
         ),
     )
     parser.add_argument(
+        "--header",
+        "-H",
+        action="append",
+        default=[],
+        help=(
+            "Custom HTTP header in 'Name: Value' format. "
+            "Can be repeated to pass multiple headers."
+        ),
+    )
+    parser.add_argument(
         "--render",
         choices=("auto", "always", "never"),
         default="never",
@@ -282,6 +296,17 @@ def main():
 
     args = parser.parse_args()
 
+    extra_headers: dict[str, str] = {}
+    for raw_header in args.header:
+        if ":" in raw_header:
+            name, val = raw_header.split(":", 1)
+            extra_headers[name.strip()] = val.strip()
+        else:
+            print(
+                f"Warning: header '{raw_header}' ignored (must be in 'Name: Value' format)",
+                file=sys.stderr,
+            )
+
     ua = args.user_agent
     if args.googlebot:
         ua = GOOGLEBOT_USER_AGENT
@@ -294,6 +319,7 @@ def main():
             mode=args.render,
             timeout_ms=args.timeout * 1000,
             user_agent=ua,
+            extra_headers=extra_headers or None,
         )
         if args.json:
             _emit_json(rendered, args.output, max_text=args.max_text)
@@ -319,6 +345,7 @@ def main():
         timeout=args.timeout,
         follow_redirects=not args.no_redirects,
         user_agent=ua,
+        extra_headers=extra_headers or None,
     )
 
     if args.json:

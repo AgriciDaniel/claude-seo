@@ -415,6 +415,7 @@ def render_page(
     extract_content: bool = True,
     extract_accessibility: bool = False,
     user_agent: Optional[str] = None,
+    extra_headers: Optional[dict[str, str]] = None,
 ) -> dict:
     """Render or fetch ``url`` per the chosen mode. See module docstring.
 
@@ -463,7 +464,13 @@ def render_page(
 
     # Step 1: raw fetch (always; needed for SPA detection and as a baseline).
     try:
-        resp = safe_requests_get(norm_url, timeout=30, allow_redirects=True, stream=True)
+        resp = safe_requests_get(
+            norm_url,
+            headers=extra_headers,
+            timeout=30,
+            allow_redirects=True,
+            stream=True,
+        )
         # Streamed so the body is read under the cap; .content must not be
         # read after this.
         try:
@@ -523,12 +530,17 @@ def render_page(
         try:
             with sync_playwright() as p:
                 browser = p.chromium.launch(headless=True)
+                context_kwargs: dict[str, Any] = {
+                    "viewport": {"width": vp["width"], "height": vp["height"]},
+                    "device_scale_factor": vp["device_scale"],
+                    "user_agent": user_agent or USER_AGENT,
+                }
+                if extra_headers:
+                    context_kwargs["extra_http_headers"] = extra_headers
                 context = new_guarded_context(
                     browser,
                     route_handler,
-                    viewport={"width": vp["width"], "height": vp["height"]},
-                    device_scale_factor=vp["device_scale"],
-                    user_agent=user_agent or USER_AGENT,
+                    **context_kwargs,
                 )
                 page = context.new_page()
 
@@ -711,8 +723,26 @@ def _cli() -> None:
             "normal --json output contains summaries only"
         ),
     )
+    parser.add_argument(
+        "--header",
+        "-H",
+        action="append",
+        default=[],
+        help="Custom HTTP header in 'Name: Value' format (can be repeated)",
+    )
     parser.add_argument("--output", "-o", help="write HTML content to file")
     args = parser.parse_args()
+
+    extra_headers: dict[str, str] = {}
+    for raw_header in args.header:
+        if ":" in raw_header:
+            name, val = raw_header.split(":", 1)
+            extra_headers[name.strip()] = val.strip()
+        else:
+            print(
+                f"Warning: header '{raw_header}' ignored (must be in 'Name: Value' format)",
+                file=sys.stderr,
+            )
 
     effective_mode = "always" if args.a11y_tree else args.mode
     res = render_page(
@@ -723,6 +753,7 @@ def _cli() -> None:
         block_resources=args.block or None,
         extract_content=not args.no_extract,
         extract_accessibility=args.a11y_tree,
+        extra_headers=extra_headers or None,
     )
 
     full_content = res.get("content") or res.get("raw_content") or ""

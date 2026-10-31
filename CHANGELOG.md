@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Custom HTTP request headers (`--header` / `-H`)** in `fetch_page.py` and `render_page.py`.
+  Allows testing and auditing password-protected staging and beta sites by passing
+  custom credentials or headers (fixes #338).
+
 ## [2.5.0] - 2026-10-22
 
 Security and accuracy fixes from a full audit, and Claude Desktop installs again.
