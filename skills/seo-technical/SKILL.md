@@ -275,6 +275,10 @@ What it does and does not cover:
 | A host not named in the variable | Refused |
 | Cloud metadata endpoints, even when listed | Refused |
 
+### Behind a Sandbox Proxy
+
+Some sandboxes reach the internet only through their own proxy, for example Anthropic-hosted Claude Code cloud sessions, which set `HTTPS_PROXY` to a proxy on `127.0.0.1`. `url_safety` refuses a proxy on loopback or a private address, so every live fetch fails there with "Refusing configured HTTP proxy". The operator names that proxy in `CLAUDE_SEO_TRUSTED_PROXIES` (`host` or `host:port`, comma-separated). It trusts the proxy only: it never allows an audit target, and cloud metadata endpoints stay refused even when listed.
+
 `host:port` matches that port only; a bare `host` matches any port. With the variable unset the policy is unchanged. Never suggest setting it for a host the user does not control. See SECURITY.md.
 
 ## Error Handling

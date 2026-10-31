@@ -357,6 +357,52 @@ def _is_allowlisted_local_target(hostname: str, port: Optional[int]) -> bool:
     return False
 
 
+# Operator opt-in for a configured proxy on loopback or a private address
+# (``CLAUDE_SEO_TRUSTED_PROXIES``). Some sandboxes send every outbound request
+# through a CONNECT proxy on the sandbox itself, and nothing leaves any other
+# way: Anthropic-hosted Claude Code cloud sessions set ``HTTPS_PROXY`` to a
+# proxy on 127.0.0.1. There every safe_requests_* call is refused (#280). The
+# opt-in is narrow by construction:
+#
+#   * It names a proxy, never an audit target. ``CLAUDE_SEO_LOCAL_TARGETS``
+#     and this list never read each other.
+#   * A host must be named. ``host:port`` matches that port only.
+#   * The ranges are those of ``CLAUDE_SEO_LOCAL_TARGETS``: loopback, RFC 1918
+#     and RFC 6598. Link-local and the cloud metadata endpoints are refused
+#     even when listed, when the entry is checked and again when a listed
+#     name resolves inside the pinned scope.
+#   * Unset, the policy is unchanged: a non-public proxy is refused.
+_TRUSTED_PROXIES_ENV = "CLAUDE_SEO_TRUSTED_PROXIES"
+
+
+def _trusted_proxies() -> tuple[tuple[str, Optional[int]], ...]:
+    """The parsed contents of ``CLAUDE_SEO_TRUSTED_PROXIES``, read on every call."""
+    raw = os.environ.get(_TRUSTED_PROXIES_ENV, "")
+    if not raw.strip():
+        return ()
+    parsed = (_parse_local_target(part) for part in raw.split(","))
+    return tuple(entry for entry in parsed if entry is not None)
+
+
+def _is_trusted_proxy(hostname: str, port: Optional[int]) -> bool:
+    """True when ``hostname``/``port`` is named in ``CLAUDE_SEO_TRUSTED_PROXIES``.
+
+    ``hostname`` must already be normalized. Metadata endpoints, and literals
+    outside the ranges an operator may opt into, are refused before the list
+    is even read.
+    """
+    if hostname in _NEVER_ALLOWLISTABLE_HOSTNAMES:
+        return False
+    if _looks_like_ip(hostname) and not _is_allowlistable_ip(hostname):
+        return False
+    for entry_host, entry_port in _trusted_proxies():
+        if entry_host != hostname:
+            continue
+        if entry_port is None or entry_port == port:
+            return True
+    return False
+
+
 def _looks_like_ip(hostname: str) -> bool:
     try:
         ipaddress.ip_address(hostname)
@@ -545,14 +591,28 @@ def _proxy_hosts(url: str, proxies: Optional[dict] = None) -> frozenset:
     overridden by an explicit ``proxies`` mapping. Returns the empty set when
     the request goes direct.
     """
+    return frozenset(host for host, _ in _proxy_endpoints(url, proxies))
+
+
+def _proxy_endpoints(url: str, proxies: Optional[dict] = None) -> frozenset:
+    """``(hostname, port)`` pairs for the proxy :func:`_proxy_hosts` selects.
+
+    The port is ``None`` when the proxy URL names none or names a bad one.
+    """
     merged = dict(requests.utils.get_environ_proxies(url))
     if proxies:
         merged.update(proxies)
     proxy = requests.utils.select_proxy(url, merged)
     if not proxy:
         return frozenset()
-    host = urlparse(requests.utils.prepend_scheme_if_needed(proxy, "http")).hostname
-    return frozenset({host.lower()}) if host else frozenset()
+    parsed = urlparse(requests.utils.prepend_scheme_if_needed(proxy, "http"))
+    if not parsed.hostname:
+        return frozenset()
+    try:
+        port = parsed.port
+    except ValueError:
+        port = None
+    return frozenset({(parsed.hostname.lower(), port)})
 
 
 def _assert_proxy_host_is_public(host: str) -> str:
@@ -634,8 +694,48 @@ def _validated_proxy_hosts(url: str, proxies: Optional[dict] = None) -> frozense
     resolver rather than the patched one.
     """
     return frozenset(
-        _assert_proxy_host_is_public(host) for host in _proxy_hosts(url, proxies)
+        _validate_proxy_endpoint(host, port)
+        for host, port in _proxy_endpoints(url, proxies)
     )
+
+
+def _validate_proxy_endpoint(host: str, port: Optional[int]) -> str:
+    """Policy-check one configured proxy and return its normalized hostname.
+
+    A proxy named in ``CLAUDE_SEO_TRUSTED_PROXIES`` may sit on loopback,
+    RFC 1918 or RFC 6598, and a listed name must resolve only into those
+    ranges. Every other proxy goes through :func:`_assert_proxy_host_is_public`.
+    """
+    normalized = normalize_hostname(host)
+    if not _is_trusted_proxy(normalized, port):
+        return _assert_proxy_host_is_public(host)
+    if _looks_like_ip(normalized):
+        return normalized
+    hint = f"Fix the entry in {_TRUSTED_PROXIES_ENV} or unset it."
+    try:
+        addrinfo = socket.getaddrinfo(
+            normalized,
+            None,
+            family=socket.AF_UNSPEC,
+            type=socket.SOCK_STREAM,
+        )
+    except (socket.gaierror, UnicodeError) as exc:
+        raise URLSafetyError(
+            f"Refusing trusted HTTP proxy {host!r}: DNS resolution failed "
+            f"({exc}). {hint}"
+        ) from exc
+    resolved_ips = sorted({info[4][0] for info in addrinfo if info[4]})
+    if not resolved_ips:
+        raise URLSafetyError(
+            f"Refusing trusted HTTP proxy {host!r}: no address records. {hint}"
+        )
+    for ip_str in resolved_ips:
+        if not _is_allowlistable_ip(ip_str):
+            raise URLSafetyError(
+                f"Refusing trusted HTTP proxy {host!r}: it resolves to {ip_str}, "
+                f"which no allowlist entry can reach. {hint}"
+            )
+    return normalized
 
 
 # A single non-blocking lock guards the global getaddrinfo monkey-patch.
@@ -715,9 +815,14 @@ def _pin_dns(
             try:
                 ipaddress.ip_address(host.strip("[]"))
             except ValueError:
+                try:
+                    trusted = _is_trusted_proxy(normalize_hostname(host), requested_port)
+                except URLSafetyError:
+                    trusted = False
+                allowed = _is_allowlistable_ip if trusted else is_safe_ip
                 for info in result:
                     sockaddr = info[4]
-                    if sockaddr and not is_safe_ip(sockaddr[0]):
+                    if sockaddr and not allowed(sockaddr[0]):
                         raise socket.gaierror(
                             socket.EAI_FAIL,
                             f"url_safety: exempt proxy host {host} resolved to "
