@@ -611,6 +611,26 @@ Full-site crawling and URL discovery via Firecrawl MCP (extension).
 
 ---
 
+### `/seo scm [execute|pages|status]`
+
+Writes a `/seo cluster` plan or a page list as researched and reviewed drafts in SEO Content Machine, a desktop app (extension).
+
+**Prerequisites:** SCM extension installed (`./extensions/scm/install.sh`) and SEO Content Machine running on the same machine
+
+**Examples:**
+```
+/seo scm execute
+/seo scm pages topics.txt
+/seo scm status
+```
+
+**What it does:**
+- `execute` reads `cluster-plan.json`, builds an SEO Workspace with the pillar and spokes as its site plan, and has SCM's page agents research, write and review every post
+- `pages` does the same for a plain list of topics, in batches of 50 to 100
+- `status` shows the run's progress and exports finished drafts to `scm-drafts/`
+
+---
+
 ### `/seo dataforseo [command]`
 
 Live SEO data via DataForSEO MCP server (extension). 23 data commands across 9 API modules, plus cost-tracking commands.
@@ -791,3 +811,4 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo matomo [command] [args]` | Matomo Reporting API: GA4 alternative or complement (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo scm [execute\|pages\|status]` | Write a cluster plan or page list as drafts in SEO Content Machine (extension) |
