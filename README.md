@@ -347,6 +347,7 @@ Optional add-ons that bring in more data. Claude SEO works fully without them.
 - **Profound:** tracks when AI models cite your site
 - **Bing Webmaster:** Bing data plus instant IndexNow submission
 - **Unlighthouse:** Lighthouse scores for every page of your site
+- **SEO Content Machine:** writes a whole cluster plan as researched, reviewed drafts, with resume
 
 Setup guides live in [`extensions/`](extensions/).
 
