@@ -14,6 +14,7 @@ Output: JSON with diffs, severity levels, and recommended actions.
 import argparse
 import json
 import os
+import re
 import sqlite3
 import sys
 from datetime import datetime, timezone
@@ -184,9 +185,15 @@ def rule_03_canonical_removed(baseline: dict, current: dict) -> dict:
 
 def rule_04_noindex_added(baseline: dict, current: dict) -> dict:
     """CRITICAL: Noindex directive added."""
-    old_robots = (baseline.get("robots") or "").lower()
-    new_robots = (current.get("meta_robots") or "").lower()
-    triggered = "noindex" not in old_robots and "noindex" in new_robots
+    def directives(value: str) -> set[str]:
+        # A parameter value such as max-image-preview: none is not a directive.
+        standalone = re.sub(r"\b[\w-]+\s*:\s*[^,\s]+", "", value.lower())
+        return set(re.split(r"[,\s]+", standalone))
+
+    old_robots = directives(baseline.get("robots") or "")
+    new_robots = directives(current.get("meta_robots") or "")
+    blocking = {"noindex", "none"}
+    triggered = not bool(old_robots & blocking) and bool(new_robots & blocking)
     return _make_finding(
         "noindex_added", "CRITICAL", triggered,
         baseline.get("robots"), current.get("meta_robots"),

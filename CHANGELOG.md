@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Recognize the `none` robots directive as an indexing restriction in drift comparisons.
+
 ## [2.5.0] - 2026-10-22
 
 Security and accuracy fixes from a full audit, and Claude Desktop installs again.
