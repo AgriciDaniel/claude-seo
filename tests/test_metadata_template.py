@@ -192,6 +192,28 @@ def test_brand_named_first_in_description_is_not_a_leak() -> None:
     assert "brand_suffix_in_description" not in [s["id"] for s in result["signals"]]
 
 
+@pytest.mark.parametrize(
+    ("brand", "description"),
+    [
+        ("AI", "Compare product details and pricing in one place."),
+        ("Art", "Discover smart tools for your next project."),
+        ("Go", "Set clear goals and track your weekly progress."),
+        ("Art Labs", "Explore smart labs built for hands-on learning."),
+    ],
+)
+def test_brand_substring_inside_another_word_is_not_a_leak(brand, description):
+    result = metadata_template.analyse(f"Product comparison guide | {brand}", description)
+    assert "brand-suffix-in-description" not in result["flags"]
+
+
+def test_punctuation_delimited_brand_is_still_detected():
+    result = metadata_template.analyse(
+        "Product comparison guide | Art Labs",
+        "Compare your options with (Art Labs), including pricing and features.",
+    )
+    assert "brand-suffix-in-description" in result["flags"]
+
+
 def test_description_identical_to_title() -> None:
     title = "Complete Guide to Structured Data for Ecommerce Sites"
     result = metadata_template.analyse(title, title)
