@@ -103,6 +103,30 @@ def test_schema_type_array_is_validated_without_crashing(tmp_path: Path) -> None
     assert _clean(result)
 
 
+def test_schema_type_rejects_malformed_values(tmp_path: Path) -> None:
+    """Report malformed @type values instead of silently accepting them.
+
+    @param tmp_path: Pytest-managed directory for temporary HTML fixtures.
+    @returns: None.
+    """
+    invalid_types = [
+        1,
+        {"@id": "Organization"},
+        [],
+        [1],
+        ["Organization", 1],
+        "",
+    ]
+    for schema_type in invalid_types:
+        payload = {
+            "@context": "https://schema.org",
+            "@type": schema_type,
+            "name": "Example",
+        }
+        result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
+        assert "@type" in _warnings(result), schema_type
+
+
 def test_deprecated_type_inside_array_is_still_blocked(tmp_path: Path) -> None:
     payload = {
         "@context": "https://schema.org",
