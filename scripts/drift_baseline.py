@@ -63,9 +63,9 @@ def normalize_url(url: str) -> str:
     if (scheme == "http" and port == 80) or (scheme == "https" and port == 443):
         port = None
 
-    netloc = hostname
+    netloc = f"[{hostname}]" if ":" in hostname else hostname
     if port:
-        netloc = f"{hostname}:{port}"
+        netloc = f"{netloc}:{port}"
 
     # Sort query params and strip UTM
     query_params = parse_qs(parsed.query, keep_blank_values=True)
