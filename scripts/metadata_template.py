@@ -226,7 +226,7 @@ def analyse(title: str, description: str, url: str | None = None) -> dict:
         if (
             _BRAND_MIN_CHARS <= len(brand) <= _BRAND_MAX_CHARS
             and brand_n
-            and brand_n in description_n
+            and f" {brand_n} " in f" {description_n} "
             and not description.startswith(brand)
         ):
             result["flags"].append("brand-suffix-in-description")
