@@ -743,6 +743,19 @@ AI-visibility + SERP via SE Ranking (extension). **Prerequisites:** SE Ranking e
 
 ---
 
+### `/seo coupler [command] [domain]`
+
+Cross-source data via the hosted Coupler.io MCP server (extension). **Prerequisites:** Coupler.io extension installed (`./extensions/coupler/install.sh`), a Coupler.io account, data flows with Claude as the destination, and the server authenticated through `/mcp` (OAuth, no API key).
+
+Use when the answer needs paid search or business data next to Search Console and GA4. For Search Console or GA4 alone, use `/seo google`.
+```
+/seo coupler sources              # Connected data flows, freshness, and which commands they support
+/seo coupler overlap <domain>     # Google Ads search terms vs Search Console queries, spend per group
+/seo coupler revenue <domain>     # Organic and AI-referred landing pages to key events and revenue
+```
+
+---
+
 ### `/seo unlighthouse <url>`
 
 Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **Prerequisites:** Node 18+ and the unlighthouse npm package (`./extensions/unlighthouse/install.sh`).
@@ -791,3 +804,4 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo matomo [command] [args]` | Matomo Reporting API: GA4 alternative or complement (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo coupler [command] [domain]` | Paid vs organic overlap and SEO revenue from Coupler.io data (extension) |

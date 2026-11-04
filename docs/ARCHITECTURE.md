@@ -320,12 +320,19 @@ extensions/
 │   ├── skills/seo-bing/SKILL.md
 │   └── docs/BING-WEBMASTER-SETUP.md
 │
-└── unlighthouse/             # Multi-page Lighthouse runner (local)
+├── unlighthouse/             # Multi-page Lighthouse runner (local)
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-unlighthouse/SKILL.md
+│   └── docs/UNLIGHTHOUSE-SETUP.md
+│
+└── coupler/                  # Coupler.io hosted MCP (paid, organic and revenue data)
     ├── install.sh
     ├── install.ps1
     ├── uninstall.sh
-    ├── skills/seo-unlighthouse/SKILL.md
-    └── docs/UNLIGHTHOUSE-SETUP.md
+    ├── skills/seo-coupler/SKILL.md
+    └── docs/COUPLER-SETUP.md
 ```
 
 ### Available Extensions
@@ -340,6 +347,7 @@ extensions/
 | **Profound** | Profound API | LLM citation tracking with time-series data |
 | **Bing Webmaster** | Bing Webmaster Tools API | Bing Webmaster Tools + IndexNow URL submission |
 | **Unlighthouse** | `unlighthouse@0.13.5` | Multi-page Lighthouse runner, runs locally |
+| **Coupler.io** | Hosted MCP (`https://mcp.coupler.io/mcp`) | Paid vs organic overlap and SEO revenue from Google Ads, GA4 and store, CRM or billing data |
 
 ### Extension Convention
 

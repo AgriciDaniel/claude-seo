@@ -96,6 +96,7 @@ integration + 2 extension mirrors), and 60 Python execution scripts.
 | `/seo profound [cmd]` | LLM brand-citation tracking (extension) |
 | `/seo seranking [cmd]` | AI share-of-voice tracking (extension) |
 | `/seo matomo [cmd] [args]` | Matomo Reporting API: GA4 alternative or supplement (extension) |
+| `/seo coupler [cmd] [domain]` | Paid vs organic overlap and SEO revenue via Coupler.io (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse audits (extension) |
 
 ## Using with Cursor / Cursor Cloud
@@ -169,7 +170,7 @@ skills/                    # 26 sub-skills (auto-discovered)
 agents/                    # 19 subagents
 scripts/                   # 60 Python scripts, including the managed runtime
 schema/                    # JSON-LD templates
-extensions/                # 9 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Matomo, Unlighthouse
+extensions/                # 10 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Matomo, Unlighthouse, Coupler.io
 ```
 
 ## Key Principles

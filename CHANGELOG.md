@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- New optional Coupler.io extension (`extensions/coupler/`) for questions
+  that need paid or business data next to Search Console and GA4. Adds
+  `/seo coupler sources | overlap | revenue`: `overlap` lines up Google Ads
+  search terms against Search Console queries with the spend per group, and
+  `revenue` follows organic and AI-referred landing pages to key events and
+  revenue from a store, CRM or billing source. Connects the hosted Coupler.io
+  MCP server (`https://mcp.coupler.io/mcp`) with an OAuth sign-in, so no API
+  key is stored, and reads data only unless the user asks for a change.
+
 ## [2.5.0] - 2026-10-22
 
 Security and accuracy fixes from a full audit, and Claude Desktop installs again.
