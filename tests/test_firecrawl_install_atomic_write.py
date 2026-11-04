@@ -27,6 +27,7 @@ WRITERS = {
     "extensions/firecrawl/uninstall.ps1": ("$McpConfigFile", "$TempConfigFile"),
     "extensions/dataforseo/install.ps1": ("$McpConfigFile", "$TempConfigFile"),
     "extensions/ahrefs/install.ps1": ("$McpConfigJson", "$TempConfigJson"),
+    "extensions/coupler/install.ps1": ("$McpConfigJson", "$TempConfigJson"),
 }
 
 
