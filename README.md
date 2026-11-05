@@ -248,6 +248,11 @@ powershell -ExecutionPolicy Bypass -File claude-seo\install.ps1
 > /plugin install claude-seo@ai-marketing-hub-claude-seo
 > /seo setup
 > ```
+>
+> `AI-Marketing-Hub/claude-seo` is a **private** repository, so those two commands only work once your
+> GitHub account has been granted access to it. Until then Claude Code reports `SSH authentication failed`
+> followed by `ERROR: Repository not found`, which reads as a broken SSH key but is not one: the clone is
+> rejected because the account cannot see the repository. Use the public install above instead.
 
 **Your first audit:**
 
@@ -324,6 +329,13 @@ Claude SEO runs inside Claude Code, so the pages and data it analyzes are sent t
 <br />
 
 **Requirements.** Claude Code 1.0.33 or newer and Python 3.11 to 3.14. `/seo setup` installs the headless browser for you.
+
+**One hook.** Installing the plugin registers a single `PostToolUse` hook, declared in
+[`hooks/hooks.json`](hooks/hooks.json) and matching `Edit|Write`. After a file is written, in any project,
+it runs [`hooks/validate-schema.py`](hooks/validate-schema.py) on that file to catch invalid Schema.org
+JSON-LD. It looks at `.html`, `.htm`, `.jsx`, `.tsx`, `.vue`, `.svelte`, `.php` and `.ejs` only, skips
+files over 10 MiB, exits quietly when a file carries no JSON-LD, and makes no network calls. Placeholder,
+deprecated or retired schema is reported back to Claude; anything else is passed along as a warning.
 
 **Cost of a full audit.** Five agents that need more judgment run on Opus and the rest on Sonnet, so a full `/seo audit` uses more of your Claude plan than a single-page check. You can change any agent's model in its file under [`agents/`](agents/).
 
