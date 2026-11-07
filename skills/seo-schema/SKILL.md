@@ -55,6 +55,8 @@ See `schema/templates.json` for ready-to-use JSON-LD templates for these types.
 - **FAQPage**: Google retired FAQ rich results for ALL sites on May 7, 2026 (supersedes the Aug 2023 gov/health restriction). No Google SERP rich-result benefit; flag existing FAQPage at Info (not Critical) rather than removal. For genuine user Q&A pages, use **QAPage**.
 
 ### DEPRECATED (never recommend):
+Read `references/deprecated-types-2024-2026.md` for retirement dates and the active replacement for each type.
+
 - **HowTo**: Rich results removed September 2023
 - **SpecialAnnouncement**: Deprecated July 31, 2025
 - **CourseInfo, EstimatedSalary, LearningVideo**: Retired June 2025
