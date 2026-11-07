@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -54,7 +55,7 @@ def test_hook_launcher_preserves_blocking_exit_code_two(tmp_path: Path) -> None:
     script = tmp_path / "block.py"
     script.write_text(
         "import sys\n"
-        "assert sys.argv[1] == 'payload'\n"
+        "assert sys.argv[1] == 'page.html'\n"
         "sys.exit(2)\n",
         encoding="utf-8",
     )
@@ -62,7 +63,7 @@ def test_hook_launcher_preserves_blocking_exit_code_two(tmp_path: Path) -> None:
     env["CLAUDE_SEO_PYTHON"] = sys.executable
 
     proc = subprocess.run(
-        [node, str(HOOK_LAUNCHER), str(script), "payload"],
+        [node, str(HOOK_LAUNCHER), str(script), "page.html"],
         env=env,
         capture_output=True,
         text=True,
@@ -70,6 +71,42 @@ def test_hook_launcher_preserves_blocking_exit_code_two(tmp_path: Path) -> None:
     )
 
     assert proc.returncode == 2
+
+
+def test_hook_launcher_skips_files_that_cannot_hold_schema(tmp_path: Path) -> None:
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not available in this test environment")
+
+    script = tmp_path / "block.py"
+    script.write_text("import sys\nsys.exit(2)\n", encoding="utf-8")
+    env = os.environ.copy()
+    env["CLAUDE_SEO_PYTHON"] = sys.executable
+
+    def run(path_arg: str) -> int:
+        return subprocess.run(
+            [node, str(HOOK_LAUNCHER), str(script), path_arg],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        ).returncode
+
+    # Python never starts for files the validator would ignore anyway.
+    assert run("notes.md") == 0
+    assert run("app/main.py") == 0
+    # Schema-bearing files, and an unsubstituted placeholder, still reach Python.
+    assert run("Page.HTML") == 2
+    assert run("${tool_input.file_path}") == 2
+
+
+def test_hook_launcher_extensions_match_validator() -> None:
+    launcher = HOOK_LAUNCHER.read_text(encoding="utf-8")
+    validator = (REPO_ROOT / "hooks" / "validate-schema.py").read_text(encoding="utf-8")
+    js_list = re.search(r"SCHEMA_FILE_EXTENSIONS = \[([^\]]*)\]", launcher).group(1)
+    py_list = re.search(r"valid_extensions = \(([^)]*)\)", validator).group(1)
+
+    assert re.findall(r'"([^"]+)"', js_list) == re.findall(r'"([^"]+)"', py_list)
 
 
 def test_windows_installer_prefers_py_launcher_and_rejects_store_stubs() -> None:
