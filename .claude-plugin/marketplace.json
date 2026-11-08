@@ -62,7 +62,7 @@
       "name": "seo-cockpit",
       "source": {
         "source": "git-subdir",
-        "url": "AgriciDaniel/claude-seo",
+        "url": "https://github.com/AgriciDaniel/claude-seo.git",
         "path": "plugins/seo-cockpit",
         "ref": "seo-cockpit",
         "sha": "cf97b4785f4241b9367d654c60c7207dc3afcf68"
