@@ -86,3 +86,62 @@ def test_release_pattern_accepts_real_release_ids(release):
 )
 def test_release_pattern_rejects_traversal_and_junk(release):
     assert not ccg._RELEASE_RE.match(release)
+
+
+# ---------------------------------------------------------------------------
+# latest-release discovery (graphinfo.json first, KNOWN_RELEASES fallback)
+# ---------------------------------------------------------------------------
+
+
+class _Resp:
+    def __init__(self, status=200, payload=None, exc=None):
+        self.status_code = status
+        self._payload = payload
+        self._exc = exc
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise ccg.requests.exceptions.HTTPError(str(self.status_code))
+
+    def json(self):
+        if self._exc:
+            raise self._exc
+        return self._payload
+
+
+def _head_ok_for(existing):
+    def head(url, **_kw):
+        return _Resp(200 if any(f"/{r}/domain/" in url for r in existing) else 404)
+    return head
+
+
+def test_latest_release_prefers_graphinfo(monkeypatch):
+    graphs = [{"id": "cc-main-2099-jan-feb-mar"}, {"id": ccg.KNOWN_RELEASES[0]}]
+    monkeypatch.setattr(ccg.requests, "get", lambda url, **kw: _Resp(payload=graphs))
+    monkeypatch.setattr(ccg.requests, "head", _head_ok_for({"cc-main-2099-jan-feb-mar"}))
+    assert ccg._get_latest_release() == "cc-main-2099-jan-feb-mar"
+
+
+def test_latest_release_skips_unsafe_graphinfo_ids(monkeypatch):
+    graphs = [{"id": "../../etc/passwd"}, {"id": 42}, "junk", {"id": "cc-main-2099-jan-feb-mar"}]
+    monkeypatch.setattr(ccg.requests, "get", lambda url, **kw: _Resp(payload=graphs))
+    assert ccg._published_releases() == ["cc-main-2099-jan-feb-mar"]
+
+
+@pytest.mark.parametrize(
+    "response",
+    [_Resp(status=503), _Resp(payload={"not": "a list"}), _Resp(exc=ValueError("bad json"))],
+)
+def test_latest_release_falls_back_to_known_releases(monkeypatch, response):
+    monkeypatch.setattr(ccg.requests, "get", lambda url, **kw: response)
+    monkeypatch.setattr(ccg.requests, "head", _head_ok_for(set(ccg.KNOWN_RELEASES)))
+    assert ccg._get_latest_release() == ccg.KNOWN_RELEASES[0]
+
+
+def test_latest_release_falls_back_when_graphinfo_unreachable(monkeypatch):
+    def boom(url, **kw):
+        raise ccg.requests.exceptions.ConnectionError("offline")
+
+    monkeypatch.setattr(ccg.requests, "get", boom)
+    monkeypatch.setattr(ccg.requests, "head", _head_ok_for({ccg.KNOWN_RELEASES[1]}))
+    assert ccg._get_latest_release() == ccg.KNOWN_RELEASES[1]

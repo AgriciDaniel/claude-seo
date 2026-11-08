@@ -7,13 +7,13 @@ extract PageRank, harmonic centrality, crawl/ranking presence, and host counts.
 No API key needed (public data).
 
 Data source: s3://commoncrawl/projects/hyperlinkgraph/
-Releases: Quarterly (cc-main-YYYY-mon-mon-mon)
+Releases: Monthly, each built from three crawls (cc-main-YYYY-mon-mon-mon)
 
 Usage:
     python commoncrawl_graph.py example.com --json
     python commoncrawl_graph.py example.com --update --json
     python commoncrawl_graph.py --info --json
-    python commoncrawl_graph.py example.com --release cc-main-2026-jan-feb-mar --json
+    python commoncrawl_graph.py example.com --release cc-main-2026-jul-aug-sep --json
 """
 
 import argparse
@@ -42,10 +42,17 @@ except ImportError:
 # Common Crawl web graph base URL (HTTP access to S3 bucket)
 CC_GRAPH_BASE = "https://data.commoncrawl.org/projects/hyperlinkgraph"
 
-# Known recent releases (newest first).
-# Update periodically: check https://commoncrawl.github.io/cc-webgraph-statistics/
-# Naming convention: cc-main-YYYY-mon-mon-mon (quarterly, lowercase month abbreviations)
+# Common Crawl's own list of published web graphs, newest first. Read at
+# run time so a new release is picked up without editing this file.
+CC_GRAPHINFO_URL = "https://index.commoncrawl.org/graphinfo.json"
+
+# Fallback when graphinfo.json cannot be read (newest first).
+# Naming convention: cc-main-YYYY-mon-mon-mon (lowercase month abbreviations).
+# Common Crawl now publishes a graph every month from three consecutive
+# crawls; this fallback keeps one release per quarter.
 KNOWN_RELEASES = [
+    "cc-main-2026-jul-aug-sep",
+    "cc-main-2026-apr-may-jun",
     "cc-main-2026-jan-feb-mar",
     "cc-main-2025-oct-nov-dec",
     "cc-main-2025-jul-aug-sep",
@@ -74,16 +81,43 @@ def _safe_float(s: str) -> Optional[float]:
         return None
 
 
+def _published_releases(limit: int = 3) -> list:
+    """Return up to `limit` release ids from graphinfo.json, newest first.
+
+    Returns [] on any network or format problem, so callers fall back to
+    KNOWN_RELEASES. Ids that fail _RELEASE_RE are skipped, because a release
+    id is interpolated into a download URL and a cache path.
+    """
+    try:
+        resp = requests.get(CC_GRAPHINFO_URL, timeout=10)
+        resp.raise_for_status()
+        graphs = resp.json()
+    except (requests.exceptions.RequestException, ValueError):
+        return []
+    if not isinstance(graphs, list):
+        return []
+    releases = []
+    for graph in graphs:
+        release = graph.get("id") if isinstance(graph, dict) else None
+        if isinstance(release, str) and _RELEASE_RE.match(release):
+            releases.append(release)
+        if len(releases) >= limit:
+            break
+    return releases
+
+
 def _get_latest_release() -> Optional[str]:
     """
     Discover the latest available CC web graph release.
 
-    Tries known releases in order, returns the first one that exists.
+    Asks Common Crawl's graphinfo.json for the newest graph first, then
+    falls back to KNOWN_RELEASES. Returns the first release whose domain
+    vertices file exists.
 
     Returns:
-        Release name (e.g., 'cc-main-2026-jan-feb-mar') or None.
+        Release name (e.g., 'cc-main-2026-jul-aug-sep') or None.
     """
-    for release in KNOWN_RELEASES:
+    for release in _published_releases() + KNOWN_RELEASES:
         url = _graph_file_url(release, VERTICES_SUFFIX)
         try:
             resp = requests.head(url, timeout=10, allow_redirects=True)
