@@ -9,14 +9,20 @@ authors:
     family-names: Agrici
     website: 'https://agricidaniel.com'
 repository-code: 'https://github.com/AgriciDaniel/claude-seo'
-url: 'https://github.com/AgriciDaniel/claude-seo'
+url: 'https://claude-seo.md'
 license: MIT
 version: 2.5.0
 date-released: '2026-10-22'
 keywords:
   - seo
+  - ai-seo
+  - technical-seo
   - claude-code
-  - ai-tools
   - schema-markup
   - e-e-a-t
   - geo
+  - aeo
+  - generative-engine-optimization
+  - llms-txt
+  - core-web-vitals
+  - agent-readiness

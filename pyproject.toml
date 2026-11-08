@@ -1,18 +1,34 @@
 [project]
 name = "claude-seo"
 version = "2.5.0"
-description = "Comprehensive SEO analysis skill for Claude Code"
+description = "Free open-source AI SEO audit tool for Claude Code: technical SEO, E-E-A-T, schema, GEO/AEO, and agent readiness"
 requires-python = ">=3.11"
 license = "MIT"
 readme = "README.md"
 authors = [
   {name = "Daniel Agrici"}
 ]
-keywords = ["seo", "claude-code", "ai-tools", "schema-markup", "e-e-a-t", "geo"]
+keywords = [
+  "seo",
+  "ai-seo",
+  "technical-seo",
+  "claude-code",
+  "schema-markup",
+  "e-e-a-t",
+  "geo",
+  "aeo",
+  "generative-engine-optimization",
+  "llms-txt",
+  "core-web-vitals",
+  "agent-readiness",
+]
 
 [project.urls]
-Homepage = "https://github.com/AgriciDaniel/claude-seo"
+Homepage = "https://claude-seo.md"
+Documentation = "https://claude-seo.md"
 Repository = "https://github.com/AgriciDaniel/claude-seo"
+Issues = "https://github.com/AgriciDaniel/claude-seo/issues"
+Changelog = "https://github.com/AgriciDaniel/claude-seo/blob/main/CHANGELOG.md"
 
 [tool.ruff]
 target-version = "py311"

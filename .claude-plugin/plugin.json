@@ -1,7 +1,7 @@
 {
   "name": "claude-seo",
   "version": "2.5.0",
-  "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills (22 core + 1 orchestrator + 1 framework + 2 extension mirrors) and 19 sub-agents cover technical SEO, content quality, schema, sitemaps, Core Web Vitals, local SEO, backlinks, AI/GEO, ecommerce, hreflang, SXO, clustering, drift monitoring, and Google APIs. Includes optional MCP extensions, SPA-aware rendering, portability, and hardened SSRF/DNS-rebinding safe fetchers.",
+  "description": "Free open-source AI SEO audit plugin for Claude Code. 26 sub-skills and 19 agents cover technical SEO, E-E-A-T content quality, Schema.org, Core Web Vitals, GEO/AEO, agent readiness (llms.txt, WebMCP), local SEO, backlinks, ecommerce, hreflang, SXO, clustering, drift monitoring, and Google APIs. Optional MCP extensions, SPA rendering, SSRF-safe fetchers. Docs: https://claude-seo.md",
   "author": {
     "name": "AgriciDaniel",
     "url": "https://github.com/AgriciDaniel"
@@ -18,6 +18,10 @@
     "core-web-vitals",
     "local-seo",
     "geo",
+    "aeo",
+    "generative-engine-optimization",
+    "llms-txt",
+    "agent-readiness",
     "ai-search",
     "sitemap",
     "image-optimization",

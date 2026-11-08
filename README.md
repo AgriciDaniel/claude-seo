@@ -1,30 +1,35 @@
 <!--
-  Claude SEO (claude-seo): free, open-source SEO audit plugin for Claude Code by Agrici Daniel.
-  Technical SEO, Core Web Vitals, E-E-A-T, Schema.org, AI search (GEO), local SEO, e-commerce and international SEO.
-  26 sub-skills and 19 specialist agents. MIT licensed.
+  Claude SEO (claude-seo): free, open-source AI SEO audit tool for Claude Code by Agrici Daniel.
+  Technical SEO, Core Web Vitals, E-E-A-T, Schema.org, generative engine optimization (GEO/AEO),
+  local SEO, e-commerce and international SEO. 26 sub-skills and 19 specialist agents. MIT licensed.
+  Site: https://claude-seo.md | Also searched as Claud SEO, Claude-SEO, ClaudeSEO, Claude Code SEO.
 -->
 
-<img src="assets/readme/v3/hero.svg" width="1200" height="420" alt="Claude SEO: rank in Google, get cited by AI. Three bots climb from #48 to #1 by fixing crawl, speed, schema, AI access and authority, then Google, ChatGPT, Perplexity, Gemini and Claude cite the site." />
+<img src="assets/readme/v3/hero.svg" width="1200" height="420" alt="Claude SEO: free open-source AI SEO audit tool for Claude Code. Rank in Google, get cited by AI. Three bots climb from #48 to #1 by fixing crawl, speed, schema, AI access and authority, then Google, ChatGPT, Perplexity, Gemini and Claude cite the site." />
 
 <h1 align="center">Claude SEO</h1>
 
 <p align="center">
-  <b>Free, open-source SEO audits inside <a href="https://claude.com/product/claude-code">Claude Code</a>.</b><br />
-  Rank higher in Google and get cited by AI search.
+  <b>Free, open-source AI SEO audit tool for <a href="https://claude.com/product/claude-code">Claude Code</a>.</b><br />
+  Technical SEO, E-E-A-T, schema, GEO/AEO, and agent readiness — rank in Google and get cited by AI search.
 </p>
 
 <p align="center">
+  <a href="https://claude-seo.md">Website</a> ·
+  <a href="https://claude-seo.md/install">Install page</a> ·
   <a href="#install">Install</a> ·
   <a href="#see-it-in-action">Demo</a> ·
   <a href="#real-results">Results</a> ·
   <a href="#meet-the-team">Team</a> ·
   <a href="#commands">Commands</a> ·
   <a href="#pricing">Pricing</a> ·
-  <a href="#faq">FAQ</a>
+  <a href="#faq">FAQ</a> ·
+  <a href="pricing.md">pricing.md</a>
 </p>
 
 <p align="center">
   <a href="https://github.com/AgriciDaniel/claude-seo/actions/workflows/ci.yml"><img src="https://github.com/AgriciDaniel/claude-seo/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://claude-seo.md"><img src="https://img.shields.io/badge/Site-claude--seo.md-black" alt="Official site claude-seo.md" /></a>
   <a href="https://claude.com/product/claude-code"><img src="https://img.shields.io/badge/Claude%20Code-Plugin-blue" alt="Claude Code plugin" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   <a href="https://github.com/AgriciDaniel/claude-seo/releases"><img src="https://img.shields.io/github/v/release/AgriciDaniel/claude-seo" alt="Version" /></a>
@@ -37,14 +42,16 @@
   <a href="https://trendshift.io/repositories/21053"><img src="https://trendshift.io/api/badge/repositories/21053" alt="AgriciDaniel/claude-seo on Trendshift: GitHub Trending #12 Repository Of The Day" width="250" height="55" /></a>
 </p>
 
-**Claude SEO is a free SEO plugin for Claude Code.** Give it any website and it runs a full SEO audit in 10 to 15 minutes, then hands you a clear action plan, sorted by what matters most.
+**Claude SEO is a free, open-source AI SEO audit tool for Claude Code** (also searched as Claud SEO, Claude-SEO, ClaudeSEO, or Claude Code SEO). Paste a URL, run `/seo audit`, and get a prioritized action plan in about 10 to 15 minutes — technical SEO, content quality, schema, GEO/AEO, and more.
+
+Docs and demos live on **[claude-seo.md](https://claude-seo.md)**. Machine-readable pricing for agents: **[pricing.md](pricing.md)**.
 
 It checks everything a good SEO consultant would:
 
-- **Technical SEO.** Crawlability, indexing, sitemaps, robots.txt, redirects, page speed and Core Web Vitals.
+- **Technical SEO.** Crawlability, indexing, sitemaps, robots.txt, redirects, page speed and Core Web Vitals (INP).
 - **Content quality.** E-E-A-T (experience, expertise, authority and trust), thin pages and topic coverage.
-- **Structured data.** Finds, validates and writes Schema.org markup for rich results.
-- **AI search (GEO).** How likely Google AI Overviews, AI Mode, ChatGPT, Perplexity and Gemini are to cite your pages.
+- **Structured data.** Finds, validates and writes Schema.org JSON-LD for rich results.
+- **AI search (GEO/AEO).** How ready pages are for Google AI Overviews, AI Mode, ChatGPT, Perplexity and Gemini — including crawler access, `llms.txt`, and agent readiness.
 - **Local and e-commerce SEO.** Google Business Profile, reviews, map pack, product pages and international sites.
 
 Claude SEO is built from 26 sub-skills and 19 specialist agents, and up to 17 agents work on your site at the same time. Every recommendation explains why it matters and how you will know it worked.
@@ -63,9 +70,12 @@ Run a full audit and watch the agents fan out across the site:
 
 ## Real results
 
-The project's own site, [claude-seo.md](https://claude-seo.md), audited with Claude SEO from day one: 10.8K Search Console clicks in its first 12 weeks and a 99 mobile PageSpeed score.
+The project's own site, [claude-seo.md](https://claude-seo.md), was audited with Claude SEO from day one:
 
-<img src="assets/readme/screen.svg" width="1200" height="751" alt="Real results: Google Search Console showing 10.8K clicks and 324K impressions for a new site between 23 March and 12 June 2026, next to a PageSpeed Insights report scoring 99 for performance and 100 for SEO." />
+- **First 12 weeks:** 10.8K Search Console clicks and a 99 mobile PageSpeed lab score (screenshot below).
+- **Later checkpoint:** [34,100 organic clicks](https://claude-seo.md/blog/claude-seo-34k-organic-clicks) and 719,000 impressions (captured 2026-08-15) — case study on the site.
+
+<img src="assets/readme/screen.svg" width="1200" height="751" alt="Real results: Google Search Console showing 10.8K clicks and 324K impressions for claude-seo.md between 23 March and 12 June 2026, next to a PageSpeed Insights report scoring 99 for performance and 100 for SEO." />
 
 ## Meet the team
 
@@ -370,7 +380,7 @@ Setup guides live in [`extensions/`](extensions/).
 | [FLOW](https://github.com/AgriciDaniel/flow) | An evidence-led SEO framework with 42 AI prompts |
 | [AI Marketing Claude](https://github.com/zubair-trabzada/ai-marketing-claude) | Community suite for copy, email, ads and funnels |
 
-**Docs:** [Installation](docs/INSTALLATION.md) · [Commands](docs/COMMANDS.md) · [Architecture](docs/ARCHITECTURE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Extensions setup](docs/MCP-INTEGRATION.md) · [Security](SECURITY.md) · [Privacy](PRIVACY.md) · [Contributors](CONTRIBUTORS.md)
+**Docs:** [Website](https://claude-seo.md) · [Pricing (machine-readable)](pricing.md) · [Installation](docs/INSTALLATION.md) · [Commands](docs/COMMANDS.md) · [Architecture](docs/ARCHITECTURE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Extensions setup](docs/MCP-INTEGRATION.md) · [Security](SECURITY.md) · [Privacy](PRIVACY.md) · [Contributors](CONTRIBUTORS.md)
 
 ## License and contributing
 

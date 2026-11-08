@@ -5,13 +5,13 @@
     "name": "AgriciDaniel"
   },
   "metadata": {
-    "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions for live data. v2.5.0 fixes Claude Desktop installs and hardens Google sign-in, page rendering and agent prompts; v2.4.2 added seo-cockpit (a mods companion: spend guard, live audit band, and a visual cockpit) and Google sign-in through your own gcloud account; v2.4.1 brought Google guidance current through 2026-09-28; v2.4.0 added /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access)."
+    "description": "Free open-source AI SEO audit tool for Claude Code. 26 sub-skills and 19 agents for technical SEO, E-E-A-T, schema, GEO/AEO, local, ecommerce, and agent readiness (llms.txt, WebMCP, Lighthouse Agentic Browsing). Optional MCP extensions for live SERP and Google APIs. Site: https://claude-seo.md"
   },
   "plugins": [
     {
       "name": "claude-seo",
       "source": "./",
-      "description": "Comprehensive SEO analysis plugin for Claude Code. 26 sub-skills and 19 sub-agents, plus 9 optional MCP extensions. v2.5.0 fixes Claude Desktop installs and hardens Google sign-in, page rendering and agent prompts; v2.4.2 added the seo-cockpit companion and gcloud sign-in; v2.4.1 brought Google guidance current through 2026-09-28; v2.4.0 added /seo agentic for agent readiness (Lighthouse Agentic Browsing, WebMCP, AI agent access).",
+      "description": "Free open-source AI SEO audit plugin for Claude Code. Run /seo audit on any URL for technical SEO, content quality (E-E-A-T), Schema.org, GEO/AEO, local SEO, ecommerce, hreflang, and agent readiness. 26 skills, 19 agents, 9 optional extensions. Docs: https://claude-seo.md",
       "author": {
         "name": "AgriciDaniel",
         "url": "https://github.com/AgriciDaniel"
