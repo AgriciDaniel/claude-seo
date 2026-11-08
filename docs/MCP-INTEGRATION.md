@@ -74,6 +74,33 @@ The MCP ecosystem for SEO has matured significantly. These are production-ready 
 | **DataForSEO** | `dataforseo-mcp-server` | Official extension | 9 modules, 79 tools, 23 commands. Install: `./extensions/dataforseo/install.sh`. See [extension docs](../extensions/dataforseo/README.md). |
 | **kwrds.ai** | kwrds MCP server | Community | Keyword research, search volume, difficulty scoring. |
 | **SEO Review Tools** | SEO Review Tools MCP | Community | Site auditing and on-page analysis API. |
+| **GoAnyAPI** | `https://mcp.goanyapi.com/mcp` | Third-party (remote, hosted) | SERP, keyword, backlink, traffic, domain rating, Ads Transparency and Reverse AdSense. Credit-based, OAuth sign-in on first use. |
+
+### GoAnyAPI (hosted remote MCP)
+
+[GoAnyAPI](https://goanyapi.com/mcp) exposes its SEO and ad data APIs as a hosted remote MCP server, so agents can pull third-party SERP, keyword, backlink, traffic and ad-transparency data without a local install.
+
+```bash
+claude mcp add --transport http goanyapi https://mcp.goanyapi.com/mcp
+```
+
+Equivalent JSON configuration:
+
+```json
+{
+  "mcpServers": {
+    "goanyapi": {
+      "type": "http",
+      "url": "https://mcp.goanyapi.com/mcp"
+    }
+  }
+}
+```
+
+The first call opens a browser sign-in flow. It is additive to the rest of this page rather than a replacement: Search Console stays authoritative for your own site's queries and PageSpeed stays the source for CWV, while GoAnyAPI covers competitor/third-party data and ads transparency. Quality limits worth knowing before you quote a number: `/keyword-search-volume` only accepts an exact term returned by `/keyword-suggestions`, SERP editions return different response shapes, and Traffic API figures are modelled estimates rather than analytics-grade sessions.
+
+_Disclosure: contributed by the GoAnyAPI team._
+
 
 ## API Usage Examples
 
