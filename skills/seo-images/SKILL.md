@@ -21,7 +21,7 @@ metadata:
 ## Checks
 
 ### Alt Text
-- Present on all `<img>` elements (except decorative: `role="presentation"`)
+- Present on all `<img>` elements (except decorative: `role="presentation"`). `parse_html.py` marks these with `decorative: true`; do not flag them for missing alt text.
 - Descriptive: describes the image content, not "image.jpg" or "photo"
 - Includes relevant keywords where natural, not keyword-stuffed
 - Length: 10-125 characters
@@ -65,7 +65,7 @@ Many sites serve WebP or AVIF from a `.jpg`/`.png` URL when the browser asks for
 plugins such as EWWW, ShortPixel, WebP Express and Imagify, Cloudflare Polish, image CDNs). The extension
 is not the format visitors receive. Run
 `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run parse_html.py --url <url> --probe-images --json`,
-which fetches each image with a browser `Accept` header and adds to every image entry:
+which fetches each image with a browser `Accept` header and adds to every image entry (for a lazy-loaded image it probes `resolved_src`, the real source, because `src` is then a placeholder):
 
 | Field | Meaning |
 |---|---|

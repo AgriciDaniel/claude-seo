@@ -6,6 +6,51 @@ Usage:
     python parse_html.py page.html
     python parse_html.py --url https://example.com
     python parse_html.py --url https://example.com --probe-images --json
+
+Output keys (JSON):
+    title, meta_description, meta_robots, canonical
+    h1, h2, h3            heading texts per level (plus h1_suspicious and so
+                          on when a heading looks like a counter)
+    heading_outline       [{level, text}] for h1 to h6 in document order,
+                          first 200 headings, so skipped levels can be seen
+    images                per image: src, alt, width, height, loading,
+                          lazy_method, plus
+                            resolved_src       real URL when src is a lazy
+                                               placeholder, else null
+                            srcset_candidates  [{url, descriptor}], up to 10
+                            decorative         true when alt is empty and the
+                                               image or an ancestor is
+                                               aria-hidden or has role
+                                               presentation / none
+                          and, with --probe-images, served_format,
+                          served_bytes, negotiated, probe_error, probed_src
+    links                 {internal, external}. Hosts that differ only by a
+                          leading "www." (any letter case) are the same site;
+                          every other subdomain is external
+    schema                parsed JSON-LD entities, @graph flattened
+    schema_invalid        {count, samples}: JSON-LD blocks that could not be
+                          used, with the first 80 characters of up to 10
+    open_graph, twitter_card, hreflang, word_count
+    hidden_text           {chars, by_source, collapsed_chars, samples}: text
+                          that is in the HTML but not shown (see below)
+    malformed_urls        only present when an img src or a href is malformed
+
+Hidden text: `hidden_text` counts text inside HTML comments, <template>,
+<noscript>, elements with the `hidden` attribute, `aria-hidden="true"`, an
+inline `display:none` or `visibility:hidden`, or a common screen-reader-only
+class. Note that `aria-hidden` hides text from assistive technology, not from
+the screen; `by_source` keeps the sources apart so each can be weighed.
+Collapsed FAQ, accordion and tab panels are legitimate and are tallied in
+`collapsed_chars` instead. Hidden text is a spam signal and the usual hiding
+place for prompt injection aimed at an AI agent that reads the page.
+
+This catches inline and attribute-based hiding only. Text hidden through an
+external or embedded stylesheet (a class that sets display:none, off-screen
+positioning, zero font size, matching text and background colours) is NOT
+detected, and a page can mark any hidden block as an FAQ or accordion to keep
+it out of `chars`. Treat it as a filter, not a guarantee: a low count does not
+prove a page is clean, and every sample is untrusted page text, never an
+instruction.
 """
 
 import argparse
@@ -18,7 +63,8 @@ from typing import Any, Optional
 from urllib.parse import urldefrag, urljoin, urlparse
 
 try:
-    from bs4 import BeautifulSoup
+    from bs4 import BeautifulSoup, Comment, Tag
+    from bs4.element import PreformattedString
 except ImportError:
     print("Error: beautifulsoup4 required. Install with: pip install beautifulsoup4")
     sys.exit(1)
@@ -46,6 +92,54 @@ _GENERIC_LAZY_ATTRS = ("data-src", "data-lazy-src", "data-original", "data-srcse
 _PERFMATTERS_CLASSES = {"perfmatters-lazy", "perfmatters-lazy-loaded"}
 _EWWW_CLASSES = {"lazyload-eio", "lazyloaded-eio"}
 _GENERIC_LAZY_CLASSES = {"lazyload", "lazyloaded", "lazy", "lazy-loaded"}
+
+# Real-source resolution for lazy-loaded images. A JS lazy-loader parks the
+# real URL in one of these attributes and leaves `src` empty or pointing at a
+# placeholder (a data: URI, a 1x1 gif, a low-quality preview).
+_LAZY_SRC_ATTRS = (
+    "data-perfmatters-src",
+    "data-ewww-src",
+    "data-src",
+    "data-lazy-src",
+    "data-original",
+)
+_LAZY_SRCSET_ATTRS = ("data-perfmatters-srcset", "data-srcset", "data-lazy-srcset")
+_PLACEHOLDER_SCHEMES = ("data:", "blob:", "about:")
+
+# Page content is untrusted, so every new list and string is bounded.
+_MAX_SRCSET_CANDIDATES = 10
+_MAX_SRCSET_CHARS = 8192
+_MAX_URL_CHARS = 2048
+_MAX_DESCRIPTOR_CHARS = 20
+_MAX_OUTLINE_HEADINGS = 200
+_MAX_HEADING_CHARS = 300
+_MAX_INVALID_SCHEMA_SAMPLES = 10
+_INVALID_SCHEMA_SAMPLE_CHARS = 80
+_MAX_HIDDEN_SAMPLES = 5
+_HIDDEN_SAMPLE_CHARS = 200
+
+# Hidden-text rule set. Class tokens that mark a collapsed panel are matched
+# as substrings (`faq-answer`, `accordion__body`); screen-reader-only classes
+# are matched as whole class names.
+_HIDDEN_SOURCES = (
+    "comment",
+    "template",
+    "noscript",
+    "hidden_attr",
+    "aria_hidden",
+    "inline_style",
+    "sr_only_class",
+)
+_SR_ONLY_CLASSES = {
+    "sr-only",
+    "screen-reader-text",
+    "screen-reader-only",
+    "visually-hidden",
+    "visuallyhidden",
+}
+_COLLAPSED_CLASS_TOKENS = ("faq", "accordion", "tab-panel")
+_COLLAPSED_ROLES = {"region", "tabpanel"}
+_IGNORED_TEXT = object()  # script and style bodies are code, not text
 
 # Served-format probe (issue #331). WordPress WebP plugins (EWWW, ShortPixel,
 # WebP Express, Imagify), Cloudflare Polish and image CDNs serve WebP or AVIF
@@ -173,10 +267,13 @@ def probe_images(images: list, timeout: int = 15, limit: int = 50) -> list:
 
     Probes at most ``limit`` distinct URLs; entries past the limit get
     ``probe_error`` set so the report never guesses their format.
+
+    A lazy-loaded image is probed at its ``resolved_src``, since its ``src``
+    is only a placeholder. ``probed_src`` records the URL that was asked for.
     """
     cache: dict = {}
     for image in images:
-        src = image.get("src", "")
+        src = image.get("resolved_src") or image.get("src", "")
         if src not in cache:
             if len(cache) >= limit:
                 cache[src] = {
@@ -188,6 +285,7 @@ def probe_images(images: list, timeout: int = 15, limit: int = 50) -> list:
             else:
                 cache[src] = probe_image_format(src, timeout=timeout)
         image.update(cache[src])
+        image["probed_src"] = src
     return images
 
 
@@ -254,6 +352,257 @@ def _detect_lazy_method(img) -> str:
     return "none"
 
 
+def _attr_text(tag, name: str) -> str:
+    """Return an attribute as one string, whatever shape the parser gave it."""
+    value = tag.get(name)
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple)):
+        return " ".join(str(item) for item in value)
+    return str(value)
+
+
+def _parse_srcset(value: str) -> list:
+    """Split a ``srcset`` value into ``(url, descriptor)`` pairs.
+
+    The URL is read up to the next whitespace before any comma is looked at,
+    so the commas inside a ``data:`` URL are not taken for separators. A URL
+    that ends in a comma has no descriptor; otherwise the descriptor runs to
+    the next comma.
+    """
+    pairs = []
+    remaining = value[:_MAX_SRCSET_CHARS]
+    while len(pairs) < _MAX_SRCSET_CANDIDATES * 5:
+        remaining = remaining.lstrip(" ,\t\r\n\f")
+        if not remaining:
+            break
+        pieces = remaining.split(None, 1)
+        token = pieces[0]
+        rest = pieces[1] if len(pieces) > 1 else ""
+        if token.endswith(","):
+            pairs.append((token.rstrip(","), ""))
+            remaining = rest
+        else:
+            descriptor, _, remaining = rest.partition(",")
+            pairs.append((token, descriptor.strip()))
+    return pairs
+
+
+def _resolve_candidate_url(base_url: Optional[str], value: str) -> Optional[str]:
+    """Resolve one candidate image URL, or return None when it is not usable.
+
+    Unusable means empty, over-long, malformed (such as ``http://[bad/a.jpg``)
+    or not a web URL (``data:``, ``blob:``, ``javascript:``). A bad candidate
+    is skipped and never aborts the parse. Without a base URL a relative value
+    stays relative, the same way ``src`` does.
+    """
+    value = value.strip()
+    if not value or len(value) > _MAX_URL_CHARS:
+        return None
+    try:
+        full = urljoin(base_url, value) if base_url else value
+        scheme = urlparse(full).scheme.lower()
+    except ValueError:
+        return None
+    return full if scheme in ("http", "https", "") else None
+
+
+def _image_sources(img, base_url: Optional[str], src: str) -> tuple:
+    """Return ``(resolved_src, srcset_candidates)`` for one image.
+
+    ``srcset_candidates`` lists the usable entries of the first of
+    ``data-srcset`` (and its plugin variants) or ``srcset`` that has any.
+
+    ``resolved_src`` is the real image URL when ``src`` is not it:
+
+    1. A lazy source attribute wins over ``src``. Loaders that keep a 1x1 gif
+       or a blurred preview in ``src`` are covered without guessing from the
+       file name.
+    2. Otherwise the last candidate of a lazy ``data-srcset``.
+    3. Otherwise, when ``src`` is empty or a ``data:`` / ``blob:`` placeholder,
+       the last ``srcset`` candidate.
+
+    It is None when nothing was found or the result is ``src`` itself.
+    """
+    candidates: list = []
+    from_lazy_srcset = False
+    for attr in (*_LAZY_SRCSET_ATTRS, "srcset"):
+        for url, descriptor in _parse_srcset(_attr_text(img, attr)):
+            full = _resolve_candidate_url(base_url, url)
+            if full and len(candidates) < _MAX_SRCSET_CANDIDATES:
+                candidates.append(
+                    {"url": full, "descriptor": descriptor[:_MAX_DESCRIPTOR_CHARS]}
+                )
+        if candidates:
+            from_lazy_srcset = attr != "srcset"
+            break
+
+    raw_src = _attr_text(img, "src").strip().lower()
+    src_is_placeholder = not raw_src or raw_src.startswith(_PLACEHOLDER_SCHEMES)
+
+    resolved = None
+    for attr in _LAZY_SRC_ATTRS:
+        resolved = _resolve_candidate_url(base_url, _attr_text(img, attr))
+        if resolved:
+            break
+    if not resolved and candidates and (from_lazy_srcset or src_is_placeholder):
+        resolved = candidates[-1]["url"]
+    if resolved == src:
+        resolved = None
+    return resolved, candidates
+
+
+def _is_decorative_image(img) -> bool:
+    """True when the image has no alt text and is marked as decoration.
+
+    The mark is ``aria-hidden="true"`` or ``role="presentation"`` /
+    ``role="none"`` on the image or on any ancestor. Such an image is skipped
+    by assistive technology, so a missing alt on it is not a finding.
+    """
+    if _attr_text(img, "alt").strip():
+        return False
+    node = img
+    while node is not None and getattr(node, "attrs", None) is not None:
+        if _attr_text(node, "aria-hidden").strip().lower() == "true":
+            return True
+        if {"presentation", "none"} & set(_attr_text(node, "role").lower().split()):
+            return True
+        node = node.parent
+    return False
+
+
+def _site_host(netloc: str) -> str:
+    """Return a netloc lower-cased and without one leading ``www.``.
+
+    ``example.com`` and ``WWW.Example.com`` are the same site. Any other
+    subdomain (``blog.example.com``) is a different host and stays external.
+    """
+    host = netloc.lower()
+    return host[4:] if host.startswith("www.") else host
+
+
+def _is_json_ld(script) -> bool:
+    """True for ``type="application/ld+json"`` in any letter case.
+
+    Surrounding whitespace and parameters are allowed, as in
+    ``application/ld+json; charset=utf-8``.
+    """
+    return _attr_text(script, "type").split(";")[0].strip().lower() == "application/ld+json"
+
+
+def _hidden_source(tag, controlled_ids: set) -> Optional[str]:
+    """Say why ``tag`` hides its text from the reader, or return None.
+
+    Returns one of ``_HIDDEN_SOURCES``, or ``"collapsed"`` for a hidden
+    element that is a legitimately collapsed panel: its class names it as FAQ,
+    accordion or tab panel content, its role is ``region`` or ``tabpanel``, or
+    a disclosure control points at it with ``aria-controls``.
+    """
+    if tag.name in ("template", "noscript"):
+        return tag.name
+
+    source = None
+    if tag.has_attr("hidden"):
+        source = "hidden_attr"
+    elif _attr_text(tag, "aria-hidden").strip().lower() == "true":
+        source = "aria_hidden"
+    else:
+        style = "".join(_attr_text(tag, "style").lower().split())
+        if "display:none" in style or "visibility:hidden" in style:
+            source = "inline_style"
+
+    classes = _attr_text(tag, "class").lower()
+    if source:
+        if (
+            any(token in classes for token in _COLLAPSED_CLASS_TOKENS)
+            or _attr_text(tag, "role").strip().lower() in _COLLAPSED_ROLES
+            or _attr_text(tag, "id").strip() in controlled_ids
+        ):
+            return "collapsed"
+        return source
+    if _SR_ONLY_CLASSES & set(classes.split()):
+        return "sr_only_class"
+    return None
+
+
+def _scan_hidden_text(soup) -> dict:
+    """Measure text that is in the HTML but not shown to a reader.
+
+    One pass in document order. Each outermost hidden element is one block, so
+    nested hiding is counted once; an HTML comment outside a hidden element is
+    a block of its own. Characters are counted after collapsing whitespace.
+    The samples are the longest blocks, since a long hidden passage matters
+    more than a hidden icon label. Read-only: the document is not changed.
+
+    Inline and attribute-based hiding only. See the module docstring for what
+    this cannot see.
+    """
+    controlled_ids: set = set()
+    for control in soup.find_all(attrs={"aria-controls": True}):
+        controlled_ids.update(_attr_text(control, "aria-controls").split())
+    controlled_ids.discard("")
+
+    blocks: list = []
+    collapsed_chars = 0
+    # id(tag) -> the hidden block that owns its text, "collapsed", or
+    # _IGNORED_TEXT. A tag that is absent is visible. A parent is always
+    # visited before its children, so one lookup settles each node.
+    state: dict = {}
+
+    for node in soup.descendants:
+        owner = state.get(id(node.parent))
+        if isinstance(node, Tag):
+            if node.name in ("script", "style"):
+                state[id(node)] = _IGNORED_TEXT
+            elif owner is _IGNORED_TEXT or isinstance(owner, dict):
+                state[id(node)] = owner
+            else:
+                source = _hidden_source(node, controlled_ids)
+                if source == "collapsed":
+                    state[id(node)] = "collapsed"
+                elif source:
+                    block = {"source": source, "chars": 0, "text": ""}
+                    blocks.append(block)
+                    state[id(node)] = block
+                elif owner is not None:
+                    state[id(node)] = owner
+            continue
+
+        if owner is _IGNORED_TEXT:
+            continue
+        if isinstance(node, Comment):
+            if not isinstance(owner, dict):
+                owner = {"source": "comment", "chars": 0, "text": ""}
+                blocks.append(owner)
+        elif isinstance(node, PreformattedString):
+            continue  # doctype, declaration, processing instruction, CDATA
+
+        text = " ".join(str(node).split())
+        if not text:
+            continue
+        if isinstance(owner, dict):
+            owner["chars"] += len(text)
+            if len(owner["text"]) < _HIDDEN_SAMPLE_CHARS:
+                owner["text"] = f"{owner['text']} {text}".strip()[:_HIDDEN_SAMPLE_CHARS]
+        elif owner == "collapsed":
+            collapsed_chars += len(text)
+
+    by_source = dict.fromkeys(_HIDDEN_SOURCES, 0)
+    for block in blocks:
+        by_source[block["source"]] += block["chars"]
+    longest = sorted(
+        (block for block in blocks if block["chars"]),
+        key=lambda block: block["chars"],
+        reverse=True,
+    )
+    return {
+        "chars": sum(by_source.values()),
+        "by_source": by_source,
+        "collapsed_chars": collapsed_chars,
+        "samples": longest[:_MAX_HIDDEN_SAMPLES],
+    }
+
+
 def _inherit_context(node: dict[str, Any], context: Any) -> dict[str, Any]:
     """Return a JSON-LD node that carries the document's ``@context``.
 
@@ -302,16 +651,19 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         "h1": [],
         "h2": [],
         "h3": [],
+        "heading_outline": [],
         "images": [],
         "links": {
             "internal": [],
             "external": [],
         },
         "schema": [],
+        "schema_invalid": {"count": 0, "samples": []},
         "open_graph": {},
         "twitter_card": {},
         "word_count": 0,
         "hreflang": [],
+        "hidden_text": {},
     }
 
     # Title
@@ -374,6 +726,17 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
                         result[key] = []
                     result[key].append(text)
 
+    # Heading outline: every level in document order, so a skipped level
+    # (an h4 straight after an h2) can be seen. Same text rule as above.
+    for heading in soup.find_all(["h1", "h2", "h3", "h4", "h5", "h6"]):
+        if len(result["heading_outline"]) >= _MAX_OUTLINE_HEADINGS:
+            break
+        text = _element_text(heading)
+        if text:
+            result["heading_outline"].append(
+                {"level": int(heading.name[1]), "text": text[:_MAX_HEADING_CHARS]}
+            )
+
     # Images
     for img in soup.find_all("img"):
         src = img.get("src", "")
@@ -385,6 +748,8 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
                 # is still counted, and carry on with the rest of the page.
                 result.setdefault("malformed_urls", []).append({"tag": "img", "value": src})
 
+        resolved_src, srcset_candidates = _image_sources(img, resource_base_url, src)
+
         result["images"].append({
             "src": src,
             "alt": img.get("alt"),
@@ -392,11 +757,14 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
             "height": img.get("height"),
             "loading": img.get("loading"),
             "lazy_method": _detect_lazy_method(img),
+            "resolved_src": resolved_src,
+            "srcset_candidates": srcset_candidates,
+            "decorative": _is_decorative_image(img),
         })
 
     # Links
     if base_url:
-        base_domain = urlparse(base_url).netloc
+        base_domain = _site_host(urlparse(base_url).netloc)
         # A fragment-only href resolves against the document base URL (HTML
         # spec), so it stays on this page only while the base is this page.
         # With <base> pointing elsewhere, #frag is a link to that other URL.
@@ -423,13 +791,15 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
                 "rel": a.get("rel", []),
             }
 
-            if parsed.netloc == base_domain:
+            if _site_host(parsed.netloc) == base_domain:
                 result["links"]["internal"].append(link_data)
             else:
                 result["links"]["external"].append(link_data)
 
     # Schema (JSON-LD)
-    for script in soup.find_all("script", type="application/ld+json"):
+    for script in soup.find_all("script"):
+        if not _is_json_ld(script):
+            continue
         try:
             schema_data = json.loads(script.string)
             # Flatten @graph containers so each @type is a separate entry.
@@ -446,8 +816,19 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
                         result["schema"].append(item)
             else:
                 result["schema"].append(schema_data)
-        except (json.JSONDecodeError, TypeError):
-            pass
+        except (ValueError, TypeError, RecursionError):
+            # Not valid JSON, empty, nested too deep, or a @graph that cannot
+            # be walked. Count the block and keep a short sample instead of
+            # dropping it without a trace.
+            invalid = result["schema_invalid"]
+            invalid["count"] += 1
+            if len(invalid["samples"]) < _MAX_INVALID_SCHEMA_SAMPLES:
+                raw = str(script.string or "")[: _INVALID_SCHEMA_SAMPLE_CHARS * 5]
+                invalid["samples"].append(" ".join(raw.split())[:_INVALID_SCHEMA_SAMPLE_CHARS])
+
+    # Hidden text. Measured before the word count below removes elements, and
+    # read-only, so the word count is unchanged.
+    result["hidden_text"] = _scan_hidden_text(soup)
 
     # Word count (visible text only)
     for element in soup(["script", "style", "nav", "footer", "header"]):
