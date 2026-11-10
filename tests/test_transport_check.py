@@ -657,7 +657,7 @@ def test_tidy_site_has_no_findings_and_fetches_each_url_once(net, public, web) -
     calls = web(routes)
     report = tc.run("https://example.com", now=NOW)
     assert report["findings"] == []
-    assert report["summary"] == {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    assert report["summary"] == {"Critical": 0, "High": 0, "Medium": 0, "Low": 0, "Info": 0, "total": 0}
     assert sorted(calls) == ["http://example.com/", "https://example.com",
                              "https://www.example.com/"]
     http = report["redirects"]["http_to_https"]
@@ -953,8 +953,9 @@ def test_findings_shape_order_and_summary(net, public, web) -> None:
         assert finding["message"].endswith(".") and finding["message"].count(". ") == 0
         assert isinstance(finding["evidence"], dict)
     assert len(set(ids(report))) == len(report["findings"])
-    assert sum(report["summary"].values()) == len(report["findings"])
-    assert report["summary"]["critical"] == 1
+    assert report["summary"]["total"] == len(report["findings"])
+    assert sum(v for k, v in report["summary"].items() if k != "total") == len(report["findings"])
+    assert report["summary"]["Critical"] == 1
     found = by_id(report)
     assert found["tls-cert-expired"]["severity"] == "Critical"
     assert found["http-no-https-redirect"]["severity"] == "High"

@@ -67,7 +67,7 @@ Result JSON::
                 "same_final_url", "error"}
       },
       "findings": [{"id", "severity", "message", "evidence"}],
-      "summary": {"critical", "high", "medium", "low", "info"}
+      "summary": {"Critical", "High", "Medium", "Low", "Info", "total"}
     }
 
 A refused or malformed target prints ``{"url": ..., "error": ...}`` instead.
@@ -1005,8 +1005,10 @@ def build_findings(tls: dict, headers: dict, redirects: dict) -> list[dict]:
 
 
 def summarize(findings: list[dict]) -> dict:
-    return {level.lower(): sum(1 for f in findings if f["severity"] == level)
-            for level in SEVERITIES}
+    """Count per severity, keyed by the severity as findings spell it (as page_checks.py does)."""
+    counts = {level: sum(1 for f in findings if f["severity"] == level) for level in SEVERITIES}
+    counts["total"] = len(findings)
+    return counts
 
 
 # ---------------------------------------------------------------------------

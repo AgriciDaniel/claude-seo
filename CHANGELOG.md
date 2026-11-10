@@ -38,7 +38,9 @@ is read now, so it shows one schema change. Re-baseline after updating.
   reports, per file and in total: URL counts, lastmod quality (missing,
   oldest, newest, share of identical dates), entries on another host,
   duplicates, and the 50,000 URL and 50 MiB limits. `--max-children`
-  (default 50) and `--sample` (default 20) bound the run.
+  (default 50) and `--sample` (default 20) bound the run. `sample_urls` are
+  exact and can be status-checked; URLs carrying a token or session
+  parameter are counted and shown redacted, never sampled.
 - **`js_gap` in `render_page.py`.** Words, links, schema types, H1, title,
   canonical and meta robots, served versus rendered, with plain-language
   reasons. A title, canonical or robots value that changes after JavaScript
@@ -55,11 +57,17 @@ is read now, so it shows one schema change. Re-baseline after updating.
 - **Fetch timing.** `fetch_page.py` reports `ttfb_ms`, `response_time_ms` and
   `fetch_duration_ms` (measured from your machine, not Core Web Vitals) and
   stops at `--max-time` (default twice `--timeout`, at least 60 seconds).
+  `content_bytes` is the size of the body as served, before character
+  decoding.
 - **IPv6-only hosts can be audited.** The safety layer resolves A and AAAA,
   checks every record, and pins IPv6 only when a host has no A record.
-- `capture_screenshot.py --full` scrolls through the page first (bounded) so
-  lazy images load; `--no-scroll` turns that off. New opt-in
-  `--hide-overlays` and `--json`.
+- `capture_screenshot.py --full` scrolls through the page first so lazy
+  images load; `--no-scroll` turns that off. Each page-side step has a
+  timeout enforced by the Playwright driver (9 seconds for the whole scroll);
+  a page that stops answering is reported as `scroll_timed_out` and the
+  picture is still attempted. This needs a Playwright that has
+  `Locator.wait_for_function` (1.65 has it); on an older one the scroll is
+  skipped and the output says so. New opt-in `--hide-overlays` and `--json`.
 
 ### Changed
 
@@ -74,7 +82,9 @@ is read now, so it shows one schema change. Re-baseline after updating.
 - Hosts that differ only by `www.` count as the same site when `parse_html.py`
   sorts links into internal and external.
 - A JSON-LD script type is matched case-insensitively and with parameters.
-- Paths that redirect to the same sitemap are listed once.
+- Paths that redirect to the same sitemap are listed once, and a malformed
+  `Sitemap:` line in robots.txt is recorded and skipped instead of ending the
+  run.
 - Google API calls honour `HTTPS_PROXY` (#339, PySocks) and the GA4 client
   uses the REST transport (#340), both by @lciolecki. GA4 errors are
   classified by their status, not by digits in the message.
@@ -88,6 +98,13 @@ is read now, so it shows one schema change. Re-baseline after updating.
 - On a DNS64 network a synthesized `64:ff9b::/96` AAAA record is ignored when
   the host also has an A record. The pin is then IPv4 and that address is
   never dialled, so IPv4-only sites keep resolving.
+- **Hostile pages cannot stall or crash a check.** An independent review of
+  this release found inputs that made parsing take minutes: a robots.txt rule
+  made of many `*`, an llms.txt of blank lines, a long run of punctuation in
+  link text, a crafted `Link` header. All are parsed in linear time now, and
+  each has a test with a megabyte-sized input. A JSON-LD block nested deeper
+  than 64 levels is counted as invalid instead of raising, and page-controlled
+  names in `js_gap` are cut at 80 characters.
 
 ## [2.5.1] - 2026-11-10
 
