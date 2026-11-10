@@ -56,6 +56,7 @@ Credit is preserved when a patch was superseded by another fix for the same bug.
 | [@connabyss](https://github.com/connabyss) | [#392](https://github.com/AgriciDaniel/claude-seo/pull/392) | Strict `--release` value check | Merged |
 | [@canermoral5-sys](https://github.com/canermoral5-sys) | [#362](https://github.com/AgriciDaniel/claude-seo/pull/362) | `seo-geo` wording: correlations stated as correlations | Merged |
 | [@agammann](https://github.com/agammann) | [#385](https://github.com/AgriciDaniel/claude-seo/pull/385), [#387](https://github.com/AgriciDaniel/claude-seo/pull/387) | Review findings on the base URL and property selection changes | Both findings fixed in the follow-up commits |
+| [@joachimBrindeau](https://github.com/joachimBrindeau) | [#318](https://github.com/AgriciDaniel/claude-seo/pull/318) | Port-bound DNS pin for local targets; stricter local target parser | The port-bound pin was reimplemented in the security follow-up commit; the rest of the PR is still under review |
 | [@hydraxman](https://github.com/hydraxman) | [#372](https://github.com/AgriciDaniel/claude-seo/pull/372) | Review finding on list-valued price specification types | Fixed in the follow-up commit |
 
 ### 2026 maintenance review cycle

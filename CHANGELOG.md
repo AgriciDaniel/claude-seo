@@ -29,7 +29,8 @@ updating.
   request.** The DNS pin on a non-public address answered for every port, so a
   redirect from the allowed dev server could reach another service on that
   host. It now answers only for the validated port, or another port the
-  allowlist names. Public hosts are unchanged.
+  allowlist names. Public hosts are unchanged. The port-bound pin was first
+  proposed by @joachimBrindeau in #318.
 - **Google property selection is bound to the audited domain** (#387 by
   @dajiaohuang, issue #337 by @tomkor). `gsc_query.py`, `gsc_inspect.py` and
   `ga4_report.py` take `--domain` and refuse to use another site's property.
