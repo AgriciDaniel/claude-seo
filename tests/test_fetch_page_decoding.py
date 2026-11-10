@@ -38,6 +38,33 @@ def test_meta_charset_is_used_when_header_has_no_charset() -> None:
     assert "Smart quote: “" in fetch_page._decode_response_content(response)
 
 
+def test_og_image_query_does_not_override_a_later_charset_attribute() -> None:
+    """charset= inside another attribute is not the document encoding.
+
+    HTML's prescan honors a charset attribute, or a content attribute only
+    when http-equiv is content-type. An og:image query must not win over a
+    later <meta charset="utf-8">, or the canonical URL is decoded wrong.
+    """
+    import parse_html
+
+    html = (
+        '<meta property="og:image" content="https://cdn.example/a.jpg?charset=iso-8859-1">'
+        '<meta charset="utf-8">'
+        '<link rel="canonical" href="https://example.com/café">'
+    )
+    decoded = fetch_page._decode_response_content(FakeResponse(html.encode("utf-8"), "text/html"))
+    assert parse_html.parse_html(decoded)["canonical"] == "https://example.com/café"
+
+
+def test_charset_attribute_wins_when_it_is_the_encoding() -> None:
+    html = (
+        '<meta property="og:image" content="https://cdn.example/a.jpg?charset=utf-8">'
+        '<meta charset="windows-1252"><p>Smart quote: “</p>'
+    ).encode("windows-1252")
+    decoded = fetch_page._decode_response_content(FakeResponse(html, "text/html"))
+    assert "Smart quote: “" in decoded
+
+
 def test_invalid_bytes_are_replaced_not_dropped() -> None:
     response = FakeResponse(b"valid utf8 then invalid: \x8f")
     decoded = fetch_page._decode_response_content(response)

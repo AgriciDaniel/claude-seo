@@ -782,8 +782,10 @@ DEFAULT_REQUEST_HEADERS = {
 
 
 _CONTENT_TYPE_CHARSET_RE = re.compile(r"charset\s*=\s*['\"]?([^;,'\"\s>]+)", re.IGNORECASE)
-_META_CHARSET_RE = re.compile(
-    r"<meta[^>]+charset\s*=\s*['\"]?([^;,'\"\s/>]+)",
+# HTML's encoding prescan reads attributes, not the substring "charset=".
+_META_TAG_RE = re.compile(r"<meta\b([^>]*)>", re.IGNORECASE)
+_META_ATTR_RE = re.compile(
+    r"([^\s=/>]+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s\"'=<>`/]+))",
     re.IGNORECASE,
 )
 _BOMS = (
@@ -806,9 +808,44 @@ def _extract_charset_from_content_type(content_type: str) -> str | None:
 
 
 def _extract_meta_charset(raw: bytes) -> str | None:
+    """Return a meta encoding, using HTML's prescan rules.
+
+    A ``charset`` attribute wins. A ``content`` attribute counts only when
+    the same tag's ``http-equiv`` is ``content-type``. ``charset=`` inside
+    another attribute, such as an og:image URL, is not the document encoding.
+    """
     head = raw[:4096].decode("ascii", errors="ignore")
-    match = _META_CHARSET_RE.search(head)
-    return match.group(1).strip() if match else None
+    for match in _META_TAG_RE.finditer(head):
+        charset = None
+        got_pragma = False
+        need_pragma = None
+        seen: set[str] = set()
+        for attr in _META_ATTR_RE.finditer(match.group(1)):
+            name = attr.group(1).lower()
+            if name in seen:
+                continue
+            seen.add(name)
+            value = attr.group(2)
+            if value is None:
+                value = attr.group(3)
+            if value is None:
+                value = attr.group(4) or ""
+            if name == "http-equiv" and value.lower() == "content-type":
+                got_pragma = True
+            elif name == "content":
+                extracted = _extract_charset_from_content_type(value)
+                if extracted and charset is None:
+                    charset = extracted
+                    need_pragma = True
+            elif name == "charset":
+                charset = value.strip()
+                need_pragma = False
+        if not charset or need_pragma is None:
+            continue
+        if need_pragma and not got_pragma:
+            continue
+        return charset.strip()
+    return None
 
 
 def decode_response_text(response) -> str:
