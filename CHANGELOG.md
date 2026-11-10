@@ -49,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap).
 - Recognize UTF-8 BOM XML sitemaps during format detection.
 - Preserve brackets around IPv6 hosts when normalizing drift baseline URLs.
+- Recognize the `none` robots directive as an indexing restriction in drift comparisons.
 
 ## [2.5.0] - 2026-10-22
 
