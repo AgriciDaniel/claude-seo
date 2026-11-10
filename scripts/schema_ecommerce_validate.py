@@ -100,6 +100,22 @@ def _all_types(payload) -> list[str]:
     return types
 
 
+def _as_dicts(value) -> list[dict]:
+    """JSON-LD repeats a property as either one object or a list of objects."""
+    if isinstance(value, dict):
+        return [value]
+    if isinstance(value, list):
+        return [item for item in value if isinstance(item, dict)]
+    return []
+
+
+def _has_loyalty_price(offer: dict) -> bool:
+    return any(
+        spec.get("@type") == "UnitPriceSpecification" and spec.get("validForMemberTier")
+        for spec in _as_dicts(offer.get("priceSpecification"))
+    )
+
+
 def _has_type(payload: dict, target_type: str) -> bool:
     kind = payload.get("@type")
     if isinstance(kind, str):
@@ -223,9 +239,7 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
 
         # 6. Loyalty / MemberProgram visibility (Medium).
         if not prod.get("hasMemberProgram") and not any(
-            o.get("priceSpecification", {}).get("@type") == "UnitPriceSpecification"
-            and o.get("priceSpecification", {}).get("validForMemberTier")
-            for o in offers_list if isinstance(o, dict)
+            _has_loyalty_price(o) for o in offers_list if isinstance(o, dict)
         ):
             findings.append({
                 "severity": "Medium",

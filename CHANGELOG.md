@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Merchant validation accepts a list of `priceSpecification` objects.**
+  Schema.org allows one price specification or several. A list crashed
+  `schema_ecommerce_validate.py` with `AttributeError` before any finding
+  was returned. Loyalty-tier detection now checks each object in the list.
+
 ## [2.5.0] - 2026-10-22
 
 Security and accuracy fixes from a full audit, and Claude Desktop installs again.

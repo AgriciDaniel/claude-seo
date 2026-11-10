@@ -188,6 +188,32 @@ def test_validate_emits_info_when_no_product_group() -> None:
     assert any("ProductGroup" in f["message"] for f in info)
 
 
+def test_validate_accepts_a_list_of_price_specifications() -> None:
+    """Offer.priceSpecification may be one object or a list. A list must not raise."""
+    product = _minimal_product()
+    product["offers"][0]["priceSpecification"] = [
+        {
+            "@type": "UnitPriceSpecification",
+            "price": 79.99,
+            "priceCurrency": "USD",
+            "validForMemberTier": {"@type": "MemberProgramTier", "name": "Gold"},
+        }
+    ]
+    result = ev.validate(product)
+    rules = [f["rule"] for f in result["findings"]]
+    assert "missing-member-program" not in rules
+
+
+def test_validate_price_specification_list_without_loyalty_is_reported() -> None:
+    product = _minimal_product()
+    product["offers"][0]["priceSpecification"] = [
+        {"@type": "UnitPriceSpecification", "price": 99.99, "priceCurrency": "USD"}
+    ]
+    result = ev.validate(product)
+    rules = [f["rule"] for f in result["findings"]]
+    assert "missing-member-program" in rules
+
+
 def test_validate_finds_offers_when_offers_is_single_dict() -> None:
     product = _minimal_product()
     product["offers"] = product["offers"][0]  # single dict, not list
