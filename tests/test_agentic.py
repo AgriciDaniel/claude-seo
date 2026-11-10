@@ -174,6 +174,110 @@ def test_robots_5xx_is_a_p0_failure():
     assert checks[0]["status"] == "fail" and checks[0]["priority"] == "P0"
 
 
+def test_robots_429_is_inconclusive_not_all_allowed():
+    with patch.object(ac, "fetch", return_value=_rec(429, "", {"retry-after": "120"})):
+        checks, data = ac.audit_robots("https://example.com")
+    assert [c["id"] for c in checks] == ["robots-reachable"]
+    check = checks[0]
+    assert check["status"] == "warn" and check["priority"] == "P0"
+    assert check["evidence"] == {"status": 429, "inconclusive": True, "retry_after": "120"}
+    assert check["fix"].startswith("Inconclusive") and "not a missing file" in check["fix"]
+    assert "everything is allowed" not in check["fix"]
+    # Nothing was read, so no per-agent verdicts and no empty parse are reported.
+    assert data["inconclusive"] is True and "parsed" not in data and "agents" not in data
+
+
+@pytest.mark.parametrize("status", [401, 403, 404, 410])
+def test_other_4xx_robots_still_mean_no_robots_file(status):
+    with patch.object(ac, "fetch", return_value=_rec(status)):
+        checks, data = ac.audit_robots("https://example.com")
+    assert checks[0]["title"] == "robots.txt present" and checks[0]["status"] == "warn"
+    assert "everything is allowed" in checks[0]["fix"]
+    assert data["parsed"]["groups"] == [] and "inconclusive" not in data
+
+
+# RFC 9309 section 2.2.1 product tokens: case-insensitive, compared whole.
+
+
+@pytest.mark.parametrize(("value", "token"), [
+    ("GPTBot", "gptbot"),
+    ("gptbot", "gptbot"),
+    ("GPTBot/1.1", "gptbot"),          # version suffix is not part of the token
+    ("ClaudeBot*", "claudebot"),       # Google: googlebot* is equivalent to googlebot
+    ("GPTBot-Image", "gptbot-image"),  # "-" is a token character
+    ("Some_Bot 2.0", "some_bot"),
+    ("*", "*"),
+    (" * ", "*"),
+    ("*bot", ""),
+    ("008", ""),
+    ("", ""),
+])
+def test_product_token(value, token):
+    assert ac.product_token(value) == token
+
+
+def test_versioned_and_cased_user_agent_lines_select_the_named_group():
+    parsed = ac.parse_robots("User-agent: *\nAllow: /\n\n"
+                             "User-agent: GPTBot/1.1\nDisallow: /\n\n"
+                             "User-agent: cLaUdEbOt\nDisallow: /private\n")
+    gpt = ac.select_group(parsed, "GPTBot")
+    assert gpt["matched"] == "named" and not ac.is_allowed(gpt["rules"], "/")
+    claude = ac.select_group(parsed, "ClaudeBot")
+    assert claude["matched"] == "named" and claude["rules"] == [("disallow", "/private")]
+    assert ac.select_group(parsed, "PerplexityBot")["matched"] == "star"
+
+
+def test_trailing_star_in_a_user_agent_line_matches_the_bare_token():
+    parsed = ac.parse_robots("User-agent: *\nAllow: /\n\nUser-agent: ClaudeBot*\nDisallow: /\n")
+    claude = ac.select_group(parsed, "ClaudeBot")
+    assert claude["matched"] == "named" and not ac.is_allowed(claude["rules"], "/")
+    # It is not a wildcard: a longer token is a different product token.
+    assert ac.select_group(parsed, "ClaudeBot-Extra")["matched"] == "star"
+
+
+def test_a_token_that_is_a_prefix_of_another_bot_does_not_match():
+    parsed = ac.parse_robots("User-agent: *\nAllow: /\n\n"
+                             "User-agent: GPTBot-Image\nDisallow: /\n\n"
+                             "User-agent: Claude\nDisallow: /\n\n"
+                             "User-agent: OAI\nDisallow: /\n")
+    for token in ("GPTBot", "ClaudeBot", "Claude-User", "OAI-SearchBot"):
+        selected = ac.select_group(parsed, token)
+        assert selected["matched"] == "star" and ac.is_allowed(selected["rules"], "/"), token
+    assert ac.select_group(parsed, "gptbot-image")["matched"] == "named"
+
+
+def test_versioned_groups_merge_with_plain_ones():
+    parsed = ac.parse_robots("User-agent: GPTBot\nDisallow: /a\n\n"
+                             "User-agent: GPTBot/2.0\nDisallow: /b\n")
+    assert ac.select_group(parsed, "GPTBot")["rules"] == [("disallow", "/a"), ("disallow", "/b")]
+
+
+def test_audit_robots_uses_token_matching_and_lists_nonstandard_lines():
+    robots = ("User-agent: *\nContent-Signal: search=yes\nAllow: /\n\n"
+              "User-agent: OAI-SearchBot/1.3\nUser-agent: ClaudeBot*\nDisallow: /\n\n"
+              "User-agent: GPTBot-Image\nDisallow: /\n")
+    with patch.object(ac, "fetch", return_value=_rec(200, robots)):
+        checks, data = ac.audit_robots("https://example.com")
+    agents = {a["token"]: a for a in data["agents"]}
+    assert agents["OAI-SearchBot"]["group"] == "named" and not agents["OAI-SearchBot"]["root_allowed"]
+    assert agents["ClaudeBot"]["group"] == "named" and not agents["ClaudeBot"]["root_allowed"]
+    assert agents["GPTBot"]["group"] == "star" and agents["GPTBot"]["root_allowed"]
+    by_id = {c["id"]: c for c in checks}
+    evidence = by_id["robots-ai-groups"]["evidence"]
+    assert evidence["search_crawlers_blocked_at_root"] == ["OAI-SearchBot"]
+    assert evidence["nonstandard_user_agent_lines"] == ["OAI-SearchBot/1.3", "ClaudeBot*"]
+    assert data["nonstandard_user_agent_lines"] == ["OAI-SearchBot/1.3", "ClaudeBot*"]
+    # The named groups carry no Content-Signal while the star group does.
+    assert set(by_id["content-signal"]["evidence"]["named_groups_without_signal"]) == {
+        "OAI-SearchBot", "ClaudeBot"}
+
+
+def test_plain_robots_has_no_nonstandard_lines():
+    with patch.object(ac, "fetch", return_value=_rec(200, ROBOTS)):
+        checks, data = ac.audit_robots("https://example.com")
+    assert data["nonstandard_user_agent_lines"] == []
+
+
 # --------------------------------------------------------------------------- llms.txt
 
 
@@ -531,3 +635,12 @@ def test_content_signal_policy_equivalence_randomized() -> None:
         robots = rng.choice(["\n", "\r\n"]).join(lines) + "\n"
         draft = af.add_content_signal(robots, "search=yes")["robots_txt"]
         assert _policy(draft) == _policy(robots), robots
+
+
+def test_fix_robots_refuses_to_draft_from_nothing_on_429(monkeypatch):
+    """A rate-limited robots.txt is not a missing one: no blank-slate draft."""
+    monkeypatch.setattr(af, "fetch", lambda url: {"status": 429, "text": "", "error": None})
+    monkeypatch.setattr(sys, "argv", ["agentic_fix.py", "robots", "https://example.com/"])
+    with pytest.raises(SystemExit) as exc:
+        af.main()
+    assert "Could not read robots.txt" in str(exc.value)

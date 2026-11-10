@@ -351,11 +351,12 @@ def main() -> None:
             rec = fetch(f"{root.scheme}://{root.netloc}/robots.txt")
             if rec["status"] == 200:
                 text = rec["text"]
-            elif rec["status"] and 400 <= rec["status"] < 500:
+            elif rec["status"] and 400 <= rec["status"] < 500 and rec["status"] != 429:
                 text = ""  # 4xx: no robots.txt, so start a new one
             else:
-                # A 5xx, WAF block or network error is not "no file"; drafting from
-                # nothing here would propose replacing the real policy.
+                # A 5xx, a 429 (rate limited, which Google treats as a server
+                # error), a WAF block or a network error is not "no file";
+                # drafting from nothing here would propose replacing the real policy.
                 raise SystemExit(f"Could not read robots.txt ({rec['error'] or rec['status']}). "
                                  "Retry, or pass the current file with --file.")
         else:

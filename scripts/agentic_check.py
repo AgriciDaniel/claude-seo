@@ -7,9 +7,11 @@ so they can be verified without a browser:
 
 1. robots.txt groups for AI crawlers and user-triggered agents, evaluated with
    RFC 9309 group selection (a named group replaces ``*``; nothing inherits),
-   plus ``Content-Signal`` lines and the ``Agentmap:`` directive.
-2. ``/llms.txt`` against the Lighthouse ``llms-txt`` rules and the llmstxt.org
-   structure.
+   plus ``Content-Signal`` lines and the ``Agentmap:`` directive. User-agent
+   lines are matched by product token (case-insensitive, compared whole). A
+   429 on robots.txt is reported as inconclusive, not as "no robots.txt".
+2. ``/llms.txt`` against the Lighthouse ``llms-txt`` rules (the headline
+   verdict), plus line-level format notes against the llmstxt.org proposal.
 3. Markdown delivery: ``Accept: text/markdown`` negotiation (``Vary: Accept``),
    ``rel="alternate" type="text/markdown"`` links, and ``.md`` siblings.
 4. Agentic Resource Discovery: ``ai-catalog.json`` discovery in the same order
@@ -249,11 +251,51 @@ def parse_robots(text: str) -> dict:
     return {"groups": groups, **global_lines}
 
 
+_PRODUCT_TOKEN = re.compile(r"[A-Za-z_-]+")
+
+
+def product_token(value: str) -> str:
+    """Lowercased product token of one ``User-agent:`` value: ``*``, a name, or ``""``.
+
+    RFC 9309 section 2.2 allows only ``product-token = identifier / "*"`` with
+    ``identifier = 1*(%x2D / %x41-5A / %x5F / %x61-7A)`` (letters, "_", "-"), and
+    section 2.2.1 says "Crawlers MUST use case-insensitive matching to find the
+    group that matches the product token"
+    (https://www.rfc-editor.org/rfc/rfc9309.html, read 2026-11-10).
+
+    The RFC is silent on values outside that grammar, such as ``GPTBot/1.1`` or
+    ``ClaudeBot*``. This follows Google's documented reading: "All non-matching
+    text is ignored (for example, both googlebot/1.2 and googlebot* are
+    equivalent to googlebot)"
+    (https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt,
+    read 2026-11-10), which Google's open-source parser implements by keeping
+    the leading run of ``[a-zA-Z_-]``. Other crawlers may be stricter, so
+    ``audit_robots`` lists such lines as ``nonstandard_user_agent_lines``.
+
+    A value with no leading token character ("008", "*bot") gives ``""``. It
+    still starts a group, one that matches no crawler.
+    """
+    value = (value or "").strip()
+    if value == "*":
+        return "*"
+    match = _PRODUCT_TOKEN.match(value)
+    return match.group(0).lower() if match else ""
+
+
+def _group_names(group: dict, token_l: str) -> bool:
+    return any(product_token(agent) == token_l for agent in group["agents"])
+
+
 def select_group(parsed: dict, token: str) -> dict:
-    """RFC 9309: combine every group naming ``token``; else every ``*`` group."""
-    token_l = token.lower()
-    named = [g for g in parsed["groups"] if any(a.lower() == token_l for a in g["agents"])]
-    chosen = named or [g for g in parsed["groups"] if "*" in g["agents"]]
+    """RFC 9309: combine every group naming ``token``; else every ``*`` group.
+
+    Tokens are compared whole, so ``GPTBot`` does not select a group written
+    for ``GPTBot-Image`` (the RFC's examples merge groups "that match the same
+    product token exactly"). See ``product_token`` for versioned values.
+    """
+    token_l = token.strip().lower()
+    named = [g for g in parsed["groups"] if _group_names(g, token_l)]
+    chosen = named or [g for g in parsed["groups"] if _group_names(g, "*")]
     return {
         "matched": "named" if named else ("star" if chosen else "none"),
         "rules": [r for g in chosen for r in g["rules"]],
@@ -314,6 +356,30 @@ def audit_robots(root: str) -> tuple[list, dict]:
                              "RFC 9309", {"error": rec["error"]},
                              "Serve /robots.txt so agents can read your policy."))
         return checks, data
+    if rec["status"] == 429:
+        # RFC 9309 section 2.3.1.3 gives "status codes ... in the 400-499 range"
+        # as its example of an unavailable file and does not single out 429.
+        # Google does: "Google's crawlers treat all 4xx errors, except 429, as
+        # if a valid robots.txt file didn't exist"
+        # (https://developers.google.com/search/docs/crawling-indexing/robots/robots_txt)
+        # and "Google's crawlers treat the 429 status code as a signal that the
+        # server is overloaded, and it's considered a server error"
+        # (https://developers.google.com/search/docs/crawling-indexing/http-network-errors).
+        # Both read 2026-11-10. A rate-limited fetch also says nothing about the
+        # file's contents, so the result is neither "all allowed" nor "all
+        # disallowed": it is inconclusive.
+        data["inconclusive"] = True
+        retry_after = (rec.get("headers") or {}).get("retry-after")
+        checks.append(_check("robots-reachable", "robots.txt reachable", "P0", "warn",
+                             "RFC 9309; Google robots.txt documentation (429)",
+                             {"status": 429, "inconclusive": True,
+                              "retry_after": retry_after[:80] if retry_after else None},
+                             "Inconclusive: robots.txt answered 429 (rate limited), so its "
+                             "rules were not read. This is not a missing file. Google treats "
+                             "a 429 on robots.txt as a server error, not as 'no "
+                             "restrictions'. Rerun later, and make sure the server or WAF "
+                             "does not rate-limit /robots.txt for crawlers."))
+        return checks, data
     if rec["status"] >= 500:
         checks.append(_check("robots-reachable", "robots.txt reachable", "P0", "fail",
                              "RFC 9309", {"status": rec["status"]},
@@ -345,12 +411,20 @@ def audit_robots(root: str) -> tuple[list, dict]:
         })
     data["agents"] = per_agent
 
+    # Values outside the RFC 9309 product-token grammar (a version, a trailing
+    # "*", digits). They are matched leniently here; a stricter crawler may not.
+    nonstandard = list(dict.fromkeys(
+        agent[:80] for g in parsed["groups"] for agent in g["agents"]
+        if agent != "*" and not _PRODUCT_TOKEN.fullmatch(agent)))[:20]
+    data["nonstandard_user_agent_lines"] = nonstandard
+
     explicit = [a["token"] for a in per_agent if a["group"] == "named"]
     blocked_search = [a["token"] for a in per_agent if a["role"] == "search" and not a["root_allowed"]]
     checks.append(_check(
         "robots-ai-groups", "Deliberate robots.txt groups for AI user agents", "P0",
         "warn" if blocked_search else ("pass" if explicit else "info"), "RFC 9309",
-        {"named_groups": explicit, "search_crawlers_blocked_at_root": blocked_search},
+        {"named_groups": explicit, "search_crawlers_blocked_at_root": blocked_search,
+         "nonstandard_user_agent_lines": nonstandard},
         ("Blocking an AI search crawler removes the site from that engine's answers. "
          "Confirm this is intended." if blocked_search else
          None if explicit else
@@ -373,7 +447,7 @@ def audit_robots(root: str) -> tuple[list, dict]:
         signal_issues += parse_content_signal(value)["issues"]
     gap = [a["token"] for a in per_agent
            if a["group"] == "named" and not a["content_signal"]
-           and any(g["content_signal"] for g in parsed["groups"] if "*" in g["agents"])]
+           and any(g["content_signal"] for g in parsed["groups"] if _group_names(g, "*"))]
     if not all_signals and not parsed["orphan_content_signal"]:
         status, fix = "info", ("No Content-Signal line. Optional: add one (for example "
                                "'Content-Signal: search=yes, ai-input=yes, ai-train=no') "
@@ -400,8 +474,255 @@ def audit_robots(root: str) -> tuple[list, dict]:
 # --------------------------------------------------------------------------- llms.txt
 
 
-def evaluate_llms_txt(status: Optional[int], content: Optional[str]) -> dict:
-    """Mirror Lighthouse 13.5.0 ``llms-txt`` and add llmstxt.org structure notes."""
+# Line-level format notes, adapted from the WebObs llms.txt validator (same
+# author, MIT). Source for every rule: https://llmstxt.org/ ("The /llms.txt
+# file, v2", modified 2026-08-10, read 2026-11-10) and its reference parser
+# (AnswerDotAI/llms-txt, llms_txt/core.py), which reads a file list item as
+# ``-\s*\[title\]\(url\)`` plus an optional ``:\s*notes``.
+#
+# llmstxt.org describes itself as "A proposal to standardise on using an
+# /llms.txt file". It is a community proposal, not a ratified standard, so the
+# levels are relative to that text and nothing here is a ranking factor:
+#   error  the one part the proposal requires is missing ("An H1 with the name
+#          of the project or site. This is the only required section")
+#   warn   the line departs from the proposed format, so a parser may misread it
+#   info   an optional part, the proposal's writing guidance, or a claude-seo
+#          heuristic
+LLMS_FORMAT_BASIS = ("llmstxt.org community proposal (v2), not a ratified standard. "
+                     "Format hygiene only: no note is a ranking or citation factor.")
+LLMS_REVIEW_BYTES = 100 * 1024  # claude-seo review threshold, not a limit in the proposal
+LLMS_NOTES_PER_ID = 5
+LLMS_FORMAT_RULES = {
+    "missing-h1-title": ("error", "The file does not start with an H1 holding the project or "
+                         "site name (`# Name`). It is the only part the proposal requires."),
+    "multiple-h1": ("warn", "More than one H1. The proposed format has one H1 title; a second "
+                    "one is outside the format."),
+    "summary-not-after-title": ("warn", "A blockquote appears later in the file, not directly "
+                                "after the H1, so parsers do not read it as the summary."),
+    "heading-in-details": ("warn", "A heading before the first H2 section. The proposal allows "
+                           "any Markdown there except headings."),
+    "malformed-link": ("warn", "This item looks meant as a link but is not written as "
+                       "`[name](url)`, so a parser cannot read the address."),
+    "bullet-not-dash": ("warn", "The item uses `*`, `+` or a number. The proposal's examples "
+                        "use `-`, and the reference parser only matches `-` items."),
+    "notes-without-colon": ("warn", "Text follows the link without the `:` separator, so it is "
+                            "not read as the link's notes."),
+    "invalid-url": ("warn", "The link is not an http or https address."),
+    "no-summary-blockquote": ("info", "No blockquote summary (`> One sentence about the site`) "
+                              "after the H1. The proposal lists it; only the H1 is required."),
+    "item-without-link": ("info", "A list item without a link inside an H2 section. The "
+                          "proposal's file list items carry a `[name](url)` link; general "
+                          "notes belong before the first H2."),
+    "link-not-at-start": ("info", "The link sits inside a sentence. The reference parser only "
+                          "reads items that start with the link."),
+    "empty-section": ("info", "An H2 section without links. In the proposal, H2 sections hold "
+                      "file lists; general text belongs before the first H2."),
+    "duplicate-link": ("info", "The same address is listed more than once."),
+    "relative-url": ("info", "A relative link. It resolves only against the file's own "
+                     "address; the proposal's examples use full URLs."),
+    "optional-heading-variant": ("info", "This looks meant as the Optional section, but the "
+                                 "proposal names it exactly `## Optional`."),
+    "no-link-list": ("info", "No file lists. The proposal allows this (zero or more H2 "
+                     "sections), but links are how agents reach the detail."),
+    "links-without-notes": ("info", "Most links have no notes. The proposal's guidance: 'When "
+                            "linking to resources, include brief, informative descriptions.'"),
+    "oversize": ("info", "Over 100 KB (a claude-seo review threshold). The proposal says the "
+                 "file 'stays small enough to fit in context', with the detail behind links."),
+    "content-type": ("info", "Not served as text/plain or text/markdown. The proposal names no "
+                     "content type; this is a claude-seo heuristic."),
+}
+_LLMS_ITEM = re.compile(r"^-\s*\[(?P<title>[^\]]+)\]\((?P<url><[^>\n]+>|(?:[^()\s<]|\([^()\s]*\))+)"
+                        r"(?:\s+\"[^\"]*\")?\)(?P<rest>.*)$")
+_LLMS_BULLET = re.compile(r"^([-*+]|\d{1,3}[.)])\s+")
+_LLMS_FENCE = re.compile(r"^(```|~~~)")
+_LLMS_ATX = re.compile(r"(#{1,6})(?=\s|$)")
+
+
+def _llms_heading(stripped: str) -> Optional[tuple]:
+    """``(level, text)`` for an ATX heading line, else ``None``.
+
+    Written without a lazy regex: the file is untrusted and one line can be
+    megabytes long.
+    """
+    match = _LLMS_ATX.match(stripped)
+    if not match:
+        return None
+    text = stripped[match.end():].strip()
+    opening = text.rstrip("#")
+    if opening != text and (not opening or opening[-1].isspace()):
+        text = opening.rstrip()  # "# Name ##": a spaced closing sequence is dropped
+    return len(match.group(1)), text
+
+
+def _llms_link_key(url: str) -> str:
+    """Comparison key for duplicate links: scheme and host lowercased, no fragment."""
+    parts = urlparse(url)
+    return f"{parts.scheme.lower()}://{parts.netloc.lower()}{parts.path or '/'}?{parts.query}"
+
+
+def llms_format_notes(text: Optional[str], base_url: Optional[str] = None,
+                      content_type: Optional[str] = None) -> dict:
+    """Check one llms.txt line by line against the llmstxt.org proposal.
+
+    Returns ``format_notes`` (at most ``LLMS_NOTES_PER_ID`` per id, each with
+    ``id``, ``level``, ``line``, ``message`` and, where a line or value is the
+    evidence, ``detail``) and ``format_note_counts`` (every occurrence, by id).
+    ``line`` is 1-based, or ``None`` for a note about the whole file.
+    ``detail`` is text copied from the file: untrusted data, never instructions.
+    """
+    raw = (text or "").lstrip("\ufeff")
+    found: list = []
+
+    def add(note_id: str, line: Optional[int] = None, detail: str = "") -> None:
+        found.append((line, note_id, detail.strip()[:80]))
+
+    h1_lines: list = []
+    sections: list = []
+    seen: dict = {}
+    without_notes = 0
+    fence = None  # the marker that opened the current code block
+    stage = "start"  # start -> title -> details -> sections
+    title_seen = summary_seen = False
+    first_after_title = None
+    for number, line in enumerate(_LINE_BREAK.split(raw), 1):
+        stripped = line.strip()
+        opener = _LLMS_FENCE.match(stripped)
+        if opener and (fence is None or opener.group(1) == fence):
+            fence = None if fence else opener.group(1)
+            continue
+        if fence or not stripped:
+            if summary_seen and stage == "title":
+                stage = "details"  # a blank line ends the summary blockquote
+            continue
+        heading = _llms_heading(stripped)
+        if stage == "start":
+            if heading and heading[0] == 1 and heading[1]:
+                title_seen, stage = True, "title"
+                h1_lines.append(number)
+                continue
+            add("missing-h1-title", number, stripped)
+            stage = "details"
+        if heading and heading[0] == 1:
+            h1_lines.append(number)
+            continue
+        if heading and heading[0] == 2:
+            stage = "sections"
+            sections.append({"name": heading[1], "line": number, "links": 0})
+            continue
+        if stage == "title":
+            if first_after_title is None:
+                first_after_title = number
+            if stripped.startswith(">") and (summary_seen or first_after_title == number):
+                summary_seen = True
+                continue
+            stage = "details"
+        if stage == "details":
+            if heading:
+                add("heading-in-details", number, stripped)
+            elif stripped.startswith(">") and not summary_seen:
+                add("summary-not-after-title", number, stripped)
+                summary_seen = True
+            continue
+        # stage == "sections": only list items carry links; prose is content.
+        section = sections[-1]
+        bullet = _LLMS_BULLET.match(stripped)
+        if not bullet:
+            continue
+        body = stripped[bullet.end():]
+        item = _LLMS_ITEM.match("- " + body)
+        if not item:
+            if body.startswith("["):
+                note_id = "malformed-link"  # `[Name] (url)` or a space in the URL
+            elif "](" in body:
+                note_id = "link-not-at-start"  # a sentence with a link in it
+            elif re.search(r"https?://", body):
+                note_id = "malformed-link"  # a bare address, not written as a link
+            else:
+                note_id = "item-without-link"
+            add(note_id, number, stripped)
+            continue
+        if bullet.group(1) != "-":
+            add("bullet-not-dash", number, stripped)
+        rest = item.group("rest").strip()
+        if rest and not rest.startswith(":"):
+            add("notes-without-colon", number, stripped)
+        href = item.group("url").strip()
+        if href.startswith("<") and href.endswith(">"):
+            href = href[1:-1].strip()
+        try:
+            scheme = urlparse(href).scheme
+            absolute = href if scheme else (urljoin(base_url, href) if base_url else "")
+            key = _llms_link_key(absolute) if absolute else ""
+        except ValueError:  # for example an unclosed IPv6 bracket
+            scheme, key = "invalid", ""
+        if scheme and scheme not in ("http", "https"):
+            add("invalid-url", number, href)
+            continue
+        if not scheme:
+            add("relative-url", number, href)
+        section["links"] += 1
+        without_notes += not rest.lstrip(":").strip()
+        if key and key in seen:
+            add("duplicate-link", number, f"repeats line {seen[key]}: {href}")
+        elif key:
+            seen[key] = number
+
+    if stage == "start":
+        add("missing-h1-title")  # empty file, or nothing outside a code block
+    elif title_seen and not summary_seen:
+        add("no-summary-blockquote", h1_lines[0])
+    if len(h1_lines) > 1:
+        add("multiple-h1", h1_lines[1], "H1 on lines " + ", ".join(map(str, h1_lines[:5])))
+    for section in sections:
+        if not section["links"]:
+            add("empty-section", section["line"], "## " + section["name"])
+        if section["name"] != "Optional" and re.match(r"optional\b", section["name"], re.I):
+            add("optional-heading-variant", section["line"], "## " + section["name"])
+    total_links = sum(section["links"] for section in sections)
+    if not total_links:
+        add("no-link-list")
+    elif without_notes > total_links / 2:
+        add("links-without-notes", None, f"{without_notes} of {total_links} links")
+    size = len(raw.encode("utf-8", errors="replace"))
+    if size > LLMS_REVIEW_BYTES:
+        add("oversize", None, f"{size // 1024} KB")
+    kind = (content_type or "").split(";")[0].strip().lower()
+    if kind and kind not in ("text/plain", "text/markdown", "text/x-markdown"):
+        add("content-type", None, kind)
+
+    found.sort(key=lambda note: (note[0] is None, note[0] or 0, note[1]))
+    counts: dict = {}
+    notes = []
+    for line, note_id, detail in found:
+        counts[note_id] = counts.get(note_id, 0) + 1
+        if counts[note_id] > LLMS_NOTES_PER_ID:
+            continue  # a long file can repeat one pattern hundreds of times
+        level, message = LLMS_FORMAT_RULES[note_id]
+        note = {"id": note_id, "level": level, "line": line, "message": message}
+        if detail:
+            note["detail"] = detail
+        notes.append(note)
+    return {"format_notes": notes, "format_note_counts": counts}
+
+
+def evaluate_llms_txt(status: Optional[int], content: Optional[str], *,
+                      base_url: Optional[str] = None,
+                      content_type: Optional[str] = None) -> dict:
+    """Mirror Lighthouse 13.5.0 ``llms-txt`` and add llmstxt.org structure notes.
+
+    ``lighthouse``, ``errors`` and ``notes`` are the headline verdict and are
+    not affected by ``format_notes``, the line-level list from
+    ``llms_format_notes``. That list is empty when there is no file to read.
+    """
+    result = _lighthouse_llms_txt(status, content)
+    served_html = any("soft 404" in note for note in result["notes"])
+    has_file = status is not None and status < 400 and not served_html
+    fmt = (llms_format_notes(content, base_url, content_type) if has_file
+           else {"format_notes": [], "format_note_counts": {}})
+    return {**result, **fmt, "format_basis": LLMS_FORMAT_BASIS}
+
+
+def _lighthouse_llms_txt(status: Optional[int], content: Optional[str]) -> dict:
     if status is None:
         return {"lighthouse": "fail", "errors": ["fetch failed"], "notes": []}
     if status >= 500:
@@ -431,7 +752,9 @@ def evaluate_llms_txt(status: Optional[int], content: Optional[str]) -> dict:
 
 def audit_llms(root: str) -> tuple[list, dict]:
     rec = fetch(root + "/llms.txt")
-    result = evaluate_llms_txt(rec["status"], rec["text"] if rec["status"] else None)
+    result = evaluate_llms_txt(rec["status"], rec["text"] if rec["status"] else None,
+                               base_url=rec.get("final_url") or root + "/llms.txt",
+                               content_type=_ctype(rec))
     full = fetch(root + "/llms-full.txt")
     data = {"status": rec["status"], "content_type": _ctype(rec), "bytes": len(rec["text"]),
             "llms_full_status": full["status"], **result}
@@ -894,6 +1217,10 @@ def _print_text(report: dict) -> None:
         print(f"  {c['priority']} [{c['status']:>4}] {c['title']}")
         if c.get("fix") and c["status"] in ("fail", "warn"):
             print(f"      -> {c['fix']}")
+        format_notes = sum((c["evidence"].get("format_note_counts") or {}).values())
+        if c["id"] == "llms-txt" and format_notes:
+            print(f"      {format_notes} format note(s) against the llmstxt.org proposal "
+                  "(format hygiene, not a ranking factor); see --json")
     print(f"Summary: {json.dumps(report['summary'])}")
 
 

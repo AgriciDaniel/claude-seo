@@ -142,6 +142,9 @@ Drafts go to stdout for review; nothing is deployed and no file is overwritten.
 - Never claim a named consumer agent requests Markdown or reads llms.txt.
 - Never present Google-Extended, Content-Signal or llms.txt as affecting
   Google Search.
+- Report llms.txt `format_notes` (line-level, in the `llms-txt` evidence) as
+  format hygiene against a community proposal, below the Lighthouse verdict.
+  See `references/discovery-and-markdown.md`.
 - State the Lighthouse version and test date with every fraction; WebMCP
   audits depend on the testing browser.
 - For any vendor fact, use `references/vendor-matrix.md` and keep its source
@@ -188,5 +191,6 @@ version changes, and the `CHECKED_ON` constant in `agentic_check.py` together.
 | Static WebMCP count differs from Lighthouse | `registerTool_call_sites` counts call sites, not tools. Report the Lighthouse `webmcp-registered-tools` list as the tool count. |
 | No agentic-browsing category in a saved report | The report predates Lighthouse 13.2; rerun with a current version. |
 | WebMCP audits N/A | The testing browser lacked WebMCP support, or the page registers nothing. Not a defect. |
+| robots.txt answers 429 (`robots-reachable` evidence `inconclusive: true`) | The rules were not read. Report robots.txt as not tested, never as "no robots.txt" or "all allowed", and rerun later. |
 | Site blocks the audit fetcher | Report the status and headers; do not retry with spoofed agent user agents unless step 4's authorization applies. |
 | URL blocked by url_safety | Explain the SSRF guard; for a host the user controls, see `CLAUDE_SEO_LOCAL_TARGETS`. |

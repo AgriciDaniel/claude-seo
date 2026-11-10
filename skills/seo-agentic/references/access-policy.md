@@ -41,8 +41,17 @@ the `*` group, and no normative text says it escapes group selection. When a
 site has named groups, repeat the line inside each one.
 `agentic_fix.py robots` does exactly that, and never touches Allow/Disallow.
 
+Tokens match case-insensitively and are compared whole (RFC 9309 section
+2.2.1): `GPTBot` does not select a `GPTBot-Image` group. `GPTBot/1.1` or
+`ClaudeBot*` is outside the RFC's token grammar (letters, `_`, `-`). Google
+documents that it ignores the extra text, and `agentic_check.py` does the
+same and lists such lines as `nonstandard_user_agent_lines`. Recommend the
+bare token, because other crawlers may be stricter (read 2026-11-10).
+
 A 5xx on robots.txt tells compliant crawlers to treat the site as fully
-disallowed. A 4xx means "no restrictions".
+disallowed. A 4xx means "no restrictions", except 429: RFC 9309 does not
+single it out, but Google treats it as a server error, not as a missing file.
+`agentic_check.py` then reports `robots-reachable` as inconclusive.
 
 ## Content-Signal
 
