@@ -87,6 +87,8 @@ MAX_PAGE_BYTES = _MAX_PAGE_BYTES
 
 # Timing keys of a raw fetch, in the order they are documented.
 _TIMING_KEYS = ("ttfb_ms", "response_time_ms", "fetch_duration_ms")
+# Keys only a raw fetch fills in; a rendered result carries them as null.
+_RAW_ONLY_KEYS = (*_TIMING_KEYS, "content_bytes")
 
 
 def _default_max_time(timeout: float) -> float:
@@ -140,8 +142,12 @@ def fetch_page(
 
     Returns:
         Dictionary with url, status_code, content, headers, redirect_chain,
-        redirect_details, too_large, error, and three timings in
-        milliseconds, each None when it was not reached:
+        redirect_details, too_large, error, content_bytes (the size of
+        the body read, in bytes after decompression and before character
+        decoding, so a windows-1251 page is not counted at its UTF-8 size;
+        the part read when the body was cut short; None when no body was
+        read), and three timings in milliseconds, each None when it was not
+        reached:
 
         - ``ttfb_ms``: time to first byte of the final response, from
           sending that request (a new connection and its TLS handshake
@@ -172,6 +178,7 @@ def fetch_page(
         "redirect_details": [],
         "too_large": False,
         "error": None,
+        "content_bytes": None,
         "ttfb_ms": None,
         "response_time_ms": None,
         "fetch_duration_ms": None,
@@ -228,6 +235,7 @@ def fetch_page(
         result["url"] = response.url
         result["status_code"] = response.status_code
         result["content"] = decode_body(raw, response.headers.get("Content-Type", ""))
+        result["content_bytes"] = len(raw)
         result["headers"] = dict(response.headers)
 
         if response.history:
@@ -307,7 +315,7 @@ def _as_render_result(result: dict, *, mode_used: str) -> dict:
         "mode_used": mode_used,
         "too_large": bool(result.get("too_large")),
         "error": result.get("error"),
-        **{key: result.get(key) for key in _TIMING_KEYS},
+        **{key: result.get(key) for key in _RAW_ONLY_KEYS},
     }
 
 
@@ -320,9 +328,9 @@ def _emit_json(result: dict, output: Optional[str], *, max_text: int = 0) -> Non
     """
     from render_page import _json_summary
 
-    # A rendered result reports render_ms, not the raw-fetch timings; they
-    # are null there so both paths keep one key set.
-    for key in _TIMING_KEYS:
+    # A rendered result reports render_ms, not the raw-fetch timings or
+    # body size; those are null there so both paths keep one key set.
+    for key in _RAW_ONLY_KEYS:
         result.setdefault(key, None)
 
     output_written = False

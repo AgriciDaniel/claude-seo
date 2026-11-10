@@ -33,6 +33,8 @@ import url_safety  # noqa: E402
 DRIP_BYTES = 400
 DRIP_INTERVAL = 0.02  # the whole drip takes about 8 seconds if nothing stops it
 TIMING_KEYS = ("ttfb_ms", "response_time_ms", "fetch_duration_ms")
+CYRILLIC_TEXT = "<html><title>" + "Привет, мир. " * 40 + "</title></html>"
+CYRILLIC_BYTES = CYRILLIC_TEXT.encode("windows-1251")
 
 
 class _Handler(http.server.BaseHTTPRequestHandler):
@@ -48,6 +50,19 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         elif self.path == "/slow-redirect":
             time.sleep(0.2)
             self._headers(302, {"Location": "/slow-final", "Content-Length": "0"})
+        elif self.path == "/moved":
+            self._headers(302, {"Location": "/plain", "Content-Length": "15"})
+            self.wfile.write(b"moved-body-here")
+        elif self.path == "/not-modified":
+            self._headers(304, {})
+        elif self.path == "/cyrillic":
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=windows-1251")
+            self.send_header("Content-Length", str(len(CYRILLIC_BYTES)))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            self.close_connection = True
+            self.wfile.write(CYRILLIC_BYTES)
         elif self.path == "/slow-final":
             time.sleep(0.1)
             self._headers(200, {"Content-Length": "5"})
@@ -56,6 +71,9 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         else:
             self._headers(200, {"Content-Length": "5"})
             self.wfile.write(b"plain")
+
+    def do_HEAD(self):  # noqa: N802 (http.server API)
+        self._headers(200, {"Content-Length": "5"})
 
     def _headers(self, status: int, headers: dict) -> None:
         self.send_response(status)
@@ -148,6 +166,100 @@ def test_timing_fields_separate_the_final_request_from_the_redirect_hops(server)
     assert result["response_time_ms"] >= result["ttfb_ms"] + 140
     # Every hop: the 0.2 s redirect is in this number and in no other.
     assert result["fetch_duration_ms"] >= result["response_time_ms"] + 190
+
+
+# ---------------------------------------------------------------------------
+# A body that was already read before the deadline reader sees the response
+# ---------------------------------------------------------------------------
+
+
+def test_unfollowed_redirect_keeps_its_body(server):
+    """The redirect hook reads a 3xx body into the response and closes the
+    socket. --no-redirects must still return that body, as it did before the
+    deadline reader replaced read_bounded here."""
+    result = fetch_page.fetch_page(f"{server}/moved", timeout=5, follow_redirects=False)
+    assert result["error"] is None
+    assert result["status_code"] == 302
+    assert result["headers"]["Location"] == "/plain"
+    assert result["content"] == "moved-body-here"
+    assert result["content_bytes"] == 15
+
+
+@pytest.mark.parametrize(
+    "method,path,kwargs,expected",
+    [
+        # 3xx: the redirect hook has consumed and closed the stream.
+        ("get", "/moved", {"allow_redirects": False, "stream": True}, b"moved-body-here"),
+        ("get", "/moved", {"allow_redirects": False, "stream": False}, b"moved-body-here"),
+        # stream=False: requests has read the body itself.
+        ("get", "/plain", {"stream": False}, b"plain"),
+        ("get", "/plain", {"stream": True}, b"plain"),
+        # No body at all: 304 and HEAD, streamed or not.
+        ("get", "/not-modified", {"stream": True}, b""),
+        ("get", "/not-modified", {"stream": False}, b""),
+        ("head", "/plain", {"stream": True}, b""),
+        ("head", "/plain", {"stream": False}, b""),
+    ],
+)
+def test_deadline_reader_returns_what_read_bounded_returns(server, method, path, kwargs, expected):
+    def fetch(reader):
+        with url_safety.safe_requests_session(f"{server}{path}") as session:
+            response = getattr(session, method)(f"{server}{path}", timeout=5, **kwargs)
+            try:
+                return reader(response)
+            finally:
+                response.close()
+
+    far = time.monotonic() + 30
+    assert fetch(lambda r: url_safety.read_bounded(r, 1000)) == (expected, False)
+    assert fetch(lambda r: url_safety.read_bounded_until(r, 1000, far)) == (expected, False, False)
+
+
+def test_already_read_body_still_honours_the_cap_and_the_deadline(server):
+    with url_safety.safe_requests_session(f"{server}/moved") as session:
+        response = session.get(f"{server}/moved", timeout=5, allow_redirects=False, stream=True)
+        assert url_safety.read_bounded_until(response, 5, time.monotonic() + 30) == (b"", True, False)
+        assert url_safety.read_bounded_until(response, 1000, time.monotonic() - 1) == (b"", False, True)
+
+
+# ---------------------------------------------------------------------------
+# content_bytes: the size of the body as bytes, not of the decoded text
+# ---------------------------------------------------------------------------
+
+
+def test_content_bytes_counts_the_body_not_its_utf8_re_encoding(server):
+    """A windows-1251 page is one byte per Cyrillic letter. Measuring the
+    decoded text as UTF-8 nearly doubles it."""
+    result = fetch_page.fetch_page(f"{server}/cyrillic", timeout=5)
+    assert result["error"] is None
+    assert result["content"] == CYRILLIC_TEXT
+    assert result["content_bytes"] == len(CYRILLIC_BYTES)
+    assert len(result["content"].encode("utf-8")) > 1.5 * result["content_bytes"]
+
+
+def test_content_bytes_is_counted_after_decompression(monkeypatch):
+    body = CYRILLIC_BYTES * 20
+    page = _streamed_response(body, gzipped=True, headers={"Content-Type": "text/html; charset=windows-1251"})
+    result = _patched_fetch(monkeypatch, page)
+    assert result["content"] == CYRILLIC_TEXT * 20
+    assert result["content_bytes"] == len(body)
+
+
+def test_content_bytes_counts_the_part_read_when_the_body_is_cut(monkeypatch):
+    capped = _patched_fetch(monkeypatch, _streamed_response(b"A" * 300_000), max_bytes=100_000)
+    assert capped["too_large"] is True
+    assert capped["content_bytes"] == len(capped["content"]) <= 100_000
+
+    unread = _patched_fetch(monkeypatch, _streamed_response(b"<html></html>"), max_time=1e-9)
+    assert "wall-clock deadline" in unread["error"]
+    assert unread["content_bytes"] == 0
+
+
+def test_content_bytes_is_none_when_no_body_was_read(monkeypatch):
+    monkeypatch.delenv("CLAUDE_SEO_LOCAL_TARGETS", raising=False)
+    assert fetch_page.fetch_page("http://127.0.0.1:1/")["content_bytes"] is None
+    stalled = _streamed_response(b"", fp=_TimingOutBody())
+    assert _patched_fetch(monkeypatch, stalled)["content_bytes"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -364,6 +476,7 @@ _RAW = {
     "ttfb_ms": 120,
     "response_time_ms": 340,
     "fetch_duration_ms": 910,
+    "content_bytes": 10,
 }
 
 
@@ -410,6 +523,12 @@ def test_cli_json_reports_the_timings_of_a_raw_fetch(monkeypatch, capsys):
     }
 
 
+def test_cli_json_reports_content_bytes_of_a_raw_fetch(monkeypatch, capsys):
+    code, _seen, captured = _run_cli(monkeypatch, capsys, ["--json"], _RAW)
+    assert code == 0
+    assert json.loads(captured.out)["content_bytes"] == 10
+
+
 def test_cli_json_keeps_one_key_set_for_a_rendered_fetch(monkeypatch, capsys):
     """A rendered result has render_ms instead; the raw timings are null."""
     rendered = {
@@ -425,6 +544,7 @@ def test_cli_json_keeps_one_key_set_for_a_rendered_fetch(monkeypatch, capsys):
     payload = json.loads(capsys.readouterr().out)
     assert exc.value.code == 0
     assert {key: payload[key] for key in TIMING_KEYS} == dict.fromkeys(TIMING_KEYS)
+    assert payload["content_bytes"] is None
     assert payload["render_ms"] == 12.5
 
 

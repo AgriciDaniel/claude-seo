@@ -1095,9 +1095,16 @@ def _iter_as_received(response, chunk_size: int = 65536) -> Iterator[bytes]:
     urllib3's ``read1`` returns what a single read brings, still decompressed
     and at most ``chunk_size`` bytes. Errors are mapped to the requests
     exceptions ``iter_content`` raises.
+
+    A body that is already in memory has nothing left on the socket:
+    requests read it itself (``stream=False``), or the redirect hook filled
+    in a 3xx body and closed the connection. ``iter_content`` replays that
+    body, and cannot block doing so.
     """
     raw = getattr(response, "raw", None)
-    if not isinstance(raw, _Urllib3Response):  # A test double, not a socket.
+    if getattr(response, "_content_consumed", False) or not isinstance(
+        raw, _Urllib3Response  # Anything else is a test double, not a socket.
+    ):
         yield from response.iter_content(chunk_size=chunk_size)
         return
     try:
