@@ -33,8 +33,10 @@ Hook configuration in ~/.claude/settings.json:
   }
 }
 
-Note: matcher filters by tool name only (Edit, Write). The script itself
-checks if the file contains schema markup before validating.
+Note: matcher filters by tool name only (Edit, Write). run-python-hook.js
+exits before starting Python when the edited file's extension is not in
+valid_extensions below, and the script itself checks if the file contains
+schema markup before validating.
 """
 
 import json
