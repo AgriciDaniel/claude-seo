@@ -271,12 +271,17 @@ def main():
     args = parser.parse_args()
 
     # Resolve the property against the requested site's domain when possible.
+    # An empty flag value (an unset shell variable, say) is an error, not "unset".
+    for flag, value in (("--site-url", args.site_url), ("--domain", args.domain)):
+        if value is not None and not value.strip():
+            print(f"Error: {flag} was given an empty value.", file=sys.stderr)
+            sys.exit(1)
     site_url = args.site_url
-    if args.batch and not args.site_url and not args.domain:
+    if args.batch and args.site_url is None and args.domain is None:
         parser.error("--batch requires --site-url or --domain to identify the site's property")
-    if not site_url:
+    if site_url is None:
         config = load_config()
-        domain = args.domain or args.url
+        domain = args.domain if args.domain is not None else args.url
         if domain:
             try:
                 site_url = resolve_site_property(config, "gsc", domain)

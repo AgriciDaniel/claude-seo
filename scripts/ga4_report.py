@@ -402,7 +402,7 @@ def main():
     property_group = parser.add_mutually_exclusive_group()
     property_group.add_argument(
         "--property", "-p",
-        help="GA4 property ID (numeric, e.g., 123456789). Uses config default if not specified.",
+        help="GA4 property ID (numeric, e.g., 123456789). Without --property or --domain the config default is used, unless a sites mapping is configured.",
     )
     property_group.add_argument(
         "--domain",
@@ -420,21 +420,40 @@ def main():
 
     args = parser.parse_args()
 
-    # Resolve property
+    # Resolve property. An empty flag value (an unset shell variable, say) must
+    # not fall through to the global default and report another site's data.
+    for flag, value in (("--property", args.property), ("--domain", args.domain)):
+        if value is not None and not value.strip():
+            print(f"Error: {flag} was given an empty value.", file=sys.stderr)
+            sys.exit(1)
     prop = args.property
-    if not prop:
+    if prop is None:
         config = load_config()
-        if args.domain:
+        if args.domain is not None:
             try:
                 prop = resolve_site_property(config, "ga4", args.domain)
             except ValueError as error:
                 print(f"Error: {error}", file=sys.stderr)
                 sys.exit(1)
+        elif config.get("sites"):
+            print(
+                "Error: A sites mapping is configured, so the default GA4 property is "
+                "not assumed. Pass --domain <audited-domain> or --property <id>.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
         else:
             prop = config.get("ga4_property_id") or ""
         # Strip 'properties/' prefix if present for consistency
         if prop and prop.startswith("properties/"):
             prop = prop[len("properties/"):]
+        if prop and args.domain is None:
+            print(
+                f"Note: no --domain or --property given; using the default GA4 "
+                f"property {prop} from config. Pass --domain <audited-domain> to "
+                "bind the report to the audited site.",
+                file=sys.stderr,
+            )
     if not prop:
         print(
             "Error: No GA4 property specified. Use --property or set ga4_property_id in config.",

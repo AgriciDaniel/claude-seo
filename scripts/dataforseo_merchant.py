@@ -159,8 +159,13 @@ def _poll_results(
             task_status = tasks[0].get("status_code") if tasks else None
             if task_status and task_status not in (40601, 40602):
                 # 40601 = "Task Handed", 40602 = "Task In Queue" -- keep polling
-                # Other errors: return the error
-                return data
+                # Any other code is terminal. Return it as an error so callers
+                # do not read a failed task (result: null) as zero results.
+                return {
+                    "error": "task_error",
+                    "status_code": task_status,
+                    "message": tasks[0].get("status_message") or "Task failed",
+                }
 
         delay = min(delay * POLL_MULTIPLIER, POLL_MAX_DELAY)
 

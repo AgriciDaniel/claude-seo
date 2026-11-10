@@ -10,6 +10,15 @@ Sentiment, classification, and moderation use
 
 Send the API key in the `X-Goog-Api-Key` header, not in the URL.
 
+## Language
+
+`nlp_analyze.py` sends no language by default, so the API detects it and the
+JSON `language` field reports the detected code. Pass `--language <code>`
+(BCP-47, e.g. `en`, `pt-BR`, `zh-Hant`) to override detection. The v1 entity
+call takes the code as `document.language`, the v2 call as
+`document.languageCode`. Language support differs per feature, so an
+unsupported language returns an API error for that feature.
+
 ## Features
 
 | Feature | What It Does | SEO Use |

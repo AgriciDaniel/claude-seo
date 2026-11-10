@@ -1512,7 +1512,10 @@ def _build_cwv_section(psi_data, crux_data, chart_paths, history_data=None, sect
                        else ("status-fail" if direction == "degrading" else ""))
                 lines.append(f'      <tr><td>{t.get("label", name)}</td>'
                              f'<td class="{cls}">{direction.upper()}</td>')
-                lines.append(f'      <td>{t.get("change_pct", 0):+.1f}%</td>'
+                # crux_history returns None for an increase from a zero baseline.
+                change = t.get("change_pct", 0)
+                change_text = f"{change:+.1f}%" if change is not None else "n/a"
+                lines.append(f'      <td>{change_text}</td>'
                              f'<td>{t.get("earliest_avg", "?")}</td>'
                              f'<td>{t.get("latest_avg", "?")}</td></tr>')
             lines.append('    </tbody>')

@@ -106,14 +106,21 @@ Save to `~/.config/claude-seo/google-api.json`:
 }
 ```
 
-For site audits, pass `--domain <audited-domain>` to `gsc_query.py` and
-`ga4_report.py`; `gsc_inspect.py` accepts the same flag (or derives the host
-from a single inspected URL). `sites` keys are exact hostnames and
-map to that site's properties. If no exact mapping exists, a legacy global
-property is usable only when its GSC domain matches the requested domain;
-otherwise the script fails closed rather than querying another site's data.
-Keep explicit `--property` / `--site-url` for intentional direct property
-queries outside a domain-specific audit.
+For site audits, pass `--domain <audited-domain>` (a host or site URL, never a
+property) to `gsc_query.py` and `ga4_report.py`; `gsc_inspect.py` accepts the
+same flag (or derives the host from a single inspected URL). `sites` keys are
+hostnames and map to that site's properties. A key matches its host with or
+without `www.`, and an entry whose `gsc_property` is `sc-domain:D` also covers
+subdomains of D (`shop.example.com`, never `notexample.com`). If no entry
+matches, a legacy global property is usable only when its GSC domain matches
+the requested domain; otherwise the script fails closed rather than querying
+another site's data. Keep explicit `--property` / `--site-url` for intentional
+direct property queries outside a domain-specific audit.
+
+With neither flag, `gsc_query.py` and `ga4_report.py` use the global default
+and name it on stderr and in the JSON `property` field. Once a `sites` mapping
+exists they exit instead and ask for `--domain` or `--property`. An empty flag
+value (`--domain ""`) is always an error.
 
 ### Property URL Formats
 

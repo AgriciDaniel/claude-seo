@@ -9,6 +9,7 @@ had finished and ``_extract_items`` crashed iterating ``None``.
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 from unittest.mock import patch
@@ -63,9 +64,49 @@ def test_keeps_polling_while_task_is_handed_or_queued():
 
 
 def test_returns_a_real_task_error_without_waiting():
-    data, calls = _poll([_task_get(40102, None)])
+    body = _task_get(40102, None)
+    body["tasks"][0]["status_message"] = "No Search Results."
+    data, calls = _poll([body])
     assert calls == 1
-    assert data["tasks"][0]["status_code"] == 40102
+    assert data == {
+        "error": "task_error",
+        "status_code": 40102,
+        "message": "No Search Results.",
+    }
+
+
+@pytest.mark.parametrize("command", ["search", "sellers", "compare"])
+def test_cli_surfaces_a_terminal_task_error_instead_of_empty_success(
+    command, capsys, monkeypatch
+):
+    """A failed task has ``result: null``; it must not print 0 results as success."""
+    monkeypatch.setenv("DATAFORSEO_USERNAME", "user")
+    monkeypatch.setenv("DATAFORSEO_PASSWORD", "DUMMY")
+    failed = _task_get(40501, None)
+    failed["tasks"][0]["status_message"] = "Invalid Field."
+    posted = {"status_code": 20000, "tasks": [{"id": "task-1"}]}
+    argv = ["dataforseo_merchant.py", command, "standing desk"]
+    with patch.object(sys, "argv", argv), patch.object(
+        dataforseo_merchant.time, "sleep"
+    ), patch.object(
+        dataforseo_merchant.requests, "post", side_effect=lambda *a, **k: FakeResponse(posted)
+    ), patch.object(
+        dataforseo_merchant.requests, "get", side_effect=lambda *a, **k: FakeResponse(failed)
+    ):
+        dataforseo_merchant.main()
+
+    output = json.loads(capsys.readouterr().out)
+    if command == "compare":
+        assert output["comparison"] == {
+            "google": {"error": "Invalid Field."},
+            "amazon": {"error": "Invalid Field."},
+        }
+    else:
+        assert output == {
+            "error": "task_error",
+            "status_code": 40501,
+            "message": "Invalid Field.",
+        }
 
 
 def test_extract_items_tolerates_null_result():
