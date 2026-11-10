@@ -201,6 +201,76 @@ def test_setup_restores_previous_environment_when_staged_swap_fails(
     assert not (data / ".runtime-state.next").exists()
 
 
+def _setup_with_previous_environment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[Path, Path]:
+    root = _fixture_root(tmp_path)
+    data = tmp_path / "data"
+    final = data / ".venv"
+    old_python = final / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    old_python.parent.mkdir(parents=True)
+    old_python.write_text("old", encoding="utf-8")
+    (final / "old-sentinel").write_text("keep", encoding="utf-8")
+    monkeypatch.setenv("CLAUDE_PLUGIN_DATA", str(data))
+    monkeypatch.setattr(runtime, "_root", lambda: root)
+
+    def fake_checked(argv: list[str], *, env: dict[str, str], stage: str) -> subprocess.CompletedProcess[str]:
+        if stage == "virtual environment creation":
+            staged_python = runtime._venv_python(Path(argv[-1]))
+            staged_python.parent.mkdir(parents=True)
+            staged_python.write_text("new", encoding="utf-8")
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr(runtime, "_run_checked", fake_checked)
+    monkeypatch.setattr(runtime.time, "sleep", lambda _seconds: None)
+    return data, final
+
+
+def test_setup_retries_venv_swaps_denied_while_windows_releases_handles(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data, final = _setup_with_previous_environment(tmp_path, monkeypatch)
+    original_replace = Path.replace
+    denied: set[str] = set()
+
+    def deny_first_venv_swap(self: Path, target: Path) -> Path:
+        if self.name.startswith(".venv") and self.name not in denied:
+            denied.add(self.name)
+            raise PermissionError(5, "Access is denied")
+        return original_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", deny_first_venv_swap)
+    rc = runtime.command_setup(SimpleNamespace(skip_browser=True))
+    assert rc == 0
+    assert len(denied) == 2
+    assert runtime._venv_python(final).read_text(encoding="utf-8") == "new"
+    assert not (data / ".venv.previous").exists()
+
+
+def test_setup_rollback_retries_a_denied_restore_of_the_previous_venv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data, final = _setup_with_previous_environment(tmp_path, monkeypatch)
+    original_replace = Path.replace
+    restore_denied = False
+
+    def fail_staged_then_deny_restore(self: Path, target: Path) -> Path:
+        nonlocal restore_denied
+        if self.name.startswith(".venv.next-"):
+            raise OSError("injected staged swap failure")
+        if self.name == ".venv.previous" and not restore_denied:
+            restore_denied = True
+            raise PermissionError(5, "Access is denied")
+        return original_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", fail_staged_then_deny_restore)
+    rc = runtime.command_setup(SimpleNamespace(skip_browser=True))
+    assert rc == 1
+    assert restore_denied
+    assert (final / "old-sentinel").read_text(encoding="utf-8") == "keep"
+    assert not (data / ".venv.previous").exists()
+
+
 def test_run_propagates_child_signal(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     root = _fixture_root(tmp_path)
     managed_python = tmp_path / "python"

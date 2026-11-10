@@ -290,6 +290,23 @@ class SetupLock:
         self.path.unlink(missing_ok=True)
 
 
+def _replace_with_retry(source: Path, target: Path, attempts: int = 8) -> None:
+    """Swap a directory into place, tolerating Windows handle-release lag.
+
+    Right after pip or Playwright writes a venv, Windows (often Defender) can
+    hold handles in it briefly, so the rename fails with WinError 5 and then
+    succeeds about a second later.
+    """
+    for attempt in range(attempts):
+        try:
+            source.replace(target)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.25 * (attempt + 1))
+
+
 def command_setup(args: argparse.Namespace) -> int:
     if not _python_supported():
         print(_python_range_message(), file=sys.stderr)
@@ -351,9 +368,9 @@ def command_setup(args: argparse.Namespace) -> int:
             )
             shutil.rmtree(backup, ignore_errors=True)
             if final_venv.exists():
-                final_venv.replace(backup)
+                _replace_with_retry(final_venv, backup)
                 previous_moved = True
-            staged.replace(final_venv)
+            _replace_with_retry(staged, final_venv)
             swapped = True
             state = dict(status["expected"])
             state["browser_ready"] = browser_ready
@@ -368,7 +385,7 @@ def command_setup(args: argparse.Namespace) -> int:
             if swapped:
                 shutil.rmtree(final_venv, ignore_errors=True)
             if previous_moved and had_previous and backup.exists():
-                backup.replace(final_venv)
+                _replace_with_retry(backup, final_venv)
         print(f"Claude SEO setup failed: {_redact(str(exc))}", file=sys.stderr)
         return 1
     if browser_ready or args.skip_browser:

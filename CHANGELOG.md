@@ -66,6 +66,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Handed"), so a 40602 ("Task In Queue") answer came back as a finished task
   and `_extract_items` failed on its `result: null`. It now waits on both codes
   and treats a null `result` as no items.
+- **`/seo setup` no longer fails on Windows with WinError 5 at the final venv
+  swap (#348).** Right after pip and Playwright write the new environment,
+  Windows (often Defender) can keep handles open in it for about a second, so
+  renaming it onto `.venv` failed with "Access is denied" after the whole
+  install had finished. The three directory swaps, including the rollback that
+  restores the previous `.venv`, now retry a denied rename with a short backoff
+  (up to 8 attempts, about 7 seconds in total). Diagnosis and fix shape by
+  @Krtgya.
 
 ## [2.5.0] - 2026-10-22
 
