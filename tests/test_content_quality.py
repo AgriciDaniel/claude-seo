@@ -61,6 +61,22 @@ def test_content_quality_filler_heavy_text_scores_low() -> None:
     assert result["ai_pattern_score"] >= 40
 
 
+def test_longer_filler_phrase_is_not_scored_twice() -> None:
+    """``let's dive in`` is a prefix of ``let's dive into``. One sentence
+    must not count as both, which pushes filler_score from 25 to 50 and
+    raises the filler flag.
+    """
+    text = "Let's dive into the details of this topic today. " * 40
+    result = content_quality.analyse(text)
+    assert result["matches"]["filler"] == ["let's dive into"]
+    assert result["filler_score"] == 25
+    assert "filler" not in result["flags"]
+
+    shorter = "Let's dive in and review the details of this topic today. " * 40
+    short_result = content_quality.analyse(shorter)
+    assert short_result["matches"]["filler"] == ["let's dive in"]
+
+
 def test_content_quality_rich_content_scores_high() -> None:
     # 300+ tokens with specific numbers, named entities, no filler.
     text = (

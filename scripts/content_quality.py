@@ -188,9 +188,19 @@ def _detect_script(text: str) -> str | None:
 
 
 def _count_phrase_hits(text: str, patterns: Iterable[str]) -> list[str]:
-    """Return the patterns that appear at least once in ``text`` (case-insensitive)."""
+    """Return the patterns that appear at least once as a whole phrase.
+
+    Matching is case-insensitive. The phrase must not continue into another
+    word, so ``let's dive in`` is not also a hit inside ``let's dive into``.
+    Counting that prefix made one sentence two filler hits, which moved
+    ``filler_score`` from 25 to 50 and raised the filler flag.
+    """
     lowered = text.lower()
-    return [p for p in patterns if p in lowered]
+    hits = []
+    for pattern in patterns:
+        if re.search(rf"(?<!\w){re.escape(pattern)}(?!\w)", lowered):
+            hits.append(pattern)
+    return hits
 
 
 def _repetition_score(tokens: list[str]) -> float:
