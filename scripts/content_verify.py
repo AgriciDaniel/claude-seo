@@ -97,10 +97,12 @@ _CITATION_PATTERNS: tuple[re.Pattern, ...] = (
     re.compile(r"\[\^?\d+\]"),  # footnote-style [1] or [^1]
     re.compile(r"@type\s*:\s*[\"']Citation[\"']"),  # schema.org Citation
     re.compile(
-        # "Source:", "Via:", "See also:", "Cited in", "Cited by", or
-        # "Per/According to" followed by a Proper Noun.
-        r"\b(?:source\s*:|via\s*:|see\s+also\s*:|cited\s+(?:in|by)|"
-        r"according\s+to|per)\s+(?-i:[A-Z])",
+        # "Source:", "Via:", "See also:", "Cited in", "Cited by" or
+        # "According to" followed by any word, or "Per" followed by a
+        # Proper Noun. Only "per" needs the case-sensitive capital: it is
+        # the one prefix that is also a common word ("per week").
+        r"\b(?:(?:source\s*:|via\s*:|see\s+also\s*:|cited\s+(?:in|by)|"
+        r"according\s+to)\s+\S|per\s+(?-i:[A-Z]))",
         re.IGNORECASE,
     ),
 )

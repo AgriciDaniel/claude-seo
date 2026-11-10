@@ -345,11 +345,13 @@ def test_verify_bare_percentage_does_not_double_count_percent_of() -> None:
     # "% of ..." match wins over the bare-"%" match on the same span).
     result = content_verify.verify("47% of marketers report gains.")
     assert result["claim_count"] == 1
+
+
 def test_verify_standalone_per_followed_by_a_common_word_is_not_a_citation() -> None:
-    # The citation pattern requires "per"/"according to" + a Proper Noun, but
-    # re.IGNORECASE made the [A-Z] anchor match lowercase too, so "per week",
-    # "per page", "according to the ..." were counted as citations. A claim
-    # near such a phrase was then wrongly reported as cited.
+    # The citation pattern requires "per" + a Proper Noun, but re.IGNORECASE
+    # made the [A-Z] anchor match lowercase too, so "per week" and "per page"
+    # were counted as citations. A claim near such a phrase was then wrongly
+    # reported as cited.
     result = content_verify.verify("Fully 80% of users churned, measured per week.")
     assert result["claim_count"] == 1
     claim = result["claims"][0]
@@ -360,6 +362,35 @@ def test_verify_standalone_per_followed_by_a_common_word_is_not_a_citation() -> 
 def test_verify_per_followed_by_a_proper_noun_is_still_a_citation() -> None:
     result = content_verify.verify("Fully 80% of users churned, per Gartner.")
     assert result["claims"][0]["has_citation"] is True
+
+
+@pytest.mark.parametrize(
+    "attribution",
+    [
+        "according to a Stanford study",
+        "according to the CDC",
+        "Source: https://example.org/x",
+        "(source: internal survey)",
+        "cited by the World Bank",
+        "via: nielsen.com",
+    ],
+)
+def test_verify_attribution_prefixes_count_without_a_capitalised_next_word(
+    attribution: str,
+) -> None:
+    # Only "per" needs a capitalised next word. The other attribution forms
+    # are citations whatever follows them: an article, a URL, a lowercase
+    # domain or a bracketed lowercase "source:".
+    result = content_verify.verify(f"Fully 80% of users churned, {attribution}.")
+    assert result["claims"][0]["kind"] == "statistic"
+    assert result["claims"][0]["has_citation"] is True, attribution
+
+
+def test_verify_per_is_case_insensitive_but_its_proper_noun_is_not() -> None:
+    cited = content_verify.verify("Fully 80% of users churned. Per Gartner.")
+    assert cited["claims"][0]["has_citation"] is True
+    uncited = content_verify.verify("Fully 80% of users churned. Per week.")
+    assert uncited["claims"][0]["has_citation"] is False
 
 
 # ---------------------------------------------------------------------------
