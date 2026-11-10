@@ -71,7 +71,7 @@ Google's doorway page algorithm penalizes programmatic location pages with thin/
 | Aspect | Requirement |
 |--------|-------------|
 | Minimum length | 30 characters |
-| Maximum length | 60 characters (Google truncates ~60) |
+| Maximum length | 60 characters (a display heuristic: Google cuts titles by pixel width, at roughly 60) |
 | Primary keyword | Near the beginning |
 | Brand name | At end (if included) |
 | Uniqueness | Each page must have unique title |
@@ -93,7 +93,7 @@ Google's doorway page algorithm penalizes programmatic location pages with thin/
 | Aspect | Requirement |
 |--------|-------------|
 | Minimum length | 120 characters |
-| Maximum length | 160 characters (Google truncates ~155-160) |
+| Maximum length | 160 characters (a display heuristic: snippets are cut at roughly 155-160, and Google often writes its own) |
 | Call-to-action | Include compelling CTA, written for this page |
 | Primary keyword | Include naturally |
 | Uniqueness | Each page must have unique description |

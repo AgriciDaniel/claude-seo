@@ -134,7 +134,7 @@ When installed, other Claude SEO skills automatically detect DataForSEO availabi
 ### MCP server not connecting
 
 1. Check credentials: `cat ~/.claude.json | grep DATAFORSEO`
-2. Test manually: `npx -y dataforseo-mcp-server`
+2. Test manually: `npx -y dataforseo-mcp-server@2.8.10` (the version the skills are written for)
 3. Re-run installer: `./extensions/dataforseo/install.sh`
 
 ### API errors

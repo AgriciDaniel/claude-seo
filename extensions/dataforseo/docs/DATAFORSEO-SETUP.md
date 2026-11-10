@@ -49,7 +49,7 @@ If the installer's auto-configuration fails, add this to `~/.claude.json`:
   "mcpServers": {
     "dataforseo": {
       "command": "npx",
-      "args": ["-y", "dataforseo-mcp-server"],
+      "args": ["-y", "dataforseo-mcp-server@2.8.10"],
       "env": {
         "DATAFORSEO_USERNAME": "<account-username>",
         "DATAFORSEO_PASSWORD": "your-api-password",

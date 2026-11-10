@@ -350,6 +350,8 @@ Optional add-ons that bring in more data. Claude SEO works fully without them.
 
 Setup guides live in [`extensions/`](extensions/).
 
+Integrations built and maintained by other people, in their own repositories, are listed in [Community integrations](docs/COMMUNITY-INTEGRATIONS.md). They are not part of Claude SEO and are not audited by it.
+
 ## Star history
 
 <a href="https://www.star-history.com/#AgriciDaniel/claude-seo&Date">
