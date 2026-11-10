@@ -75,8 +75,8 @@ XML sitemap implementations.
 - Google documents Search experiences that exist only in certain regions
   (documentation added 2026-09-08; https://developers.google.com/search/docs/appearance/aggregator-features):
   - **EEA only:** aggregator units and supplier units (hotels, flights, ground
-    transportation, products, and since 2026-09-18 local businesses), the
-    ecosystem carousel, and job-site features.
+    transportation, products, since 2026-09-18 local businesses, and since
+    2026-11-09 things to do), the ecosystem carousel, and job-site features.
   - **Türkiye:** places-site features (hotels, local businesses).
   - **South Africa:** a badge and refinement chip for travel, products, car
     hire, food delivery and ground transportation.

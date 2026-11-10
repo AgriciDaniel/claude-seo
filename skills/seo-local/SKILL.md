@@ -58,7 +58,7 @@ Detect from page signals before analysis. This determines which checks apply.
 
 ## Industry Vertical Detection
 
-Detect from page signals and GBP category patterns. Routes to industry-specific checks from `../seo/references/local-schema-types.md`.
+Detect from page signals and GBP category patterns. Routes to industry-specific checks from `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-schema-types.md`.
 
 | Vertical | Detection Signals |
 |----------|------------------|
@@ -162,7 +162,7 @@ Citations declining for traditional pack rankings but **3 of top 5 AI visibility
   - Facebook business page references
 - **Apple Maps / Apple business listings** awareness: claim and maintain Apple listings; treat Apple Business unified-platform launch/rename claims as TechRadar-sourced and verify against Apple primary before asserting.
 - Bing Places awareness (powers ChatGPT, Copilot, Alexa -- recommend claiming and optimizing)
-- Industry-specific directory recommendations: load `../seo/references/local-schema-types.md` for per-vertical citation sources
+- Industry-specific directory recommendations: load `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-schema-types.md` for per-vertical citation sources
 - Data aggregator awareness: Data Axle, Foursquare, Neustar/TransUnion (recommend submission for downstream distribution)
 - Regional Search units: in the EEA, Google's aggregator and supplier units also cover local business queries since 2026-09-18; Türkiye has separate places-site features (see `seo-hreflang` section 5c); note this for businesses serving those markets
 
@@ -179,14 +179,14 @@ Schema is NOT a direct ranking factor (John Mueller confirmed). But enables rich
 - LocalBusiness schema presence (extract JSON-LD blocks)
 - Required properties: `name`, `address` with PostalAddress sub-properties
 - Recommended properties: `geo` (minimum 5 decimal places, Confirmed), `openingHoursSpecification`, `telephone`, `url`, `priceRange` (<100 chars), `image`, `aggregateRating`
-- **Correct subtype for industry** -- load `../seo/references/local-schema-types.md`:
+- **Correct subtype for industry** -- load `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-schema-types.md`:
   - Restaurant using `Restaurant` not generic `LocalBusiness`
   - Legal using `LegalService` not deprecated `Attorney`
   - Auto dealer using `AutoDealer` not deprecated `VehicleListing`
   - Healthcare using `MedicalClinic`/`Hospital`/`Dentist` not generic `MedicalBusiness`
 - SAB-specific: `areaServed` with named cities (recommended, not in Google's official list but Schema.org supported)
 - Multi-location: each location page has own LocalBusiness with unique `@id`, linked via `branchOf` to Organization on homepage
-- Industry-specific schema patterns (per `../seo/references/local-schema-types.md`):
+- Industry-specific schema patterns (per `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-schema-types.md`):
   - Restaurant: Menu + MenuSection + MenuItem + ReserveAction (note: Reservation/Order actions are not Google-supported rich results; value is machine-readable business data)
   - Healthcare: Physician (Person) + MedicalSpecialty + sameAs to NPI
   - Legal: LegalService + Person + Service (practice areas)
@@ -240,10 +240,10 @@ Key local AI facts:
 ## Reference Files
 
 Load on-demand as needed:
-- `../seo/references/local-seo-signals.md`: Ranking factors, review benchmarks, citation tiers, GBP feature status, algorithm updates
-- `../seo/references/local-search-behavior.md`: Voice search, AI search impact on local, Local Pack structure, proximity
-- `../seo/references/local-schema-types.md`: LocalBusiness subtypes by industry, schema patterns, citation sources per vertical
-- `../seo/references/local-schema-multilocation.md`: Multi-location schema pattern, deprecated local schema
+- `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-seo-signals.md`: Ranking factors, review benchmarks, citation tiers, GBP feature status, algorithm updates
+- `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-search-behavior.md`: Voice search, AI search impact on local, Local Pack structure, proximity
+- `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-schema-types.md`: LocalBusiness subtypes by industry, schema patterns, citation sources per vertical
+- `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/local-schema-multilocation.md`: Multi-location schema pattern, deprecated local schema
 
 ---
 

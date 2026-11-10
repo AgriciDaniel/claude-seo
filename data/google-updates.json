@@ -6,7 +6,7 @@
     "https://developers.google.com/search/updates",
     "https://blog.google/products/search/"
   ],
-  "last_verified": "2026-10-22",
+  "last_verified": "2026-11-10",
   "policy": "Every entry must cite a Google-owned URL. Third-party-only claims belong in unverified[]. Bump last_verified each time an entry is added or revised.",
   "_schema_doc": {
     "updates[]": {
@@ -465,6 +465,27 @@
       "kind": "documentation",
       "source": "https://developers.google.com/search/docs/crawling-indexing/control-what-you-share",
       "notes": "The page now covers existing options such as the robots meta tag, data-nosnippet, and X-Robots-Tag alongside the Search generative AI control."
+    },
+    {
+      "date": "2026-10-23",
+      "name": "URL structure guidance on hyphens and underscores clarified",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/crawling-indexing/url-structure",
+      "notes": "The URL structure best practices were updated to clarify the word separation guidelines on hyphens versus underscores; the page recommends hyphens instead of underscores to separate words in URLs."
+    },
+    {
+      "date": "2026-10-26",
+      "name": "User-generated spam prevention guide updated",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/monitor-debug/prevent-abuse",
+      "notes": "The guide now includes guidance on blocking indexing of link-shared content (noindex, or a robots.txt block, by default for pages created for direct sharing rather than search discovery) and on monitoring abuse in Search Console."
+    },
+    {
+      "date": "2026-11-09",
+      "name": "Aggregator and supplier units add things to do queries",
+      "kind": "documentation",
+      "source": "https://developers.google.com/search/docs/appearance/aggregator-unit",
+      "notes": "The aggregator unit and supplier unit documentation now include support for 'things to do' queries. The supplier unit page is https://developers.google.com/search/docs/appearance/supplier-unit."
     }
   ],
   "unverified": [

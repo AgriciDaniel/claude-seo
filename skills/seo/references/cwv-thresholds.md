@@ -5,9 +5,9 @@
 
 | Metric | Good | Needs Improvement | Poor |
 |--------|------|-------------------|------|
-| LCP (Largest Contentful Paint) | ≤2.5s | 2.5s–4.0s | >4.0s |
-| INP (Interaction to Next Paint) | ≤200ms | 200ms–500ms | >500ms |
-| CLS (Cumulative Layout Shift) | ≤0.1 | 0.1–0.25 | >0.25 |
+| LCP (Largest Contentful Paint) | ≤2.5s | 2.5s-4.0s | >4.0s |
+| INP (Interaction to Next Paint) | ≤200ms | 200ms-500ms | >500ms |
+| CLS (Cumulative Layout Shift) | ≤0.1 | 0.1-0.25 | >0.25 |
 
 ## Key Facts
 - INP replaced FID (First Input Delay) on **March 12, 2024**. FID was removed from Chrome's field-data tools (CrUX API, PageSpeed Insights) on **September 9, 2024** (Lighthouse is a lab tool that never reported FID). INP is the sole interactivity metric.
@@ -94,8 +94,11 @@ updated 2026-09-02).
 ## Tools
 
 ```bash
-# PageSpeed Insights API
-curl -H "X-Goog-Api-Key: $GOOGLE_API_KEY" \
+# PageSpeed Insights API + CrUX (bundled script, reads the configured Google API key)
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run pagespeed_check.py URL --json
+
+# Raw PageSpeed Insights API call (replace YOUR_API_KEY with your key)
+curl -H "X-Goog-Api-Key: YOUR_API_KEY" \
   "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=URL"
 
 # Lighthouse CLI

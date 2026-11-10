@@ -17,7 +17,8 @@ Use Google's PageSpeed Insights API directly for real Core Web Vitals data.
 3. Use in your analysis:
 
 ```bash
-curl -H "X-Goog-Api-Key: $GOOGLE_API_KEY" \
+# Replace YOUR_API_KEY with your key
+curl -H "X-Goog-Api-Key: YOUR_API_KEY" \
   "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=URL"
 ```
 
