@@ -73,12 +73,13 @@ Google documents three subtypes with their own rules, validate per-subtype:
   `<video:player_loc>`; mRSS also supported. Flag deprecated/removed tags
   (`<video:category>`, `<video:gallery_loc>`, `<video:price>`, `<video:tvshow>`,
   player autoplay/allow_embed) as info-level removable; recheck Google docs before citing a removal date.
-- **News**: max **1,000** `<news:news>` per file (not 50,000); include only
-  articles from the **last 2 days**; required `<news:publication>`/`<news:name>`/
-  `<news:language>`/`<news:publication_date>`/`<news:title>`; submit/discover through
-  Search Console or robots.txt/sitemap index; use Publisher Center only for
-  publication management where relevant. When the `news:` namespace is detected, override the generic
-  50k check with the 1,000 cap.
+- **News**: max **1,000** `<news:news>` tags per file. Keep the 50,000 URL and
+  50 MB checks; do not replace them when the `news:` namespace is present
+  (https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap).
+  Include `<news:news>` only on articles from the **last 2 days**; required
+  `<news:publication>`/`<news:name>`/`<news:language>`/`<news:publication_date>`/
+  `<news:title>`; submit/discover through Search Console or robots.txt/sitemap
+  index; use Publisher Center only for publication management where relevant.
 
 ## Mode 2: Generate New Sitemap
 

@@ -42,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   second; https://code.claude.com/docs/en/skills), so `/seo audit <url>`
   loaded as `/seo <url> $2` and dropped `audit`. The line now uses
   `$ARGUMENTS`, which is the full input.
+- **News sitemap validation keeps the 50,000 URL limit (#335).** The skill
+  told the model to replace that check with a 1,000 cap whenever the `news:`
+  namespace was present. Google caps `<news:news>` tags at 1,000 and still
+  applies the general sitemap limits
+  (https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap).
 
 ## [2.5.0] - 2026-10-22
 
