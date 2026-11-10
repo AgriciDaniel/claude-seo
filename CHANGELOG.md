@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   URL was never fetched and only the common paths were checked. A `#` comment
   runs to the end of the line (Google's robots.txt syntax, and RFC 9309), and
   a leading UTF-8 BOM is not part of the first field.
+- **IndexNow key check compares hosts, not URL substrings.**
+  `verify_key_published` treated `example.com` as present in
+  `https://notexample.com/...` and rejected `Example.COM` against
+  `https://example.com/...`. The key file host is compared as a hostname,
+  before the file is fetched.
 
 ## [2.5.0] - 2026-10-22
 
