@@ -47,7 +47,31 @@ A dict with::
     render_ms         elapsed wall-clock for the render step
     mode_used         'rendered' or 'raw'
     too_large         True when the raw body hit the size cap (MAX_PAGE_BYTES)
+    js_gap            raw-versus-rendered difference (see below), or None
+                      when no render happened (or the HTML was too large
+                      to compare, which render_diagnostics then says)
     error             str or None
+
+JavaScript content gap
+======================
+When a page is rendered, ``js_gap`` compares the HTML as served with the
+DOM after JavaScript ran (:func:`js_gap`, a pure function over two HTML
+strings)::
+
+    raw, rendered     per version: words, links, schema_types, h1, title,
+                      canonical, canonical_all, meta_robots
+    diff              words_only_rendered and links_only_rendered with their
+                      *_share of the rendered total (0 to 1),
+                      schema_types_only_rendered, h1_only_rendered,
+                      title_changed, canonical_changed, meta_robots_changed
+    raw_truncated     True when the raw body was cut at the size cap, so
+                      the gap may be overstated
+    significant       True when ``reasons`` is not empty
+    reasons           plain-language findings; empty when nothing stands out
+
+Words are every text token outside script, style, noscript, template and
+head; hidden elements are not detected. The share limits (``JS_GAP_*``) are
+this tool's heuristics, not Google rules.
 
 SSRF
 ====
@@ -73,6 +97,7 @@ import os
 import re
 import sys
 import time
+from collections import Counter
 from typing import Any, Optional
 
 from bs4 import BeautifulSoup
@@ -166,6 +191,26 @@ JSON_LD_MAX_DEPTH = 40
 ACCESSIBILITY_MAX_NODES = 10_000
 ACCESSIBILITY_MAX_DEPTH = 50
 
+# JavaScript content gap. These limits decide when a raw-versus-rendered
+# difference is called "significant". They are this tool's heuristics, not
+# Google rules: Google publishes no threshold for either.
+JS_GAP_WORDS_SHARE = 0.30  # share of rendered words that exist only after JS
+JS_GAP_WORDS_MIN = 25      # and at least this many such words
+JS_GAP_LINKS_SHARE = 0.30  # share of rendered links that exist only after JS
+JS_GAP_LINKS_MIN = 3       # and at least this many such links
+# Output bounds, so a hostile page cannot inflate the JSON.
+JS_GAP_MAX_ITEMS = 12      # schema types, H1 texts, robots directives
+JS_GAP_MAX_CANONICALS = 5
+JS_GAP_MAX_TEXT = 300      # characters kept per title, H1 or canonical
+JS_GAP_REASON_TEXT = 80    # characters of page text quoted inside a reason
+# The comparison parses both versions again. Past this size it is skipped
+# (js_gap stays None, with a render diagnostic) so a huge DOM cannot stall it.
+JS_GAP_MAX_HTML_CHARS = 5_000_000
+
+_WORD = re.compile(r"\w+")
+_NON_VISIBLE_TAGS = ("script", "style", "noscript", "template", "head", "title")
+_NON_LINK_HREF = ("#", "javascript:", "mailto:", "tel:", "data:")
+
 
 def _visible_body_text(lower_html: str) -> str:
     body_start = lower_html.find("<body")
@@ -200,8 +245,16 @@ def _schema_types(data: object) -> tuple[list[str], bool]:
     return sorted(types)[:100], truncated or len(types) > 100
 
 
-def _extract_json_ld(html: Optional[str], *, include_full: bool = False) -> dict:
-    """Extract full-page JSON-LD with strict block, byte, and traversal bounds."""
+def _extract_json_ld(
+    html: Optional[str],
+    *,
+    include_full: bool = False,
+    soup: Optional[BeautifulSoup] = None,
+) -> dict:
+    """Extract full-page JSON-LD with strict block, byte, and traversal bounds.
+
+    ``soup`` lets a caller that already parsed ``html`` skip a second parse.
+    """
     result = {
         "block_count": 0,
         "processed_count": 0,
@@ -212,7 +265,8 @@ def _extract_json_ld(html: Optional[str], *, include_full: bool = False) -> dict
     if not html:
         return result
 
-    soup = BeautifulSoup(html, "html.parser")
+    if soup is None:
+        soup = BeautifulSoup(html, "html.parser")
     scripts = [
         script for script in soup.find_all("script")
         if str(script.get("type", "")).strip().lower() == "application/ld+json"
@@ -289,6 +343,196 @@ def _is_spa(raw_html: Optional[str]) -> bool:
         if len(visible_text) < 100:
             return True
     return False
+
+
+def _clean_text(value: object) -> str:
+    return _WHITESPACE.sub(" ", str(value or "")).strip()[:JS_GAP_MAX_TEXT]
+
+
+def _gap_signals(html: str) -> tuple[dict, dict]:
+    """Collect one version's SEO signals for :func:`js_gap`.
+
+    Returns the published signals plus the word and link multisets used to
+    work out what exists only after rendering. Raw and rendered HTML go
+    through the same code, so the two sides are counted the same way.
+    """
+    soup = BeautifulSoup(html or "", "html.parser")
+
+    # Dicts keep first-seen order and make de-duplication linear, so a page
+    # with a huge number of distinct values cannot slow the comparison down.
+    schema_types: dict[str, None] = {}
+    for block in _extract_json_ld(html, soup=soup)["blocks"]:
+        schema_types.update(dict.fromkeys(block.get("types") or []))
+
+    # An <svg><title> is an accessible name, not the document title.
+    title = None
+    for tag in soup.find_all("title"):
+        if tag.find_parent("svg") is None:
+            title = _clean_text(tag.get_text(" ")) or None
+            break
+
+    canonicals: dict[str, None] = {}
+    for tag in soup.find_all("link"):
+        rel = tag.get("rel") or []
+        rel = rel.split() if isinstance(rel, str) else rel
+        href = _clean_text(tag.get("href"))
+        if href and any(str(item).lower() == "canonical" for item in rel):
+            canonicals[href] = None
+
+    # Several robots meta tags combine, so their directives are merged.
+    robots: dict[str, None] = {}
+    for tag in soup.find_all("meta"):
+        if str(tag.get("name") or "").strip().lower() != "robots":
+            continue
+        for directive in str(tag.get("content") or "").lower().split(","):
+            directive = _clean_text(directive)
+            if directive:
+                robots[directive] = None
+
+    for tag in soup(list(_NON_VISIBLE_TAGS)):
+        tag.decompose()
+
+    h1: dict[str, None] = {}
+    for tag in soup.find_all("h1"):
+        text = _clean_text(tag.get_text(" ", strip=True))
+        if text:
+            h1[text] = None
+
+    hrefs: Counter = Counter()
+    for anchor in soup.find_all("a", href=True):
+        href = str(anchor.get("href") or "").strip()
+        if href and not href.lower().startswith(_NON_LINK_HREF):
+            hrefs[href] += 1
+
+    words = Counter(_WORD.findall(soup.get_text(" ", strip=True).lower()))
+
+    signals = {
+        "words": sum(words.values()),
+        "links": sum(hrefs.values()),
+        "schema_types": list(schema_types)[:JS_GAP_MAX_ITEMS],
+        "h1": list(h1)[:JS_GAP_MAX_ITEMS],
+        "title": title,
+        "canonical": next(iter(canonicals), None),
+        "canonical_all": list(canonicals)[:JS_GAP_MAX_CANONICALS],
+        "meta_robots": ", ".join(list(robots)[:JS_GAP_MAX_ITEMS]) or None,
+    }
+    return signals, {"words": words, "hrefs": hrefs}
+
+
+def _only_after(raw: Counter, rendered: Counter) -> tuple[int, float]:
+    """Items in ``rendered`` with no counterpart in ``raw``: count and share."""
+    total = sum(rendered.values())
+    added = sum((rendered - raw).values())
+    return added, (round(added / total, 3) if total else 0.0)
+
+
+def js_gap(
+    raw_html: Optional[str],
+    rendered_html: Optional[str],
+    *,
+    raw_truncated: bool = False,
+) -> Optional[dict]:
+    """Compare the HTML as served with the DOM after JavaScript ran.
+
+    Pure: two HTML strings in, a JSON-ready dict out, no browser or network.
+    Returns None when either version is missing (no render happened). An
+    empty string is a real, empty document and is compared.
+
+    Title, canonical and meta robots are reported as changed when the raw
+    and rendered values differ in any way (added, removed or replaced). A
+    mismatch between the two is the case Google's JavaScript SEO guidance
+    warns about.
+    """
+    if raw_html is None or rendered_html is None:
+        return None
+    raw, raw_sets = _gap_signals(raw_html)
+    rendered, rendered_sets = _gap_signals(rendered_html)
+    words_added, words_share = _only_after(raw_sets["words"], rendered_sets["words"])
+    links_added, links_share = _only_after(raw_sets["hrefs"], rendered_sets["hrefs"])
+    gap: dict = {
+        "raw": raw,
+        "rendered": rendered,
+        "diff": {
+            "words_only_rendered": words_added,
+            "words_only_rendered_share": words_share,
+            "links_only_rendered": links_added,
+            "links_only_rendered_share": links_share,
+            "schema_types_only_rendered": [
+                name for name in rendered["schema_types"]
+                if name not in raw["schema_types"]
+            ],
+            "h1_only_rendered": [text for text in rendered["h1"] if text not in raw["h1"]],
+            "title_changed": raw["title"] != rendered["title"],
+            "canonical_changed": (
+                set(raw["canonical_all"]) != set(rendered["canonical_all"])
+            ),
+            "meta_robots_changed": (
+                set((raw["meta_robots"] or "").split(", "))
+                != set((rendered["meta_robots"] or "").split(", "))
+            ),
+        },
+        "raw_truncated": bool(raw_truncated),
+    }
+    gap["reasons"] = js_gap_reasons(gap)
+    gap["significant"] = bool(gap["reasons"])
+    return gap
+
+
+def _quoted(value: object) -> str:
+    """Page text for a reason line: bounded, or 'none' when absent."""
+    if isinstance(value, list):
+        value = " | ".join(str(item) for item in value)
+    text = str(value or "")
+    if not text:
+        return "none"
+    if len(text) > JS_GAP_REASON_TEXT:
+        text = text[:JS_GAP_REASON_TEXT] + "..."
+    return f"'{text}'"
+
+
+def js_gap_reasons(gap: Optional[dict]) -> list[str]:
+    """Plain-language reasons a :func:`js_gap` result matters. Empty when none do."""
+    if not gap:
+        return []
+    raw, rendered, diff = gap["raw"], gap["rendered"], gap["diff"]
+    reasons: list[str] = []
+    if (
+        diff["words_only_rendered_share"] >= JS_GAP_WORDS_SHARE
+        and diff["words_only_rendered"] >= JS_GAP_WORDS_MIN
+    ):
+        reasons.append(
+            f"{round(diff['words_only_rendered_share'] * 100)}% of visible words appear "
+            f"only after JavaScript runs ({raw['words']} raw, {rendered['words']} rendered)"
+        )
+    if (
+        diff["links_only_rendered_share"] >= JS_GAP_LINKS_SHARE
+        and diff["links_only_rendered"] >= JS_GAP_LINKS_MIN
+    ):
+        reasons.append(
+            f"{diff['links_only_rendered']} of {rendered['links']} links appear only "
+            f"after JavaScript runs ({raw['links']} in the raw HTML)"
+        )
+    if diff["schema_types_only_rendered"]:
+        reasons.append(
+            "structured data appears only after JavaScript: "
+            + ", ".join(diff["schema_types_only_rendered"][:5])
+        )
+    if diff["h1_only_rendered"]:
+        reasons.append(
+            "the H1 changes after JavaScript" if raw["h1"]
+            else "the H1 appears only after JavaScript"
+        )
+    for flag, label, key in (
+        ("title_changed", "title", "title"),
+        ("canonical_changed", "canonical URL", "canonical_all"),
+        ("meta_robots_changed", "meta robots value", "meta_robots"),
+    ):
+        if diff[flag]:
+            reasons.append(
+                f"the {label} is not the same before and after JavaScript "
+                f"(raw: {_quoted(raw[key])}, rendered: {_quoted(rendered[key])})"
+            )
+    return reasons
 
 
 def _wait_for_dom_stability(page, timeout_ms: int) -> bool:  # type: ignore[no-untyped-def]
@@ -443,6 +687,7 @@ def render_page(
         "render_ms": None,
         "mode_used": None,
         "too_large": False,
+        "js_gap": None,
         "error": None,
     }
 
@@ -595,6 +840,25 @@ def render_page(
             return result
         finally:
             result["render_ms"] = (time.monotonic() - start) * 1000.0
+
+        # Both versions exist: measure what only JavaScript provides.
+        try:
+            largest = max(len(result["raw_content"] or ""), len(result["content"] or ""))
+            if largest > JS_GAP_MAX_HTML_CHARS:
+                result["render_diagnostics"].append(
+                    f"js_gap skipped: HTML is larger than {JS_GAP_MAX_HTML_CHARS} characters"
+                )
+            else:
+                result["js_gap"] = js_gap(
+                    result["raw_content"],
+                    result["content"],
+                    raw_truncated=result["too_large"],
+                )
+        except Exception as exc:
+            # The comparison is best-effort; never block the audit on it.
+            result["render_diagnostics"].append(
+                f"js_gap comparison failed: {type(exc).__name__}: {exc}"
+            )
 
     # Step 2: content extraction (works on either raw or rendered HTML).
     if extract_content and result["content"]:
@@ -765,6 +1029,8 @@ def _cli() -> None:
         )
     if res["publication_date"]:
         print(f"Publication date: {res['publication_date']}", file=sys.stderr)
+    for reason in (res.get("js_gap") or {}).get("reasons", []):
+        print(f"JS gap: {reason}", file=sys.stderr)
     if res["console_errors"]:
         print(
             f"Console errors ({len(res['console_errors'])}):", file=sys.stderr

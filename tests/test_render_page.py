@@ -575,9 +575,61 @@ def test_render_page_result_dict_has_all_documented_fields() -> None:
         "extracted_text", "publication_date", "accessibility_tree",
         "accessibility_error", "accessibility_partial",
         "headers", "redirect_chain", "console_errors", "render_engine",
-        "render_diagnostics", "render_ms", "mode_used", "too_large", "error",
+        "render_diagnostics", "render_ms", "mode_used", "too_large", "js_gap",
+        "error",
     }
     assert set(result.keys()) == expected_fields
+    # No render happened, so there is nothing to compare.
+    assert result["js_gap"] is None
+
+
+def test_rendered_result_carries_the_js_gap() -> None:
+    """A rendered page compares the raw shell with the hydrated DOM."""
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    result = _render_with_fake_browser(page)
+    gap = result["js_gap"]
+    assert result["mode_used"] == "rendered"
+    assert gap["raw"]["words"] == 0
+    assert gap["rendered"]["words"] == 40
+    assert gap["diff"]["words_only_rendered_share"] == 1.0
+    assert gap["raw_truncated"] is False
+    assert gap["significant"] is True
+    # The CLI JSON is built from the full strings, before --max-text cuts them.
+    summary = render_page._json_summary(result, max_text=10)
+    assert summary["js_gap"] == gap
+    json.dumps(summary)
+
+
+def test_js_gap_stays_null_when_the_render_fails() -> None:
+    spa_html = '<html><body><div id="root"></div></body></html>'
+    with patch.object(render_page, "validate_url_strict", side_effect=_mock_validate_strict), \
+         patch.object(render_page, "safe_requests_get",
+                      return_value=_fake_response(spa_html)), \
+         patch.object(render_page, "sync_playwright", None):
+        result = render_page.render_page("https://app.example/", mode="auto")
+    assert result["error"] is not None
+    assert result["js_gap"] is None
+
+
+def test_js_gap_is_skipped_for_oversized_html(monkeypatch) -> None:
+    monkeypatch.setattr(render_page, "JS_GAP_MAX_HTML_CHARS", 100)
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    result = _render_with_fake_browser(page)
+    assert result["error"] is None
+    assert result["js_gap"] is None
+    assert result["render_diagnostics"] == [
+        "js_gap skipped: HTML is larger than 100 characters"
+    ]
+
+
+def test_js_gap_failure_is_a_diagnostic_not_an_error() -> None:
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    with patch.object(render_page, "js_gap", side_effect=RuntimeError("boom")):
+        result = _render_with_fake_browser(page)
+    assert result["error"] is None
+    assert result["js_gap"] is None
+    assert result["content"].startswith("<html>")
+    assert any("js_gap comparison failed" in item for item in result["render_diagnostics"])
 
 
 def test_cdp_accessibility_nodes_are_bounded_and_rebuilt(monkeypatch) -> None:
