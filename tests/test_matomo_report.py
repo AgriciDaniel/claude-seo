@@ -376,6 +376,87 @@ def test_organic_report_builds_daily_and_pages(monkeypatch):
     assert top["bounce_rate"] == round(23 / 111 * 100, 1)
 
 
+def test_top_pages_report_propagates_entry_page_error():
+    """A failed entry-page query must not become an empty success report."""
+    daily = {
+        "2026-01-01": {"nb_visits": 100, "nb_uniq_visitors": 80,
+                       "nb_actions": 150, "nb_pageviews": 200,
+                       "bounce_count": 30, "sum_visit_length": 6000},
+    }
+    responses = [
+        _mock_response(200, daily),
+        _mock_response(200, {
+            "result": "error",
+            "message": "You cannot access Actions",
+        }),
+    ]
+    with _patch_session(side_effect=responses):
+        env = matomo_report.top_pages_report(
+            "1", "https://m.test", SECRET_TOKEN, days=2
+        )
+    assert env["status"] == "error"
+    assert env["error"] == "You cannot access Actions"
+    assert env["data"] is None
+    assert env["metadata"]["method"] == "Actions.getEntryPageUrls"
+
+
+def test_top_pages_report_keeps_success_path():
+    """The successful top-pages envelope remains unchanged."""
+    daily = {
+        "2026-01-01": {"nb_visits": 100, "nb_uniq_visitors": 80,
+                       "nb_actions": 150, "nb_pageviews": 200,
+                       "bounce_count": 30, "sum_visit_length": 6000},
+    }
+    pages = [
+        {"label": "/landing", "nb_visits": 42, "nb_hits": 50,
+         "entry_nb_visits": 40, "entry_nb_actions": 80,
+         "entry_bounce_count": 4},
+    ]
+    responses = [_mock_response(200, daily), _mock_response(200, pages)]
+    with _patch_session(side_effect=responses):
+        env = matomo_report.top_pages_report(
+            "1", "https://m.test", SECRET_TOKEN, days=2
+        )
+    assert env["status"] == "success"
+    assert env["error"] is None
+    assert env["data"]["total_organic_visits"] == 100
+    assert env["data"]["pages"][0]["url"] == "/landing"
+    assert env["data"]["pages"][0]["visits"] == 42
+
+
+def test_top_pages_cli_reports_failure_in_human_and_json_modes(
+        monkeypatch, capsys):
+    """The CLI must exit nonzero and keep JSON valid on an entry-page error."""
+    monkeypatch.setenv("MATOMO_URL", "https://m.test")
+    monkeypatch.setenv("MATOMO_API_TOKEN", SECRET_TOKEN)
+    monkeypatch.setenv("MATOMO_SITE_ID", "1")
+    daily = {
+        "2026-01-01": {"nb_visits": 100, "nb_uniq_visitors": 80,
+                       "nb_actions": 150, "nb_pageviews": 200,
+                       "bounce_count": 30, "sum_visit_length": 6000},
+    }
+    error = _mock_response(200, {
+        "result": "error",
+        "message": "You cannot access Actions",
+    })
+
+    with _patch_session(side_effect=[_mock_response(200, daily), error]), \
+            patch("sys.argv", ["matomo_report.py", "top-pages"]):
+        rc = matomo_report.main()
+    captured = capsys.readouterr()
+    assert rc == 1
+    assert "You cannot access Actions" in captured.err
+
+    with _patch_session(side_effect=[_mock_response(200, daily), error]), \
+            patch("sys.argv", ["matomo_report.py", "top-pages", "--json"]):
+        rc = matomo_report.main()
+    captured = capsys.readouterr()
+    assert rc == 1
+    payload = json.loads(captured.out)
+    assert payload["status"] == "error"
+    assert payload["error"] == "You cannot access Actions"
+
+
 def test_device_breakdown_handles_matomo5_array(monkeypatch):
     """DevicesDetection.getType returns a JSON array with bounce_count."""
     raw = [
