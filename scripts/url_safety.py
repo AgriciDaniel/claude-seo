@@ -55,7 +55,9 @@ audit a dev server, a staging host, or a machine reached over Tailscale.
 It is consulted **only** for the first, top-level URL handed to
 ``validate_url`` / ``validate_url_strict``. Redirect targets, embedded
 subresources, and browser-issued requests never consult it, and cloud
-metadata endpoints are refused even when listed. Unset, the policy is
+metadata endpoints are refused even when listed. The one later read is the
+DNS pin's port check: a redirect to another port on the admitted host is
+followed only if the allowlist names that port too. Unset, the policy is
 exactly what it is without the feature.
 
 Threading
@@ -246,6 +248,8 @@ def is_safe_ip(ip_str: str) -> bool:
 #     free of any environment dependency.
 #   * A host must be named. There is no range, wildcard, or "all private".
 #   * ``host:port`` matches that port only. A bare ``host`` matches any port.
+#     ``_pin_dns`` holds the admitted host to the same rule for the whole
+#     request chain: see ``_local_pin_allows_port``.
 #   * Cloud metadata endpoints are refused even when listed. This is the
 #     trapdoor every "allow local" flag falls through: 169.254.169.254 is
 #     link-local, 100.100.100.200 sits inside the Tailscale range this
@@ -490,8 +494,9 @@ def validate_url_strict(url: str) -> tuple[str, str]:
     if port is None:
         raise URLSafetyError(f"Invalid port in URL authority: {url!r}")
 
-    # The CLAUDE_SEO_LOCAL_TARGETS allowlist is read here and nowhere the
-    # request chain can reach later, which is what keeps it top-level only.
+    # The CLAUDE_SEO_LOCAL_TARGETS allowlist is read here, which is what keeps
+    # it top-level only. The request chain reaches it again in one place, the
+    # pin's port check for this same host (``_local_pin_allows_port``).
     allowlisted = _is_allowlisted_local_target(hostname, port)
     if hostname in _BLOCKED_HOSTNAMES and not allowlisted:
         raise URLSafetyError(f"Blocked hostname: {hostname}")
@@ -638,6 +643,30 @@ def _validated_proxy_hosts(url: str, proxies: Optional[dict] = None) -> frozense
     )
 
 
+def _local_pin_allows_port(hostname: str, validated_port: int, requested_port) -> bool:
+    """Whether a pin on a non-public address may answer for ``requested_port``.
+
+    The validated port always may. Any other port on the pinned host (a
+    redirect hop, a second request on a session) is a new target and goes
+    through ``CLAUDE_SEO_LOCAL_TARGETS`` again: a ``host:port`` entry reaches
+    that port only, while a bare ``host`` entry keeps matching every port.
+    A port that cannot be read as a number is refused.
+    """
+    if not requested_port:
+        return True  # No port named: the caller is handed the validated one.
+    try:
+        requested = int(requested_port)
+    except (TypeError, ValueError):
+        return False
+    if requested == validated_port:
+        return True
+    try:
+        normalized = normalize_hostname(hostname)
+    except URLSafetyError:
+        return False
+    return _is_allowlisted_local_target(normalized, requested)
+
+
 # A single non-blocking lock guards the global getaddrinfo monkey-patch.
 # This is a deliberate choice: claude-seo scripts run one URL fetch at a
 # time, and we'd rather raise loudly than silently corrupt resolver state
@@ -659,6 +688,12 @@ def _pin_dns(
     :func:`is_safe_ip`. Non-public resolutions raise ``socket.gaierror``,
     which ``requests`` surfaces as ``ConnectionError``: the caller's
     existing error path.
+
+    A public ``pinned_ip`` answers for every port on the named host, so an
+    http to https redirect keeps the pin. A non-public ``pinned_ip`` (a
+    ``CLAUDE_SEO_LOCAL_TARGETS`` target) answers for ``port`` only, plus any
+    other port the allowlist names for that host; see
+    :func:`_local_pin_allows_port`.
 
     ``exempt_hosts`` are resolved by the real resolver without the
     fall-through check. It carries the configured HTTP proxy, if any: the
@@ -686,11 +721,22 @@ def _pin_dns(
 
     original_getaddrinfo = socket.getaddrinfo
     target = hostname.lower()
+    # A pinned address that is not public was admitted through
+    # CLAUDE_SEO_LOCAL_TARGETS, where ``host:port`` allows that port only.
+    # Such a pin must not answer for the host's other ports, or a redirect
+    # from the allowed dev server reaches every service on that address.
+    port_bound = not is_safe_ip(pinned_ip)
 
     def patched(host, requested_port, *args, **kwargs):
         # Branch 1: the originally-pinned host returns the validated IP
         # without any further resolver call.
         if host and host.lower() == target:
+            if port_bound and not _local_pin_allows_port(target, port, requested_port):
+                raise socket.gaierror(
+                    socket.EAI_FAIL,
+                    f"url_safety: refused port {requested_port!r} on pinned "
+                    f"non-public host {host}; validated port is {port}",
+                )
             family = kwargs.get("family", args[0] if args else 0)
             if family in (0, socket.AF_UNSPEC, socket.AF_INET):
                 return [(
@@ -784,8 +830,12 @@ DEFAULT_REQUEST_HEADERS = {
 _CONTENT_TYPE_CHARSET_RE = re.compile(r"charset\s*=\s*['\"]?([^;,'\"\s>]+)", re.IGNORECASE)
 # HTML's encoding prescan reads attributes, not the substring "charset=".
 _META_TAG_RE = re.compile(r"<meta\b([^>]*)>", re.IGNORECASE)
+# An unquoted value runs to whitespace or ">", as in HTML, so
+# ``content=text/html;charset=windows-1252`` is one value. The value part is
+# optional so a run of name characters with no "=" is consumed in one step
+# instead of being rescanned from every offset (quadratic on hostile input).
 _META_ATTR_RE = re.compile(
-    r"([^\s=/>]+)\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s\"'=<>`/]+))",
+    r"([^\s=/>]+)(?:\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s>]+)))?",
     re.IGNORECASE,
 )
 _BOMS = (
@@ -840,11 +890,14 @@ def _extract_meta_charset(raw: bytes) -> str | None:
             elif name == "charset":
                 charset = value.strip()
                 need_pragma = False
+        # An unquoted value keeps the "/" of a self-closing tag
+        # (``<meta charset=utf-8/>``); no encoding label ends in one.
+        charset = (charset or "").strip().rstrip("/")
         if not charset or need_pragma is None:
             continue
         if need_pragma and not got_pragma:
             continue
-        return charset.strip()
+        return charset
     return None
 
 

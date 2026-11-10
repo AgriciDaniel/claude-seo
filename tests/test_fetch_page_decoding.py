@@ -65,6 +65,60 @@ def test_charset_attribute_wins_when_it_is_the_encoding() -> None:
     assert "Smart quote: “" in decoded
 
 
+@pytest.mark.parametrize(
+    "meta",
+    [
+        "<meta http-equiv=content-type content=text/html;charset=windows-1252>",
+        "<meta content=text/html;charset=windows-1252 http-equiv=Content-Type>",
+        "<meta http-equiv=content-type content=text/html;charset=windows-1252/>",
+    ],
+)
+def test_unquoted_content_type_pragma_is_detected(meta: str) -> None:
+    """An unquoted value runs to whitespace or ">", so the whole
+    ``text/html;charset=...`` is the content attribute."""
+    html = (meta + "<p>Smart quote: “</p>").encode("windows-1252")
+    decoded = fetch_page._decode_response_content(FakeResponse(html, "text/html"))
+    assert "Smart quote: “" in decoded
+
+
+@pytest.mark.parametrize(
+    "meta",
+    ["<meta charset=windows-1252/>", "<meta charset=windows-1252 />", "<meta charset=windows-1252>"],
+)
+def test_self_closing_unquoted_charset_is_detected(meta: str) -> None:
+    html = (meta + "<p>Smart quote: “</p>").encode("windows-1252")
+    decoded = fetch_page._decode_response_content(FakeResponse(html, "text/html"))
+    assert "Smart quote: “" in decoded
+
+
+def test_charset_inside_an_unquoted_url_is_not_the_encoding() -> None:
+    """The og:image case again, with the URL unquoted and the text after a "/"."""
+    html = (
+        "<meta property=og:image content=https://cdn.example/charset=iso-8859-1>"
+        "<meta name=description content=text/html;charset=iso-8859-1>"
+        "<p>Café</p>"
+    )
+    decoded = fetch_page._decode_response_content(FakeResponse(html.encode("utf-8"), "text/html"))
+    assert "Café" in decoded
+
+
+def test_meta_scan_stays_fast_on_a_hostile_head() -> None:
+    """A 4096-byte run with no "=" must not be rescanned from every offset."""
+    import time
+
+    from url_safety import _extract_meta_charset
+
+    for filler in (b"a" * 4096, b"\"'" * 2048, b'a="' + b"x" * 4093):
+        raw = (b"<meta " + filler)[:4095] + b">"
+        best = float("inf")
+        for _ in range(3):
+            start = time.perf_counter()
+            assert _extract_meta_charset(raw) is None
+            best = min(best, time.perf_counter() - start)
+        # Linear is well under a millisecond; the quadratic scan took 90 ms or more.
+        assert best < 0.02, filler[:8]
+
+
 def test_invalid_bytes_are_replaced_not_dropped() -> None:
     response = FakeResponse(b"valid utf8 then invalid: \x8f")
     decoded = fetch_page._decode_response_content(response)
