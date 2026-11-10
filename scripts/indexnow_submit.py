@@ -251,7 +251,9 @@ def main() -> int:
     else:
         status = "OK" if result["ok"] else "FAIL"
         print(f"IndexNow: {status} (status={result.get('status_code')})")
-        print(f"  Submitted: {result['submitted']} URLs to {result['endpoint']}")
+        endpoint = result.get("endpoint")
+        destination = f" to {endpoint}" if endpoint else ""
+        print(f"  Submitted: {result['submitted']} URLs{destination}")
         if result.get("engines"):
             print(f"  Engines:   {', '.join(result['engines'])}")
         if not result["ok"]:

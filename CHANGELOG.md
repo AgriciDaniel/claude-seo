@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Avoid flagging a brand suffix when its text only occurs inside a longer word in the description.
 - Resolve relative image and link URLs using the first document base href.
 - Stop Indexing API batches after a quota response instead of sending more requests.
+- Report IndexNow submission errors in text mode without raising a KeyError.
 
 ## [2.5.0] - 2026-10-22
 
