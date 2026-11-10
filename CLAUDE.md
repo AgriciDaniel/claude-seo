@@ -90,8 +90,9 @@ claude-seo/
     seo-flow.md                  # FLOW framework integration
   hooks/                           # Quality gate hooks
     hooks.json                   # PostToolUse schema validation
-  scripts/                         # 60 Python execution scripts
+  scripts/                         # 61 Python execution scripts
     google_auth.py               # Credential management (OAuth, SA, API key, 4-tier detection)
+    google_properties.py         # Picks the GSC/GA4 property for the audited domain, fails closed on a mismatch
     backlinks_auth.py            # Backlink API credential management (Moz, Bing)
     moz_api.py                   # Moz Link Explorer API (DA/PA, spam, domains, anchors)
     bing_webmaster.py            # Bing Webmaster Tools API (registered-site links/comparison)
