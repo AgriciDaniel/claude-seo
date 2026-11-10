@@ -105,9 +105,18 @@ def _bounded_fetch(url: str, max_bytes: int) -> dict:
 
 
 def _robots_sitemaps(content: bytes) -> list[str]:
+    """Return Sitemap URLs declared in a robots.txt body.
+
+    Google's robots.txt syntax is ``field:value`` with an optional ``#``
+    comment through the end of the line. The comment is not part of the URL.
+    A leading UTF-8 BOM is an encoding signature, not part of the first field.
+    """
     text = content.decode("utf-8", errors="replace")
+    if text.startswith("\ufeff"):
+        text = text[1:]
     found = []
     for line in text.splitlines():
+        line = line.split("#", 1)[0]
         match = _SITEMAP_LINE.match(line)
         if match and match.group(1) not in found:
             found.append(match.group(1))

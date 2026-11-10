@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `let's dive into` also matched `let's dive in`, so one sentence was two
   hits. On a 320-token page that moved `filler_score` from 25 to 50,
   `overall_quality` from 47 to 41, and raised the filler flag.
+- **Sitemap discovery keeps a robots.txt URL when a comment follows it.**
+  `Sitemap: https://example.com/products.xml # catalog` was dropped, so that
+  URL was never fetched and only the common paths were checked. A `#` comment
+  runs to the end of the line (Google's robots.txt syntax, and RFC 9309), and
+  a leading UTF-8 BOM is not part of the first field.
 
 ## [2.5.0] - 2026-10-22
 

@@ -158,3 +158,40 @@ def test_private_literal_is_refused_before_network_request():
 def test_invalid_port_is_reported_without_crashing():
     result = discovery.discover_sitemaps("https://example.com:invalid/")
     assert result["error"] == "Target URL contains an invalid port"
+
+
+def test_sitemap_directive_keeps_its_url_when_a_comment_follows():
+    """Google's robots.txt syntax ignores everything after #. The URL stays."""
+    declared = "https://example.com/products.xml"
+    robots = (
+        f"User-agent: *\nSitemap: {declared} # primary catalog\n"
+        f"# Sitemap: https://example.com/secret.xml\n"
+    ).encode()
+    assert discovery._robots_sitemaps(robots) == [declared]
+
+
+def test_sitemap_directive_on_the_first_line_survives_a_utf8_bom():
+    declared = "https://example.com/products.xml"
+    robots = b"\xef\xbb\xbf" + f"Sitemap: {declared}\n".encode()
+    assert discovery._robots_sitemaps(robots) == [declared]
+
+
+def test_commented_sitemap_directive_is_the_url_that_gets_fetched():
+    declared = "https://example.com/products.xml"
+    fetched = []
+
+    def fake_fetch(url, _limit):
+        fetched.append(url)
+        if url.endswith("robots.txt"):
+            return response(
+                content=f"User-agent: *\nSitemap: {declared} # primary catalog\n".encode(),
+                content_type="text/plain",
+            )
+        if url == declared:
+            return response(content=URLSET, url=url)
+        return response(status=404, url=url)
+
+    with patch.object(discovery, "_bounded_fetch", side_effect=fake_fetch):
+        result = discovery.discover_sitemaps("https://example.com")
+    assert declared in fetched
+    assert [item["url"] for item in result["found"] if item["url"] == declared] == [declared]
