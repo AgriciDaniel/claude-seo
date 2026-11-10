@@ -264,7 +264,7 @@ def top_pages_report(
         "pages": report.get("top_pages", []),
         "total_organic_sessions": report.get("totals", {}).get("sessions", 0),
         "quota_tokens_used": report.get("quota_tokens_used"),
-        "error": report.get("error"),
+        "error": report.get("error") or report.get("pages_error"),
     }
 
 

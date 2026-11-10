@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolve relative image and link URLs using the first document base href.
 - Stop Indexing API batches after a quota response instead of sending more requests.
 - Report IndexNow submission errors in text mode without raising a KeyError.
+- GA4 `top-pages` reports now surface failed landing-page queries instead of
+  returning an empty successful report when the daily query succeeded.
 
 ## [2.5.0] - 2026-10-22
 
