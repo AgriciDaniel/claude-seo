@@ -435,6 +435,35 @@ def test_seo_updates_filter_by_year() -> None:
     assert all(u["date"] >= "2025-01-01" for u in since_2025)
 
 
+def test_seo_updates_since_accepts_a_non_zero_padded_month() -> None:
+    # "2025-9" is 6 chars, so the old length-based dispatch fell through to
+    # date.fromisoformat("2025-9") and raised ValueError. A non-padded month
+    # is unambiguous September and must filter the same as "2025-09".
+    data = seo_updates._load()
+    padded = seo_updates._filter(data["updates"], since="2025-09")
+    unpadded = seo_updates._filter(data["updates"], since="2025-9")
+    assert [u["date"] for u in unpadded] == [u["date"] for u in padded]
+
+
+def test_seo_updates_parse_since_rejects_garbage_cleanly() -> None:
+    # An out-of-range month (length 7, so it used to reach date(2025, 13, 1)
+    # and crash) and non-date text both raise a clear ValueError.
+    for bad in ("2025-13", "garbage", "2025-02-30"):
+        with pytest.raises(ValueError):
+            seo_updates._parse_since(bad)
+
+
+def test_seo_updates_cli_reports_a_bad_since_without_a_traceback() -> None:
+    script = Path(__file__).resolve().parents[1] / "scripts" / "seo_updates.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--since", "2025-13", "--json"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr
+    assert "invalid --since" in result.stderr
+
+
 def test_seo_updates_cli_accepts_every_known_kind() -> None:
     """`--kind documentation` used to be rejected by argparse while the ledger used it."""
     script = Path(__file__).resolve().parents[1] / "scripts" / "seo_updates.py"
