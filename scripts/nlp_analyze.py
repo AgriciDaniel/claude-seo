@@ -97,13 +97,19 @@ def analyze_text(
         "content": text[:100000],  # API limit
         "languageCode": language,
     }
+    # v1 names the field "language" and rejects "languageCode" with HTTP 400.
+    v1_document = {
+        "type": "PLAIN_TEXT",
+        "content": document["content"],
+        "language": language,
+    }
 
     # Entities still use v1 because it returns Knowledge Graph metadata
     # and salience consistently. Other features stay on v2 annotateText.
     wants_entities = "entities" in features
     if wants_entities:
         body = {
-            "document": document,
+            "document": v1_document,
             "encodingType": "UTF8",
         }
         try:
