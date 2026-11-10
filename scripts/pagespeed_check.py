@@ -537,9 +537,14 @@ def main():
         result = query_crux(args.url, api_key, form_factor=args.form_factor)
     elif args.psi_only:
         strategies = ["mobile", "desktop"] if args.strategy == "both" else [args.strategy]
-        result = {"psi": {}}
+        result = {"psi": {}, "error": None}
         for strat in strategies:
-            result["psi"][strat] = run_pagespeed(args.url, strategy=strat, api_key=api_key)
+            psi_result = run_pagespeed(args.url, strategy=strat, api_key=api_key)
+            result["psi"][strat] = psi_result
+            if psi_result.get("error"):
+                # Surface the per-strategy failure at the top level so the
+                # exit-code check below sees it, as combined_check already does.
+                result["error"] = psi_result["error"]
     else:
         result = combined_check(args.url, api_key=api_key, strategy=args.strategy)
 
