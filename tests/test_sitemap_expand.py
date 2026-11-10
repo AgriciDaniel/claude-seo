@@ -527,3 +527,107 @@ def test_cli_prints_expanded_json_and_validates_flags(capsys):
         with pytest.raises(SystemExit) as stop:
             discovery.main()
     assert stop.value.code == 2
+
+
+def test_sample_urls_keep_their_query_so_they_can_be_checked():
+    locs = [f"{SITE}/product?id={number}" for number in range(5)]
+    result, _ = run({SITE + "/sitemap.xml": urlset(*locs)})
+    item = file_for(result, "/sitemap.xml")
+    assert item["sample_urls"] == locs
+    assert (item["redacted_url_count"], item["redacted_url_examples"]) == (0, [])
+
+
+def test_sample_urls_are_unique_and_drop_only_the_fragment():
+    body = urlset(SITE + "/a?page=2#top", SITE + "/a?page=2", SITE + "/a?page=2#end", SITE + "/b", SITE + "/b")
+    result, _ = run({SITE + "/sitemap.xml": body}, sample_size=2)
+    assert file_for(result, "/sitemap.xml")["sample_urls"] == [SITE + "/a?page=2", SITE + "/b"]
+
+
+def test_urls_with_token_parameters_are_listed_apart_and_never_sampled():
+    body = urlset(
+        SITE + "/account?token=abc123SECRET&amp;id=1",
+        SITE + "/cart?PHPSESSID=deadbeefSECRET",
+        SITE + "/dl?file=a.pdf&amp;X-Amz-Signature=feedSECRET",
+        SITE + "/blog?author=jane",  # "author" is not "auth"
+        SITE + "/search?keyword=shoes",  # "keyword" is not "key"
+    )
+    result, _ = run({SITE + "/sitemap.xml": body})
+    item = file_for(result, "/sitemap.xml")
+    assert item["sample_urls"] == [SITE + "/blog?author=jane", SITE + "/search?keyword=shoes"]
+    assert item["redacted_url_count"] == 3
+    assert item["redacted_url_examples"] == [
+        SITE + "/account?token=REDACTED&id=1",
+        SITE + "/cart?PHPSESSID=REDACTED",
+        SITE + "/dl?file=a.pdf&X-Amz-Signature=REDACTED",
+    ]
+    assert "SECRET" not in json.dumps(result)
+    assert (item["url_count"], result["expanded"]["totals"]["unique_urls"]) == (5, 5)
+
+
+def test_a_url_repeated_in_one_file_and_listed_in_an_earlier_file_is_counted_once_each_way():
+    """The reviewer's case: c.xml lists p0 twice, and a.xml already listed p0."""
+    routes = {
+        SITE + "/sitemap.xml": index(SITE + "/a.xml", SITE + "/b.xml", SITE + "/c.xml"),
+        SITE + "/a.xml": urlset(SITE + "/p0", SITE + "/p1", SITE + "/p2"),
+        SITE + "/b.xml": urlset(SITE + "/p2", SITE + "/p3", SITE + "/p4"),
+        SITE + "/c.xml": urlset(SITE + "/p0", SITE + "/p0", SITE + "/zz", SITE + "/p2", SITE + "/zz", SITE + "/zz"),
+    }
+    result, _ = run(routes)
+    assert [file_for(result, name)["duplicate_count"] for name in ("/a.xml", "/b.xml", "/c.xml")] == [0, 0, 3]
+    totals = result["expanded"]["totals"]
+    # b repeats p2 from a; c repeats p0 and p2 from earlier files.
+    assert (totals["duplicates_within_files"], totals["duplicates_across_files"]) == (3, 3)
+    assert (totals["total_urls"], totals["unique_urls"]) == (12, 6)
+    assert totals["total_urls"] == (
+        totals["unique_urls"] + totals["duplicates_within_files"] + totals["duplicates_across_files"]
+    )
+
+
+MALFORMED = [
+    "http://[bad/sitemap.xml",
+    "http://[::1/sitemap.xml",
+    "https://exa\u2100mple.com/sitemap.xml",
+    "http://user:hunter2@[bad/sitemap.xml?token=hunter2",
+]
+
+
+@pytest.mark.parametrize("bad", MALFORMED)
+@pytest.mark.parametrize("expand", [False, True])
+def test_malformed_robots_sitemap_line_is_recorded_and_the_run_continues(bad, expand):
+    good = SITE + "/good.xml"
+    robots = f"Sitemap: {bad}\nSitemap: {good}\n".encode()
+    result, fetched = run({good: urlset(SITE + "/a")}, robots=robots, expand=expand)
+    assert bad not in fetched
+    assert [item["url"] for item in result["found"]] == [good]
+    skipped = result["checked"][0]
+    assert (skipped["source"], skipped["valid"], skipped["error"]) == ("robots.txt", False, "Malformed sitemap URL")
+    assert len(result["declared"]) == 2
+    assert "hunter2" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("bad", MALFORMED)
+def test_malformed_urls_inside_sitemaps_are_counted_invalid(bad):
+    routes = {
+        SITE + "/sitemap.xml": index(bad, SITE + "/posts.xml", SITE + "/urls.txt"),
+        SITE + "/posts.xml": urlset(bad, SITE + "/a"),
+        SITE + "/urls.txt": response(f"{SITE}/b\n{bad}\n".encode(), SITE + "/urls.txt", content_type="text/plain"),
+    }
+    result, fetched = run(routes)
+    assert bad not in fetched
+    assert file_for(result, "/sitemap.xml")["invalid_loc_count"] == 1
+    assert (file_for(result, "/posts.xml")["url_count"], file_for(result, "/posts.xml")["invalid_loc_count"]) == (2, 1)
+    assert file_for(result, "/urls.txt")["error"] == "invalid text sitemap"
+    assert "hunter2" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("bad", MALFORMED)
+def test_malformed_url_never_raises_from_the_helpers(bad):
+    assert discovery._bounded_fetch(bad, 100)["error"] is not None
+    shown, redacted = discovery._display_url(bad)
+    assert redacted is True and "hunter2" not in shown
+    assert discovery._host(bad) == ""
+    assert discovery.discover_sitemaps(bad)["error"] is not None
+    # A redirect target or content type check on an unparsable final URL.
+    assert discovery._sitemap_kind(b"https://example.com/a\n", "application/octet-stream", bad)[0] is None
+    body = discovery._read_body(response(gzip.compress(urlset(SITE + "/a")), bad))
+    assert body["kind"] == "urlset"

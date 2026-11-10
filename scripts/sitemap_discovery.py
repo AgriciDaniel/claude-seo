@@ -15,9 +15,24 @@ Usage:
 
 --expand also reads every sitemap that was found: it follows a sitemap index
 one level down to its child sitemaps and adds an "expanded" object with
-per-file statistics
-(URL count, lastmod quality, off-host entries, protocol limit findings) and
-totals across files. Every URL is counted; only a bounded sample is printed.
+per-file statistics (URL count, lastmod quality, off-host entries, protocol
+limit findings) and totals across files. Every URL is counted; only a bounded
+sample is printed.
+
+Sitemap file URLs are printed without their query string ("query_redacted").
+"sample_urls" are page URLs meant to be requested, so they keep their query;
+a page URL with a credential-like parameter (token, session, signature) is
+never sampled, and is counted and shown with the value replaced in
+"redacted_url_count" and "redacted_url_examples" instead.
+
+Duplicates are counted per entry, after normalisation. In one file, the first
+entry for a URL that an earlier file already listed is one cross-file
+duplicate ("duplicates_across_files"); every further entry for a URL the same
+file already listed is one within-file duplicate ("duplicate_count",
+"duplicates_within_files"). Each entry is counted once, so for the page
+sitemaps: URLs = unique + within-file + cross-file duplicates + invalid locs.
+
+A malformed URL in robots.txt or in a sitemap is recorded and skipped.
 """
 
 from __future__ import annotations
@@ -74,13 +89,26 @@ _W3C_DATETIME = re.compile(
     r"(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2}))?)?)?",
     re.ASCII,
 )
+# Query parameters whose value is a credential, not part of the page address.
+_SECRET_PARAM = re.compile(
+    r"token|secret|passw|signature|credential|session|sessid|api[-_]?key|access[-_]?key"
+    r"|^(?:key|sig|auth|pwd|sid|jwt)$"
+)
+_MALFORMED = "Malformed sitemap URL"
 # Element that holds one entry, per sitemap kind.
 _ENTRY_TAG = {"urlset": "url", "sitemapindex": "sitemap", "rss": "item", "feed": "entry"}
 
 
 def _display_url(url: str) -> tuple[str, bool]:
-    """Return a safe-to-display URL with userinfo, query, and fragment removed."""
-    parsed = urlparse(url)
+    """Return a safe-to-display URL with userinfo, query, and fragment removed.
+
+    Never raises: text that does not parse as a URL is cut the same way by hand.
+    """
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        text = re.split(r"[?#]", url, maxsplit=1)[0]
+        return re.sub(r"(?<=//)[^/]*@", "", text), True
     host = parsed.hostname or ""
     try:
         port = parsed.port
@@ -142,6 +170,9 @@ def _bounded_fetch(url: str, max_bytes: int) -> dict:
         result["error"] = "Request timed out"
     except requests.exceptions.RequestException:
         result["error"] = "Request failed"
+    except ValueError:
+        # Text that is not a URL at all, such as an unclosed IPv6 bracket.
+        result["error"] = _MALFORMED
     return result
 
 
@@ -213,7 +244,7 @@ def _classify(content: bytes, content_type: str, url: str) -> tuple[str | None, 
             return local, None, root, None
         return None, "unsupported XML root", None, None
 
-    if "text/plain" in content_type.lower() or urlparse(url).path.lower().endswith(".txt"):
+    if "text/plain" in content_type.lower() or _url_path(url).lower().endswith(".txt"):
         # Decode the BOM-free bytes: a leading UTF-8 BOM is an encoding
         # signature, not part of the first URL.
         lines = [line.strip() for line in stripped.decode("utf-8", errors="replace").splitlines() if line.strip()]
@@ -281,10 +312,13 @@ def _read_body(fetched: dict) -> dict:
             body["error"] = _TOO_LARGE
             return body
         body["decompressed_bytes"] = len(content)
-        parsed = urlparse(url)
-        if parsed.path.lower().endswith(".gz"):
-            # sitemap.txt.gz is a text sitemap: classify it by the inner name.
-            url = urlunparse(parsed._replace(path=parsed.path[:-3]))
+        try:
+            parsed = urlparse(url)
+            if parsed.path.lower().endswith(".gz"):
+                # sitemap.txt.gz is a text sitemap: classify it by the inner name.
+                url = urlunparse(parsed._replace(path=parsed.path[:-3]))
+        except ValueError:
+            pass
     body["kind"], body["error"], body["root"], body["lines"] = _classify(content, fetched["content_type"], url)
     return body
 
@@ -307,8 +341,51 @@ def _fetch_sitemap(url: str) -> tuple[dict, dict | None, str | None]:
     return fetched, body, body["error"]
 
 
+def _parses(url: str) -> bool:
+    try:
+        urlparse(url)
+    except ValueError:
+        return False
+    return True
+
+
+def _url_path(url: str) -> str:
+    try:
+        return urlparse(url).path
+    except ValueError:
+        return ""
+
+
 def _host(url: str) -> str:
-    return (urlparse(url).hostname or "").lower().rstrip(".")
+    """Lower-case host of a URL; empty when the text does not parse."""
+    try:
+        return (urlparse(url).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return ""
+
+
+def _sample_url(loc: str) -> tuple[str, bool]:
+    """Return a valid page URL as printed, and whether a value was replaced.
+
+    A sample is there to be requested, so the query is kept. The fragment is
+    dropped (it is never sent). The value of a credential-like parameter is
+    replaced, which makes that URL useless for a status check.
+    """
+    if "?" not in loc:
+        return loc.split("#", 1)[0], False
+    parsed = urlparse(loc)
+    pairs = []
+    replaced = False
+    for pair in parsed.query.split("&"):
+        key, equals, _value = pair.partition("=")
+        if equals and _SECRET_PARAM.search(unquote(key).lower()):
+            pair = f"{key}=REDACTED"
+            replaced = True
+        pairs.append(pair)
+    if not replaced:
+        return loc.split("#", 1)[0], False
+    netloc = parsed.netloc.rpartition("@")[2]
+    return urlunparse((parsed.scheme, netloc, parsed.path, parsed.params, "&".join(pairs), "")), True
 
 
 def _local(element) -> str:
@@ -396,7 +473,13 @@ def _normalize_url(url: str) -> str | None:
 
 
 class _Expansion:
-    """Per-file statistics and cross-file totals for --expand."""
+    """Per-file statistics and cross-file totals for --expand.
+
+    Duplicates are counted per entry on the normalised URL. In one file, the
+    first entry for a URL that an earlier file listed is a cross-file
+    duplicate; any further entry for a URL that file already listed is a
+    within-file duplicate. No entry is counted both ways.
+    """
 
     def __init__(self, sample_size: int) -> None:
         self.sample_size = sample_size
@@ -407,7 +490,7 @@ class _Expansion:
         self.analysed: set[str] = set()
         # Top-level indexes waiting for their children: (report, final URL, child URLs).
         self.pending: list[tuple[dict, str, list[str]]] = []
-        # Digest of a normalised URL -> number of the first file that listed it.
+        # Digest of a normalised URL -> number of the last file that listed it.
         self.seen: dict[bytes, int] = {}
         self.tracking_complete = True
         self.unique = 0
@@ -533,6 +616,8 @@ class _Expansion:
             "lastmod_identical_share": None,
             "cross_host_url_count": None,
             "cross_host_url_examples": [],
+            "redacted_url_count": None,
+            "redacted_url_examples": [],
             "findings": [],
             "sample_urls": [],
             "_cross_file_duplicates": 0,
@@ -558,11 +643,13 @@ class _Expansion:
         index = kind == "sitemapindex"
         file_number = len(self.files)
         host = _host(final_url)
-        count = invalid = with_lastmod = bad_lastmod = cross_host = repeats = cross_file = 0
+        count = invalid = with_lastmod = bad_lastmod = cross_host = repeats = cross_file = secret = 0
         oldest: tuple[datetime, str] | None = None
         newest: tuple[datetime, str] | None = None
         lastmods: Counter[str] = Counter()
         examples: list[str] = report["cross_host_url_examples"]
+        secret_examples: list[str] = report["redacted_url_examples"]
+        sampled: set[str] = set()
         children: list[str] = []
         child_set: set[str] = set()
         for loc, lastmod in entries:
@@ -593,12 +680,18 @@ class _Expansion:
                     child_set.add(loc)
                     children.append(loc)
                 continue
-            if len(report["sample_urls"]) < self.sample_size:
-                report["sample_urls"].append(_display_url(loc)[0])
-            first_file = self._track(loc, file_number)
-            if first_file == file_number:
+            shown, replaced = _sample_url(loc)
+            if replaced:
+                secret += 1
+                if len(secret_examples) < MAX_EXAMPLES and shown not in secret_examples:
+                    secret_examples.append(shown)
+            elif len(sampled) < self.sample_size and shown not in sampled:
+                sampled.add(shown)
+                report["sample_urls"].append(shown)
+            seen_in = self._track(loc, file_number)
+            if seen_in == "same_file":
                 repeats += 1
-            elif first_file is not None:
+            elif seen_in == "earlier_file":
                 cross_file += 1
 
         report.update({
@@ -611,6 +704,7 @@ class _Expansion:
             "lastmod_oldest": oldest[1] if oldest else None,
             "lastmod_newest": newest[1] if newest else None,
             "cross_host_url_count": cross_host,
+            "redacted_url_count": secret,
             "_cross_file_duplicates": cross_file,
         })
         if lastmods:
@@ -621,21 +715,31 @@ class _Expansion:
             report["findings"].append("over_50000_sitemaps" if index else "over_50000_urls")
         return children
 
-    def _track(self, loc: str, file_number: int) -> int | None:
-        """Remember a URL. Returns the file that listed it before, or None if new."""
+    def _track(self, loc: str, file_number: int) -> str | None:
+        """Remember one entry and say where its URL was listed before.
+
+        Returns "new", "same_file" (this file already listed it: a within-file
+        duplicate), "earlier_file" (first entry in this file for a URL that an
+        earlier file listed: a cross-file duplicate), or None when the URL
+        cannot be tracked. The table then points at this file, so a second
+        entry here is a within-file duplicate, not another cross-file one.
+        """
         key = _normalize_url(loc)
         if key is None:
             return None
         digest = hashlib.blake2b(key.encode("utf-8", "replace"), digest_size=8).digest()
-        first_file = self.seen.get(digest)
-        if first_file is not None:
-            return first_file
-        if len(self.seen) < MAX_TRACKED_URLS:
-            self.seen[digest] = file_number
-            self.unique += 1
-        else:
+        last_file = self.seen.get(digest)
+        if last_file is None:
+            if len(self.seen) < MAX_TRACKED_URLS:
+                self.seen[digest] = file_number
+                self.unique += 1
+                return "new"
             self.tracking_complete = False
-        return None
+            return None
+        if last_file == file_number:
+            return "same_file"
+        self.seen[digest] = file_number
+        return "earlier_file"
 
 
 def discover_sitemaps(
@@ -708,6 +812,11 @@ def discover_sitemaps(
             "valid": False,
             "error": None,
         }
+        if not _parses(candidate):
+            # robots.txt is page-controlled text: record the line, fetch nothing.
+            entry["error"] = _MALFORMED
+            result["checked"].append(entry)
+            continue
         if urlparse(candidate).hostname != target_host and candidate in declared_raw:
             entry["cross_host"] = True
 

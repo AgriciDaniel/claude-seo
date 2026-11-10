@@ -44,17 +44,22 @@ the output; do not count or parse sitemap files by hand:
 | `<lastmod>` present and valid **W3C Datetime** | `lastmod_count` against `url_count`, `lastmod_invalid_count` |
 | `<lastmod>` suspiciously uniform | `lastmod_identical_share` near 1.0 on a file with many URLs, with `lastmod_most_common`, `lastmod_oldest`, `lastmod_newest` |
 | URLs on another host than their sitemap | `cross_host_url_count`, `cross_host_url_examples`; a child file on another host has `cross_host` |
-| Duplicate or malformed URLs | `duplicate_count`, `invalid_loc_count`; `totals.unique_urls` against `totals.total_urls`, `totals.duplicates_across_files` |
+| Duplicate or malformed URLs | `duplicate_count` (repeats inside one file), `totals.duplicates_across_files` (URL already listed by an earlier file; each entry is counted one way only), `invalid_loc_count`, `totals.unique_urls` against `totals.total_urls` |
+| Tokens or session IDs in listed URLs | `redacted_url_count`, `redacted_url_examples` (values replaced) |
 | Sitemap referenced in robots.txt | `source` is `robots.txt` (top-level `declared` lists every directive) |
 | Run cut short | `truncated`, `children.skipped`; rerun with a higher `--max-children` (default 50) |
 
-URLs in the output have query strings removed (`query_redacted`). Every URL is
-counted, but only `--sample` URLs per file (default 20) are printed in
-`sample_urls`.
+Sitemap file URLs (`url`, `parent`) and `cross_host_url_examples` are printed
+without their query string (`query_redacted` refers to the file URL). Every
+page URL is counted, but only `--sample` distinct URLs per file (default 20) are
+printed in `sample_urls`. Those keep their query string and can be requested as
+printed. URLs in `redacted_url_examples` had a value replaced: report them, do
+not status-check them.
 
 ### Validation Checks
 The script cannot judge these; check them yourself:
-- URLs return HTTP 200: spot-check `sample_urls` from each file
+- URLs return HTTP 200: spot-check `sample_urls` from each file (never
+  `redacted_url_examples` or `cross_host_url_examples`, which are not exact URLs)
 - `<lastmod>` accuracy: it must reflect the **last significant content change**
   (main content, structured data, links, not copyright/boilerplate edits).
   Google only honours `<lastmod>` when consistently and verifiably accurate, so

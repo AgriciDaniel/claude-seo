@@ -13,7 +13,7 @@ When working with sitemaps:
 1. Discover and read sitemaps with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run sitemap_discovery.py <url> --expand --json`.
    Use only validated `found` entries and retain declared failures as findings.
 2. Take file facts from `expanded.files` and `expanded.totals` (table below); do not count or parse sitemap files by hand
-3. Check URL status codes on each file's `sample_urls`
+3. Check URL status codes on each file's `sample_urls` (exact URLs, query string kept). Do not status-check `redacted_url_examples` or `cross_host_url_examples`: values or query strings were removed from those
 4. Check for deprecated tags (priority, changefreq: both ignored by Google)
 5. Verify lastmod accuracy (reflects last *significant* change, not boilerplate)
 6. Compare crawled pages vs sitemap coverage
@@ -30,7 +30,8 @@ When working with sitemaps:
 | lastmod present, valid W3C Datetime | `lastmod_count` against `url_count`, `lastmod_invalid_count` |
 | lastmod identical across a file | `lastmod_identical_share` near 1.0, `lastmod_most_common`, `lastmod_oldest`, `lastmod_newest` |
 | URLs on another host than their sitemap | `cross_host_url_count`, `cross_host_url_examples`, `cross_host` on a child file |
-| Duplicate or malformed URLs | `duplicate_count`, `invalid_loc_count`, `totals.unique_urls`, `totals.duplicates_across_files` |
+| Duplicate or malformed URLs | `duplicate_count` (repeats inside one file), `totals.duplicates_across_files` (listed by an earlier file), `invalid_loc_count`, `totals.unique_urls` |
+| Tokens or session IDs in listed URLs | `redacted_url_count`, `redacted_url_examples` |
 | Run cut short | `truncated`, `children.skipped`; rerun with a higher `--max-children` (default 50) |
 
 ## Quality Gates
