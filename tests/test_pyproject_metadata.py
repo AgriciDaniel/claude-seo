@@ -37,13 +37,15 @@ def test_requirements_keep_security_and_compatibility_floors() -> None:
     """Floors may rise (Dependabot bumps) but never fall below these minimums."""
     text = (REPO_ROOT / "requirements.txt").read_text(encoding="utf-8")
     minimums = {
-        "lxml": (6, 1, 1),
+        "lxml": (6, 1, 3),
         "lxml_html_clean": (0, 4, 5),   # advisories fixed in 0.4.4 and 0.4.5
-        "urllib3": (2, 7, 0),
+        "playwright": (1, 63, 0),
+        "urllib3": (2, 8, 0),           # three advisories fixed only in 2.8.0
         "numpy": (2, 2, 6),
         "pillow": (13, 0, 0),           # 28 advisories fixed only in 13.0.0
+        "google-auth": (2, 58, 1),
         "google-auth-httplib2": (0, 4, 0),
-        "google-ads": (25, 0, 0),
+        "google-ads": (33, 0, 0),
     }
     for package, minimum in minimums.items():
         assert _floor(text, package) >= minimum, f"{package} floor is below {minimum}"

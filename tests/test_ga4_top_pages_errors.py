@@ -1,4 +1,4 @@
-"""GA4 热门落地页查询失败时必须保留错误。"""
+"""A failed GA4 top landing pages query must keep its error."""
 
 from __future__ import annotations
 

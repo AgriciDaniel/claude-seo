@@ -1,5 +1,5 @@
 """
-Tests for scripts/preload_check.py — the Speculation Rules / preload auditor.
+Tests for scripts/preload_check.py: the Speculation Rules / preload auditor.
 
 Regression coverage for non-object speculationrules bodies: ``json.loads``
 accepts a bare array, string, or ``null`` (all valid JSON), so the

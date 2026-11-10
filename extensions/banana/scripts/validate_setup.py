@@ -92,11 +92,9 @@ def main() -> int:
 
         # 6. API key present
         env = mcp.get("env", {})
-        key = env.get("GOOGLE_AI_API_KEY", "")
         results.append(check(
             "GOOGLE_AI_API_KEY is set",
-            bool(key),
-            f"...{key[-4:]}" if len(key) > 12 else "(empty or short)",
+            bool(env.get("GOOGLE_AI_API_KEY")),
         ))
 
         # 7. Model configured

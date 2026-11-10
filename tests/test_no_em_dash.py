@@ -4,9 +4,10 @@ The 2026-09-28 house-style pass removed every em dash from skills/, agents/,
 scripts/, schema/, data/, extensions/, docs/, README.md, CLAUDE.md and
 AGENTS.md, rewriting each into plain punctuation (comma, period, colon,
 parentheses or conjunction) so the codebase reads consistently. This test is
-the regression gate: it fails if a future edit reintroduces one.
+the regression gate: it fails if a future edit reintroduces one. tests/ joined
+the gate on 2026-11-10, after two new test files shipped em dashes unseen.
 
-Two kinds of exception exist:
+Three kinds of exception exist:
 
 1. Paths that are synced upstream and hash-locked (skills/seo-flow/references/
    prompts/** and skills/seo-flow/references/flow-prompts.lock). Those files
@@ -15,6 +16,10 @@ Two kinds of exception exist:
    character class in a regex that detects or strips em dashes, and one
    generated-file header string that must keep matching the (excluded,
    hash-locked) lock file it writes.
+3. Test files that predate the tests/ gate (LEGACY_TEST_LINE_COUNTS). Each may
+   keep the em dash lines it had, never more, and is delisted at zero.
+
+En dashes (U+2013) are not gated yet.
 """
 
 from __future__ import annotations
@@ -24,12 +29,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# U+2014 EM DASH, written as an escape so this file itself carries no literal
-# em dash character.
-EM_DASH = "\u2014"
-EN_DASH = "\u2013"
+# U+2014 EM DASH and U+2013 EN DASH, built from code points so this file
+# carries neither the characters nor their escapes and is scanned like any
+# other test file.
+EM_DASH = chr(0x2014)
+EN_DASH = chr(0x2013)
 # Escaped forms that still render an em dash in generated HTML, PDF or text.
-ESCAPED_FORMS = ("&mdash;", "&#8212;", "\\u2014")
+# Each is split in two so the line that defines them does not match itself.
+ESCAPED_FORMS = ("&" + "mdash;", "&#" + "8212;", "\\u" + "2014")
 
 TARGET_PREFIXES = (
     "skills/",
@@ -39,6 +46,7 @@ TARGET_PREFIXES = (
     "data/",
     "extensions/",
     "docs/",
+    "tests/",
 )
 TARGET_FILES = {"README.md", "CLAUDE.md", "AGENTS.md"}
 
@@ -60,6 +68,22 @@ ALLOWLIST = {
         "scripts/sync_flow.py",
         '        "# flow-prompts.lock ' + EM_DASH + ' SHA-256 baseline for synced FLOW prompts",',
     ),
+}
+
+# Test files that already carried em dashes when tests/ joined the gate, with
+# the number of offending lines in each. The numbers may only fall: lower one
+# when a file is cleaned up and delete the entry when it reaches zero.
+LEGACY_TEST_LINE_COUNTS = {
+    "tests/test_gbp_lint_and_polish.py": 2,
+    "tests/test_manifest_consistency.py": 3,
+    "tests/test_metadata_template.py": 4,
+    "tests/test_parasite_risk_and_extensions.py": 1,
+    "tests/test_phase_j_executable.py": 5,
+    "tests/test_portability.py": 2,
+    "tests/test_render_page.py": 8,
+    "tests/test_sync_flow.py": 3,
+    "tests/test_technical_depth.py": 7,
+    "tests/test_url_safety.py": 2,
 }
 
 
@@ -85,20 +109,27 @@ def _tracked_target_files() -> list[str]:
     return files
 
 
+def _em_dash_hits(rel: str) -> list[str]:
+    try:
+        text = (ROOT / rel).read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return []
+    hits = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if EM_DASH not in line and not any(form in line for form in ESCAPED_FORMS):
+            continue
+        if (rel, line) in ALLOWLIST:
+            continue
+        hits.append(f"{rel}:{lineno}: {line.strip()}")
+    return hits
+
+
 def test_no_em_dash_in_tracked_target_files() -> None:
     hits = []
     for rel in _tracked_target_files():
-        path = ROOT / rel
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
-            continue
-        for lineno, line in enumerate(text.splitlines(), 1):
-            if EM_DASH not in line and not any(form in line for form in ESCAPED_FORMS):
-                continue
-            if (rel, line) in ALLOWLIST:
-                continue
-            hits.append(f"{rel}:{lineno}: {line.strip()}")
+        file_hits = _em_dash_hits(rel)
+        if len(file_hits) > LEGACY_TEST_LINE_COUNTS.get(rel, 0):
+            hits.extend(file_hits)
 
     assert not hits, "em dash (U+2014, or an escape that renders one) found outside the allowlist:\n" + "\n".join(hits)
 
@@ -112,6 +143,12 @@ def test_allowlist_entries_still_present() -> None:
         if line not in text.splitlines():
             missing.append(f"{rel}: {line!r}")
     assert not missing, "allowlisted line(s) no longer found, update ALLOWLIST:\n" + "\n".join(missing)
+
+
+def test_legacy_test_baseline_is_not_stale() -> None:
+    """A cleaned-up test file must leave the baseline so it is fully gated again."""
+    clean = [rel for rel in LEGACY_TEST_LINE_COUNTS if not _em_dash_hits(rel)]
+    assert not clean, "no em dash left, remove from LEGACY_TEST_LINE_COUNTS:\n" + "\n".join(clean)
 
 
 def test_excluded_paths_are_still_excluded_for_a_reason() -> None:

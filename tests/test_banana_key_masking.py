@@ -1,8 +1,9 @@
-"""The banana setup checks show only the last four characters of the key.
+"""The banana setup checks show no part of the key, only whether one is set.
 
-They used to print the first eight as well, which for a Google AI key is the
-fixed prefix plus four characters of the secret (CodeQL
-py/clear-text-logging-sensitive-data).
+They used to print the first eight characters and later the last four. Any
+part of a secret in a log is flagged by CodeQL
+(py/clear-text-logging-sensitive-data), so the output now says "set" or
+"(not set)" and nothing else about the key.
 """
 
 from __future__ import annotations
@@ -37,10 +38,10 @@ def _load(monkeypatch, home: Path, name: str):
     ("setup_mcp", lambda m: m.check_setup()),
     ("validate_setup", lambda m: m.main()),
 ])
-def test_only_the_last_four_key_characters_are_shown(monkeypatch, tmp_path, capsys, name, call):
+def test_no_part_of_the_key_is_shown(monkeypatch, tmp_path, capsys, name, call):
     module = _load(monkeypatch, tmp_path, name)
     monkeypatch.setattr(sys, "argv", [name])
     call(module)
     out = capsys.readouterr().out
-    assert "...wxyz" in out
+    assert FAKE_KEY[-4:] not in out
     assert FAKE_KEY[:8] not in out

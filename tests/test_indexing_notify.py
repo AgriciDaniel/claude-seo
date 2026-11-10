@@ -1,5 +1,5 @@
 """
-Tests for scripts/indexing_notify.py — the Google Indexing API helper.
+Tests for scripts/indexing_notify.py: the Google Indexing API helper.
 
 Regression coverage for the over-quota warning. batch_notify truncates a
 batch larger than the daily quota and sets a warning saying the extra URLs
