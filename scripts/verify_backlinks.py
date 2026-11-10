@@ -4,7 +4,8 @@ Backlink verification crawler for Claude SEO.
 
 Verifies whether known backlinks still exist by fetching source pages and
 checking if the target URL appears in their outbound links. Uses HTTP HEAD
-for fast existence checks and full GET + HTML parsing for link verification.
+for fast existence checks (falling back to GET when a server rejects HEAD) and
+full GET + HTML parsing for link verification.
 
 Usage:
     python verify_backlinks.py --target https://example.com --links links.json --json
@@ -14,6 +15,7 @@ Usage:
 
 import argparse
 import json
+import re
 import sys
 import time
 from urllib.parse import urlparse
@@ -69,7 +71,7 @@ def _head_check(url: str, timeout: int = 15) -> dict:
         return {
             "status_code": resp.status_code,
             "exists": resp.status_code == 200,
-            "redirect_url": str(resp.url) if str(resp.url) != url else None,
+            "redirect_url": str(resp.url) if resp.history else None,
             "error": None,
         }
     except URLSafetyError as e:
@@ -78,6 +80,7 @@ def _head_check(url: str, timeout: int = 15) -> dict:
             "exists": False,
             "redirect_url": None,
             "error": f"blocked by SSRF protection: {e}",
+            "blocked": True,
         }
     except requests.exceptions.Timeout:
         return {"status_code": None, "exists": False, "redirect_url": None, "error": "timeout"}
@@ -90,6 +93,68 @@ def _normalize_url(url: str) -> str:
     parsed = urlparse(url.lower())
     path = parsed.path.rstrip("/") or "/"
     return f"{parsed.scheme}://{parsed.netloc}{path}"
+
+
+# Directives whose value follows a colon, so "max-snippet: 10" is not a
+# user-agent scope like "otherbot: nofollow".
+_VALUED_ROBOTS_DIRECTIVES = {
+    "max-snippet", "max-image-preview", "max-video-preview", "unavailable_after",
+}
+# A crawler name has no spaces, unlike the pieces of a comma-split date in
+# "unavailable_after: Wed, 03 Nov 2026 15:00:00 GMT".
+_CRAWLER_NAME = re.compile(r"[a-z][a-z0-9_.-]*")
+
+
+def _robots_nofollow(value: str) -> bool:
+    """True if a robots directive list has nofollow (or none) for all crawlers.
+
+    Directives after a user-agent prefix ("otherbot: noindex, nofollow") apply
+    only to that crawler and are ignored.
+    """
+    scoped = False
+    for token in value.split(","):
+        token = token.strip().lower()
+        name, sep, rest = token.partition(":")
+        name = name.strip()
+        if sep and name not in _VALUED_ROBOTS_DIRECTIVES and _CRAWLER_NAME.fullmatch(name):
+            scoped = True
+            token = rest.strip()
+        if not scoped and token in ("nofollow", "none"):
+            return True
+    return False
+
+
+def _page_nofollow(meta_robots, headers: dict) -> bool:
+    """True if meta robots or X-Robots-Tag tells crawlers not to follow page links."""
+    if meta_robots and _robots_nofollow(meta_robots):
+        return True
+    return any(
+        name.lower() == "x-robots-tag" and _robots_nofollow(value or "")
+        for name, value in (headers or {}).items()
+    )
+
+
+def _apply_get_status(result: dict, page_data: dict) -> bool:
+    """Record a GET outcome on result; True only for a usable 200 response."""
+    result["http_status"] = page_data.get("status_code")
+    if page_data.get("error"):
+        result["status"] = "error"
+        result["error"] = page_data["error"]
+        return False
+    if page_data.get("redirect_chain"):
+        result["redirect_url"] = page_data.get("url")
+    if result["http_status"] == 404:
+        result["status"] = "lost"
+        return False
+    if result["http_status"] != 200:
+        result["status"] = "error"
+        result["error"] = f"HTTP {result['http_status']}"
+        return False
+    return True
+
+
+# Lower rank wins when several links on the page point at the target.
+_MATCH_RANK = {"exact_url": 0, "domain_match": 1, "subdomain_match": 2}
 
 
 def verify_single_backlink(source_url: str, target_url: str,
@@ -115,6 +180,8 @@ def verify_single_backlink(source_url: str, target_url: str,
         "anchor_text": None,
         "rel_attributes": [],
         "link_context": None,
+        "page_nofollow": False,
+        "redirect_url": None,
         "error": None,
     }
 
@@ -127,26 +194,31 @@ def verify_single_backlink(source_url: str, target_url: str,
     source_domain = urlparse(source_url).netloc
     _polite_delay(source_domain)
 
-    # Step 1: HEAD check
+    # Step 1: HEAD check. Redirects are followed, so a 3xx never surfaces
+    # here; a changed final URL is reported as redirect_url instead.
     head_result = _head_check(source_url, timeout=min(timeout, 15))
     result["http_status"] = head_result["status_code"]
 
-    if not head_result["exists"]:
-        if head_result["status_code"] == 404:
-            result["status"] = "lost"
-        elif head_result["status_code"] and 300 <= head_result["status_code"] < 400:
-            result["status"] = "moved"
-            result["redirect_url"] = head_result.get("redirect_url")
-        elif head_result["error"]:
-            result["status"] = "error"
-            result["error"] = head_result["error"]
-        else:
-            result["status"] = "error"
-            result["http_status"] = head_result["status_code"]
+    if head_result.get("blocked"):
+        result["status"] = "error"
+        result["error"] = head_result["error"]
         return result
 
+    if head_result["status_code"] == 404:
+        result["status"] = "lost"
+        return result
+
+    if head_result["exists"]:
+        result["redirect_url"] = head_result["redirect_url"]
+
     if head_only:
-        result["status"] = "exists"
+        # Many servers answer HEAD with 403/405 or fail it outright; only a
+        # GET can tell whether the page exists.
+        if not head_result["exists"]:
+            _polite_delay(source_domain)
+            if not _apply_get_status(result, fetch_page(source_url, timeout=timeout)):
+                return result
+        result["status"] = "moved" if result["redirect_url"] else "exists"
         result["target_found"] = None  # Unknown without full check
         return result
 
@@ -154,18 +226,13 @@ def verify_single_backlink(source_url: str, target_url: str,
     _polite_delay(source_domain)
     page_data = fetch_page(source_url, timeout=timeout)
 
-    if page_data.get("error"):
-        result["status"] = "error"
-        result["error"] = page_data["error"]
-        result["http_status"] = page_data.get("status_code")
+    if not _apply_get_status(result, page_data):
         return result
 
     if not page_data.get("content"):
         result["status"] = "error"
         result["error"] = "Page returned no content"
         return result
-
-    result["http_status"] = page_data.get("status_code", 200)
 
     # Step 3: Parse HTML and find target link
     parsed = parse_html(page_data["content"], base_url=source_url)
@@ -178,6 +245,8 @@ def verify_single_backlink(source_url: str, target_url: str,
     raw_target_host = urlparse(target_url).netloc.lower()
     target_domain = raw_target_host[4:] if raw_target_host.startswith("www.") else raw_target_host
 
+    best_link = None
+    best_match_type = None
     for link in all_page_links:
         link_href = link.get("href", "")
         if not link_href:
@@ -197,14 +266,27 @@ def verify_single_backlink(source_url: str, target_url: str,
         else:
             continue
 
+        # The first link of the best match type wins, so an earlier nav or
+        # footer link to the same domain cannot mask the exact link.
+        if best_match_type is None or _MATCH_RANK[match_type] < _MATCH_RANK[best_match_type]:
+            best_link, best_match_type = link, match_type
+            if match_type == "exact_url":
+                break
+
+    if best_link is not None:
         result["target_found"] = True
-        result["match_type"] = match_type
-        result["anchor_text"] = link.get("text", "").strip()[:200]
-        rel = link.get("rel", "")
+        result["match_type"] = best_match_type
+        result["anchor_text"] = best_link.get("text", "").strip()[:200]
+        rel = best_link.get("rel", "")
         if rel:
             result["rel_attributes"] = rel.split() if isinstance(rel, str) else rel
         else:
             result["rel_attributes"] = ["follow"]  # No rel = dofollow
+        # Page-level nofollow is reported separately; rel_attributes stays
+        # the link's own markup.
+        result["page_nofollow"] = _page_nofollow(
+            parsed.get("meta_robots"), page_data.get("headers", {})
+        )
         result["status"] = "verified"
         return result
 
@@ -384,7 +466,9 @@ def main():
             anchor_display = f" [{anchor[:30]}]" if anchor else ""
             rel = r.get("rel_attributes", [])
             rel_display = f" rel={','.join(rel)}" if rel and rel != ["follow"] else ""
-            print(f"  [{status:13s}] {r.get('source_url', '?')}{anchor_display}{rel_display}")
+            page_display = " page=nofollow" if r.get("page_nofollow") else ""
+            print(f"  [{status:13s}] {r.get('source_url', '?')}{anchor_display}{rel_display}"
+                  f"{page_display}")
 
 
 if __name__ == "__main__":
