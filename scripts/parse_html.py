@@ -126,6 +126,15 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         Dictionary with extracted SEO data
     """
     soup = BeautifulSoup(html, _HTML_PARSER)
+    resource_base_url = base_url
+    base = soup.find("base", href=True)
+    if base:
+        try:
+            candidate = urljoin(base_url or "", base["href"])
+            if urlparse(candidate).scheme.lower() not in {"data", "javascript"}:
+                resource_base_url = candidate
+        except ValueError:
+            pass  # An invalid base falls back to the document URL.
 
     result = {
         "title": None,
@@ -210,8 +219,8 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     # Images
     for img in soup.find_all("img"):
         src = img.get("src", "")
-        if base_url and src:
-            src = urljoin(base_url, src)
+        if resource_base_url and src:
+            src = urljoin(resource_base_url, src)
 
         result["images"].append({
             "src": src,
@@ -231,7 +240,7 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
             if not href or href.startswith("#") or href.startswith("javascript:"):
                 continue
 
-            full_url = urljoin(base_url, href)
+            full_url = urljoin(resource_base_url, href)
             parsed = urlparse(full_url)
 
             link_data = {
