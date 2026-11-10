@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -428,6 +429,200 @@ def test_hostile_nesting_is_survived():
     assert finding(deep_json, "invalid-jsonld")["count"] == 1
 
 
+HOSTILE_TEXT = {
+    "punctuation": "a" + "!" * 1_000_000 + "a",
+    "dashes": "a" + " -'" * 333_333 + "a",
+    "whitespace": "a" + " \n\t" * 333_333 + "a",
+}
+HOSTILE_PLACES = {
+    "anchor": lambda text: {"body": main_content(f'<a href="/beans">{text}</a>')},
+    "title": lambda text: {"title": text},
+    "description": lambda text: {"description": text},
+    "heading": lambda text: {"body": main_content(h1=f"<h1>{text}</h1>")},
+}
+
+
+@pytest.mark.parametrize("place", sorted(HOSTILE_PLACES))
+@pytest.mark.parametrize("kind", sorted(HOSTILE_TEXT))
+def test_one_megabyte_of_hostile_text_costs_linear_time(place, kind):
+    parts = HOSTILE_PLACES[place](HOSTILE_TEXT[kind])
+    started = time.perf_counter()
+    result = run(**parts)
+    elapsed = time.perf_counter() - started
+    assert elapsed < 2, f"{place} with 1 MB of {kind} took {elapsed:.1f} s"
+    assert "summary" in result
+    assert all(len(item["evidence"]) <= page_checks.EVIDENCE_MAX_CHARS for item in result["findings"])
+
+
+# One megabyte aimed at each remaining regex and parser that reads page-controlled text.
+HOSTILE_ELSEWHERE = {
+    "comments before the doctype": {"doctype": "<!----> " * 20_000 + "<!--" + "-" * 1_000_000},
+    "content-type meta": {"charset": '<meta http-equiv="content-type" content="text/html; '
+                                     + "charset" + " " * 500_000 + "charset=" + " " * 500_000 + ';">'},
+    "robots meta": {"head": '<meta name="robots" content="' + "a: b: c , " * 100_000 + '">'},
+    "x-robots-tag header": {"headers": {**HEADERS, "X-Robots-Tag": "bot: unavailable_after: 1, 2:" * 40_000}},
+    "content-type header": {"headers": {"Content-Type": "text/html; charset" + " " * 1_000_000 + "x"}},
+    "canonical escapes": {"canonical": "https://example.com/" + "%c3%a9é%" * 125_000},
+    "canonical slashes": {"canonical": "https://example.com/" + "/a/" * 333_333},
+    "image srcset": {"body": main_content('<img alt="x" srcset="' + " ," * 500_000 + '">')},
+    "visible text": {"body": main_content("<p>" + "lorem ipsu " * 90_000 + "</p>")},
+    "json-ld": {"head": '<script type="application/ld+json">' + '{"a":' * 150_000 + "</script>"},
+}
+
+
+@pytest.mark.parametrize("target", sorted(HOSTILE_ELSEWHERE))
+def test_one_megabyte_aimed_at_each_other_pattern_costs_linear_time(target):
+    started = time.perf_counter()
+    result = run(**HOSTILE_ELSEWHERE[target])
+    elapsed = time.perf_counter() - started
+    assert elapsed < 2, f"1 MB of {target} took {elapsed:.1f} s"
+    assert "summary" in result
+
+
+def test_generic_anchor_ignores_surrounding_punctuation_up_to_the_cap():
+    def generic(anchor: str) -> bool:
+        return "generic-anchor-text" in ids(run(body=main_content(f'<a href="/beans">{anchor}</a>')))
+
+    assert generic("&raquo; Click here! &laquo;")
+    assert generic("__Read More__")
+    assert generic("here" + "!" * (page_checks.GENERIC_ANCHOR_MAX_CHARS - 4))
+    assert not generic("click here for the roasting chart")
+    assert not generic("!!!")
+    # Longer than the cap is not examined: no real generic link is padded that far.
+    assert not generic("here" + "!" * (page_checks.GENERIC_ANCHOR_MAX_CHARS - 3))
+
+
+# ---------------------------------------------------------------------------
+# URL spellings: the same page under another encoding is not another page
+# ---------------------------------------------------------------------------
+
+
+def url_verdict(page_url: str, other: str) -> tuple[str, set[str]]:
+    """Canonical, hreflang and og:url all name ``other`` on a page served at ``page_url``."""
+    result = run(url=page_url, canonical=other, og=OG.replace(f'content="{URL}"', f'content="{page_url}"'),
+                 head=f'<link rel="alternate" hreflang="en" href="{other}">')
+    url_findings = {"canonical-points-elsewhere", "hreflang-missing-self", "og-url-differs-from-canonical"}
+    return result["facts"]["canonical_status"], ids(result) & url_findings
+
+
+@pytest.mark.parametrize(("page_url", "other"), [
+    ("https://example.com/caf%C3%A9/", "https://example.com/caf%c3%a9/"),      # WordPress writes lower-case hex
+    ("https://example.com/caf%C3%A9/", "https://example.com/café/"),
+    ("https://example.com/café", "https://example.com/caf%c3%a9/"),
+    ("https://example.com/s?q=caf%C3%A9", "https://example.com/s?q=caf%c3%a9"),
+    ("https://example.com/s?q=caf%C3%A9", "https://example.com/s?q=café"),
+    ("https://example.com/%7Eroaster/a%2Fb", "https://example.com/~roaster/a%2fb"),
+    ("https://xn--bcher-kva.de/guide", "https://bücher.de/guide"),
+    ("https://xn--bcher-kva.de/guide", "https://BÜCHER.DE/guide"),
+    ("https://XN--BCHER-KVA.de/guide", "https://bücher.de/guide/"),
+    ("https://xn--strae-oqa.de/", "https://straße.de/"),
+    ("https://例え.jp/コーヒー", "https://xn--r8jz45g.jp/%E3%82%B3%E3%83%BC%E3%83%92%E3%83%BC"),
+])
+def test_equivalent_url_spellings_are_the_same_page(page_url, other):
+    assert url_verdict(page_url, other) == ("self", set())
+    assert url_verdict(other, page_url) == ("self", set())
+
+
+@pytest.mark.parametrize(("page_url", "other"), [
+    ("https://example.com/caf%C3%A9", "https://example.com/cafe"),             # another path
+    ("https://example.com/caf%C3%A9", "https://example.com/caf%C3%A8"),
+    ("https://example.com/caf%C3%A9", "https://example.com/Caf%C3%A9"),        # path case is real
+    ("https://example.com/caf%E9", "https://example.com/café"),                # Latin-1 escape: other bytes
+    ("https://example.com/a%2Fb", "https://example.com/a/b"),                  # an escaped slash is not a slash
+    ("https://example.com/a%20b", "https://example.com/a+b"),
+    ("https://example.com/a%2541", "https://example.com/aA"),                  # decoded once, never twice
+    ("https://example.com/s?q=1", "https://example.com/s?q=2"),                # another query
+    ("https://example.com/s?q=caf%C3%A9", "https://example.com/s?q=cafe"),
+    ("https://example.com/s?q=a%26b", "https://example.com/s?q=a&b"),
+    ("https://example.com/page", "http://example.com/page"),                   # http versus https
+    ("https://example.com/page", "https://example.com:8443/page"),
+    ("https://bücher.de/", "https://bucher.de/"),                              # another host
+    ("https://straße.de/", "https://strasse.de/"),                             # two registrable domains
+    ("https://xn--bcher-kva.de/", "https://xn--bcher-kva.com/"),
+])
+def test_real_url_differences_stay_different(page_url, other):
+    expected = ("other", {"canonical-points-elsewhere", "hreflang-missing-self", "og-url-differs-from-canonical"})
+    assert url_verdict(page_url, other) == expected
+    assert url_verdict(other, page_url) == expected
+
+
+def test_url_comparison_never_raises_on_a_malformed_url_or_host():
+    long_label = "https://" + "ü" * 70 + ".de/"            # a label over 63 characters is not valid IDNA
+    long_host = "https://" + "ü." * 400_000 + "de/"
+    bad_urls = ["", "http://[bad", "https://example.com:port/", "https://exa mple.com/", long_label, long_host,
+                "https://a..ü.de/", "https://.ü./", "https://xn--.de/", "https://ü\udcff.de/x",
+                "https://example.com/\ud800", "https://example.com/%", "https://example.com/%zz%c3%",
+                "https://example.com/" + "%c3" * 400_000, "https://ｅｘａｍｐｌｅ。com/", "https://ü@:x/"]
+    started = time.perf_counter()
+    for bad in bad_urls:
+        assert isinstance(page_checks.url_match_key(bad), str)
+        assert page_checks.url_match_key(bad) == page_checks.url_match_key(bad)
+        if bad.isprintable():
+            result = run(canonical=bad, head=f'<link rel="alternate" hreflang="de" href="{bad}">')
+            assert "summary" in result
+    assert time.perf_counter() - started < 10
+    # A host that cannot be encoded is still compared, as written.
+    assert url_verdict(long_label + "x", long_label + "x/") == ("self", set())
+    assert url_verdict(long_label, long_label.replace("ü", "u"))[0] == "other"
+
+
+# ---------------------------------------------------------------------------
+# Robots grammar: [user-agent:] directive[: value], directive[: value], ...
+# ---------------------------------------------------------------------------
+
+ROBOTS_IDS = {"noindex", "noindex-header", "nofollow"}
+
+
+@pytest.mark.parametrize(("value", "expected"), [
+    ("googlebot: max-image-preview: none", set()),       # "none" is the value of max-image-preview
+    ("max-image-preview: none", set()),
+    ("max-video-preview: -1, max-snippet: 50", set()),
+    ("googlebot: none", {"noindex-header", "nofollow"}),
+    ("none", {"noindex-header", "nofollow"}),
+    ("noindex", {"noindex-header"}),
+    ("GoogleBot: NoIndex", {"noindex-header"}),
+    ("max-snippet: -1, noindex", {"noindex-header"}),
+    ("googlebot: max-snippet: -1, noindex", {"noindex-header"}),
+    ("otherbot: noindex", set()),                        # a rule for another crawler is not a page-wide noindex
+    ("otherbot: noindex, nofollow", set()),              # the user agent holds for the whole group
+    ("otherbot: none", set()),
+    ("googlebot: nofollow, otherbot: noindex, nofollow", {"nofollow"}),    # two headers joined by the server
+    ("otherbot: noindex, googlebot: max-image-preview: none, nofollow", {"nofollow"}),
+    ("unavailable_after: Wed, 03 Nov 2026 15:00:00 GMT, noindex", {"noindex-header"}),
+    ("otherbot: unavailable_after: Wed, 03 Nov 2026 15:00:00 GMT, noindex", set()),
+    ("unavailable_after: 2026-11-03T15:00:00+00:00", set()),
+    (["googlebot: max-image-preview: none", "otherbot: none"], set()),     # several headers
+    (["otherbot: nofollow", "noindex"], {"noindex-header"}),               # the scope ends with its header
+    (["otherbot: noindex", "googlebot: none"], {"noindex-header", "nofollow"}),
+])
+def test_x_robots_tag_grammar(value, expected):
+    result = run(headers={**HEADERS, "X-Robots-Tag": value})
+    assert ids(result) & ROBOTS_IDS == expected
+
+
+def test_a_rule_for_another_named_crawler_is_a_fact_not_a_finding():
+    result = run(headers={**HEADERS, "X-Robots-Tag": "bingbot: noindex, nofollow, max-snippet: 5"})
+    assert result["findings"] == []
+    assert result["facts"]["x_robots_other_agents"] == ["bingbot: noindex", "bingbot: nofollow"]
+    assert run()["facts"]["x_robots_other_agents"] == []
+    assert run(headers={**HEADERS, "X-Robots-Tag": "googlebot: noindex"})["facts"]["x_robots_other_agents"] == []
+    flood = run(headers={**HEADERS, "X-Robots-Tag": ", ".join(f"bot{'x' * 300}{i}: noindex" for i in range(500))})
+    assert len(json.dumps(flood["facts"]["x_robots_other_agents"])) < 1500
+
+
+@pytest.mark.parametrize(("content", "expected"), [
+    ("max-image-preview: none", set()),
+    ("index, follow, max-video-preview: -1, max-image-preview: none", set()),
+    ("max-snippet: -1, noindex", {"noindex"}),
+    ("max-image-preview: none, none", {"noindex", "nofollow"}),
+    ("unavailable_after: Wed, 03 Nov 2026 15:00:00 GMT, nofollow", {"nofollow"}),
+    ("otherbot: noindex", set()),
+])
+def test_meta_robots_grammar(content, expected):
+    assert ids(run(head=f'<meta name="robots" content="{content}">')) & ROBOTS_IDS == expected
+    assert ids(run(head=f'<meta name="googlebot" content="{content}">')) & ROBOTS_IDS == expected
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
@@ -505,6 +700,35 @@ def test_cli_url_mode_uses_the_safe_fetcher(capsys, monkeypatch):
     assert (out["source"], out["status_code"], out["url"]) == ("url", 200, URL)
     assert ids(out) == {"noindex-header"}
     assert out["facts"]["redirects"] == 1 and out["facts"]["requested_url"].startswith("http://")
+
+
+def test_cli_url_mode_measures_the_bytes_served_not_the_decoded_text(capsys, monkeypatch):
+    import fetch_page
+
+    # 1.1 MB of windows-1251 Cyrillic: one byte per letter as served, two per letter in UTF-8.
+    html = build(charset='<meta charset="windows-1251">', body=main_content("<p>" + "ж" * 1_100_000 + "</p>"))
+    served = len(html.encode("cp1251"))
+    as_utf8 = len(html.encode("utf-8"))
+    assert served < page_checks.HTML_MAX_BYTES < as_utf8
+    page = {"url": URL, "status_code": 200, "content": html, "too_large": False, "error": None,
+            "headers": {"Content-Type": "text/html; charset=windows-1251"}, "redirect_chain": []}
+
+    def fetched(**extra) -> dict:
+        monkeypatch.setattr(fetch_page, "fetch_page", lambda url, timeout=30, **_k: {**page, **extra})
+        code, out = cli(capsys, "--url", URL)
+        assert code == 0
+        return out
+
+    out = fetched(content_bytes=served)
+    assert out["facts"]["html_bytes"] == served
+    assert "html-over-2mb" not in ids(out)
+    over = fetched(content_bytes=page_checks.HTML_MAX_BYTES + 1)
+    assert "html-over-2mb" in ids(over)
+    # A fetch result without a usable byte count falls back to the UTF-8 size of the text.
+    for extra in ({}, {"content_bytes": None}, {"content_bytes": "1100000"}, {"content_bytes": True}):
+        fallback = fetched(**extra)
+        assert fallback["facts"]["html_bytes"] == as_utf8
+        assert "html-over-2mb" in ids(fallback)
 
 
 @pytest.mark.parametrize(("page", "needle"), [

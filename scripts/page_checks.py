@@ -66,6 +66,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 from typing import Optional
 from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
@@ -246,6 +247,10 @@ DEPRECATED_TAGS = ("acronym", "applet", "basefont", "big", "blink", "center", "d
                    "isindex", "marquee", "nobr", "noframes", "spacer", "strike", "tt")
 GENERIC_ANCHORS = frozenset({"click here", "read more", "learn more", "here", "more", "link", "this page",
                              "details", "view", "website", "continue", "go"})
+# Link text longer than this is not compared with GENERIC_ANCHORS. The longest generic
+# phrase is 10 characters, so only a link padded with punctuation could be missed, and the
+# cap keeps the work per link fixed however long the page makes its link text.
+GENERIC_ANCHOR_MAX_CHARS = 200
 _CHROME_TAGS = ("nav", "header", "footer", "aside")
 _CHROME_ROLES = ("navigation", "banner", "contentinfo", "complementary", "menubar")
 _CHROME_MARKERS = ("navbar", "topbar", "top-bar", "site-header", "site-footer", "main-nav", "footer-nav",
@@ -256,11 +261,24 @@ _MIXED_CONTENT_TAGS = ("img", "script", "iframe", "source", "video", "audio", "e
 _SKIPPED_LINK_SCHEMES = ("#", "javascript:", "data:", "mailto:", "tel:", "sms:")
 _ROBOTS_META_NAMES = ("robots", "googlebot")
 _ROBOTS_VALUED_DIRECTIVES = ("max-snippet", "max-image-preview", "max-video-preview", "unavailable_after")
+# User agents whose rules decide Google Search indexing: none named (every crawler) or Googlebot.
+_ROBOTS_GENERAL_AGENTS = ("", "googlebot")
 _TRACKING_KEYS = frozenset({"fbclid", "gclid", "mc_cid", "mc_eid", "_ga", "ref"})
 
 _PLACEHOLDER_RE = re.compile(r"\blorem ipsum\b|\bdolor sit amet\b|\bconsectetur adipiscing\b", re.I)
 _WORD_RE = re.compile(r"[^\W\d_][\w'-]*", re.UNICODE)
 _TRACKING_PARAM_RE = re.compile(r"^(utm_|fbclid$|gclid$|msclkid$|mc_)", re.I)
+_PERCENT_ESCAPE_RE = re.compile(r"%([0-9A-Fa-f]{2})")
+_NON_ASCII_BYTES_RE = re.compile(rb"[\x80-\xff]+")
+# RFC 3986 unreserved characters: their percent-encoded and literal forms are the same URL.
+_URL_UNRESERVED = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+# A DNS name is at most 253 characters. A longer host is compared as written, not IDNA encoded.
+HOST_MAX_CHARS = 253
+# A crawler name in "googlebot: noindex" is one token, unlike the pieces of a comma-split
+# date in "unavailable_after: Wed, 03 Nov 2026 15:00:00 GMT".
+_CRAWLER_NAME_RE = re.compile(r"[a-z][a-z0-9_.-]*")
+# Rules for other named crawlers are listed as a fact, at most this many.
+ROBOTS_OTHER_AGENTS_MAX = 10
 _UTF8_ALIASES = {"utf8": "utf-8", "utf-8": "utf-8", "unicode-1-1-utf-8": "utf-8"}
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f-\x9f​-‏ -‮⁦-⁩]")
 # Scripts written without spaces between words: Han, Hiragana, Katakana, Thai, Lao, Myanmar
@@ -313,6 +331,23 @@ def _sample(values: list[str], each: int = 60) -> str:
     return shown + (f" (+{len(values) - 5} more)" if len(values) > 5 else "")
 
 
+def _is_generic_anchor(anchor: str) -> bool:
+    """Whether link text is a generic phrase once surrounding punctuation is dropped.
+
+    The ends are walked character by character: a regex with an unbounded run
+    before ``$`` rescans the run from every position, which is quadratic on a
+    long run of punctuation.
+    """
+    if len(anchor) > GENERIC_ANCHOR_MAX_CHARS:
+        return False
+    start, end = 0, len(anchor)
+    while start < end and not anchor[start].isalnum():
+        start += 1
+    while end > start and not anchor[end - 1].isalnum():
+        end -= 1
+    return anchor[start:end].lower() in GENERIC_ANCHORS
+
+
 def tokenize(text: str) -> list[str]:
     text = (text or "").replace("’", "'").replace("‘", "'")
     return [w.lower().strip("'-") for w in _WORD_RE.findall(text) if w.strip("'-")]
@@ -335,8 +370,49 @@ def words_measurable(text: str, lang: str = "") -> bool:
     return not letters or len(_UNSPACED_SCRIPT_RE.findall(text)) / letters < UNSPACED_SCRIPT_RATIO
 
 
+def _one_escape_spelling(part: str) -> str:
+    """One spelling for the percent-encoding of a path or query (RFC 3986, section 6.2.2).
+
+    "%c3%a9", "%C3%A9" and a literal "é" all become "%C3%A9", and the escape of
+    an unreserved character becomes the character ("%7E" is "~"). Escapes of
+    reserved characters keep their meaning: "%2F" stays apart from "/", "%26"
+    from "&" and "%20" from "+". Each escape is read once, so "%2541" is not "A".
+    """
+    def spell(match: re.Match) -> str:
+        char = chr(int(match.group(1), 16))
+        return char if char in _URL_UNRESERVED else match.group(0).upper()
+
+    part = _PERCENT_ESCAPE_RE.sub(spell, part)
+    if part.isascii():
+        return part
+    raw = part.encode("utf-8", "surrogatepass")
+    return _NON_ASCII_BYTES_RE.sub(lambda m: b"%" + m.group(0).hex("%").upper().encode("ascii"), raw).decode("ascii")
+
+
+def _idna_host(host: str) -> str:
+    """Host in the ASCII form browsers send: lower case, Unicode labels as Punycode.
+
+    "bücher.de" and "BÜCHER.DE" become "xn--bcher-kva.de". The mapping is the
+    UTS 46 one browsers use (NFKC and lower case, then Punycode), not the IDNA
+    2003 codec in the standard library, which would turn "straße.de" into the
+    separate domain "strasse.de". A host or label that cannot be encoded is
+    returned lower-cased as written, so the comparison never raises.
+    """
+    host = host.lower()
+    if host.isascii() or len(host) > HOST_MAX_CHARS:
+        return host
+    try:
+        mapped = unicodedata.normalize("NFKC", unicodedata.normalize("NFKC", host).lower())
+        labels = [label if label.isascii() else "xn--" + label.encode("punycode").decode("ascii")
+                  for label in mapped.replace("。", ".").split(".")]  # the ideographic full stop
+    except (UnicodeError, ValueError):
+        return host
+    return ".".join(labels)
+
+
 def canonicalize_url(url: str) -> Optional[str]:
-    """Published form of a URL: lower-case host, no fragment, no tracking parameters."""
+    """Comparison form of a URL: IDNA lower-case host, no fragment, no tracking parameters,
+    one spelling for percent-encoding. Returns None for anything that is not an http(s) URL."""
     if not url or any(c.isspace() for c in url):
         return None
     try:
@@ -347,12 +423,12 @@ def canonicalize_url(url: str) -> Optional[str]:
     scheme = parsed.scheme.lower()
     if scheme not in ("http", "https") or not parsed.hostname:
         return None
-    host = parsed.hostname.lower().rstrip(".")
+    host = _idna_host(parsed.hostname).rstrip(".")
     if ":" in host:
         host = f"[{host}]"
     default_port = 443 if scheme == "https" else 80
     netloc = f"{host}:{port}" if port and port != default_port else host
-    path = re.sub(r"/{2,}", "/", parsed.path or "/")
+    path = _one_escape_spelling(re.sub(r"/{2,}", "/", parsed.path or "/"))
     kept = []
     for pair in parsed.query.split("&"):
         if not pair:
@@ -360,8 +436,8 @@ def canonicalize_url(url: str) -> Optional[str]:
         key = unquote(pair.split("=", 1)[0]).lower()
         if key.startswith("utm_") or key in _TRACKING_KEYS:
             continue
-        kept.append(pair)
-    return urlunparse((scheme, netloc, path, parsed.params, "&".join(kept), ""))
+        kept.append(_one_escape_spelling(pair))
+    return urlunparse((scheme, netloc, path, _one_escape_spelling(parsed.params), "&".join(kept), ""))
 
 
 def url_match_key(url: str) -> str:
@@ -386,22 +462,43 @@ def _charset_of(content_type: str) -> str:
     return _norm_charset(m.group(1)) if m else ""
 
 
-def _robots_directives(value: str) -> set[str]:
-    """Directive words of a robots meta or X-Robots-Tag value.
+def _robots_rules(value: str) -> list[tuple[str, str]]:
+    """(user agent, directive) pairs of one robots meta or X-Robots-Tag value.
 
-    "googlebot: noindex, nofollow" yields {"noindex", "nofollow"}. Valued
-    directives such as "max-image-preview: none" are skipped, so their value is
-    never read as the "none" directive.
+    The grammar is an optional user agent, then comma-separated directives,
+    some of which carry a value::
+
+        [googlebot:] noindex, max-snippet: 50, unavailable_after: <date>
+
+    The user agent is "" when the rule names none. A named one holds until the
+    next, because a server joins several headers into one with commas. A valued
+    directive is dropped with its value, so the "none" in "max-image-preview:
+    none" is never read as the "none" directive, with or without a user agent
+    in front. A piece that is neither (the rest of a date that has commas) is
+    dropped too.
     """
-    out: set[str] = set()
+    rules: list[tuple[str, str]] = []
+    agent = ""
     for part in (value or "").lower().split(","):
-        name, sep, rest = part.strip().partition(":")
-        if sep:
-            if name.strip() in _ROBOTS_VALUED_DIRECTIVES:
-                continue
-            part = rest
-        out.update(part.split())
-    return out
+        name, sep, rest = (piece.strip() for piece in part.partition(":"))
+        if sep and name not in _ROBOTS_VALUED_DIRECTIVES and _CRAWLER_NAME_RE.fullmatch(name):
+            agent = name
+            name, sep, rest = (piece.strip() for piece in rest.partition(":"))
+        if not sep:
+            rules.extend((agent, word) for word in name.split())
+    return rules
+
+
+def _robots_directives(value: str) -> set[str]:
+    """Directives of a robots value that apply to Google Search.
+
+    "googlebot: noindex, nofollow" and "noindex, nofollow" both yield
+    {"noindex", "nofollow"}. A rule for another named crawler ("otherbot:
+    noindex") yields nothing: it does not keep the page out of Google, so it is
+    never reported as a noindex or nofollow finding. ``run_checks`` lists such
+    rules in the ``x_robots_other_agents`` fact instead, with no severity.
+    """
+    return {directive for agent, directive in _robots_rules(value) if agent in _ROBOTS_GENERAL_AGENTS}
 
 
 def _document_base(soup, page_url: str) -> str:
@@ -660,8 +757,19 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
     for _name, content in robots_metas:
         meta_directives |= _robots_directives(content)
     meta_robots = "; ".join(f"{name}: {content}" for name, content in robots_metas)
-    x_robots = hdrs.get("x-robots-tag", "").strip()
-    header_directives = _robots_directives(x_robots)
+    # Each X-Robots-Tag header is read on its own, so a user agent named in one does not
+    # reach into the next. Headers a server or client has already joined with commas cannot
+    # be told apart again: what follows a named crawler is read as that crawler's.
+    x_robots_values: list[str] = []
+    for key, value in (headers or {}).items():
+        if str(key).lower() == "x-robots-tag":
+            x_robots_values.extend(map(str, value) if isinstance(value, (list, tuple)) else [str(value)])
+    x_robots = ", ".join(x_robots_values).strip()
+    header_rules = [rule for value in x_robots_values for rule in _robots_rules(value)]
+    header_directives = {directive for agent, directive in header_rules if agent in _ROBOTS_GENERAL_AGENTS}
+    # A rule for another named crawler is a fact, not a finding: it does not block Google Search.
+    other_agent_rules = list(dict.fromkeys(f"{agent}: {directive}" for agent, directive in header_rules
+                                           if agent not in _ROBOTS_GENERAL_AGENTS))
     if meta_directives & {"noindex", "none"}:
         add("noindex", f"meta {meta_robots}")
     if header_directives & {"noindex", "none"}:
@@ -786,7 +894,7 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
         links_total += 1
         if is_https and scheme == "http":
             insecure_links.append(full)
-        if re.sub(r"^[\W_]+|[\W_]+$", "", anchor.lower()) in GENERIC_ANCHORS and not _in_chrome_zone(a):
+        if _is_generic_anchor(anchor) and not _in_chrome_zone(a):
             generic_anchors.append(f"\"{anchor}\" to {full}")
     if links_without_text:
         add("links-without-text", f"{len(links_without_text)} link(s): {_sample(links_without_text)}",
@@ -897,6 +1005,7 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
         "canonical_note": canonical_note,
         "meta_robots": _trim(meta_robots) or None,
         "x_robots_tag": _trim(x_robots) or None,
+        "x_robots_other_agents": [_trim(rule, 100) for rule in other_agent_rules[:ROBOTS_OTHER_AGENTS_MAX]],
         "hreflang_count": len(hreflang),
         "lang": _trim(lang, 35) or None,
         "has_doctype": has_doctype,
@@ -1020,7 +1129,11 @@ def _from_url(url: str, timeout: int) -> dict:
     status = page.get("status_code")
     if page.get("content") is None or (isinstance(status, int) and status >= 400):
         raise _InputError(f"HTTP {status} from {page.get('url')}: no page to check")
-    result = run_checks(page["content"], page["url"], page.get("headers") or {})
+    # The size as served: the raw body bytes fetch_page.py read. The UTF-8 size of the
+    # decoded text, the fallback inside run_checks, doubles a single-byte Cyrillic page.
+    content_bytes = page.get("content_bytes")
+    served = content_bytes if isinstance(content_bytes, int) and not isinstance(content_bytes, bool) else None
+    result = run_checks(page["content"], page["url"], page.get("headers") or {}, html_bytes=served)
     out = {"url": result.pop("url"), "source": "url", "status_code": status, **result}
     if page.get("url") != url or page.get("redirect_chain"):
         out["facts"]["requested_url"] = _trim(url)

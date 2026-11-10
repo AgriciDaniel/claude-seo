@@ -31,8 +31,10 @@ then use `--file`.
 
 The JSON holds `facts` (lengths and counts), `findings` (each with a stable
 `id`, a `severity`, a `message` and the `evidence` that triggered it),
-`not_checked`, `thresholds`, and a `summary` count per severity. It covers
-47 checks:
+`not_checked`, `thresholds`, and a `summary` count per severity. An
+`X-Robots-Tag` rule addressed to a crawler other than Googlebot is not a
+finding; it is listed in `facts.x_robots_other_agents`, so mention it when the
+user cares about that crawler. It covers 47 checks:
 
 | Area | Finding ids |
 |------|-------------|
