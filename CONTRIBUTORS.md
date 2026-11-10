@@ -31,6 +31,33 @@ Attribution header on every bundled prompt file (automated by `scripts/sync_flow
 
 ## Community Pull Requests
 
+### v2.5.1
+
+Credit is preserved when a patch was superseded by another fix for the same bug.
+
+| Contributor | PR | Contribution category | Review outcome |
+|------------|----|-----------------------|----------------|
+| [@rudycelekli](https://github.com/rudycelekli) | [#365](https://github.com/AgriciDaniel/claude-seo/pull/365), [#367](https://github.com/AgriciDaniel/claude-seo/pull/367), [#368](https://github.com/AgriciDaniel/claude-seo/pull/368), [#369](https://github.com/AgriciDaniel/claude-seo/pull/369), [#370](https://github.com/AgriciDaniel/claude-seo/pull/370), [#371](https://github.com/AgriciDaniel/claude-seo/pull/371), [#372](https://github.com/AgriciDaniel/claude-seo/pull/372), [#373](https://github.com/AgriciDaniel/claude-seo/pull/373), [#374](https://github.com/AgriciDaniel/claude-seo/pull/374), [#375](https://github.com/AgriciDaniel/claude-seo/pull/375), [#376](https://github.com/AgriciDaniel/claude-seo/pull/376), [#377](https://github.com/AgriciDaniel/claude-seo/pull/377), [#378](https://github.com/AgriciDaniel/claude-seo/pull/378), [#379](https://github.com/AgriciDaniel/claude-seo/pull/379), [#380](https://github.com/AgriciDaniel/claude-seo/pull/380), [#381](https://github.com/AgriciDaniel/claude-seo/pull/381), [#400](https://github.com/AgriciDaniel/claude-seo/pull/400) | Fifteen fixes across sitemaps, IndexNow, content checks, charset detection, schema validation and the `/seo` command | 15 merged; #365 and #367 superseded by #389 and #359, with a test from #365 carried over |
+| [@lab1207](https://github.com/lab1207) | [#358](https://github.com/AgriciDaniel/claude-seo/pull/358), [#359](https://github.com/AgriciDaniel/claude-seo/pull/359) | JSON-LD `@graph` handling in the parser, skill and agent; first fix for the list-valued `@type` hook crash | #359 merged; #358 superseded by #389, with its `@graph` test carried over |
+| [@deosiree](https://github.com/deosiree) | [#389](https://github.com/AgriciDaniel/claude-seo/pull/389) | List-valued JSON-LD `@type` in the schema hook, with a warning for malformed values | Merged |
+| [@Afloat16](https://github.com/Afloat16) | [#403](https://github.com/AgriciDaniel/claude-seo/pull/403), [#404](https://github.com/AgriciDaniel/claude-seo/pull/404), [#405](https://github.com/AgriciDaniel/claude-seo/pull/405) | Drift URL and robots directive parsing; brand suffix word boundaries | Merged |
+| [@HelloWorld3326](https://github.com/HelloWorld3326) | [#384](https://github.com/AgriciDaniel/claude-seo/pull/384), [#385](https://github.com/AgriciDaniel/claude-seo/pull/385) | UTF-8 BOM sitemaps; `<base href>` resolution for links and images | Merged, with follow-up fixes |
+| [@switchcasestudio](https://github.com/switchcasestudio) | [#345](https://github.com/AgriciDaniel/claude-seo/pull/345), [#346](https://github.com/AgriciDaniel/claude-seo/pull/346) | Inline-tag spacing in headings and link text; Natural Language v1 request field | Merged |
+| [@zhangkom](https://github.com/zhangkom) | [#408](https://github.com/AgriciDaniel/claude-seo/pull/408), [#409](https://github.com/AgriciDaniel/claude-seo/pull/409) | IndexNow text-mode errors; Indexing API quota stop | Merged |
+| [@xunguangzlj-cloud](https://github.com/xunguangzlj-cloud) | [#393](https://github.com/AgriciDaniel/claude-seo/pull/393), [#406](https://github.com/AgriciDaniel/claude-seo/pull/406) | CrUX zero-baseline trend; GA4 top-pages error reporting | Merged, with a report follow-up fix |
+| [@AdityaWagh06](https://github.com/AdityaWagh06) | [#413](https://github.com/AgriciDaniel/claude-seo/pull/413), [#414](https://github.com/AgriciDaniel/claude-seo/pull/414) | Deprecated-types reference link; hook launcher skip for files without JSON-LD | Merged, with the skip scoped to the schema hook |
+| [@dajiaohuang](https://github.com/dajiaohuang) | [#387](https://github.com/AgriciDaniel/claude-seo/pull/387) | Google property selection bound to the audited domain | Merged, with follow-up fixes |
+| [@hboon](https://github.com/hboon) | [#364](https://github.com/AgriciDaniel/claude-seo/pull/364) | Backlink verification: exact target match, page-level nofollow, GET when HEAD fails | Merged, with follow-up fixes |
+| [@whatcodehaveyougit](https://github.com/whatcodehaveyougit) | [#332](https://github.com/AgriciDaniel/claude-seo/pull/332) | Image format judged by the served bytes, not the URL extension | Merged, with follow-up fixes |
+| [@pucilpet](https://github.com/pucilpet) | [#418](https://github.com/AgriciDaniel/claude-seo/pull/418) | Common Crawl newest web graph release discovery | Merged |
+| [@Ethereal49](https://github.com/Ethereal49) | [#396](https://github.com/AgriciDaniel/claude-seo/pull/396) | Matomo top-pages error reporting | Merged |
+| [@angelocastellani](https://github.com/angelocastellani) | [#386](https://github.com/AgriciDaniel/claude-seo/pull/386) | Merchant task polling while handed or queued | Merged, with a follow-up fix |
+| [@harshdazz](https://github.com/harshdazz) | [#383](https://github.com/AgriciDaniel/claude-seo/pull/383) | Windows venv swap retry | Merged |
+| [@connabyss](https://github.com/connabyss) | [#392](https://github.com/AgriciDaniel/claude-seo/pull/392) | Strict `--release` value check | Merged |
+| [@canermoral5-sys](https://github.com/canermoral5-sys) | [#362](https://github.com/AgriciDaniel/claude-seo/pull/362) | `seo-geo` wording: correlations stated as correlations | Merged |
+| [@agammann](https://github.com/agammann) | [#385](https://github.com/AgriciDaniel/claude-seo/pull/385), [#387](https://github.com/AgriciDaniel/claude-seo/pull/387) | Review findings on the base URL and property selection changes | Both findings fixed in the follow-up commits |
+| [@hydraxman](https://github.com/hydraxman) | [#372](https://github.com/AgriciDaniel/claude-seo/pull/372) | Review finding on list-valued price specification types | Fixed in the follow-up commit |
+
 ### 2026 maintenance review cycle
 
 These contributors supplied implementation work or substantive design proposals.
@@ -91,6 +118,23 @@ not merged after review.
 | [@olivierroy](https://github.com/olivierroy) | [#43](https://github.com/AgriciDaniel/claude-seo/pull/43) | Extension install fix |
 
 ## Community Issue Reports
+
+### v2.5.1
+
+| Reporter | Issue | Contribution category |
+|----------|-------|-----------------------|
+| [@unterholzfrank](https://github.com/unterholzfrank) | [#357](https://github.com/AgriciDaniel/claude-seo/issues/357) | Schema hook crash on a list-valued `@type` |
+| [@soulalpaca-ctrl](https://github.com/soulalpaca-ctrl) | [#382](https://github.com/AgriciDaniel/claude-seo/issues/382) | Schema hook crash on a list-valued `@type` |
+| [@nickdumitru](https://github.com/nickdumitru) | [#333](https://github.com/AgriciDaniel/claude-seo/issues/333), [#334](https://github.com/AgriciDaniel/claude-seo/issues/334), [#335](https://github.com/AgriciDaniel/claude-seo/issues/335) | `@graph` false positives, GBP verified status, news sitemap cap |
+| [@unisone](https://github.com/unisone) | [#394](https://github.com/AgriciDaniel/claude-seo/issues/394), [#395](https://github.com/AgriciDaniel/claude-seo/issues/395) | `priceSpecification` list crash; Matomo top-pages error loss |
+| [@tomkor](https://github.com/tomkor) | [#337](https://github.com/AgriciDaniel/claude-seo/issues/337) | Wrong-site GA4 and GSC data from the global default property |
+| [@zachlagden](https://github.com/zachlagden) | [#342](https://github.com/AgriciDaniel/claude-seo/issues/342) | `/seo` dropping the command word |
+| [@Krtgya](https://github.com/Krtgya) | [#348](https://github.com/AgriciDaniel/claude-seo/issues/348) | Windows WinError 5 at the venv swap, with diagnosis and fix shape |
+| [@osmosphuket-hub](https://github.com/osmosphuket-hub) | [#330](https://github.com/AgriciDaniel/claude-seo/issues/330) | Spaces dropped around inline tags |
+| [@toquedemidas](https://github.com/toquedemidas) | [#322](https://github.com/AgriciDaniel/claude-seo/issues/322) | Entity extraction failing with HTTP 400 |
+| [@namaserajesh](https://github.com/namaserajesh) | [#412](https://github.com/AgriciDaniel/claude-seo/issues/412) | Unlinked reference file |
+| [@upfastai](https://github.com/upfastai) | [#402](https://github.com/AgriciDaniel/claude-seo/issues/402) | Install blocked by a scanner on a `curl` example |
+| [@Docrichards1](https://github.com/Docrichards1) | [#252](https://github.com/AgriciDaniel/claude-seo/issues/252) | Relative reference paths on Windows |
 
 ### 2026 maintenance review cycle
 

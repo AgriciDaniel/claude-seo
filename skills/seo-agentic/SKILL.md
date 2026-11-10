@@ -13,7 +13,7 @@ argument-hint: "[audit|fix|lighthouse|refresh] [url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.5.0"
+  version: "2.5.1"
   category: seo
 ---
 

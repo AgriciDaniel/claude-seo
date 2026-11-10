@@ -11,7 +11,7 @@ argument-hint: "[stage] [url|topic]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.5.0"
+  version: "2.5.1"
   category: seo
 ---
 

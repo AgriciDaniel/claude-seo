@@ -7,82 +7,160 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-11-10
+
+Community fixes: 39 pull requests from 18 contributors, 6 dependency updates,
+and the follow-up fixes found while reviewing them. No new commands.
+
+**After updating, run `/seo setup` once.** The dependency floors changed
+(urllib3 2.8.0 fixes three advisories), so the managed runtime rebuilds.
+
+**Drift baselines:** three parser fixes change stored values once. A page with
+a JSON-LD `@graph` shows one `schema_modified` warning, and a heading that
+holds an inline tag or a `<br>` shows one heading change. Re-baseline after
+updating.
+
+### Security
+
+- **urllib3 floor raised to 2.8.0** (#323). It fixes GHSA-8988-9cw3-xx77
+  (HTTPS proxy TLS settings ignored), GHSA-vxq7-64xx-v4gw (unbounded
+  chunk-size buffering) and GHSA-gh4c-6fx4-qh6g (chunked deflate loop).
+- **A `host:port` entry in `CLAUDE_SEO_LOCAL_TARGETS` now holds for the whole
+  request.** The DNS pin on a non-public address answered for every port, so a
+  redirect from the allowed dev server could reach another service on that
+  host. It now answers only for the validated port, or another port the
+  allowlist names. Public hosts are unchanged.
+- **Google property selection is bound to the audited domain** (#387 by
+  @dajiaohuang, issue #337 by @tomkor). `gsc_query.py`, `gsc_inspect.py` and
+  `ga4_report.py` take `--domain` and refuse to use another site's property.
+  `www.` and subdomains of a domain property match their `sites` entry,
+  lookalike hosts are refused, and an empty `--domain` is an error (raised by
+  @agammann). With a `sites` mapping and no flag, the scripts stop and ask
+  for `--domain` or `--property`; `gsc_inspect.py --batch` needs one of
+  `--site-url` or `--domain`.
+- **IndexNow key check compares hosts, not URL substrings** (#371 by
+  @rudycelekli). `example.com` no longer matches `notexample.com`. The key
+  file must be on the submitted host exactly.
+- `commoncrawl_graph.py --release` rejects a value with a trailing newline
+  (#392 by @connabyss).
+- The banana setup scripts print whether an API key is set, never part of it.
+
 ### Fixed
 
-- **Merchant validation accepts a list of `priceSpecification` objects.**
-  Schema.org allows one price specification or several. A list crashed
-  `schema_ecommerce_validate.py` with `AttributeError` before any finding
-  was returned. Loyalty-tier detection now checks each object in the list.
-- **An og:image query no longer sets the page encoding.** `charset=` inside
-  another meta attribute was treated as `<meta charset>`. A later
-  `<meta charset="utf-8">` was ignored, so a canonical
-  `https://example.com/café` was decoded as `https://example.com/cafÃ©`.
-  A real `charset` attribute, or an `http-equiv="content-type"` pragma,
-  is still the encoding.
-- **A shorter filler phrase no longer scores inside a longer one.**
-  `let's dive into` also matched `let's dive in`, so one sentence was two
-  hits. On a 320-token page that moved `filler_score` from 25 to 50,
-  `overall_quality` from 47 to 41, and raised the filler flag.
-- **Sitemap discovery keeps a robots.txt URL when a comment follows it.**
-  `Sitemap: https://example.com/products.xml # catalog` was dropped, so that
-  URL was never fetched and only the common paths were checked. A `#` comment
-  runs to the end of the line (Google's robots.txt syntax, and RFC 9309), and
-  a leading UTF-8 BOM is not part of the first field.
-- **IndexNow key check compares hosts, not URL substrings.**
-  `verify_key_published` treated `example.com` as present in
-  `https://notexample.com/...` and rejected `Example.COM` against
-  `https://example.com/...`. The key file host is compared as a hostname,
-  before the file is fetched.
-- **GBP verified status uses DataForSEO `is_claimed` (#334).** The checklist
-  said verification is not exposed and could be inferred from profile
-  completeness or a Maps listing. `is_claimed` is that field. The 50-point
-  scale is unchanged. An absent value is Unknown (manual check required).
-- **`/seo` keeps the command word (#342).** The hub skill said `/seo $1 $2`.
-  Claude Code indexes arguments from 0 (`$0` is the first word, `$1` the
-  second; https://code.claude.com/docs/en/skills), so `/seo audit <url>`
-  loaded as `/seo <url> $2` and dropped `audit`. The line now uses
-  `$ARGUMENTS`, which is the full input.
-- **News sitemap validation keeps the 50,000 URL limit (#335).** The skill
-  told the model to replace that check with a 1,000 cap whenever the `news:`
-  namespace was present. Google caps `<news:news>` tags at 1,000 and still
-  applies the general sitemap limits
-  (https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap).
-- Recognize UTF-8 BOM XML sitemaps during format detection.
-- Preserve brackets around IPv6 hosts when normalizing drift baseline URLs.
-- Recognize the `none` robots directive as an indexing restriction in drift comparisons.
-- Avoid flagging a brand suffix when its text only occurs inside a longer word in the description.
-- Resolve relative image and link URLs using the first document base href.
-- Stop Indexing API batches after a quota response instead of sending more requests.
-- Report IndexNow submission errors in text mode without raising a KeyError.
-- GA4 `top-pages` reports now surface failed landing-page queries instead of
-  returning an empty successful report when the daily query succeeded.
-- `matomo_report.py top-pages` now reports a failed entry-page query as an
-  error and exits nonzero instead of returning an empty success (#395).
-- CrUX History reports an increase from a zero CLS baseline as degrading, with
-  an undefined percentage (`null` in JSON), instead of stable with a 0% change.
-- Google SEO scripts now resolve GA4 and Search Console properties by the audited domain and refuse to silently use another site's configured defaults.
-- **Merchant (Google Shopping, Amazon) searches no longer crash while a task
-  is queued.** `dataforseo_merchant.py` kept polling only on 40601 ("Task
-  Handed"), so a 40602 ("Task In Queue") answer came back as a finished task
-  and `_extract_items` failed on its `result: null`. It now waits on both codes
-  and treats a null `result` as no items.
-- **`/seo setup` no longer fails on Windows with WinError 5 at the final venv
-  swap (#348).** Right after pip and Playwright write the new environment,
-  Windows (often Defender) can keep handles open in it for about a second, so
-  renaming it onto `.venv` failed with "Access is denied" after the whole
-  install had finished. The three directory swaps, including the rollback that
-  restores the previous `.venv`, now retry a denied rename with a short backoff
-  (up to 8 attempts, about 7 seconds in total). Diagnosis and fix shape by
-  @Krtgya.
-- `commoncrawl_graph.py --release` now rejects a value with a trailing newline.
-  The check used `$`, which also matches before a final `\n`, so `x\n` passed
-  and could make the cache key and the download URL disagree.
-- **`seo-geo` states third-party findings as correlations.** The Ahrefs
-  brand-mention result and the SE Ranking recency result were written as
-  rules ("pages left stale 6+ months lose citation eligibility"); no AI search
-  system documents such a cutoff. The 92%/47% AI Overview figures now carry
-  their unverified status, and the GEO Readiness Score's 25/20/15/20/20 weights
-  are labelled the skill's own heuristic, not a predicted citation rate.
+Schema and JSON-LD
+- **The schema hook no longer crashes on a list-valued `@type`** such as
+  `["LocalBusiness", "FinancialService"]` (#389 by @deosiree; issues #357 by
+  @unterholzfrank and #382 by @soulalpaca-ctrl). A malformed `@type` now gets
+  a warning. `@graph` tests come from #365 by @rudycelekli and #358 by
+  @lab1207, who was first with a fix.
+- **A valid `@graph` document is no longer reported as missing `@context`**
+  (#359 by @lab1207, issue #333 by @nickdumitru; same parser fix proposed in
+  #367 by @rudycelekli). `parse_html.py` keeps the inherited `@context` on
+  flattened entries.
+- Product validation accepts a list of `priceSpecification` objects (#372 by
+  @rudycelekli, issue #394 by @unisone), also when the price specification
+  has a list-valued `@type` (raised by @hydraxman). An offer that is not an
+  object is reported as `malformed-offer` instead of crashing.
+- `validate_backlink_report.py` flags a deprecated type inside an `@type` list.
+- The hook launcher skips Python for files that cannot hold JSON-LD (#414 by
+  @AdityaWagh06); the skip applies to the schema hook only.
+- `seo-schema` links its deprecated-types reference (#413 by @AdityaWagh06,
+  issue #412 by @namaserajesh).
+
+Fetching and parsing
+- Headings and link text keep spaces around inline tags (#345 by
+  @switchcasestudio, issue #330 by @osmosphuket-hub); `<br>` reads as a space.
+- Links and images resolve against `<base href>` (#385 by @HelloWorld3326),
+  for http and https bases only. Fragment-only links follow a base that points
+  elsewhere (raised by @agammann).
+- One malformed URL in an image or link no longer aborts the parse; bad
+  values are listed under `malformed_urls`.
+- `charset=` inside another meta attribute is no longer taken as the page
+  encoding (#375 by @rudycelekli). Unquoted meta values are read correctly,
+  and the scan stays fast on hostile markup.
+- **Image format is judged by what is served, not the URL extension** (#332 by
+  @whatcodehaveyougit, issue #331). `parse_html.py --probe-images` reads the
+  first bytes of each image through the safe fetcher. A malformed `src` or a
+  non-image response is reported as unverified.
+- A brand suffix is matched at word boundaries in templated-metadata checks
+  (#405 by @Afloat16).
+
+Sitemaps and indexing
+- Sitemap discovery handles a UTF-8 BOM in XML and plain-text sitemaps (#384
+  by @HelloWorld3326) and a `Sitemap:` line followed by a comment (#373 by
+  @rudycelekli).
+- News sitemap validation keeps the 50,000 URL limit (#368 by @rudycelekli,
+  issue #335 by @nickdumitru).
+- Indexing API batches stop on a quota response (#409 by @zhangkom), and the
+  batch-truncation warning is no longer overwritten (#379 by @rudycelekli).
+- IndexNow reports submission errors in text mode instead of raising (#408 by
+  @zhangkom).
+
+Backlinks
+- **A backlink is "lost" only after a GET confirms 404 or 410.** The exact
+  target link is matched, a page-level `nofollow` is reported as
+  `page_nofollow`, and GET is used when HEAD is refused (#364 by @hboon). A
+  5xx is `server_error`. In `--head-only` mode an https or www redirect stays
+  "exists"; "moved" means the host or path changed. A redirect that the
+  safety layer blocks is never retried.
+- Common Crawl: the newest web graph release is discovered from
+  `graphinfo.json`, with the built-in list as fallback (#418 by @pucilpet).
+
+Google, analytics and data APIs
+- GA4 and Matomo `top-pages` reports surface a failed query instead of an
+  empty success (#406 by @xunguangzlj-cloud; #396 by @Ethereal49, issue #395
+  by @unisone).
+- CrUX History reports a rise from a zero CLS baseline as degrading (#393 by
+  @xunguangzlj-cloud); the PDF report shows the undefined percentage as "n/a".
+- `nlp_analyze.py` sends `language` to the v1 endpoint, so entity extraction
+  works again (#346 by @switchcasestudio, issue #322 by @toquedemidas). New
+  `--language` option; the default is auto-detect instead of English.
+- `pagespeed_check.py --psi-only` exits non-zero when a strategy fails (#380
+  by @rudycelekli).
+- Merchant searches keep polling while a task is handed or queued (#386 by
+  @angelocastellani), and a failed task is an error, not a success with 0
+  results.
+- DataForSEO normalization maps currency symbols to ISO codes (#400 by
+  @rudycelekli).
+- The GBP checklist scores verified status from DataForSEO `is_claimed` (#370
+  by @rudycelekli, issue #334 by @nickdumitru).
+
+Content checks
+- `content_verify.py` detects a bare percentage as a statistic (#377) and
+  requires a proper noun only after "per" (#378), both by @rudycelekli.
+  "according to a study" and "Source:" count as citations.
+- A filler phrase is not scored again inside a longer one (#374 by
+  @rudycelekli).
+- Drift: `none` counts as noindex and semicolon-separated directives are read
+  (#404), and IPv6 hosts keep their brackets (#403), both by @Afloat16.
+- `preload_check.py` tolerates a speculation rules body that is not an object
+  (#376 by @rudycelekli).
+
+Commands and install
+- **`/seo` keeps the command word** (#369 by @rudycelekli, issue #342 by
+  @zachlagden). The hub skill used `$1 $2`, which Claude Code counts from 0.
+- `/seo setup` no longer fails on Windows with WinError 5 at the final venv
+  swap (#383 by @harshdazz, issue #348 by @Krtgya).
+- `seo_updates.py --since` rejects a malformed date with a clear error (#381
+  by @rudycelekli).
+- `seo-local` and `seo-maps` reference paths are anchored to the plugin root
+  (issue #252 by @Docrichards1).
+
+### Changed
+
+- `seo-geo` states third-party findings as correlations and labels its score
+  weights as the skill's own heuristic (#362 by @canermoral5-sys).
+- Google updates ledger verified through 2026-11-10: three Search Central
+  documentation changes added (URL word separation on 23 Oct, user-generated
+  spam prevention on 26 Oct, "things to do" queries in aggregator and supplier
+  units on 9 Nov). No ranking update since the September 2026 spam update.
+- PageSpeed examples use a placeholder key instead of an environment variable
+  in a `curl` line, which a third-party skill scanner blocked (issue #402 by
+  @upfastai).
+- The house-style test also scans `tests/`.
+- Dependency floors: lxml 6.1.3, google-auth 2.58.1, google-ads 33.0.0,
+  playwright 1.63.0 (#327, #324, #325, #326); CI uses setup-python 7.1.0
+  (#399).
 
 ## [2.5.0] - 2026-10-22
 
@@ -203,15 +281,6 @@ can set `CLAUDE_SEO_PYTHON`; `/seo setup` then rebuilds the runtime once.
   allowlists colors and link types, and the skill embeds its data with `<`
   escaped, so a crafted SERP title cannot run script in the generated file.
 - The schema validation hook has a 30 s timeout.
-### Fixed
-
-- `skills/seo-schema/SKILL.md`, `agents/seo-schema.md` and
-  `scripts/parse_html.py`: a valid JSON-LD `@graph` document was reported as
-  broken markup. A `@graph` container is not an entity, so it needs no
-  `@type`, and the `@context` it declares is inherited by the entries it
-  holds. `parse_html.py` now keeps that `@context` on the flattened entries,
-  and the skill and the agent check `@context` once per document and `@type`
-  on entity nodes, the way `hooks/validate-schema.py` already did.
 
 ## [2.4.2] - 2026-10-04
 
