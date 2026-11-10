@@ -207,8 +207,9 @@ def _normalize_currency(raw: Any) -> str:
     if not raw:
         return "USD"
     text = str(raw).upper().strip()
-    # Handle common symbols
-    symbol_map = {"$": "USD", "EUR": "EUR", "GBP": "GBP", "JPY": "JPY"}
+    # Map common currency symbols to their ISO 4217 code. ISO codes already in
+    # the text pass through via the fallback below, so only symbols need listing.
+    symbol_map = {"$": "USD", "€": "EUR", "£": "GBP", "¥": "JPY"}
     return symbol_map.get(text, text[:3] if len(text) >= 3 else "USD")
 
 
