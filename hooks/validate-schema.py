@@ -191,7 +191,13 @@ def validate_jsonld(content: str, filepath: str = "") -> List[str]:
 def _validate_schema_object(
     obj: dict[str, Any], block_num: int, *, inherited_context: bool = False
 ) -> List[str]:
-    """Validate one schema node, including members of a top-level ``@graph``."""
+    """Validate one schema node, including members of a top-level ``@graph``.
+
+    @param obj: JSON-LD node to validate.
+    @param block_num: Script block number used in diagnostics.
+    @param inherited_context: Whether the node inherits its context from a graph.
+    @returns: Validation errors and warnings for the node and its graph members.
+    """
     errors = []
     prefix = f"Block {block_num}"
 
@@ -217,8 +223,22 @@ def _validate_schema_object(
     for placeholder in BARE_PLACEHOLDER_RE.findall(text):
         errors.append(f"{prefix}: Contains placeholder text: {placeholder}")
 
-    # Check for deprecated types
-    schema_type = obj.get("@type", "")
+    # Schema.org permits multiple string values, but malformed values must not
+    # disappear silently before type-specific checks run.
+    raw_schema_type = obj.get("@type")
+    schema_types = raw_schema_type if isinstance(raw_schema_type, list) else [raw_schema_type]
+    if "@type" in obj and (
+        not schema_types
+        or any(not isinstance(schema_type, str) or not schema_type.strip() for schema_type in schema_types)
+    ):
+        errors.append(
+            f"{prefix}: @type must be a non-empty string or a non-empty list of non-empty strings"
+        )
+    schema_types = [
+        schema_type
+        for schema_type in schema_types
+        if isinstance(schema_type, str) and schema_type.strip()
+    ]
     deprecated = {
         "HowTo": "deprecated September 2023",
         "SpecialAnnouncement": "deprecated July 31, 2025",
@@ -228,16 +248,20 @@ def _validate_schema_object(
         "ClaimReview": "retired June 2025; fact-check rich results discontinued",
         "VehicleListing": "retired June 2025; vehicle listing structured data discontinued",
     }
-    if schema_type in deprecated:
-        errors.append(f"{prefix}: @type '{schema_type}' is {deprecated[schema_type]}")
+    for schema_type in schema_types:
+        if schema_type in deprecated:
+            errors.append(f"{prefix}: @type '{schema_type}' is {deprecated[schema_type]}")
 
     # Check for restricted types used incorrectly.
     # FAQPage is intentionally NOT flagged: Google retired FAQ rich results for
     # all sites (May 7, 2026), but FAQPage remains a valid Schema.org type.
     # This project makes no claim of a confirmed AI or ranking benefit.
     restricted: dict = {}
-    if schema_type in restricted:
-        errors.append(f"{prefix}: @type '{schema_type}' is {restricted[schema_type]}; verify site qualifies")
+    for schema_type in schema_types:
+        if schema_type in restricted:
+            errors.append(
+                f"{prefix}: @type '{schema_type}' is {restricted[schema_type]}; verify site qualifies"
+            )
 
     if "@graph" in obj:
         if not isinstance(graph, list):
