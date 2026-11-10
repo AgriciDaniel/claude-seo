@@ -239,6 +239,13 @@ seo-cockpit, Google sign-in through your own account, and a schema-hook fix.
   PostToolUse hook runs after the file is written.
 - `ai_opt_llm_ment_search` costs about $0.103 per the official response
   example, not $0.05 (`dataforseo_costs.py` and both `cost-tiers.md`).
+- Image format is judged by what the server sends, not the URL extension
+  (#331). `parse_html.py --probe-images` fetches each image with a browser
+  `Accept` header and adds `served_format`, `served_bytes`, `negotiated` and
+  `probe_error` to every image entry. `seo-images` and `seo-page` now flag
+  "Wrong Format" only from `served_format`, so a `.jpg` URL that a WebP plugin,
+  Cloudflare Polish or an image CDN already serves as WebP is no longer told to
+  "convert to WebP".
 
 ## [2.4.1] - 2026-09-29
 
