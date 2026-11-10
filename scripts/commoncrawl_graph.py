@@ -132,7 +132,8 @@ _CACHE_COMPONENT_RE = re.compile(r"[^A-Za-z0-9._-]")
 
 # A Common Crawl release id, e.g. cc-main-2026-jan-feb-mar. Anchored, and no
 # '..' anywhere, because this value lands in a filesystem path and a URL path.
-_RELEASE_RE = re.compile(r"^(?!.*\.\.)[A-Za-z0-9._-]+$")
+# \Z, not $: $ also matches before a trailing newline.
+_RELEASE_RE = re.compile(r"^(?!.*\.\.)[A-Za-z0-9._-]+\Z")
 
 
 def _safe_cache_component(value: str) -> str:

@@ -82,7 +82,7 @@ def test_release_pattern_accepts_real_release_ids(release):
 
 @pytest.mark.parametrize(
     "release",
-    ["../../../../tmp/pwned", "..", "a/../b", "a..b", "with space", "", "a/b", "x\ty"],
+    ["../../../../tmp/pwned", "..", "a/../b", "a..b", "with space", "", "a/b", "x\ty", "x\n"],
 )
 def test_release_pattern_rejects_traversal_and_junk(release):
     assert not ccg._RELEASE_RE.match(release)

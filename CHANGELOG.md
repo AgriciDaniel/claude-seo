@@ -74,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   restores the previous `.venv`, now retry a denied rename with a short backoff
   (up to 8 attempts, about 7 seconds in total). Diagnosis and fix shape by
   @Krtgya.
+- `commoncrawl_graph.py --release` now rejects a value with a trailing newline.
+  The check used `$`, which also matches before a final `\n`, so `x\n` passed
+  and could make the cache key and the download URL disagree.
 
 ## [2.5.0] - 2026-10-22
 
