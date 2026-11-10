@@ -100,7 +100,7 @@ _CITATION_PATTERNS: tuple[re.Pattern, ...] = (
         # "Source:", "Via:", "See also:", "Cited in", "Cited by", or
         # "Per/According to" followed by a Proper Noun.
         r"\b(?:source\s*:|via\s*:|see\s+also\s*:|cited\s+(?:in|by)|"
-        r"according\s+to|per)\s+[A-Z]",
+        r"according\s+to|per)\s+(?-i:[A-Z])",
         re.IGNORECASE,
     ),
 )

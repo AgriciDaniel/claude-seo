@@ -329,6 +329,21 @@ def test_verify_bare_percentage_does_not_double_count_percent_of() -> None:
     # "% of ..." match wins over the bare-"%" match on the same span).
     result = content_verify.verify("47% of marketers report gains.")
     assert result["claim_count"] == 1
+def test_verify_standalone_per_followed_by_a_common_word_is_not_a_citation() -> None:
+    # The citation pattern requires "per"/"according to" + a Proper Noun, but
+    # re.IGNORECASE made the [A-Z] anchor match lowercase too, so "per week",
+    # "per page", "according to the ..." were counted as citations. A claim
+    # near such a phrase was then wrongly reported as cited.
+    result = content_verify.verify("Fully 80% of users churned, measured per week.")
+    assert result["claim_count"] == 1
+    claim = result["claims"][0]
+    assert claim["has_citation"] is False
+    assert result["uncited_count"] == 1
+
+
+def test_verify_per_followed_by_a_proper_noun_is_still_a_citation() -> None:
+    result = content_verify.verify("Fully 80% of users churned, per Gartner.")
+    assert result["claims"][0]["has_citation"] is True
 
 
 # ---------------------------------------------------------------------------
