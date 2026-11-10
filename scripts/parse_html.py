@@ -12,7 +12,7 @@ import json
 import os
 import re
 import sys
-from typing import Optional
+from typing import Any, Optional
 from urllib.parse import urljoin, urlparse
 
 try:
@@ -86,6 +86,21 @@ def _detect_lazy_method(img) -> str:
         return "js-generic"
 
     return "none"
+
+
+def _inherit_context(node: dict[str, Any], context: Any) -> dict[str, Any]:
+    """Return a JSON-LD node that carries the document's ``@context``.
+
+    A ``@graph`` container is not an entity: it declares the document's
+    ``@context`` and its entries inherit it. Flattening the container used to
+    drop that ``@context``, so every entry came out looking like a block with
+    an ``@type`` but no ``@context``, which the seo-schema instructions read as
+    broken markup. An entry that declares its own ``@context`` keeps it. The
+    input node is never mutated, so the parsed document stays intact.
+    """
+    if context is None or "@context" in node:
+        return node
+    return {"@context": context, **node}
 
 
 def parse_html(html: str, base_url: Optional[str] = None) -> dict:
@@ -223,11 +238,14 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     for script in soup.find_all("script", type="application/ld+json"):
         try:
             schema_data = json.loads(script.string)
-            # Flatten @graph containers so each @type is a separate entry
+            # Flatten @graph containers so each @type is a separate entry.
+            # The container is not an entity, so it carries no @type of its
+            # own, but its @context is inherited by the entries it holds.
             if isinstance(schema_data, dict) and "@graph" in schema_data:
+                inherited_context = schema_data.get("@context")
                 for item in schema_data["@graph"]:
                     if isinstance(item, dict):
-                        result["schema"].append(item)
+                        result["schema"].append(_inherit_context(item, inherited_context))
             elif isinstance(schema_data, list):
                 for item in schema_data:
                     if isinstance(item, dict):

@@ -19,7 +19,11 @@ metadata:
 1. Extract JSON-LD with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run parse_html.py --url <url> --json`
    (or scan `<script type="application/ld+json">` in the page source). Flag any
    block without `@context` or `@type`: Google cannot attach it to an entity (a
-   rating in such a block does not reach the Product).
+   rating in such a block does not reach the Product). A `@graph` container is
+   not an entity: it needs no `@type`, and the `@context` it declares is
+   inherited by the entries it holds. Never flag the container for a missing
+   `@type`, and never flag an entry for a missing `@context` that the document
+   already provides.
 2. Check for Microdata (`itemscope`, `itemprop`)
 3. Check for RDFa (`typeof`, `property`)
 4. Always recommend JSON-LD as primary format (Google's stated preference)
@@ -29,8 +33,8 @@ metadata:
 - Check required properties per schema type
 - Validate against Google's supported rich result types
 - Test for common errors:
-  - Missing @context
-  - Invalid @type
+  - Missing @context (checked once, on the document; `@graph` entries inherit it)
+  - Invalid @type (checked on entity nodes; a `@graph` container needs none)
   - Wrong data types
   - Placeholder text
   - Relative URLs (should be absolute)
