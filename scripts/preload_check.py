@@ -100,6 +100,10 @@ def _extract_speculation_actions(body: str) -> list[str]:
         payload = json.loads(body.strip())
     except json.JSONDecodeError:
         return []
+    if not isinstance(payload, dict):
+        # A speculationrules body must be a JSON object; a bare array,
+        # string, or null is valid JSON but carries no action fields.
+        return []
     for action_kind in ("prefetch", "prerender"):
         if isinstance(payload.get(action_kind), list):
             actions.add(action_kind)
