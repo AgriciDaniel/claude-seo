@@ -90,7 +90,7 @@ claude-seo/
     seo-flow.md                  # FLOW framework integration
   hooks/                           # Quality gate hooks
     hooks.json                   # PostToolUse schema validation
-  scripts/                         # 61 Python execution scripts
+  scripts/                         # 63 Python execution scripts
     google_auth.py               # Credential management (OAuth, SA, API key, 4-tier detection)
     google_properties.py         # Picks the GSC/GA4 property for the audited domain, fails closed on a mismatch
     backlinks_auth.py            # Backlink API credential management (Moz, Bing)
@@ -113,6 +113,8 @@ claude-seo/
     keyword_planner.py           # Google Ads Keyword Planner
     fetch_page.py                # Page fetcher with UA rotation
     parse_html.py                # HTML parser for SEO elements
+    page_checks.py               # Deterministic single-page on-page checker (47 checks, JSON findings)
+    transport_check.py           # TLS certificate, security header and HTTPS redirect checker
     capture_screenshot.py        # Playwright screenshots
     analyze_visual.py            # Visual analysis helper
     drift_baseline.py            # SEO drift baseline capture (SQLite)
