@@ -79,6 +79,9 @@ def _expected_json(raw_source: dict, *, mode: str, output_written: bool, max_tex
         raw_source if mode != "never" else fetch_page._as_render_result(raw_source, mode_used="raw")
     )
     summary = render_page._json_summary(normalized, max_text=max_text)
+    # Raw-fetch timings: null on a rendered result, so both paths share keys.
+    for key in fetch_page._TIMING_KEYS:
+        summary.setdefault(key, None)
     summary["output_written"] = output_written
     return json.loads(json.dumps(summary, default=str))
 
