@@ -146,7 +146,7 @@ def _sitemap_kind(content: bytes, content_type: str, url: str) -> tuple[str | No
     if b"<!DOCTYPE" in content.upper():
         return None, "DOCTYPE is not allowed in sitemap XML"
 
-    stripped = content.lstrip()
+    stripped = content.removeprefix(b"\xef\xbb\xbf").lstrip()
     if stripped.startswith(b"<"):
         try:
             parser = etree.XMLParser(

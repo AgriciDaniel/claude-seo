@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   namespace was present. Google caps `<news:news>` tags at 1,000 and still
   applies the general sitemap limits
   (https://developers.google.com/search/docs/crawling-indexing/sitemaps/news-sitemap).
+- Recognize UTF-8 BOM XML sitemaps during format detection.
 
 ## [2.5.0] - 2026-10-22
 
