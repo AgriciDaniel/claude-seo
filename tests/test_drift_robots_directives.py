@@ -47,3 +47,21 @@ def test_previous_parameter_value_does_not_hide_a_new_restriction():
     assert rule_04_noindex_added(
         {"robots": "max-image-preview: none"}, {"meta_robots": "none"},
     )["triggered"] is True
+
+
+@pytest.mark.parametrize("current", [
+    "noindex;nofollow", "index; NOINDEX", "follow;none",
+    "max-image-preview:none;noindex", "max-snippet:0; noindex",
+])
+def test_semicolon_separated_noindex_triggers(current):
+    assert rule_04_noindex_added({"robots": "index, follow"}, {"meta_robots": current})["triggered"] is True
+
+
+def test_semicolon_separated_existing_restriction_is_not_new():
+    result = rule_04_noindex_added({"robots": "noindex;nofollow"}, {"meta_robots": "noindex, nofollow"})
+    assert result["triggered"] is False
+
+
+@pytest.mark.parametrize("current", ["max-image-preview:none;follow", "index;follow", "max-snippet:0;max-image-preview: none"])
+def test_semicolons_do_not_turn_parameter_values_into_directives(current):
+    assert rule_04_noindex_added({}, {"meta_robots": current})["triggered"] is False

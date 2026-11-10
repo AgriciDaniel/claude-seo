@@ -167,7 +167,9 @@ def _sitemap_kind(content: bytes, content_type: str, url: str) -> tuple[str | No
         return None, "unsupported XML root"
 
     if "text/plain" in content_type.lower() or urlparse(url).path.lower().endswith(".txt"):
-        lines = [line.strip() for line in content.decode("utf-8", errors="replace").splitlines() if line.strip()]
+        # Decode the BOM-free bytes: a leading UTF-8 BOM is an encoding
+        # signature, not part of the first URL.
+        lines = [line.strip() for line in stripped.decode("utf-8", errors="replace").splitlines() if line.strip()]
         if len(lines) > 50000:
             return None, "text sitemap exceeds the 50,000 URL protocol limit"
         # Entries are reported only as a sitemap classification, not fetched.

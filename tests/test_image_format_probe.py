@@ -66,6 +66,16 @@ def fake_get(monkeypatch):
         (b"\x89PNG\r\n\x1a\n" + b"\x00" * 8, "png"),
         (b"GIF89a" + b"\x00" * 8, "gif"),
         (b"<svg xmlns='http://www.w3.org/2000/svg'>", "svg"),
+        (b'<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg">', "svg"),
+        (
+            b'\xef\xbb\xbf<?xml version="1.0"?><!-- Generator: Illustrator -->'
+            b'<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "svg11.dtd"><svg>',
+            "svg",
+        ),
+        (b'<?xml version="1.0" encoding="UTF-8"?><urlset><url></url></urlset>', None),
+        (b'<?xml version="1.0"?><!DOCTYPE html><html><body><svg>', None),
+        (b'<?xml version="1.0" encoding="UTF-8"', None),
+        (b"<!DOCTYPE html><html><body><svg>", None),
         (b"not an image", None),
     ],
 )
@@ -165,3 +175,73 @@ def test_parse_html_alone_makes_no_requests(fake_get):
 
     assert calls == []
     assert "served_format" not in result["images"][0]
+
+
+def test_malformed_src_is_reported_not_raised(fake_get):
+    calls, _ = fake_get
+
+    result = probe_image_format("http://[bad/a.jpg")
+
+    assert result["served_format"] is None
+    assert result["probe_error"].startswith("malformed URL")
+    assert calls == []
+
+
+def test_probe_images_survives_a_malformed_src(fake_get):
+    calls, responses = fake_get
+    good = "https://example.com/a.jpg"
+    responses[good] = _FakeResponse(WEBP, {"Content-Type": "image/webp"})
+    images = [{"src": "http://[bad/a.jpg"}, {"src": good}]
+
+    probe_images(images)
+
+    assert images[0]["probe_error"].startswith("malformed URL")
+    assert images[1]["served_format"] == "webp"
+    assert [url for url, _ in calls] == [good]
+
+
+@pytest.mark.parametrize(
+    "body, content_type",
+    [
+        (b"<!DOCTYPE html><html><head><title>Not found</title>", "text/html; charset=utf-8"),
+        (b"Hotlinking is not allowed", "text/plain"),
+        (b"\x00" * 32, ""),
+    ],
+)
+def test_non_image_200_sets_probe_error(fake_get, body, content_type):
+    _, responses = fake_get
+    url = "https://example.com/photo.jpg"
+    headers = {"Content-Type": content_type} if content_type else {}
+    responses[url] = _FakeResponse(body, headers)
+
+    result = probe_image_format(url)
+
+    assert result["served_format"] is None
+    assert result["probe_error"].startswith("not a recognized image")
+    assert responses[url].closed
+
+
+def test_xml_that_is_not_svg_is_not_labelled_svg(fake_get):
+    _, responses = fake_get
+    url = "https://example.com/logo.svg"
+    responses[url] = _FakeResponse(
+        b'<?xml version="1.0" encoding="UTF-8"?><urlset><url></url></urlset>',
+        {"Content-Type": "application/xml"},
+    )
+
+    result = probe_image_format(url)
+
+    assert result["served_format"] is None
+    assert "application/xml" in result["probe_error"]
+
+
+def test_svg_content_type_is_trusted_when_the_root_is_past_the_sniffed_bytes(fake_get):
+    _, responses = fake_get
+    url = "https://example.com/logo.svg"
+    body = b'<?xml version="1.0"?><!-- ' + b"x" * 2000 + b" --><svg></svg>"
+    responses[url] = _FakeResponse(body, {"Content-Type": "image/svg+xml"})
+
+    result = probe_image_format(url)
+
+    assert result["served_format"] == "svg"
+    assert result["probe_error"] is None

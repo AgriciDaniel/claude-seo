@@ -69,10 +69,10 @@ which fetches each image with a browser `Accept` header and adds to every image 
 
 | Field | Meaning |
 |---|---|
-| `served_format` | Format actually served (`webp`, `avif`, `jpeg`, `png`, `gif`, `svg`, `jxl`), from the magic bytes |
+| `served_format` | Format actually served (`webp`, `avif`, `jpeg`, `png`, `gif`, `svg`, `jxl`), from the magic bytes, else `null` |
 | `served_bytes` | Size actually served (Content-Length), or `null` when the server omits it |
 | `negotiated` | `true` when the response has `Vary: Accept`, so the format depends on the browser |
-| `probe_error` | Why the image could not be checked, else `null` |
+| `probe_error` | Why the image could not be checked (fetch failed, malformed URL, or the response is not a recognized image, such as an HTML error or hotlink-protection page), else `null` |
 
 - Flag "Wrong Format" and size savings only from `served_format` / `served_bytes`. A `.jpg` URL with
   `served_format: webp` is already optimized: do not recommend converting it.

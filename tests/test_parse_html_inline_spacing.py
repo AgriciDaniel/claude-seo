@@ -57,3 +57,41 @@ def test_link_text_is_still_capped_at_100_characters():
     text = result["links"]["internal"][0]["text"]
     assert len(text) == 100
     assert text == ("word " * 20)[:100]
+
+
+def test_br_separates_words_in_headings():
+    html = "<h1>Foo<br>Bar</h1><h2>Fast<br/>Cheap<br />Good</h2><h3>One <br> Two</h3>"
+    result = parse_html(html)
+    assert result["h1"] == ["Foo Bar"]
+    assert result["h2"] == ["Fast Cheap Good"]
+    assert result["h3"] == ["One Two"]
+
+
+def test_br_separates_words_in_link_text():
+    html = '<a href="/x">Read<br>more</a>'
+    result = parse_html(html, base_url="https://example.com/")
+    assert result["links"]["internal"][0]["text"] == "Read more"
+
+
+def test_br_inside_a_nested_inline_tag_still_separates_words():
+    html = "<h2><span>Plans<br>and</span> pricing</h2>"
+    assert parse_html(html)["h2"] == ["Plans and pricing"]
+
+
+def test_br_never_shows_as_glued_words_in_the_title():
+    # Parsers differ on <title>: some read the <br> as a tag, some as literal
+    # text (which is what a browser shows). Neither may glue the two words.
+    html = "<html><head><title>Foo<br>Bar</title></head></html>"
+    assert parse_html(html)["title"] in ("Foo Bar", "Foo<br>Bar")
+
+
+def test_inline_tags_without_spaces_still_add_none():
+    html = "<h1>Web<span>Obs</span></h1><h2>$<b>99</b> a month</h2>"
+    result = parse_html(html)
+    assert result["h1"] == ["WebObs"]
+    assert result["h2"] == ["$99 a month"]
+
+
+def test_br_handling_leaves_the_word_count_alone():
+    html = "<body><h1>Foo<br>Bar</h1><p>three more words</p></body>"
+    assert parse_html(html)["word_count"] == 5

@@ -187,8 +187,9 @@ def rule_04_noindex_added(baseline: dict, current: dict) -> dict:
     """CRITICAL: Noindex directive added."""
     def directives(value: str) -> set[str]:
         # A parameter value such as max-image-preview: none is not a directive.
-        standalone = re.sub(r"\b[\w-]+\s*:\s*[^,\s]+", "", value.lower())
-        return set(re.split(r"[,\s]+", standalone))
+        # Directives are separated by commas, semicolons or whitespace.
+        standalone = re.sub(r"\b[\w-]+\s*:\s*[^,;\s]+", "", value.lower())
+        return set(re.split(r"[,;\s]+", standalone))
 
     old_robots = directives(baseline.get("robots") or "")
     new_robots = directives(current.get("meta_robots") or "")

@@ -9,12 +9,13 @@ Usage:
 """
 
 import argparse
+import copy
 import json
 import os
 import re
 import sys
 from typing import Any, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urldefrag, urljoin, urlparse
 
 try:
     from bs4 import BeautifulSoup
@@ -52,7 +53,7 @@ _GENERIC_LAZY_CLASSES = {"lazyload", "lazyloaded", "lazy", "lazy-loaded"}
 # URL extension is not the format visitors receive. The probe asks the way a
 # browser does and reads the format from Content-Type, then the magic bytes.
 IMAGE_ACCEPT = "image/avif,image/webp,image/apng,image/*,*/*;q=0.8"
-_SNIFF_BYTES = 32
+_SNIFF_BYTES = 512  # room for an XML prolog and comment ahead of an <svg> root
 _CONTENT_TYPE_FORMATS = {
     "image/avif": "avif",
     "image/webp": "webp",
@@ -65,6 +66,28 @@ _CONTENT_TYPE_FORMATS = {
     "image/svg+xml": "svg",
     "image/jxl": "jxl",
 }
+
+
+def _has_svg_root(head: bytes) -> bool:
+    """Return True when the first element in ``head`` is ``<svg``.
+
+    An XML declaration alone proves nothing: sitemaps, feeds and XHTML error
+    pages start with ``<?xml`` too. Skip the prolog (declaration, processing
+    instructions, comments, DOCTYPE) and look at the root element itself.
+    """
+    rest = head.removeprefix(b"\xef\xbb\xbf").lstrip()
+    while True:
+        if rest.startswith(b"<?"):
+            end, skip = rest.find(b"?>"), 2
+        elif rest.startswith(b"<!--"):
+            end, skip = rest.find(b"-->"), 3
+        elif rest[:9].upper() == b"<!DOCTYPE":
+            end, skip = rest.find(b">"), 1
+        else:
+            return rest[:4].lower() == b"<svg"
+        if end < 0:
+            return False
+        rest = rest[end + skip:].lstrip()
 
 
 def _sniff_image_format(head: bytes) -> Optional[str]:
@@ -81,7 +104,7 @@ def _sniff_image_format(head: bytes) -> Optional[str]:
         return "avif"
     if head.startswith((b"\xff\x0a", b"\x00\x00\x00\x0cJXL ")):
         return "jxl"
-    if head.lstrip().startswith((b"<svg", b"<?xml")):
+    if _has_svg_root(head):
         return "svg"
     return None
 
@@ -92,7 +115,9 @@ def probe_image_format(src: str, timeout: int = 15) -> dict:
     Returns ``served_format`` (from the magic bytes, else Content-Type),
     ``served_bytes`` (Content-Length, or None when the server omits it),
     ``negotiated`` (True when the response varies on Accept, so the format
-    depends on the client) and ``probe_error`` (None on success).
+    depends on the client) and ``probe_error`` (None on success). A response
+    that is not a recognized image, such as an HTML soft 404 or a hotlink
+    protection page, sets ``probe_error`` so the format is never read as known.
     """
     result = {
         "served_format": None,
@@ -100,7 +125,12 @@ def probe_image_format(src: str, timeout: int = 15) -> dict:
         "negotiated": False,
         "probe_error": None,
     }
-    if not src or urlparse(src).scheme not in ("http", "https"):
+    try:
+        scheme = urlparse(src).scheme if src else ""
+    except ValueError as exc:
+        result["probe_error"] = f"malformed URL: {exc}"
+        return result
+    if scheme not in ("http", "https"):
         result["probe_error"] = "not an http(s) URL"
         return result
 
@@ -121,6 +151,10 @@ def probe_image_format(src: str, timeout: int = 15) -> dict:
             result["served_format"] = (
                 _sniff_image_format(head) or _CONTENT_TYPE_FORMATS.get(content_type)
             )
+            if result["served_format"] is None:
+                result["probe_error"] = (
+                    f"not a recognized image (Content-Type: {content_type or 'none'})"
+                )
             length = resp.headers.get("Content-Length")
             result["served_bytes"] = int(length) if length and length.isdigit() else None
             vary = resp.headers.get("Vary", "").lower()
@@ -180,7 +214,16 @@ def _element_text(tag) -> str:
     spaces next to inline tags are lost (``for <em>every</em> dollar`` becomes
     ``foreverydollar``). Joining the unstripped text and collapsing whitespace
     keeps those spaces and also folds newlines in multi-line headings.
+
+    A ``<br>`` is a line break, so it separates words (``Foo<br>Bar`` reads
+    ``Foo Bar``). Other inline tags add nothing: ``Web<span>Obs</span>`` stays
+    ``WebObs``. The break is swapped for a space on a copy, so the parsed
+    document is left as it was.
     """
+    if tag.find("br") is not None:
+        tag = copy.copy(tag)
+        for br in tag.find_all("br"):
+            br.replace_with(" ")
     return " ".join(tag.get_text().split())
 
 
@@ -243,7 +286,10 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     if base:
         try:
             candidate = urljoin(base_url or "", base["href"])
-            if urlparse(candidate).scheme.lower() not in {"data", "javascript"}:
+            # Only a web base is honoured, so file:, mailto:, data: and
+            # javascript: never reach the output. An empty scheme is a relative
+            # base read without a page URL, and it stays relative.
+            if urlparse(candidate).scheme.lower() in {"http", "https", ""}:
                 resource_base_url = candidate
         except ValueError:
             pass  # An invalid base falls back to the document URL.
@@ -332,7 +378,12 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     for img in soup.find_all("img"):
         src = img.get("src", "")
         if resource_base_url and src:
-            src = urljoin(resource_base_url, src)
+            try:
+                src = urljoin(resource_base_url, src)
+            except ValueError:
+                # Such as http://[bad/a.jpg. Keep the raw value so the image
+                # is still counted, and carry on with the rest of the page.
+                result.setdefault("malformed_urls", []).append({"tag": "img", "value": src})
 
         result["images"].append({
             "src": src,
@@ -346,14 +397,25 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     # Links
     if base_url:
         base_domain = urlparse(base_url).netloc
+        # A fragment-only href resolves against the document base URL (HTML
+        # spec), so it stays on this page only while the base is this page.
+        # With <base> pointing elsewhere, #frag is a link to that other URL.
+        base_is_page = urldefrag(resource_base_url)[0] == urldefrag(base_url)[0]
 
         for a in soup.find_all("a", href=True):
             href = a.get("href", "")
-            if not href or href.startswith("#") or href.startswith("javascript:"):
+            if not href or href.startswith("javascript:"):
+                continue
+            if href.startswith("#") and base_is_page:
                 continue
 
-            full_url = urljoin(resource_base_url, href)
-            parsed = urlparse(full_url)
+            try:
+                full_url = urljoin(resource_base_url, href)
+                parsed = urlparse(full_url)
+            except ValueError:
+                # Such as http://[bad/x. Record it and carry on.
+                result.setdefault("malformed_urls", []).append({"tag": "a", "value": href})
+                continue
 
             link_data = {
                 "href": full_url,
