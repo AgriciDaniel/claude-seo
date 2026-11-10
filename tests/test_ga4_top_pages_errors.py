@@ -97,3 +97,30 @@ def test_cli_exposes_landing_page_query_failure(client, monkeypatch, capsys, jso
         assert json.loads(output.out)["error"] == "Error fetching top pages: landing pages unavailable"
     else:
         assert "Top Organic Landing Pages" not in output.out
+
+
+def test_error_kind_comes_from_the_exception_not_from_digits_in_its_text(client):
+    """A quota error on a property whose ID contains 403 is not a permission error."""
+    from google.api_core import exceptions
+
+    quota = exceptions.TooManyRequests(
+        "429 POST https://analyticsdata.googleapis.com/v1beta/properties/314040392:runReport: quota"
+    )
+    client.run_report.side_effect = quota
+    result = ga4_report.organic_traffic_report("314040392")
+    assert result["error"].startswith("GA4 API error:")
+    assert "Permission denied" not in result["error"]
+    assert "not found" not in result["error"]
+
+
+@pytest.mark.parametrize("exc_name,expected", [
+    ("PermissionDenied", "Permission denied"),
+    ("Forbidden", "Permission denied"),
+    ("NotFound", "not found"),
+])
+def test_permission_and_not_found_are_still_recognised(client, exc_name, expected):
+    from google.api_core import exceptions
+
+    client.run_report.side_effect = getattr(exceptions, exc_name)("request failed")
+    result = ga4_report.organic_traffic_report("123456789")
+    assert expected in result["error"]

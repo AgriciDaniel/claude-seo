@@ -47,6 +47,20 @@ except ImportError:
 GA4_SCOPES = ["https://www.googleapis.com/auth/analytics.readonly"]
 
 
+def _api_status(error: Exception) -> int | None:
+    """HTTP status carried by a Google API exception, or None.
+
+    The status comes from the exception itself, never from its text: with the
+    REST transport the message includes the request URL, so a property ID
+    such as 314040392 would read as a 403 or a 404 to a substring test.
+    """
+    code = getattr(error, "code", None)
+    try:
+        return int(code)
+    except (TypeError, ValueError):
+        return None
+
+
 def _build_ga4_client():
     """Build the GA4 BetaAnalyticsDataClient."""
     credentials = get_oauth_credentials(GA4_SCOPES)
@@ -166,13 +180,14 @@ def organic_traffic_report(
 
     except Exception as e:
         error_str = str(e)
-        if "403" in error_str or "PERMISSION_DENIED" in error_str:
+        status = _api_status(e)
+        if status == 403 or "PERMISSION_DENIED" in error_str:
             result["error"] = (
                 f"Permission denied for property '{property_id}'. "
                 "Add the service account email as Viewer in "
                 "GA4 Admin > Property Access Management."
             )
-        elif "404" in error_str or "NOT_FOUND" in error_str:
+        elif status == 404 or "NOT_FOUND" in error_str:
             result["error"] = (
                 f"Property '{property_id}' not found. "
                 "Verify the numeric property ID in GA4 Admin > Property Details."
