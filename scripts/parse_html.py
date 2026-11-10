@@ -29,7 +29,10 @@ Output keys (JSON):
                           every other subdomain is external
     schema                parsed JSON-LD entities, @graph flattened
     schema_invalid        {count, samples}: JSON-LD blocks that could not be
-                          used, with the first 80 characters of up to 10
+                          used, with the first 80 characters of up to 10.
+                          A block nested deeper than 64 levels is invalid too
+                          and adds too_deep: {count, reason}, a key that is
+                          only present when there is such a block
     open_graph, twitter_card, hreflang, word_count
     hidden_text           {chars, by_source, collapsed_chars, samples}: text
                           that is in the HTML but not shown (see below)
@@ -79,7 +82,12 @@ _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 import requests  # noqa: E402  (url_safety already hard-requires it)
-from url_safety import URLSafetyError, decode_response_text, safe_requests_get  # noqa: E402, I001
+from url_safety import (  # noqa: E402, I001
+    URLSafetyError,
+    decode_response_text,
+    json_depth_exceeds,
+    safe_requests_get,
+)
 
 # Lazy-loader detection: covers native + the major JS lazy-loaders found on
 # WordPress/WooCommerce sites (Perfmatters, EWWW Image Optimizer, generic
@@ -115,6 +123,14 @@ _MAX_OUTLINE_HEADINGS = 200
 _MAX_HEADING_CHARS = 300
 _MAX_INVALID_SCHEMA_SAMPLES = 10
 _INVALID_SCHEMA_SAMPLE_CHARS = 80
+# Deepest nesting of arrays and objects a JSON-LD block may have. Real markup
+# stays under about ten levels. Python's JSON encoder recurses once per level,
+# so a block nested past the interpreter's recursion limit (1,000 by default)
+# parsed fine and then raised RecursionError when the result was printed. A
+# deeper block is counted in `schema_invalid` and never reaches `schema`, which
+# keeps every consumer of `schema` (this script's JSON output and the scripts
+# that import it) clear of the limit.
+_MAX_JSON_LD_DEPTH = 64
 _MAX_HIDDEN_SAMPLES = 5
 _HIDDEN_SAMPLE_CHARS = 200
 
@@ -800,7 +816,13 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     for script in soup.find_all("script"):
         if not _is_json_ld(script):
             continue
+        too_deep = False
         try:
+            # A linear scan of the text, with no recursion, before anything
+            # is built from it.
+            too_deep = json_depth_exceeds(script.string or "", _MAX_JSON_LD_DEPTH)
+            if too_deep:
+                raise ValueError("JSON-LD nested too deep")
             schema_data = json.loads(script.string)
             # Flatten @graph containers so each @type is a separate entry.
             # The container is not an entity, so it carries no @type of its
@@ -816,12 +838,16 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
                         result["schema"].append(item)
             else:
                 result["schema"].append(schema_data)
-        except (ValueError, TypeError, RecursionError):
+        except (ValueError, TypeError, RecursionError) as exc:
             # Not valid JSON, empty, nested too deep, or a @graph that cannot
             # be walked. Count the block and keep a short sample instead of
-            # dropping it without a trace.
+            # dropping it without a trace. RecursionError is the backstop for
+            # the depth scan above.
             invalid = result["schema_invalid"]
             invalid["count"] += 1
+            if too_deep or isinstance(exc, RecursionError):
+                reason = f"nested deeper than {_MAX_JSON_LD_DEPTH} levels"
+                invalid.setdefault("too_deep", {"count": 0, "reason": reason})["count"] += 1
             if len(invalid["samples"]) < _MAX_INVALID_SCHEMA_SAMPLES:
                 raw = str(script.string or "")[: _INVALID_SCHEMA_SAMPLE_CHARS * 5]
                 invalid["samples"].append(" ".join(raw.split())[:_INVALID_SCHEMA_SAMPLE_CHARS])

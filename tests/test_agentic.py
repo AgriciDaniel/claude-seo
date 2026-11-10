@@ -15,7 +15,10 @@ from __future__ import annotations
 import copy
 import json
 import os
+import random
+import re
 import sys
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -644,3 +647,100 @@ def test_fix_robots_refuses_to_draft_from_nothing_on_429(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         af.main()
     assert "Could not read robots.txt" in str(exc.value)
+
+
+# --------------------------------------------------------------------------- hostile input
+#
+# Fetched text is hostile and one body is at most ac.MAX_BODY (2,000,000 bytes).
+# Each case below was quadratic or worse before the parser was made linear.
+
+HOSTILE_CHARS = 2_000_000
+# Headers are not bodies: http.client stops a header line at 65,536 bytes, and
+# repeated Link headers are joined, so three full lines stand in for a long one.
+HOSTILE_HEADER_CHARS = 200_000
+
+
+def _seconds(fn, *args) -> float:
+    started = time.monotonic()
+    fn(*args)
+    return time.monotonic() - started
+
+
+def _repeat(unit: str, chars: int = HOSTILE_CHARS) -> str:
+    return unit * (chars // len(unit))
+
+
+@pytest.mark.parametrize("pattern", [
+    _repeat("*") + "x", "/" + _repeat("*") + "x$", _repeat("*a"), _repeat("*/") + "x",
+    _repeat("/*") + "$", _repeat("a"), _repeat("$"),
+])
+def test_a_hostile_robots_wildcard_rule_is_matched_in_linear_time(pattern):
+    """The rule used to become a regex such as ``^.*.*.*x``."""
+    assert _seconds(ac.is_allowed, [("disallow", pattern)], "/" * 64) < 2
+    robots = f"User-agent: *\nDisallow: {pattern}\nAllow: {pattern}\n"
+    with patch.object(ac, "fetch", return_value=_rec(200, robots)):
+        assert _seconds(ac.audit_robots, "https://example.com") < 2
+
+
+def _robots_regex_reference(pattern: str, path: str) -> bool:
+    """The wildcard match as first written: a regex built from the rule."""
+    anchored = pattern.endswith("$")
+    body = pattern[:-1] if anchored else pattern
+    regex = "^" + ".*".join(re.escape(part) for part in body.split("*"))
+    regex += "$" if anchored else ""
+    return re.match(regex, path) is not None
+
+
+def test_robots_wildcard_match_agrees_with_the_original_regex():
+    rng = random.Random(260)
+    for _ in range(40_000):
+        pattern = "".join(rng.choice("/ab*$.") for _ in range(rng.randint(0, 7)))
+        path = "".join(rng.choice("/ab.$") for _ in range(rng.randint(0, 9)))
+        assert ac._pattern_matches(pattern, path) is _robots_regex_reference(pattern, path), (
+            pattern, path)
+
+
+@pytest.mark.parametrize("unit", [
+    "<div ", "<div", '<div id="root" ', "<div>", "></div>", '<div a id="app">\n',
+    'id="root"', "<div x>   ",
+])
+def test_a_hostile_page_is_checked_for_a_js_shell_in_linear_time(unit):
+    for html in (_repeat(unit), _repeat(unit) + ">", '<div id="root" ' + _repeat(unit) + "></span>"):
+        assert _seconds(ac.js_shell_marker, html) < 2
+    assert ac.js_shell_marker('<div id="root" ' + _repeat("<div ") + "> </div>")
+    assert not ac.js_shell_marker('<div id="root" ' + _repeat("<div ") + "> x</div>")
+
+
+def test_js_shell_marker_agrees_with_the_original_regex():
+    pieces = ["<div", "<DIV", " ", "\n", ">", "</div>", "</DIV>", 'id="root"', "id='app'",
+              'id="__next"', 'ID="__NUXT"', 'id="roots"', 'data-id="app"', "x", "<", "<p>",
+              "Enable JavaScript", "you need to enable javascript", 'class="a"', "<divider"]
+    rng = random.Random(260)
+    for _ in range(40_000):
+        html = "".join(rng.choice(pieces) for _ in range(rng.randint(0, 10)))
+        assert ac.js_shell_marker(html) is bool(ac.JS_SHELL.search(html)), html
+    assert ac.js_shell_marker('<div class="app" id="root" data-x="1">\n  </div>')
+    assert not ac.js_shell_marker('<div id="root"><p>Rendered</p></div>')
+
+
+@pytest.mark.parametrize("unit", ["<", "<a", "<a>", "<a>;", '<a>; rel="', "<a>;a ", ">", ";a="])
+def test_a_hostile_link_header_is_parsed_in_linear_time(unit):
+    header = _repeat(unit, HOSTILE_HEADER_CHARS)
+    assert _seconds(ac.parse_link_header, header) < 2
+    assert _seconds(ac.parse_link_header, '</c.json>; rel="ai-catalog", ' + header) < 2
+
+
+def test_many_catalog_links_do_not_stall_the_link_signals():
+    """Each catalog link used to rebuild the list of every header link."""
+    count = 5_000
+    header = ", ".join(f'<https://e.test/c{n}.json>; rel="ai-catalog"' for n in range(count))
+    html = "".join(f'<link rel="ai-catalog" href="/h{n}.json">' for n in range(count))
+    started = time.monotonic()
+    signals = ac._link_signals(ac._soup(html), header, "https://e.test/")
+    assert time.monotonic() - started < 2
+    assert len(signals["ai_catalog_links"]) == 2 * count
+    assert signals["ai_catalog_html"] == [f"https://e.test/h{n}.json" for n in range(count)]
+
+
+def test_the_hostile_cases_are_full_size():
+    assert HOSTILE_CHARS >= ac.MAX_BODY

@@ -344,6 +344,86 @@ def test_deeply_nested_json_ld_does_not_abort_the_parse():
     assert result["schema_invalid"]["samples"] == ["[" * 80]
 
 
+def _nested(depth: int, kind: str) -> str:
+    """Valid JSON nested ``depth`` containers deep."""
+    if kind == "objects":
+        return '{"a":' * depth + "1" + "}" * depth
+    if kind == "arrays":
+        return "[" * depth + "]" * depth
+    return '[{"a":' * (depth // 2) + "1" + "}]" * (depth // 2)
+
+
+@pytest.mark.parametrize("depth", [1_500, 100_000])
+@pytest.mark.parametrize("kind", ["objects", "arrays", "mixed"])
+def test_json_ld_nested_too_deep_is_invalid_and_the_result_still_serialises(depth, kind):
+    """Depth 1,500 used to parse and then raise RecursionError in json.dumps."""
+    block = _nested(depth, kind)
+    html = (
+        f'<h1>Title</h1><script type="application/ld+json">{ORG}</script>'
+        f'<script type="application/ld+json">{block}</script>'
+    )
+    result = parse_html(html)
+
+    assert result["h1"] == ["Title"]
+    assert result["schema"] == [json.loads(ORG)]
+    assert result["schema_invalid"] == {
+        "count": 1,
+        "samples": [block[:80]],
+        "too_deep": {"count": 1, "reason": "nested deeper than 64 levels"},
+    }
+    json.dumps(result)
+    json.dumps(result, indent=2)
+
+
+def test_json_ld_depth_limit_is_64_levels_and_normal_markup_is_untouched():
+    limit = parse_html_module._MAX_JSON_LD_DEPTH
+    assert limit == 64
+
+    ten_deep = parse_html(f'<script type="application/ld+json">{_nested(10, "objects")}</script>')
+    assert ten_deep["schema"] == [json.loads(_nested(10, "objects"))]
+    assert ten_deep["schema_invalid"] == {"count": 0, "samples": []}
+
+    at_limit = parse_html(f'<script type="application/ld+json">{_nested(limit, "objects")}</script>')
+    assert len(at_limit["schema"]) == 1 and at_limit["schema_invalid"]["count"] == 0
+    json.dumps(at_limit, indent=2)
+
+    over = parse_html(f'<script type="application/ld+json">{_nested(limit + 1, "objects")}</script>')
+    assert over["schema"] == []
+    assert over["schema_invalid"]["too_deep"]["count"] == 1
+
+
+def test_json_ld_depth_ignores_brackets_inside_strings_and_counts_graph_entries():
+    quoted = json.dumps({"@type": "Thing", "name": "[{" * 500, "note": 'a "[[[" b'})
+    in_string = parse_html(f'<script type="application/ld+json">{quoted}</script>')
+    assert in_string["schema"] == [json.loads(quoted)]
+    assert in_string["schema_invalid"] == {"count": 0, "samples": []}
+
+    deep_entry = _nested(1_500, "arrays")
+    graph = '{"@context": "https://schema.org", "@graph": [{"@type": "Thing", "x": %s}]}' % deep_entry
+    in_graph = parse_html(f'<script type="application/ld+json">{graph}</script>')
+    assert in_graph["schema"] == []
+    assert in_graph["schema_invalid"]["count"] == 1
+    assert in_graph["schema_invalid"]["too_deep"]["count"] == 1
+    json.dumps(in_graph, indent=2)
+
+
+def test_cli_json_output_survives_a_deep_json_ld_block(tmp_path, monkeypatch, capsys):
+    """The crash site: ``print(json.dumps(result, indent=2))`` in ``main``."""
+    page = tmp_path / "page.html"
+    page.write_text(
+        "<title>T</title>"
+        f'<script type="application/ld+json">{_nested(1_500, "objects")}</script>',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "argv", ["parse_html.py", str(page), "--json"])
+    parse_html_module.main()
+
+    printed = json.loads(capsys.readouterr().out)
+    assert printed["title"] == "T"
+    assert printed["schema"] == []
+    assert printed["schema_invalid"]["count"] == 1
+
+
 # ---------------------------------------------------------------------------
 # 4. Heading outline
 # ---------------------------------------------------------------------------

@@ -6,6 +6,8 @@ Lighthouse-style headline verdict. No live network: fetches are patched.
 
 from __future__ import annotations
 
+import random
+import re
 import sys
 import time
 from pathlib import Path
@@ -244,6 +246,76 @@ def test_hostile_lines_do_not_crash_or_stall():
     found = {(note["id"], note["line"]) for note in result["format_notes"]}
     assert ("invalid-url", 7) in found and ("malformed-link", 8) in found
     assert all(len(note.get("detail", "")) <= 80 for note in result["format_notes"])
+
+
+# One fetched file is at most agentic_check.MAX_BODY (2,000,000 bytes). The
+# Lighthouse-style regexes used to be quadratic: 40,000 blank lines took 1.8 s,
+# so a full-size file of them would have run for over an hour.
+HOSTILE_CHARS = 2_000_000
+HOSTILE_FILES = [
+    ("", "\n"), ("", "#"), ("", "- ["), ("", " "),
+    ("", "["), ("", "\r"), ("", " \n"), ("", "\t\n#"), ("", "[x]("), ("", "](x"),
+    ("#", "\n"), (">", "\n"), ("##", "\n"), ("# ", " "), ("# T\n\n", "["),
+    ("# T\n\n> S\n\n## Docs\n", "- ["), ("# T\n## Docs\n", "- [x]("),
+    ("# T\n## Docs\n- [t](", "(a"), ("# T\n## Docs\n", "- [t](u \""),
+    ("# T\n## Docs\n", "\n"), ("# T\n", "## S\n"), ("# T\n## Docs\n", "- x\n"),
+]
+
+
+@pytest.mark.parametrize(("prefix", "unit"), HOSTILE_FILES)
+def test_a_full_size_hostile_file_is_read_in_linear_time(prefix, unit):
+    text = prefix + unit * (HOSTILE_CHARS // len(unit))
+
+    started = time.monotonic()
+    verdict = ac._lighthouse_llms_txt(200, text)
+    verdict_seconds = time.monotonic() - started
+    started = time.monotonic()
+    fmt = ac.llms_format_notes(text)
+    notes_seconds = time.monotonic() - started
+
+    assert verdict_seconds < 2, f"Lighthouse-style verdict took {verdict_seconds:.1f} s"
+    assert notes_seconds < 2, f"llms_format_notes took {notes_seconds:.1f} s"
+    assert verdict["lighthouse"] == "fail"
+    assert len(fmt["format_notes"]) <= len(ac.LLMS_FORMAT_RULES) * ac.LLMS_NOTES_PER_ID
+    assert HOSTILE_CHARS >= ac.MAX_BODY
+
+
+def _lighthouse_reference(content):
+    """The verdict as first written, with the Lighthouse 13.5.0 regexes verbatim.
+
+    Quadratic on hostile input, so only ever given short strings here.
+    """
+    errors = []
+    if not re.search(r"^\s*#\s+.+", content, re.M):
+        errors.append('missing an H1 header ("# Title")')
+    if not re.search(r"\[.+\]\(.+\)", content):
+        errors.append("contains no Markdown links")
+    if len(content) < 50:
+        errors.append("shorter than 50 characters")
+    notes_ = []
+    lines = [ln for ln in content.splitlines() if ln.strip()]
+    if lines and not lines[0].lstrip().startswith("# "):
+        notes_.append("llmstxt.org expects the H1 to be the first line")
+    if not re.search(r"^\s*>\s+\S", content, re.M):
+        notes_.append("no blockquote summary ('> ...') as llmstxt.org recommends")
+    if not re.search(r"^\s*##\s+\S", content, re.M):
+        notes_.append("no H2 sections grouping the links")
+    if re.search(r"^\s*<(!doctype|html)", content, re.I):
+        notes_.append("served HTML, not Markdown (likely a soft 404); not a Lighthouse rule")
+    return {"lighthouse": "pass" if not errors else "fail", "errors": errors, "notes": notes_}
+
+
+def test_linear_verdict_agrees_with_the_original_regexes_on_random_files():
+    pieces = ["#", "##", " ", "  ", "\n", "\n\n", "\r", "\r\n", "\t", "\x0b", "\x0c", "\x1c",
+              "\x85", "\xa0", LINE_SEPARATOR, "[", "]", "(", ")", "](", ">", "<", "a", "Title",
+              "<!DOCTYPE", "<html", "- ", "x" * 50]
+    rng = random.Random(260)
+    for _ in range(30_000):
+        text = "".join(rng.choice(pieces) for _ in range(rng.randint(0, 14)))
+        assert ac._lighthouse_llms_txt(200, text) == _lighthouse_reference(text), repr(text)
+    for text in (SPEC_SHAPED, MALFORMED, "", "#", "# ", "#  ", "# \n", "#\n\nx", " # x", "x # y",
+                 "[a](b)", "[](b)", "[a]()", "[a]\n(b)", "[a](b\n)", "x[[a](b))", "\n\n<html>"):
+        assert ac._lighthouse_llms_txt(200, text) == _lighthouse_reference(text), repr(text)
 
 
 def test_every_rule_has_a_level_and_a_plain_message():

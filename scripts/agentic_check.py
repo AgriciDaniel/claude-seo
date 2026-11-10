@@ -303,12 +303,33 @@ def select_group(parsed: dict, token: str) -> dict:
     }
 
 
+_STAR_RUN = re.compile(r"\*{2,}")
+
+
 def _pattern_matches(pattern: str, path: str) -> bool:
+    """RFC 9309 path match: ``*`` is any run of characters, a final ``$`` the end.
+
+    Uses ``str.find``, not a regex built from the rule. The rule is untrusted,
+    and one such as ``****x`` became ``^.*.*.*.*x``, which backtracks without
+    limit. ``*`` is the only wildcard, so placing each literal piece at its
+    first possible position is enough.
+    """
     anchored = pattern.endswith("$")
     body = pattern[:-1] if anchored else pattern
-    regex = "^" + ".*".join(re.escape(part) for part in body.split("*"))
-    regex += "$" if anchored else ""
-    return re.match(regex, path) is not None
+    if "*" not in body:
+        return path == body if anchored else path.startswith(body)
+    first, *middle, last = _STAR_RUN.sub("*", body).split("*")
+    if not path.startswith(first):
+        return False
+    pos = len(first)
+    for piece in middle:
+        found = path.find(piece, pos)
+        if found < 0:
+            return False
+        pos = found + len(piece)
+    if anchored:
+        return len(path) - len(last) >= pos and path.endswith(last)
+    return path.find(last, pos) >= 0
 
 
 def is_allowed(rules: list, path: str = "/") -> bool:
@@ -722,6 +743,38 @@ def evaluate_llms_txt(status: Optional[int], content: Optional[str], *,
     return {**result, **fmt, "format_basis": LLMS_FORMAT_BASIS}
 
 
+# Lighthouse 13.5.0 tests the file with ``/^\s*#\s+.+/m``, ``/\[.+\]\(.+\)/``
+# and the like. Run as written they are quadratic: ``^\s*`` rescans the rest of
+# a run of blank lines from every line start (40,000 newlines took 1.8 s, a
+# 2 MB file over an hour), and ``\[.+\]\(.+\)`` rescans the line from every
+# ``[``. The patterns below give the same answer for every input in one pass.
+# ``^\s*X`` matches exactly when X follows only whitespace on its own line, so
+# the leading run is limited to that line (``[^\S\n]`` is ``\s`` minus ``\n``).
+_LLMS_LH_H1 = re.compile(r"^[^\S\n]*#\s+.+", re.M)
+_LLMS_LH_SUMMARY = re.compile(r"^[^\S\n]*>\s+\S", re.M)
+_LLMS_LH_H2 = re.compile(r"^[^\S\n]*##\s+\S", re.M)
+
+
+def _llms_has_markdown_link(content: str) -> bool:
+    """Same answer as ``re.search(r"\\[.+\\]\\(.+\\)", content)``, in linear time.
+
+    ``.`` stops at a newline, so a match lies within one line: a ``[``, at
+    least one character, ``](``, at least one character, ``)``. Taking the
+    first ``[`` and then the first ``](`` leaves the most room for the rest, so
+    one ``str.find`` each settles the line.
+    """
+    if "](" not in content:
+        return False
+    for line in content.split("\n"):
+        opening = line.find("[")
+        if opening < 0:
+            continue
+        middle = line.find("](", opening + 2)
+        if middle >= 0 and line.find(")", middle + 3) >= 0:
+            return True
+    return False
+
+
 def _lighthouse_llms_txt(status: Optional[int], content: Optional[str]) -> dict:
     if status is None:
         return {"lighthouse": "fail", "errors": ["fetch failed"], "notes": []}
@@ -731,9 +784,9 @@ def _lighthouse_llms_txt(status: Optional[int], content: Optional[str]) -> dict:
         return {"lighthouse": "not-applicable", "errors": [], "notes": [f"HTTP {status}"]}
     content = (content or "").lstrip("\ufeff")  # JavaScript's \s matches a BOM
     errors = []
-    if not re.search(r"^\s*#\s+.+", content, re.M):
+    if not _LLMS_LH_H1.search(content):
         errors.append('missing an H1 header ("# Title")')
-    if not re.search(r"\[.+\]\(.+\)", content):
+    if not _llms_has_markdown_link(content):
         errors.append("contains no Markdown links")
     if len(content) < 50:
         errors.append("shorter than 50 characters")
@@ -741,9 +794,9 @@ def _lighthouse_llms_txt(status: Optional[int], content: Optional[str]) -> dict:
     lines = [ln for ln in content.splitlines() if ln.strip()]
     if lines and not lines[0].lstrip().startswith("# "):
         notes.append("llmstxt.org expects the H1 to be the first line")
-    if not re.search(r"^\s*>\s+\S", content, re.M):
+    if not _LLMS_LH_SUMMARY.search(content):
         notes.append("no blockquote summary ('> ...') as llmstxt.org recommends")
-    if not re.search(r"^\s*##\s+\S", content, re.M):
+    if not _LLMS_LH_H2.search(content):
         notes.append("no H2 sections grouping the links")
     if re.search(r"^\s*<(!doctype|html)", content, re.I):
         notes.append("served HTML, not Markdown (likely a soft 404); not a Lighthouse rule")
@@ -790,9 +843,40 @@ def visible_words(html: str) -> int:
     return len(soup.get_text(" ", strip=True).split())
 
 
+# The rule, kept for importers. Do not run it on fetched HTML: it is quadratic
+# (every ``<div`` rescans to the next ``>``, and so does every ``id=`` inside
+# one tag). ``js_shell_marker`` gives the same answer in one pass.
 JS_SHELL = re.compile(
     r'<div[^>]+id=["\'](root|app|__next|__nuxt)["\'][^>]*>\s*</div>|'
     r"enable javascript|you need to enable javascript", re.I)
+_SHELL_PHRASE = re.compile(r"enable javascript", re.I)
+_SHELL_DIV = re.compile(r"<div", re.I)
+_SHELL_ID = re.compile(r'id=["\'](root|app|__next|__nuxt)["\']', re.I)
+_SHELL_EMPTY = re.compile(r"\s*</div>", re.I)
+
+
+def js_shell_marker(html: str) -> bool:
+    """Same answer as ``JS_SHELL.search(html)``, in linear time.
+
+    A match is a ``<div``, the first ``>`` after it, a shell id between the
+    two and only whitespace before ``</div>``. Every ``<div`` before the same
+    ``>`` shares that tag end and the first one has the most room for the id,
+    so each tag end is looked at once.
+    """
+    if _SHELL_PHRASE.search(html):
+        return True
+    pos = 0
+    while True:
+        div = _SHELL_DIV.search(html, pos)
+        if not div:
+            return False
+        close = html.find(">", div.end())
+        if close < 0:
+            return False
+        if (_SHELL_EMPTY.match(html, close + 1)
+                and _SHELL_ID.search(html, div.end() + 1, close)):
+            return True
+        pos = close + 1
 
 
 def audit_page(url: str) -> tuple[list, dict]:
@@ -806,7 +890,7 @@ def audit_page(url: str) -> tuple[list, dict]:
         return checks, data
     html = rec["text"]
     words = visible_words(html)
-    shell = bool(JS_SHELL.search(html))
+    shell = js_shell_marker(html)
     data.update({"words_without_js": words, "js_shell_marker": shell,
                  "final_url": rec["final_url"], "headers": {
                      k: rec["headers"].get(k) for k in ("link", "vary", "content-signal",
@@ -839,15 +923,20 @@ def _link_signals(soup, link_header: str, base: str) -> dict:
             md_alt.append(urljoin(base, entry["uri"]))
         if "ai-catalog" in rels:
             ai_catalog.append(urljoin(base, entry["uri"]))
+    # Built once: rebuilding it for every catalog link was quadratic.
+    header_urls = {urljoin(base, e["uri"]) for e in header_links} if ai_catalog else set()
     return {"markdown_alternates": sorted(set(md_alt)), "ai_catalog_links": ai_catalog,
-            "ai_catalog_html": [u for u in ai_catalog if u not in
-                                [urljoin(base, e["uri"]) for e in header_links]]}
+            "ai_catalog_html": [u for u in ai_catalog if u not in header_urls]}
 
 
 def parse_link_header(value: str) -> list:
-    """Minimal RFC 8288 parser: ``<uri>; rel="a b"; type="x"``."""
+    """Minimal RFC 8288 parser: ``<uri>; rel="a b"; type="x"``.
+
+    The URI may not hold a ``<``. A URI never does, and allowing one made
+    every ``<`` in a header without a ``>`` rescan the rest of it.
+    """
     out = []
-    for match in re.finditer(r"<([^>]*)>([^,<]*)", value or ""):
+    for match in re.finditer(r"<([^<>]*)>([^,<]*)", value or ""):
         params = {}
         for p in re.finditer(r';\s*([a-zA-Z*-]+)\s*=\s*("([^"]*)"|[^;,\s]+)', match.group(2)):
             params[p.group(1).lower()] = p.group(3) if p.group(3) is not None else p.group(2)
