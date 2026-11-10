@@ -10,14 +10,28 @@ You are a Sitemap Architecture specialist.
 
 When working with sitemaps:
 
-1. Discover candidates with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run sitemap_discovery.py <url> --json`.
+1. Discover and read sitemaps with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run sitemap_discovery.py <url> --expand --json`.
    Use only validated `found` entries and retain declared failures as findings.
-2. Validate XML format and URL status codes
-3. Check for deprecated tags (priority, changefreq: both ignored by Google)
-4. Verify lastmod accuracy (valid W3C Datetime; reflects last *significant* change, not boilerplate)
-5. Compare crawled pages vs sitemap coverage
-6. Enforce the per-file limit: ≤50,000 URLs AND ≤50MB uncompressed (whichever first); for `news:` sitemaps the cap is 1,000 URLs
-7. Apply location page quality gates
+2. Take file facts from `expanded.files` and `expanded.totals` (table below); do not count or parse sitemap files by hand
+3. Check URL status codes on each file's `sample_urls`
+4. Check for deprecated tags (priority, changefreq: both ignored by Google)
+5. Verify lastmod accuracy (reflects last *significant* change, not boilerplate)
+6. Compare crawled pages vs sitemap coverage
+7. For `news:` sitemaps also count `<news:news>` tags: at most 1,000 per file, on top of the general limits
+8. Apply location page quality gates
+
+## Expand Output
+
+| Check | Fields in `expanded` |
+|-------|----------------------|
+| Valid XML, file reachable | `files[].valid`, `error`, `status_code`, `kind` |
+| ≤50,000 URLs AND ≤50MB uncompressed per file | `url_count`, `bytes`, `decompressed_bytes`; `findings`: `over_50000_urls`, `over_50000_sitemaps`, `over_50mib_uncompressed` |
+| Index structure | `child_count`, `parent`; `findings`: `nested_sitemap_index` (index lists an index, not followed) |
+| lastmod present, valid W3C Datetime | `lastmod_count` against `url_count`, `lastmod_invalid_count` |
+| lastmod identical across a file | `lastmod_identical_share` near 1.0, `lastmod_most_common`, `lastmod_oldest`, `lastmod_newest` |
+| URLs on another host than their sitemap | `cross_host_url_count`, `cross_host_url_examples`, `cross_host` on a child file |
+| Duplicate or malformed URLs | `duplicate_count`, `invalid_loc_count`, `totals.unique_urls`, `totals.duplicates_across_files` |
+| Run cut short | `truncated`, `children.skipped`; rerun with a higher `--max-children` (default 50) |
 
 ## Quality Gates
 

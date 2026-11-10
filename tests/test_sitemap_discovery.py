@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import gzip
 import sys
+import tracemalloc
+import zlib
 from pathlib import Path
 from unittest.mock import patch
 
@@ -195,3 +198,99 @@ def test_commented_sitemap_directive_is_the_url_that_gets_fetched():
         result = discovery.discover_sitemaps("https://example.com")
     assert declared in fetched
     assert [item["url"] for item in result["found"] if item["url"] == declared] == [declared]
+
+
+def test_paths_that_redirect_to_one_sitemap_are_listed_once():
+    """Rank Math sends /sitemap.xml to /sitemap_index.xml: one file, one listing."""
+    final = "https://example.com/sitemap_index.xml"
+
+    def fake_fetch(url, _limit):
+        if url.endswith("robots.txt"):
+            return response(content=b"User-agent: *\n")
+        if url.endswith(("/sitemap.xml", "/sitemap_index.xml")):
+            return response(content=INDEX, url=final)
+        return response(status=404, url=url)
+
+    with patch.object(discovery, "_bounded_fetch", side_effect=fake_fetch):
+        result = discovery.discover_sitemaps("https://example.com")
+    assert [item["url"] for item in result["found"]] == [final]
+    # Both paths were checked and both answered with a valid sitemap.
+    assert [item["valid"] for item in result["checked"]] == [True, True, False, False]
+    assert "expanded" not in result
+
+
+def discover_one(body, url="https://example.com/sitemap.xml.gz", content_type="application/gzip"):
+    """Plain discovery of a site whose robots.txt declares one sitemap."""
+
+    def fake_fetch(fetch_url, _limit):
+        if fetch_url.endswith("robots.txt"):
+            return response(content=f"Sitemap: {url}\n".encode())
+        if fetch_url == url:
+            return response(content=body, url=url, content_type=content_type)
+        return response(status=404, url=fetch_url)
+
+    with patch.object(discovery, "_bounded_fetch", side_effect=fake_fetch):
+        result = discovery.discover_sitemaps("https://example.com")
+    return result, result["checked"][0]
+
+
+@pytest.mark.parametrize(
+    ("plain", "kind"),
+    [(URLSET, "urlset"), (INDEX, "sitemapindex"), (b"https://example.com/one\nhttps://example.com/two\n", None)],
+)
+def test_gzip_sitemap_is_classified_by_its_decompressed_content(plain, kind):
+    result, entry = discover_one(gzip.compress(plain))
+    assert entry["gzip"] is True
+    assert (entry["kind"], entry["valid"]) == (kind, kind is not None)
+    assert [item["url"] for item in result["found"]] == (["https://example.com/sitemap.xml.gz"] if kind else [])
+    assert set(result) == {"target", "robots_url", "declared", "found", "checked", "warnings", "error"}
+
+
+def test_gzip_is_detected_by_content_and_plain_entries_carry_no_marker():
+    # No .gz in the name and a generic content type: the magic bytes decide.
+    result, entry = discover_one(gzip.compress(URLSET), "https://example.com/map", "application/octet-stream")
+    assert (entry["kind"], entry["gzip"]) == ("urlset", True)
+    # A .gz name whose transfer encoding was already undone is plain XML.
+    result, entry = discover_one(URLSET)
+    assert entry["kind"] == "urlset"
+    assert "gzip" not in entry and "gzip" not in result["found"][0]
+
+
+def test_gzip_text_sitemap_is_classified_by_its_inner_name():
+    body = gzip.compress(b"https://example.com/one\nhttps://example.com/two\n")
+    _, entry = discover_one(body, "https://example.com/urls.txt.gz")
+    assert (entry["kind"], entry["valid"], entry["gzip"]) == ("text", True, True)
+
+
+def test_gzip_bomb_in_plain_discovery_is_cut_off_at_the_cap():
+    packer = zlib.compressobj(9, zlib.DEFLATED, 16 + zlib.MAX_WBITS)
+    piece = b" " * (1024 * 1024)
+    bomb = b"".join(packer.compress(piece) for _ in range(64)) + packer.flush()
+    assert len(bomb) < 200 * 1024
+    tracemalloc.start()
+    try:
+        with patch.object(discovery, "MAX_SITEMAP_BYTES", 1024 * 1024):
+            result, entry = discover_one(bomb)
+        _current, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+    assert (entry["valid"], entry["kind"], entry["gzip"]) == (False, None, True)
+    assert "50 MiB" in entry["error"]
+    assert result["found"] == []
+    # Inflating all of it would take 64 MiB; the capped read stays near 2 MiB.
+    assert peak < 8 * 1024 * 1024
+
+
+def test_corrupt_or_truncated_gzip_is_reported_not_found():
+    packed = gzip.compress(URLSET * 50, mtime=0)
+    for damaged in (packed[:-12], packed[:20] + b"\xff" * 20 + packed[40:], b"\x1f\x8b not gzip at all"):
+        result, entry = discover_one(damaged)
+        assert (entry["valid"], entry["error"], entry["gzip"]) == (False, "invalid gzip data", True)
+        assert result["found"] == []
+
+
+def test_doctype_inside_gzip_is_refused():
+    hostile = b'<!DOCTYPE urlset [<!ENTITY x SYSTEM "file:///etc/passwd">]><urlset><url><loc>&x;</loc></url></urlset>'
+    result, entry = discover_one(gzip.compress(hostile))
+    assert (entry["valid"], entry["error"]) == (False, "DOCTYPE is not allowed in sitemap XML")
+    assert result["found"] == []
