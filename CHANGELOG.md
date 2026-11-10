@@ -61,6 +61,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CrUX History reports an increase from a zero CLS baseline as degrading, with
   an undefined percentage (`null` in JSON), instead of stable with a 0% change.
 - Google SEO scripts now resolve GA4 and Search Console properties by the audited domain and refuse to silently use another site's configured defaults.
+- **Merchant (Google Shopping, Amazon) searches no longer crash while a task
+  is queued.** `dataforseo_merchant.py` kept polling only on 40601 ("Task
+  Handed"), so a 40602 ("Task In Queue") answer came back as a finished task
+  and `_extract_items` failed on its `result: null`. It now waits on both codes
+  and treats a null `result` as no items.
 
 ## [2.5.0] - 2026-10-22
 

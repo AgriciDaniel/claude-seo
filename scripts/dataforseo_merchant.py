@@ -157,8 +157,8 @@ def _poll_results(
                 return data
             # Task not ready yet
             task_status = tasks[0].get("status_code") if tasks else None
-            if task_status and task_status != 40601:
-                # 40601 = "Task In Queue" -- keep polling
+            if task_status and task_status not in (40601, 40602):
+                # 40601 = "Task Handed", 40602 = "Task In Queue" -- keep polling
                 # Other errors: return the error
                 return data
 
@@ -182,7 +182,7 @@ def _extract_items(response: dict[str, Any]) -> list[dict[str, Any]]:
     """Extract result items from DataForSEO response envelope."""
     items = []
     for task in response.get("tasks", []):
-        for result in task.get("result", []):
+        for result in task.get("result") or []:
             task_items = result.get("items")
             if task_items:
                 items.extend(task_items)
