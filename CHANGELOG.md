@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-11-10
+
+Deterministic checks ported from web-obs, the sister crawler project. Work
+that the skills asked the model to do by hand (count sitemap URLs, compare
+served and rendered HTML, read a certificate, check a page's basics) is now
+done by scripts with tests. Two new scripts, 63 in total.
+
+**After updating, run `/seo setup` once** (one new dependency, PySocks).
+
+**Drift baselines:** a page whose JSON-LD script tag is typed in upper case or
+with a parameter (`application/ld+json; charset=utf-8`) was skipped before and
+is read now, so it shows one schema change. Re-baseline after updating.
+
+### Added
+
+- **`page_checks.py`: 47 on-page checks in one script.** Title, description,
+  headings, canonical, robots, hreflang, document basics, images, links, URL
+  hygiene, size, Open Graph, JSON-LD validity and thin content. Each finding
+  has a stable id, a severity, a message and trimmed evidence. Length
+  thresholds follow `quality-gates.md` and are worded as display heuristics,
+  not Google rules. `/seo page` runs it first.
+- **`transport_check.py`: TLS certificate, security headers and redirects.**
+  Certificate validity, days to expiry, host and www coverage and trust;
+  grades for HSTS, CSP and the other security headers plus cookie flags (by
+  cookie name, never the value); the http to https and www redirects. The TLS
+  socket connects only to the address the safety layer validated and is
+  skipped behind a proxy. `/seo technical` runs it for its security section.
+- **`sitemap_discovery.py --expand`.** Follows a sitemap index one level and
+  reports, per file and in total: URL counts, lastmod quality (missing,
+  oldest, newest, share of identical dates), entries on another host,
+  duplicates, and the 50,000 URL and 50 MiB limits. `--max-children`
+  (default 50) and `--sample` (default 20) bound the run.
+- **`js_gap` in `render_page.py`.** Words, links, schema types, H1, title,
+  canonical and meta robots, served versus rendered, with plain-language
+  reasons. A title, canonical or robots value that changes after JavaScript
+  runs is called out.
+- **`parse_html.py` reads more.** Per image: `resolved_src` (the real source
+  of a lazy-loaded image), `srcset_candidates` and `decorative`. Per page:
+  `heading_outline` (h1 to h6 in order), `schema_invalid` (JSON-LD blocks that
+  do not parse) and `hidden_text` (text hidden by an attribute or inline
+  style, a spam signal and the usual hiding place for prompt injection; it
+  does not see hiding done through CSS classes).
+- **llms.txt format notes** in `agentic_check.py`: line-level notes against
+  the llmstxt.org proposal. The Lighthouse verdict is unchanged, and the
+  notes are format hygiene, not a ranking factor.
+- **Fetch timing.** `fetch_page.py` reports `ttfb_ms`, `response_time_ms` and
+  `fetch_duration_ms` (measured from your machine, not Core Web Vitals) and
+  stops at `--max-time` (default twice `--timeout`, at least 60 seconds).
+- **IPv6-only hosts can be audited.** The safety layer resolves A and AAAA,
+  checks every record, and pins IPv6 only when a host has no A record.
+- `capture_screenshot.py --full` scrolls through the page first (bounded) so
+  lazy images load; `--no-scroll` turns that off. New opt-in
+  `--hide-overlays` and `--json`.
+
+### Changed
+
+- **Robots user-agent lines match by product token**, case-insensitive and
+  whole. `GPTBot/1.1` and `ClaudeBot*` now select their own group (Google's
+  documented reading), and `GPTBot` never matches a `GPTBot-Image` group.
+- **A 429 on robots.txt is inconclusive**, not "no robots.txt, everything
+  allowed". Google treats 429 as a server error. `agentic_fix.py` no longer
+  drafts a blank file for it.
+- **Gzip sitemaps are read in every mode**, inflated under the 50 MiB cap.
+  They were reported as unsupported.
+- Hosts that differ only by `www.` count as the same site when `parse_html.py`
+  sorts links into internal and external.
+- A JSON-LD script type is matched case-insensitively and with parameters.
+- Paths that redirect to the same sitemap are listed once.
+- Google API calls honour `HTTPS_PROXY` (#339, PySocks) and the GA4 client
+  uses the REST transport (#340), both by @lciolecki. GA4 errors are
+  classified by their status, not by digits in the message.
+
+### Security
+
+- IPv6 special ranges are refused by an explicit list that holds on every
+  Python version: site-local, ORCHIDv2 and zone-scoped addresses are newly
+  refused; NAT64, 6to4, Teredo, documentation, unique-local and link-local
+  stay refused. A host is refused if any A or AAAA record is non-public.
+- On a DNS64 network a synthesized `64:ff9b::/96` AAAA record is ignored when
+  the host also has an A record. The pin is then IPv4 and that address is
+  never dialled, so IPv4-only sites keep resolving.
+
 ## [2.5.1] - 2026-11-10
 
 Community fixes: 39 pull requests from 18 contributors, 6 dependency updates,

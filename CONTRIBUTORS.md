@@ -31,6 +31,12 @@ Attribution header on every bundled prompt file (automated by `scripts/sync_flow
 
 ## Community Pull Requests
 
+### v2.6.0
+
+| Contributor | PR | Contribution category | Review outcome |
+|------------|----|-----------------------|----------------|
+| [@lciolecki](https://github.com/lciolecki) | [#339](https://github.com/AgriciDaniel/claude-seo/pull/339), [#340](https://github.com/AgriciDaniel/claude-seo/pull/340) | Proxy support for the Google API clients; REST transport for GA4 | Merged, with an error-classification follow-up fix |
+
 ### v2.5.1
 
 Credit is preserved when a patch was superseded by another fix for the same bug.
