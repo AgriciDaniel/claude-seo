@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recognize UTF-8 BOM XML sitemaps during format detection.
 - Preserve brackets around IPv6 hosts when normalizing drift baseline URLs.
 - Recognize the `none` robots directive as an indexing restriction in drift comparisons.
+- Avoid flagging a brand suffix when its text only occurs inside a longer word in the description.
 
 ## [2.5.0] - 2026-10-22
 
