@@ -212,8 +212,7 @@ def batch_notify(
             f"Only the first {DAILY_QUOTA} URLs will be submitted."
         )
         urls = urls[:DAILY_QUOTA]
-
-    if len(urls) > 50:
+    elif len(urls) > 50:
         result["quota_warning"] = (
             f"Submitting {len(urls)} URLs will use {len(urls)}/{DAILY_QUOTA} "
             f"of your daily quota."
