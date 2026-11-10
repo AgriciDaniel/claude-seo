@@ -30,10 +30,12 @@ except ImportError:
 
 try:
     from google_auth import get_oauth_credentials, load_config
+    from google_properties import resolve_site_property
 except ImportError:
     import os
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from google_auth import get_oauth_credentials, load_config
+    from google_properties import resolve_site_property
 
 GSC_SCOPES = ["https://www.googleapis.com/auth/webmasters.readonly"]
 INDEXATION_NOTE = (
@@ -436,9 +438,14 @@ def main():
         choices=["query", "sitemaps", "sites"],
         help="Command: query (default), sitemaps, sites",
     )
-    parser.add_argument(
+    property_group = parser.add_mutually_exclusive_group()
+    property_group.add_argument(
         "--property", "-p",
-        help="GSC property (e.g., sc-domain:example.com). Uses default from config if not specified.",
+        help="Explicit GSC property (e.g., sc-domain:example.com). Uses config default if not specified.",
+    )
+    property_group.add_argument(
+        "--domain",
+        help="Audited site domain/URL; resolves its sites entry and refuses another site's default.",
     )
     parser.add_argument("--days", "-d", type=int, default=28, help="Number of days (default: 28)")
     parser.add_argument("--start-date", help="Start date (YYYY-MM-DD)")
@@ -464,7 +471,14 @@ def main():
     prop = args.property
     if not prop:
         config = load_config()
-        prop = config.get("default_property")
+        if args.domain and args.command != "sites":
+            try:
+                prop = resolve_site_property(config, "gsc", args.domain)
+            except ValueError as error:
+                print(f"Error: {error}", file=sys.stderr)
+                sys.exit(1)
+        elif not args.domain:
+            prop = config.get("default_property")
     if not prop and args.command != "sites":
         print("Error: No property specified. Use --property or set default_property in config.", file=sys.stderr)
         sys.exit(1)

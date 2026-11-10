@@ -92,9 +92,28 @@ Save to `~/.config/claude-seo/google-api.json`:
   "service_account_path": "~/.config/claude-seo/service_account.json",
   "api_key": "<GOOGLE_API_KEY>",
   "default_property": "sc-domain:example.com",
-  "ga4_property_id": "properties/123456789"
+  "ga4_property_id": "properties/123456789",
+  "sites": {
+    "example.com": {
+      "gsc_property": "sc-domain:example.com",
+      "ga4_property_id": "properties/123456789"
+    },
+    "client.example": {
+      "gsc_property": "sc-domain:client.example",
+      "ga4_property_id": "properties/987654321"
+    }
+  }
 }
 ```
+
+For site audits, pass `--domain <audited-domain>` to `gsc_query.py` and
+`ga4_report.py`; `gsc_inspect.py` accepts the same flag (or derives the host
+from a single inspected URL). `sites` keys are exact hostnames and
+map to that site's properties. If no exact mapping exists, a legacy global
+property is usable only when its GSC domain matches the requested domain;
+otherwise the script fails closed rather than querying another site's data.
+Keep explicit `--property` / `--site-url` for intentional direct property
+queries outside a domain-specific audit.
 
 ### Property URL Formats
 

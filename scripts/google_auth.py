@@ -866,11 +866,16 @@ def check_credentials(service: str) -> dict:
         # GA4 also needs property ID
         if service == "ga4" and result["available"]:
             ga4_id = config.get("ga4_property_id")
-            if not ga4_id:
+            site_map = config.get("sites") or {}
+            has_site_ga4 = isinstance(site_map, dict) and any(
+                isinstance(site, dict) and site.get("ga4_property_id")
+                for site in site_map.values()
+            )
+            if not ga4_id and not has_site_ga4:
                 result["available"] = False
                 result["error"] = (
                     "Credentials found but no GA4 property ID configured. "
-                    f"Set GA4_PROPERTY_ID or add 'ga4_property_id' to {CONFIG_PATH}"
+                    f"Set GA4_PROPERTY_ID or add 'ga4_property_id' or a sites mapping to {CONFIG_PATH}"
                 )
     else:
         result["error"] = f"Unknown service: {service}"
@@ -913,7 +918,12 @@ def detect_tier() -> dict:
                 except (json.JSONDecodeError, IOError):
                     pass
 
-    if has_authenticated and config.get("ga4_property_id"):
+    site_map = config.get("sites") or {}
+    has_site_ga4 = isinstance(site_map, dict) and any(
+        isinstance(site, dict) and site.get("ga4_property_id")
+        for site in site_map.values()
+    )
+    if has_authenticated and (config.get("ga4_property_id") or has_site_ga4):
         has_ga4 = True
 
     if has_ga4:
@@ -1117,9 +1127,15 @@ def main():
                 continue
             results[svc] = check_credentials(svc)
 
+        site_map = load_config().get("sites") or {}
+        site_summary = {
+            domain: [name for name, key in (("GSC", "gsc_property"), ("GA4", "ga4_property_id"))
+                     if isinstance(site, dict) and site.get(key)]
+            for domain, site in site_map.items()
+        } if isinstance(site_map, dict) else {}
         if args.json:
             tier_info = detect_tier()
-            output = {"tier": tier_info, "services": results}
+            output = {"tier": tier_info, "services": results, "sites": site_summary}
             print(json.dumps(output, indent=2))
         else:
             tier_info = detect_tier()
@@ -1132,6 +1148,10 @@ def main():
                     print(f"         {result['error']}")
                 if result.get("client_email"):
                     print(f"         Service account: {result['client_email']}")
+            if site_summary:
+                print("Configured site properties:")
+                for domain, services_for_site in sorted(site_summary.items()):
+                    print(f"  {domain}: {', '.join(services_for_site) or 'no Google properties'}")
             print()
             if tier_info["missing"]:
                 print(f"Tip: {tier_info['missing']}")

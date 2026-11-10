@@ -28,10 +28,12 @@ except ImportError:
 
 try:
     from google_auth import get_oauth_credentials, load_config, validate_url
+    from google_properties import resolve_site_property
 except ImportError:
     import os
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from google_auth import get_oauth_credentials, load_config, validate_url
+    from google_properties import resolve_site_property
 
 GSC_SCOPES = ["https://www.googleapis.com/auth/webmasters.readonly"]
 
@@ -245,9 +247,14 @@ def main():
         description="Google Search Console URL Inspection API helper"
     )
     parser.add_argument("url", nargs="?", help="URL to inspect")
-    parser.add_argument(
+    property_group = parser.add_mutually_exclusive_group()
+    property_group.add_argument(
         "--site-url", "-s",
-        help="GSC property (e.g., sc-domain:example.com). Uses default from config if not specified.",
+        help="Explicit GSC property (e.g., sc-domain:example.com).",
+    )
+    property_group.add_argument(
+        "--domain",
+        help="Audited site domain/URL; resolves its sites entry and refuses another site's default.",
     )
     parser.add_argument(
         "--batch", "-b",
@@ -263,13 +270,23 @@ def main():
 
     args = parser.parse_args()
 
-    # Resolve site URL
+    # Resolve the property against the requested site's domain when possible.
     site_url = args.site_url
+    if args.batch and not args.site_url and not args.domain:
+        parser.error("--batch requires --site-url or --domain to identify the site's property")
     if not site_url:
         config = load_config()
-        site_url = config.get("default_property")
+        domain = args.domain or args.url
+        if domain:
+            try:
+                site_url = resolve_site_property(config, "gsc", domain)
+            except ValueError as error:
+                print(f"Error: {error}", file=sys.stderr)
+                sys.exit(1)
+        else:
+            site_url = config.get("default_property")
     if not site_url:
-        print("Error: No site URL specified. Use --site-url or set default_property in config.", file=sys.stderr)
+        print("Error: No site URL specified. Use --site-url, --domain, or set default_property in config.", file=sys.stderr)
         sys.exit(1)
 
     if args.batch:

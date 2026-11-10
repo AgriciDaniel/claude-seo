@@ -37,10 +37,12 @@ except ImportError:
 
 try:
     from google_auth import get_oauth_credentials, load_config
+    from google_properties import resolve_site_property
 except ImportError:
     import os
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from google_auth import get_oauth_credentials, load_config
+    from google_properties import resolve_site_property
 
 GA4_SCOPES = ["https://www.googleapis.com/auth/analytics.readonly"]
 
@@ -397,9 +399,14 @@ def main():
     parser = argparse.ArgumentParser(
         description="GA4 Data API - organic traffic reporting"
     )
-    parser.add_argument(
+    property_group = parser.add_mutually_exclusive_group()
+    property_group.add_argument(
         "--property", "-p",
         help="GA4 property ID (numeric, e.g., 123456789). Uses config default if not specified.",
+    )
+    property_group.add_argument(
+        "--domain",
+        help="Audited site domain/URL; resolves its sites entry and refuses another site's default.",
     )
     parser.add_argument("--days", "-d", type=int, default=28, help="Number of days (default: 28)")
     parser.add_argument(
@@ -417,7 +424,14 @@ def main():
     prop = args.property
     if not prop:
         config = load_config()
-        prop = config.get("ga4_property_id") or ""
+        if args.domain:
+            try:
+                prop = resolve_site_property(config, "ga4", args.domain)
+            except ValueError as error:
+                print(f"Error: {error}", file=sys.stderr)
+                sys.exit(1)
+        else:
+            prop = config.get("ga4_property_id") or ""
         # Strip 'properties/' prefix if present for consistency
         if prop and prop.startswith("properties/"):
             prop = prop[len("properties/"):]

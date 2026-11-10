@@ -120,7 +120,7 @@ Output includes per-metric trend direction, percentage change, and weekly p75 va
 
 Search Analytics: clicks, impressions, CTR, position for last 28 days.
 
-**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_query.py --property <property> --json`
+**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_query.py --domain <audited-domain> --json`
 **Reference:** `references/search-console-api.md`
 **Default:** 28 days, dimensions=query,page, type=web, limit=1000.
 
@@ -150,7 +150,7 @@ dimension rows, not the size of every pagination request.
 
 URL Inspection: real indexation status from Google.
 
-**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_inspect.py <url> --json`
+**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_inspect.py <url> --domain <audited-domain> --json`
 
 Returns: verdict (PASS/FAIL), coverage state, robots.txt status, indexing state,
 page fetch state, canonical selection, rich results. (`mobileUsabilityResult` is deprecated
@@ -160,7 +160,7 @@ in the API; do not report it as a mobile-usability check.)
 
 Batch inspection from a file (one URL per line). Rate limited to 2,000/day per site.
 
-**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_inspect.py --batch <file> --json`
+**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_inspect.py --batch <file> --domain <audited-domain> --json`
 
 ### `/seo google sitemaps <property>`
 
@@ -168,7 +168,7 @@ List submitted sitemaps with status, errors, warnings. Sitemap contents report
 submitted counts only; URL Inspection API is the indexation truth for whether
 specific URLs are indexed.
 
-**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_query.py sitemaps --property <property> --json`
+**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_query.py sitemaps --domain <audited-domain> --json`
 
 ---
 
@@ -198,7 +198,7 @@ Batch submit URLs from a file. Tracks quota usage.
 
 Organic traffic report: daily sessions, users, pageviews, bounce rate, engagement.
 
-**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run ga4_report.py --property <id> --json`
+**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run ga4_report.py --domain <audited-domain> --json`
 **Reference:** `references/ga4-data-api.md`
 **Default:** 28 days, filtered to Organic Search channel group.
 
@@ -208,7 +208,7 @@ Organic traffic report: daily sessions, users, pageviews, bounce rate, engagemen
 
 Top organic landing pages ranked by sessions.
 
-**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run ga4_report.py --property <id> --report top-pages --json`
+**Script:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run ga4_report.py --domain <audited-domain> --report top-pages --json`
 
 ---
 

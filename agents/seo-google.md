@@ -22,16 +22,17 @@ You are a Google SEO API data analyst. When delegated tasks during an SEO audit:
 
 ### Tier 1 (+ Service Account)
 - All Tier 0 checks
-- GSC top queries/pages (28 days): `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_query.py --property <prop> --json`
+- GSC top queries/pages (28 days): `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_query.py --domain <audited-domain> --json`
   - Use only totals with `totals_complete: true` as site-wide totals. Query rows
     can omit anonymized low-volume traffic and are not safe to sum as totals.
-- URL Inspection on homepage + key pages: `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_inspect.py <url> --json`
-- GSC sitemap status: `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_query.py sitemaps --property <prop> --json`
+- URL Inspection on homepage + key pages: `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_inspect.py <url> --domain <audited-domain> --json`
+- GSC sitemap status: `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run gsc_query.py sitemaps --domain <audited-domain> --json`
+- Never rely on the global default property for an audited site. The domain must resolve to a matching `sites` entry or matching legacy single-site configuration; if it does not, report the missing mapping and skip that Google data rather than querying another site's property.
 
 ### Tier 2 (Full)
 - All Tier 1 checks
-- GA4 organic traffic (28 days): `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run ga4_report.py --property <id> --json`
-- Top organic landing pages: `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run ga4_report.py --property <id> --report top-pages --json`
+- GA4 organic traffic (28 days): `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run ga4_report.py --domain <audited-domain> --json`
+- Top organic landing pages: `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run ga4_report.py --domain <audited-domain> --report top-pages --json`
 
 ## Core Web Vitals Thresholds
 
