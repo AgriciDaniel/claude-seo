@@ -64,7 +64,7 @@ _CLAIM_PATTERNS: tuple[tuple[re.Pattern, str], ...] = (
     (re.compile(r"\b\d+(?:\.\d+)?\s*%\s+of\s+[a-zA-Z]+(?:\s+[a-zA-Z]+){0,4}",
                 re.IGNORECASE),
      "statistic"),
-    (re.compile(r"\b\d+(?:\.\d+)?\s*%\b"), "statistic"),
+    (re.compile(r"\b\d+(?:\.\d+)?\s*%"), "statistic"),
     (re.compile(r"\$\s?\d+(?:\.\d+)?\s*(?:million|billion|trillion|k|M|B)\b",
                 re.IGNORECASE), "quantity"),
     (re.compile(r"\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\s+\w+", re.IGNORECASE),

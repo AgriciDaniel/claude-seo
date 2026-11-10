@@ -312,6 +312,25 @@ def test_verify_empty_text_returns_zero_claims() -> None:
     assert result["uncited_ratio"] == 0.0
 
 
+def test_verify_detects_a_bare_percentage_statistic() -> None:
+    # A bare percentage not followed by "of ..." is the canonical unsourced
+    # statistic this tool exists to flag. A trailing \b after "%" in the
+    # pattern could never match (a percentage is followed by a space or
+    # punctuation, both non-word), so these claims were silently missed.
+    for text in ("The bounce rate hit 85%.", "Conversions rose by 30% overall.",
+                 "Prices rose 3.5% this quarter."):
+        result = content_verify.verify(text)
+        assert result["claim_count"] == 1, text
+        assert result["claims"][0]["kind"] == "statistic", text
+
+
+def test_verify_bare_percentage_does_not_double_count_percent_of() -> None:
+    # "47% of marketers" must still be one claim, not two (the longer
+    # "% of ..." match wins over the bare-"%" match on the same span).
+    result = content_verify.verify("47% of marketers report gains.")
+    assert result["claim_count"] == 1
+
+
 # ---------------------------------------------------------------------------
 # seo_updates
 # ---------------------------------------------------------------------------
