@@ -21,6 +21,7 @@ import sys
 from datetime import datetime, timezone
 
 import pytest
+import requests
 
 _SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts")
 if _SCRIPTS not in sys.path:
@@ -750,6 +751,113 @@ def test_sibling_that_resolves_but_is_not_on_the_certificate_is_medium(net, publ
     report = tc.run("https://example.com/", now=NOW)
     assert by_id(report)["tls-sibling-not-covered"]["severity"] == "Medium"
     assert report["redirects"]["www"]["sibling_resolves"] is True
+
+
+def test_sibling_with_its_own_valid_certificate_is_not_a_finding(net, public, web) -> None:
+    # One certificate per host is a normal setup. This certificate does not name
+    # www, but www answered over HTTPS, so the certificate it serves verified.
+    net.verified = FakeTLS(cert=peercert("example.com"))
+    web(site())
+    report = tc.run("https://example.com/", now=NOW)
+    assert report["tls"]["covers_sibling"] is False
+    www = report["redirects"]["www"]
+    assert www["sibling_resolves"] is True
+    assert www["sibling_final_url"] == "https://example.com/"
+    assert www["sibling_tls_error"] is False
+    assert report["findings"] == []
+
+
+def test_sibling_finding_needs_evidence_of_a_tls_failure_not_just_dns() -> None:
+    # The shape the independent review probed: covered host, uncovered sibling
+    # that resolves and whose HTTPS fetch succeeded.
+    tls = {"host": "example.com", "verified": True, "verify_code": None, "verify_error": None,
+           "expired": False, "not_yet_valid": False, "covers_host": True,
+           "sibling_host": "www.example.com", "covers_sibling": False,
+           "days_until_expiry": 60, "protocol": "TLSv1.3", "san": ["example.com"]}
+    www = {"host": "example.com", "sibling_host": "www.example.com",
+           "host_final_url": "https://example.com/",
+           "sibling_final_url": "https://example.com/", "sibling_resolves": True,
+           "same_final_url": True, "error": None}
+    assert tc._tls_findings(tls, {"www": www}) == []
+    # No verdict on the sibling's TLS (not checked) is not evidence either.
+    assert tc._tls_findings(tls, {"www": {**www, "sibling_tls_error": None}}) == []
+    assert tc._tls_findings(tls, {}) == []
+    assert ids(tc._tls_findings(tls, {"www": {**www, "sibling_tls_error": True}})) == [
+        "tls-sibling-not-covered"]
+
+
+@pytest.mark.parametrize("failure", [
+    ConnectionRefusedError("refused"),
+    TimeoutError("timed out"),
+    requests.exceptions.ConnectTimeout("connect timed out"),
+    requests.exceptions.ConnectionError("Name or service not known"),
+])
+def test_sibling_that_fails_for_a_non_tls_reason_is_info_with_the_reason(
+        failure, net, public, web) -> None:
+    net.verified = FakeTLS(cert=peercert("example.com"))
+    routes = site()
+    routes["https://www.example.com/"] = failure
+    web(routes)
+    report = tc.run("https://example.com/", now=NOW)
+    assert report["tls"]["covers_sibling"] is False
+    assert report["redirects"]["www"]["sibling_tls_error"] is False
+    assert ids(report) == ["www-sibling-unreachable"]
+    finding = report["findings"][0]
+    assert finding["severity"] == "Info"
+    assert finding["evidence"]["error"].startswith(type(failure).__name__)
+    assert "certificate" not in finding["message"].lower()
+
+
+def test_requests_ssl_error_on_the_sibling_is_the_certificate_finding(net, public, web) -> None:
+    net.verified = FakeTLS(cert=peercert("example.com"))
+    routes = site()
+    routes["https://www.example.com/"] = requests.exceptions.SSLError(
+        "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch")
+    web(routes)
+    report = tc.run("https://example.com/", now=NOW)
+    assert report["redirects"]["www"]["sibling_tls_error"] is True
+    finding = by_id(report)["tls-sibling-not-covered"]
+    assert finding["severity"] == "Medium"
+    assert finding["evidence"]["sibling_host"] == "www.example.com"
+    assert finding["evidence"]["error"].startswith("SSLError")
+    assert "resolves in DNS" not in finding["message"]
+    assert finding["message"].endswith(".") and finding["message"].count(". ") == 0
+
+
+def test_tls_failure_on_another_host_in_the_sibling_redirects_is_not_blamed_on_the_sibling(
+        net, public, web) -> None:
+    # www redirects to a third host whose certificate is broken. That says
+    # nothing about the certificate www itself serves.
+    net.verified = FakeTLS(cert=peercert("example.com"))
+    failing_hop = requests.Request("GET", "https://cdn.elsewhere.example/").prepare()
+    routes = site()
+    routes["https://www.example.com/"] = requests.exceptions.SSLError(
+        "certificate verify failed", request=failing_hop)
+    web(routes)
+    report = tc.run("https://example.com/", now=NOW)
+    assert report["redirects"]["www"]["sibling_tls_error"] is False
+    assert ids(report) == ["www-sibling-unreachable"]
+    assert report["findings"][0]["severity"] == "Info"
+
+
+def test_error_text_that_mentions_ssl_is_not_taken_for_a_tls_failure(net, public, web) -> None:
+    # The verdict comes from the exception type. Text is page and network data.
+    net.verified = FakeTLS(cert=peercert("example.com"))
+    routes = site()
+    routes["https://www.example.com/"] = OSError("SSLError: certificate verify failed")
+    web(routes)
+    report = tc.run("https://example.com/", now=NOW)
+    assert report["redirects"]["www"]["sibling_tls_error"] is False
+    assert "tls-sibling-not-covered" not in ids(report)
+
+
+def test_sibling_tls_verdict_is_null_when_the_sibling_was_not_fetched(net, public, web) -> None:
+    public.add("www.blog.example.com")
+    net.verified = FakeTLS(cert=peercert("blog.example.com"))
+    web(site("blog.example.com"))
+    report = tc.run("https://blog.example.com/", now=NOW)
+    assert report["redirects"]["www"]["sibling_tls_error"] is None
+    assert "sibling_tls_error" in tc.__doc__
 
 
 def test_www_input_uses_the_bare_domain_as_sibling() -> None:

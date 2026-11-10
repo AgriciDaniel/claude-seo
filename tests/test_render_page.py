@@ -600,6 +600,26 @@ def test_rendered_result_carries_the_js_gap() -> None:
     json.dumps(summary)
 
 
+def test_js_gap_in_the_cli_json_is_bounded_without_max_text() -> None:
+    """--max-text does not cut js_gap, so js_gap has to be small on its own."""
+    big = "A" * 200_000
+    blocks = "".join(
+        f'<script type="application/ld+json">{{"@type": "{big}{i}"}}</script>' for i in range(5)
+    )
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    page.content = lambda: (
+        f"<html><head><title>{big}</title>{blocks}</head>"
+        f"<body><h1>{big}</h1>" + ("hydrated content " * 20) + "</body></html>"
+    )
+    result = _render_with_fake_browser(page)
+    gap = result["js_gap"]
+    assert gap["diff"]["schema_types_only_rendered"]
+    for max_text in (0, 2000):
+        summary = render_page._json_summary(result, max_text=max_text)
+        assert summary["js_gap"] == gap
+        assert len(json.dumps(summary["js_gap"], indent=2)) < 5_000
+
+
 def test_js_gap_stays_null_when_the_render_fails() -> None:
     spa_html = '<html><body><div id="root"></div></body></html>'
     with patch.object(render_page, "validate_url_strict", side_effect=_mock_validate_strict), \

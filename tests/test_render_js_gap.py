@@ -22,6 +22,11 @@ pytest.importorskip("requests")
 import render_page  # noqa: E402
 from render_page import js_gap, js_gap_reasons  # noqa: E402
 
+# Ceiling for the whole js_gap object as JSON when a page pushes every field to
+# its limit on both sides. The limits add up to about 22,200 characters, most of
+# it the 12 H1 texts of 300 characters kept for raw, rendered and the diff.
+MAX_GAP_JSON_CHARS = 24_000
+
 SHELL = "<html><head><title>App</title></head><body><p>one two</p></body></html>"
 HYDRATED = (
     "<html><head><title>App</title>"
@@ -260,6 +265,89 @@ def test_output_is_bounded_for_hostile_pages() -> None:
     assert len(rendered["meta_robots"].split(", ")) == render_page.JS_GAP_MAX_ITEMS
     assert gap["raw_truncated"] is True
     assert all(len(reason) < 400 for reason in gap["reasons"])
+
+
+def _hostile(tag: str) -> str:
+    """A page that pushes every js_gap field to its limit; ``tag`` keeps two apart."""
+    big = tag * 2_000
+    return (
+        f"<html><head><title>{big}</title>"
+        + "".join(f'<link rel="canonical" href="https://x.example/{i}/{big}">' for i in range(40))
+        + '<meta name="robots" content="' + ",".join(f"{i}{big}" for i in range(40)) + '">'
+        + '<script type="application/ld+json">['
+        + ",".join('{"@type":"%d%s"}' % (i, big) for i in range(60))
+        + "]</script>"
+        + "".join(
+            f'<script type="application/ld+json">{{"@type": "{i}{tag * 200_000}"}}</script>'
+            for i in range(3)
+        )
+        + "</head><body>"
+        + "".join(f"<h1>{i} {big}</h1>" for i in range(40))
+        + "".join(f'<a href="/{tag}/{i}/{big}">{tag}{i}</a>' for i in range(40))
+        + "</body></html>"
+    )
+
+
+def test_huge_schema_type_names_cannot_inflate_the_output() -> None:
+    # Found in review: five blocks with 200,000-character @type values made
+    # 3 MB of js_gap, and --max-text does not cut js_gap.
+    big = "A" * 200_000
+    blocks = "".join(
+        f'<script type="application/ld+json">{{"@type": "{big}{i}"}}</script>' for i in range(5)
+    )
+    gap = js_gap(
+        "<html><body>x</body></html>", f"<html><head>{blocks}</head><body>x</body></html>"
+    )
+    names = gap["rendered"]["schema_types"]
+    assert names and all(len(name) <= render_page.JS_GAP_MAX_NAME for name in names)
+    assert gap["diff"]["schema_types_only_rendered"] == names
+    assert all(len(reason) < 400 for reason in gap["reasons"])
+    assert len(json.dumps(gap)) < 2_000
+
+
+def test_schema_type_names_are_cleaned_like_the_other_page_text() -> None:
+    block = '<script type="application/ld+json">{"@type": ["  Local\\n\\t Business ", " ", ""]}</script>'
+    gap = js_gap(_page(), _page(block))
+    assert gap["rendered"]["schema_types"] == ["Local Business"]
+    assert gap["reasons"] == ["structured data appears only after JavaScript: 'Local Business'"]
+
+
+def test_reason_lists_a_bounded_number_of_quoted_type_names() -> None:
+    types = ",".join(f'"Type{i:02d}"' for i in range(30))
+    block = f'<script type="application/ld+json">{{"@type": [{types}]}}</script>'
+    gap = js_gap(_page(), _page(block))
+    assert len(gap["rendered"]["schema_types"]) == render_page.JS_GAP_MAX_ITEMS
+    assert gap["reasons"] == [
+        "structured data appears only after JavaScript: "
+        "'Type00', 'Type01', 'Type02', 'Type03', 'Type04'"
+    ]
+    # js_gap_reasons is public: it bounds what it quotes even for a gap it did not build.
+    gap["diff"]["schema_types_only_rendered"] = ["Z" * 100_000] * 50
+    (reason,) = js_gap_reasons(gap)
+    assert len(reason) < 600
+
+
+def test_whole_js_gap_json_stays_small_when_every_field_is_pushed_to_its_limit() -> None:
+    gap = js_gap(_hostile("a"), _hostile("b"), raw_truncated=True)
+    # Both versions are at their limits, and they differ everywhere.
+    for side in ("raw", "rendered"):
+        signals = gap[side]
+        assert len(signals["title"]) == render_page.JS_GAP_MAX_TEXT
+        assert len(signals["h1"]) == render_page.JS_GAP_MAX_ITEMS
+        assert len(signals["schema_types"]) == render_page.JS_GAP_MAX_ITEMS
+        assert len(signals["canonical_all"]) == render_page.JS_GAP_MAX_CANONICALS
+        assert len(signals["meta_robots"].split(", ")) == render_page.JS_GAP_MAX_ITEMS
+        assert all(len(name) <= render_page.JS_GAP_MAX_NAME for name in signals["schema_types"])
+        assert all(
+            len(part) <= render_page.JS_GAP_MAX_NAME
+            for part in signals["meta_robots"].split(", ")
+        )
+    assert len(gap["diff"]["schema_types_only_rendered"]) == render_page.JS_GAP_MAX_ITEMS
+    assert len(gap["diff"]["h1_only_rendered"]) == render_page.JS_GAP_MAX_ITEMS
+    assert len(gap["reasons"]) == 7  # every reason js_gap can give
+    assert all(len(reason) < 600 for reason in gap["reasons"])
+    assert len(json.dumps(gap)) < MAX_GAP_JSON_CHARS, len(json.dumps(gap))
+    assert len(json.dumps(gap, indent=2)) < MAX_GAP_JSON_CHARS, len(json.dumps(gap, indent=2))
 
 
 def test_malformed_json_ld_and_markup_do_not_raise() -> None:

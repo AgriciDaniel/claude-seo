@@ -60,8 +60,11 @@ Result JSON::
                           "first_hop_same_host", "permanent", "hops",
                           "final_url", "error"},
         "www": {"host", "sibling_host", "host_final_url",
-                "sibling_final_url", "sibling_resolves", "same_final_url",
-                "error"}
+                "sibling_final_url", "sibling_resolves",
+                "sibling_tls_error",   # true: the counterpart's own HTTPS
+                                       # request failed on its certificate
+                                       # or TLS; null: it was not fetched
+                "same_final_url", "error"}
       },
       "findings": [{"id", "severity", "message", "evidence"}],
       "summary": {"critical", "high", "medium", "low", "info"}
@@ -69,6 +72,13 @@ Result JSON::
 
 A refused or malformed target prints ``{"url": ..., "error": ...}`` instead.
 Cookies are reported by NAME only. A cookie value never enters the output.
+
+``covers_sibling: false`` alone is not a finding: the www and the bare host
+often serve one certificate each. ``tls-sibling-not-covered`` is reported
+only when the counterpart's own HTTPS request also failed with a certificate
+or TLS error (``sibling_tls_error``). A counterpart that does not resolve,
+times out or refuses the connection is ``www-sibling-unreachable`` (Info)
+with the reason, never a certificate finding.
 
 Safety
 ======
@@ -104,6 +114,8 @@ import time
 from datetime import datetime, timezone
 from typing import Optional
 from urllib.parse import urlparse
+
+from requests.exceptions import SSLError as RequestsSSLError
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
@@ -675,7 +687,8 @@ def _fetch(url: str, timeout: float) -> dict:
     apart from ``headers`` so a cookie value cannot ride along into output.
     """
     record: dict = {"url": url, "final_url": None, "status": None, "hops": [],
-                    "headers": {}, "set_cookies": [], "error": None}
+                    "headers": {}, "set_cookies": [], "error": None,
+                    "tls_error_url": None}
     response = None
     try:
         response = safe_requests_get(url, timeout=timeout, allow_redirects=True, stream=True)
@@ -695,6 +708,11 @@ def _fetch(url: str, timeout: float) -> dict:
         record["error"] = _clip(f"url_safety: {exc}", 300)
     except Exception as exc:  # requests / urllib3 errors: report, never raise
         record["error"] = _clip(f"{type(exc).__name__}: {exc}", 300)
+        # Judged by exception type, never by the error text. requests names
+        # the hop that failed; without it the failure is on ``url`` itself.
+        if isinstance(exc, (ssl.SSLError, RequestsSSLError)):
+            failed = getattr(getattr(exc, "request", None), "url", None)
+            record["tls_error_url"] = _clip(failed or url, 500)
     finally:
         if response is not None:
             response.close()
@@ -703,6 +721,22 @@ def _fetch(url: str, timeout: float) -> dict:
 
 def _url_host(host: str) -> str:
     return f"[{host}]" if ":" in host else host
+
+
+def _tls_failed_on(record: dict, host: str) -> bool:
+    """True when ``record``'s fetch failed on TLS at an https URL of ``host``.
+
+    A TLS failure on another host later in the redirect chain says nothing
+    about the certificate ``host`` serves, so it does not count.
+    """
+    failed = record.get("tls_error_url")
+    if not failed:
+        return False
+    try:
+        parsed = urlparse(failed)
+        return parsed.scheme == "https" and normalize_hostname(parsed.hostname or "") == host
+    except ValueError:  # includes URLSafetyError: an unusable URL is no evidence
+        return False
 
 
 def _same_url(left: Optional[str], right: Optional[str]) -> Optional[bool]:
@@ -767,6 +801,7 @@ def check_redirects(url: str, timeout: float = 10.0, primary: Optional[dict] = N
         www_check = {"host": host, "sibling_host": sibling,
                      "host_final_url": host_record["final_url"],
                      "sibling_final_url": None, "sibling_resolves": False,
+                     "sibling_tls_error": None,
                      "same_final_url": None, "error": host_record["error"]}
         try:
             validate_url_strict(sibling_url)
@@ -776,6 +811,7 @@ def check_redirects(url: str, timeout: float = 10.0, primary: Optional[dict] = N
             www_check["sibling_resolves"] = True
             sibling_record = _fetch(sibling_url, timeout)
             www_check["sibling_final_url"] = sibling_record["final_url"]
+            www_check["sibling_tls_error"] = _tls_failed_on(sibling_record, sibling)
             www_check["error"] = www_check["error"] or sibling_record["error"]
             www_check["same_final_url"] = _same_url(host_record["final_url"],
                                                     sibling_record["final_url"])
@@ -848,11 +884,17 @@ def _tls_findings(tls: dict, redirects: dict) -> list[dict]:
         out.append(_finding("tls-old-protocol", "Medium",
                             "The server negotiated a TLS version older than 1.2.",
                             {"protocol": tls["protocol"]}))
-    if tls.get("covers_sibling") is False and redirects.get("www", {}).get("sibling_resolves"):
+    # A certificate that does not name the counterpart is normal when the
+    # counterpart serves its own. It is a finding only with evidence that the
+    # counterpart is broken over TLS: its own HTTPS request failed that way.
+    www = redirects.get("www", {})
+    if tls.get("covers_sibling") is False and www.get("sibling_tls_error") is True:
         out.append(_finding("tls-sibling-not-covered", "Medium",
-                            "The certificate does not cover the www or non-www counterpart, "
-                            "which resolves in DNS.",
-                            {"sibling_host": tls.get("sibling_host")}))
+                            "The www or non-www counterpart fails its HTTPS request with a "
+                            "certificate or TLS error, and this host's certificate does not "
+                            "cover it.",
+                            {"sibling_host": tls.get("sibling_host"),
+                             "error": www.get("error")}))
     return out
 
 

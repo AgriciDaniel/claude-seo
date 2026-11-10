@@ -73,6 +73,12 @@ Words are every text token outside script, style, noscript, template and
 head; hidden elements are not detected. The share limits (``JS_GAP_*``) are
 this tool's heuristics, not Google rules.
 
+Every string in ``js_gap`` that comes from the page (schema type names,
+title, canonical, robots directives, H1 text, and what ``reasons`` quotes)
+has its whitespace collapsed and is cut at a ``JS_GAP_MAX_*`` length, and
+every list has an item limit. ``--max-text`` does not apply to ``js_gap``;
+these limits keep the whole object to about 24,000 characters of JSON.
+
 SSRF
 ====
 The URL is validated via :func:`url_safety.validate_url_strict` before
@@ -202,7 +208,9 @@ JS_GAP_LINKS_MIN = 3       # and at least this many such links
 JS_GAP_MAX_ITEMS = 12      # schema types, H1 texts, robots directives
 JS_GAP_MAX_CANONICALS = 5
 JS_GAP_MAX_TEXT = 300      # characters kept per title, H1 or canonical
+JS_GAP_MAX_NAME = 80       # characters kept per schema type name or robots directive
 JS_GAP_REASON_TEXT = 80    # characters of page text quoted inside a reason
+JS_GAP_REASON_ITEMS = 5    # schema type names listed inside a reason
 # The comparison parses both versions again. Past this size it is skipped
 # (js_gap stays None, with a render diagnostic) so a huge DOM cannot stall it.
 JS_GAP_MAX_HTML_CHARS = 5_000_000
@@ -345,8 +353,9 @@ def _is_spa(raw_html: Optional[str]) -> bool:
     return False
 
 
-def _clean_text(value: object) -> str:
-    return _WHITESPACE.sub(" ", str(value or "")).strip()[:JS_GAP_MAX_TEXT]
+def _clean_text(value: object, limit: Optional[int] = None) -> str:
+    """Page text for js_gap: whitespace collapsed, cut at ``limit`` characters."""
+    return _WHITESPACE.sub(" ", str(value or "")).strip()[:limit or JS_GAP_MAX_TEXT]
 
 
 def _gap_signals(html: str) -> tuple[dict, dict]:
@@ -360,9 +369,14 @@ def _gap_signals(html: str) -> tuple[dict, dict]:
 
     # Dicts keep first-seen order and make de-duplication linear, so a page
     # with a huge number of distinct values cannot slow the comparison down.
+    # A type name is page text like any other: cleaned and cut before it is
+    # kept, so a huge @type value cannot ride into the output.
     schema_types: dict[str, None] = {}
     for block in _extract_json_ld(html, soup=soup)["blocks"]:
-        schema_types.update(dict.fromkeys(block.get("types") or []))
+        for name in block.get("types") or []:
+            name = _clean_text(name, JS_GAP_MAX_NAME)
+            if name:
+                schema_types[name] = None
 
     # An <svg><title> is an accessible name, not the document title.
     title = None
@@ -385,7 +399,7 @@ def _gap_signals(html: str) -> tuple[dict, dict]:
         if str(tag.get("name") or "").strip().lower() != "robots":
             continue
         for directive in str(tag.get("content") or "").lower().split(","):
-            directive = _clean_text(directive)
+            directive = _clean_text(directive, JS_GAP_MAX_NAME)
             if directive:
                 robots[directive] = None
 
@@ -515,7 +529,10 @@ def js_gap_reasons(gap: Optional[dict]) -> list[str]:
     if diff["schema_types_only_rendered"]:
         reasons.append(
             "structured data appears only after JavaScript: "
-            + ", ".join(diff["schema_types_only_rendered"][:5])
+            + ", ".join(
+                _quoted(name)
+                for name in diff["schema_types_only_rendered"][:JS_GAP_REASON_ITEMS]
+            )
         )
     if diff["h1_only_rendered"]:
         reasons.append(
