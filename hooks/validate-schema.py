@@ -195,10 +195,10 @@ def _validate_schema_object(
 ) -> List[str]:
     """Validate one schema node, including members of a top-level ``@graph``.
 
-    @param obj: JSON-LD node to validate.
-    @param block_num: Script block number used in diagnostics.
-    @param inherited_context: Whether the node inherits its context from a graph.
-    @returns: Validation errors and warnings for the node and its graph members.
+    ``obj`` is the JSON-LD node and ``block_num`` is the script block number
+    used in diagnostics. ``inherited_context`` is set for a node that takes its
+    context from an enclosing graph. Returns the errors and warnings for the
+    node and its graph members.
     """
     errors = []
     prefix = f"Block {block_num}"
@@ -236,11 +236,15 @@ def _validate_schema_object(
         errors.append(
             f"{prefix}: @type must be a non-empty string or a non-empty list of non-empty strings"
         )
-    schema_types = [
-        schema_type
-        for schema_type in schema_types
-        if isinstance(schema_type, str) and schema_type.strip()
-    ]
+    # dict.fromkeys drops repeats and keeps order, so ["HowTo", "HowTo"] is
+    # reported once.
+    schema_types = list(
+        dict.fromkeys(
+            schema_type
+            for schema_type in schema_types
+            if isinstance(schema_type, str) and schema_type.strip()
+        )
+    )
     deprecated = {
         "HowTo": "deprecated September 2023",
         "SpecialAnnouncement": "deprecated July 31, 2025",

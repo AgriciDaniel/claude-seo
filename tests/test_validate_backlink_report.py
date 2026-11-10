@@ -34,6 +34,14 @@ def test_schema_type_array_is_not_flagged() -> None:
     assert issues == []
 
 
+def test_deprecated_howto_inside_type_array_is_flagged_as_error() -> None:
+    issues = vbr.validate_schema_claims({"schema": [{"@type": ["Article", "HowTo"]}]})
+
+    assert len(issues) == 1
+    assert issues[0]["severity"] == "error"
+    assert "HowTo" in issues[0]["message"]
+
+
 def test_verification_summary_mismatch_is_flagged_as_error() -> None:
     verify_data = {
         "data": {

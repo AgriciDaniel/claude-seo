@@ -2,10 +2,18 @@
 "use strict";
 
 const { spawnSync } = require("child_process");
+const path = require("path");
 
 // Same list as valid_extensions in validate-schema.py. The hook fires on every
 // Edit and Write, so skip the Python probe for files that cannot hold JSON-LD.
 const SCHEMA_FILE_EXTENSIONS = [".html", ".htm", ".jsx", ".tsx", ".vue", ".svelte", ".php", ".ejs"];
+
+// The skip belongs to the schema hook only; any other hook script always runs.
+const SCHEMA_HOOK_SCRIPT = "validate-schema.py";
+
+function isSchemaHook(hookScript) {
+  return path.basename(hookScript) === SCHEMA_HOOK_SCRIPT;
+}
 
 function cannotHoldSchema(filePath) {
   // An unsubstituted "${tool_input.file_path}" leaves the path to the stdin event.
@@ -52,7 +60,7 @@ function probe(candidate) {
 
 function main() {
   const [, , hookScript, ...hookArgs] = process.argv;
-  if (!hookScript || cannotHoldSchema(hookArgs[0])) {
+  if (!hookScript || (isSchemaHook(hookScript) && cannotHoldSchema(hookArgs[0]))) {
     process.exit(0);
   }
 

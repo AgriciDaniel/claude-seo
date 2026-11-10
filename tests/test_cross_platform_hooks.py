@@ -55,7 +55,7 @@ def test_hook_launcher_preserves_blocking_exit_code_two(tmp_path: Path) -> None:
     script = tmp_path / "block.py"
     script.write_text(
         "import sys\n"
-        "assert sys.argv[1] == 'page.html'\n"
+        "assert sys.argv[1] == 'payload'\n"
         "sys.exit(2)\n",
         encoding="utf-8",
     )
@@ -63,7 +63,7 @@ def test_hook_launcher_preserves_blocking_exit_code_two(tmp_path: Path) -> None:
     env["CLAUDE_SEO_PYTHON"] = sys.executable
 
     proc = subprocess.run(
-        [node, str(HOOK_LAUNCHER), str(script), "page.html"],
+        [node, str(HOOK_LAUNCHER), str(script), "payload"],
         env=env,
         capture_output=True,
         text=True,
@@ -78,7 +78,9 @@ def test_hook_launcher_skips_files_that_cannot_hold_schema(tmp_path: Path) -> No
     if not node:
         pytest.skip("node is not available in this test environment")
 
-    script = tmp_path / "block.py"
+    # The skip is keyed on the script's basename, so the stand-in carries the
+    # schema hook's name.
+    script = tmp_path / "validate-schema.py"
     script.write_text("import sys\nsys.exit(2)\n", encoding="utf-8")
     env = os.environ.copy()
     env["CLAUDE_SEO_PYTHON"] = sys.executable
@@ -98,6 +100,28 @@ def test_hook_launcher_skips_files_that_cannot_hold_schema(tmp_path: Path) -> No
     # Schema-bearing files, and an unsubstituted placeholder, still reach Python.
     assert run("Page.HTML") == 2
     assert run("${tool_input.file_path}") == 2
+
+
+def test_hook_launcher_extension_skip_applies_only_to_schema_hook(tmp_path: Path) -> None:
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node is not available in this test environment")
+
+    script = tmp_path / "other-hook.py"
+    script.write_text("import sys\nsys.exit(2)\n", encoding="utf-8")
+    env = os.environ.copy()
+    env["CLAUDE_SEO_PYTHON"] = sys.executable
+
+    # Any other hook script runs whatever the file argument looks like.
+    for path_arg in ("notes.md", "app/main.py", "page.html"):
+        proc = subprocess.run(
+            [node, str(HOOK_LAUNCHER), str(script), path_arg],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+        assert proc.returncode == 2, path_arg
 
 
 def test_hook_launcher_extensions_match_validator() -> None:

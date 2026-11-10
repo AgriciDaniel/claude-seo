@@ -104,11 +104,7 @@ def test_schema_type_array_is_validated_without_crashing(tmp_path: Path) -> None
 
 
 def test_schema_type_rejects_malformed_values(tmp_path: Path) -> None:
-    """Report malformed @type values instead of silently accepting them.
-
-    @param tmp_path: Pytest-managed directory for temporary HTML fixtures.
-    @returns: None.
-    """
+    """Report malformed @type values instead of silently accepting them."""
     invalid_types = [
         1,
         {"@id": "Organization"},
@@ -134,6 +130,39 @@ def test_deprecated_type_inside_array_is_still_blocked(tmp_path: Path) -> None:
         "name": "Example",
     }
     assert _run_payload(tmp_path, payload).returncode == 2
+
+
+def test_repeated_deprecated_type_is_reported_once(tmp_path: Path) -> None:
+    payload = {
+        "@context": "https://schema.org",
+        "@type": ["HowTo", "Organization", "HowTo"],
+        "name": "Example",
+    }
+    result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
+    assert result.returncode == 2
+    assert result.stderr.count("@type 'HowTo' is deprecated") == 1
+
+
+def test_list_valued_type_inside_graph_does_not_crash(tmp_path: Path) -> None:
+    payload = {
+        "@context": "https://schema.org",
+        "@graph": [
+            {"@type": ["LocalBusiness", "FinancialService"], "name": "Example Advisory"},
+        ],
+    }
+    result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
+    assert "TypeError" not in result.stderr
+    assert _clean(result)
+
+
+def test_deprecated_type_inside_a_graph_member_type_list_blocks(tmp_path: Path) -> None:
+    payload = {
+        "@context": "https://schema.org",
+        "@graph": [{"@type": ["LocalBusiness", "ClaimReview"], "name": "Old markup"}],
+    }
+    result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
+    assert result.returncode == 2
+    assert "ClaimReview" in result.stderr
 
 
 def test_non_object_graph_members_are_reported_without_crashing(tmp_path: Path) -> None:

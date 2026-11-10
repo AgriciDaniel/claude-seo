@@ -214,6 +214,49 @@ def test_validate_price_specification_list_without_loyalty_is_reported() -> None
     assert "missing-member-program" in rules
 
 
+def test_validate_loyalty_price_accepts_list_valued_price_spec_type() -> None:
+    product = _minimal_product()
+    product["offers"][0]["priceSpecification"] = [
+        {
+            "@type": ["UnitPriceSpecification", "PriceSpecification"],
+            "price": 79.99,
+            "priceCurrency": "USD",
+            "validForMemberTier": {"@type": "MemberProgramTier", "name": "Gold"},
+        }
+    ]
+    result = ev.validate(product)
+    rules = [f["rule"] for f in result["findings"]]
+    assert "missing-member-program" not in rules
+
+
+def test_validate_reports_non_object_offers_without_crashing() -> None:
+    for bad_offer in ("https://example.com/offer", None, 42):
+        product = _minimal_product()
+        product["offers"].insert(0, bad_offer)
+        product["offers"][1]["hasMerchantReturnPolicy"] = {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "US",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+        }
+        result = ev.validate(product)
+        findings = {f["rule"]: f["severity"] for f in result["findings"]}
+        assert findings["malformed-offer"] == "High", bad_offer
+        assert result["ok"] is False
+        # The first offer that is an object still supplies the offer-level fallbacks.
+        assert "missing-return-policy" not in findings
+        assert "missing-shipping-details" in findings
+
+
+def test_validate_reports_offers_list_with_no_objects() -> None:
+    product = _minimal_product()
+    product["offers"] = ["https://example.com/offer"]
+    result = ev.validate(product)
+    rules = [f["rule"] for f in result["findings"]]
+    assert rules.count("malformed-offer") == 1
+    assert "missing-return-policy" in rules
+    assert "missing-shipping-details" in rules
+
+
 def test_validate_finds_offers_when_offers_is_single_dict() -> None:
     product = _minimal_product()
     product["offers"] = product["offers"][0]  # single dict, not list

@@ -56,11 +56,11 @@ def validate_schema_claims(parsed_data: dict) -> list:
                     "message": f"Schema block missing @type. Keys present: {list(s.keys())[:5]}",
                 })
 
+        # @type arrays like ["Product", "ItemPage"] are valid, so check every
+        # member: a deprecated type inside a list must still be flagged.
         schema_type = s.get("@type", "")
-        if isinstance(schema_type, list):
-            # @type arrays like ["Product", "ItemPage"] are valid
-            pass
-        elif schema_type in ("HowTo",):
+        schema_types = schema_type if isinstance(schema_type, list) else [schema_type]
+        if "HowTo" in schema_types:
             issues.append({
                 "severity": "error",
                 "field": f"schema[{i}]",
