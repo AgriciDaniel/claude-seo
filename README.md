@@ -51,6 +51,10 @@ Claude SEO is built from 26 sub-skills and 19 specialist agents, and up to 17 ag
 
 ## See it in action
 
+Watch the tour in under four minutes. Coral, Violet and Red install Claude SEO, audit a real site and read the plan:
+
+<a href="https://www.youtube.com/watch?v=1VQvcKMcVsk"><img src="assets/readme/homies-tour.jpg" width="640" height="360" alt="Watch the Claude SEO video tour on YouTube: a full SEO team in your terminal, presented by Coral, Violet and Red" /></a>
+
 Type `/seo` in Claude Code to see every command:
 
 ![Claude SEO /seo command demo in the Claude Code terminal](screenshots/seo-command-demo.gif)
