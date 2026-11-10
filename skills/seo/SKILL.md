@@ -12,7 +12,7 @@ metadata:
 
 # SEO: Universal SEO Analysis Skill
 
-**Invocation:** `/seo $1 $2` where `$1` is the command and `$2` is the URL or argument.
+**Invocation:** `/seo $ARGUMENTS`, where the first word is the command and the rest is the URL or argument.
 
 **Runtime:** Run bundled Python tools through
 `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run <script.py>`. That is the single

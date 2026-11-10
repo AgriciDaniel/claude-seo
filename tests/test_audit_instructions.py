@@ -69,3 +69,19 @@ def test_audit_agents_document_output_dir_findings_contract() -> None:
 def test_seo_audit_report_command_keeps_outputs_in_audit_dir() -> None:
     text = (REPO_ROOT / "skills" / "seo-audit" / "SKILL.md").read_text(encoding="utf-8")
     assert "--output-dir {domain}-audit/" in text
+
+
+def test_hub_invocation_keeps_the_command_word() -> None:
+    """Claude Code indexes skill arguments from 0. $1 is the second word (#342).
+
+    https://code.claude.com/docs/en/skills
+    $ARGUMENTS is the full input. $0 is the first argument, $1 the second.
+    An index with no argument stays literal, and ARGUMENTS is appended only
+    when no placeholder received a value. `/seo $1 $2` therefore drops `audit`
+    from `/seo audit https://example.com`.
+    """
+    text = (REPO_ROOT / "skills" / "seo" / "SKILL.md").read_text(encoding="utf-8")
+    invocation = next(line for line in text.splitlines() if line.startswith("**Invocation:**"))
+    assert "$1" not in invocation
+    assert "$2" not in invocation
+    assert invocation.startswith("**Invocation:** `/seo $ARGUMENTS`")
