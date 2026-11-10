@@ -250,7 +250,7 @@ def test_content_bytes_counts_the_part_read_when_the_body_is_cut(monkeypatch):
     assert capped["too_large"] is True
     assert capped["content_bytes"] == len(capped["content"]) <= 100_000
 
-    unread = _patched_fetch(monkeypatch, _streamed_response(b"<html></html>"), max_time=1e-9)
+    unread = _patched_fetch(monkeypatch, _streamed_response(b"<html></html>"), max_time=SPENT)
     assert "wall-clock deadline" in unread["error"]
     assert unread["content_bytes"] == 0
 
@@ -382,6 +382,12 @@ def test_deadline_read_raises_the_same_requests_errors_as_iter_content():
 # ---------------------------------------------------------------------------
 
 
+# A budget that is spent the moment the fetch starts. Zero, not a tiny positive
+# number: the Windows monotonic clock can stand still for about 16 ms, so a
+# budget of one nanosecond is not over yet when the body read begins.
+SPENT = 0.0
+
+
 def _patched_fetch(monkeypatch, response: requests.Response, **kwargs) -> dict:
     class _Session:
         max_redirects = 5
@@ -408,7 +414,7 @@ def test_default_budget_is_twice_the_timeout_and_at_least_a_minute(timeout, expe
 def test_budget_spent_before_the_body_leaves_the_body_unread(monkeypatch):
     """Redirect hops count: if they used the budget, the body is not started."""
     page = _streamed_response(b"<html>never read</html>")
-    result = _patched_fetch(monkeypatch, page, max_time=1e-9)
+    result = _patched_fetch(monkeypatch, page, max_time=SPENT)
     assert "wall-clock deadline" in result["error"]
     assert result["content"] == ""
     assert result["status_code"] == 200
@@ -420,7 +426,7 @@ def test_default_budget_is_used_when_none_is_given(monkeypatch):
 
     def tiny(timeout):
         seen.append(timeout)
-        return 1e-9
+        return SPENT
 
     monkeypatch.setattr(fetch_page, "_default_max_time", tiny)
     result = _patched_fetch(monkeypatch, _streamed_response(b"<html></html>"), timeout=17)
