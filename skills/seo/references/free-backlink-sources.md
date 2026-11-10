@@ -23,7 +23,7 @@ When merging data from multiple sources, apply confidence weights to each metric
 | Verification Crawler | 0.95 | Direct observation (binary: link exists or not) |
 | Moz API | 0.85 | Large index (45.5T links), established metrics, 3-day update lag |
 | Bing Webmaster | 0.70 | Smaller index (~15% of web), but authoritative for Bing-indexed pages |
-| Common Crawl | 0.50 | Domain-level only, quarterly updates, no anchor text |
+| Common Crawl | 0.50 | Domain-level only, each release covers three crawl months, no anchor text |
 
 **Composite formula:**
 ```
@@ -74,12 +74,12 @@ a report (`status: FAIL`) that carries a number in either case. See the
 
 ### Common Crawl Web Graph (Always Available)
 - **Data source:** `s3://commoncrawl/projects/hyperlinkgraph/`
-- **Releases:** Quarterly (e.g., cc-main-2025-18)
+- **Releases:** Each id names the three crawl months it covers (e.g., cc-main-2026-jul-aug-sep). The script reads Common Crawl's `graphinfo.json` and uses the newest release listed, falling back to a built-in list if that cannot be read
 - **No auth needed:** Public data, free to download
 - **Data:** Domain-level in-degree, PageRank, harmonic centrality, referring domains
 - **Command:** `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run commoncrawl_graph.py`
 - **Cache:** `~/.cache/claude-seo/commoncrawl/` (90-day TTL)
-- **Blind spots:** No anchor text, no page-level data, monthly/quarterly freshness,
+- **Blind spots:** No anchor text, no page-level data, freshness limited to the release's crawl months,
   domain-level only (e.g., "nytimes.com links to example.com" but not which page)
 
 ### Verification Crawler (Always Available)

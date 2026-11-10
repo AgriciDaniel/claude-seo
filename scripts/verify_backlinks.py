@@ -4,8 +4,24 @@ Backlink verification crawler for Claude SEO.
 
 Verifies whether known backlinks still exist by fetching source pages and
 checking if the target URL appears in their outbound links. Uses HTTP HEAD
-for fast existence checks (falling back to GET when a server rejects HEAD) and
-full GET + HTML parsing for link verification.
+for fast existence checks and full GET + HTML parsing for link verification.
+
+A HEAD answer other than 200 never decides the result on its own: servers
+answer HEAD with 404, 405, 410, 501 or 403 for pages that GET serves, so one
+GET through the safe fetcher confirms it. A URL blocked by the URL safety
+layer is reported as an error and never retried.
+
+Status values (per result, counted in data.summary):
+    verified         Page fetched and a link to the target was found.
+    link_removed     Page fetched, no link to the target in its HTML.
+    unverifiable_js  Page looks JS-rendered; the link cannot be confirmed.
+    lost             A GET confirmed the source page is gone (HTTP 404 or 410).
+    server_error     Source server answered 5xx; not proof the link is gone.
+    exists           --head-only: page is reachable. redirect_url is set if it
+                     redirected to the same host and path (https or www switch).
+    moved            --head-only: page redirects to another host or path.
+    error            Not checked: blocked URL, failed request, or the host
+                     refused the checker (HTTP 403 or 429). See the error field.
 
 Usage:
     python verify_backlinks.py --target https://example.com --links links.json --json
@@ -85,7 +101,13 @@ def _head_check(url: str, timeout: int = 15) -> dict:
     except requests.exceptions.Timeout:
         return {"status_code": None, "exists": False, "redirect_url": None, "error": "timeout"}
     except requests.exceptions.RequestException as e:
-        return {"status_code": None, "exists": False, "redirect_url": None, "error": str(e)}
+        result = {"status_code": None, "exists": False, "redirect_url": None, "error": str(e)}
+        # A redirect to a non-public address is refused inside the pinned
+        # resolver and surfaces as a ConnectionError naming url_safety.
+        if "url_safety:" in str(e):
+            result["error"] = f"blocked by SSRF protection: {e}"
+            result["blocked"] = True
+        return result
 
 
 def _normalize_url(url: str) -> str:
@@ -143,14 +165,30 @@ def _apply_get_status(result: dict, page_data: dict) -> bool:
         return False
     if page_data.get("redirect_chain"):
         result["redirect_url"] = page_data.get("url")
-    if result["http_status"] == 404:
+    status = result["http_status"]
+    if status == 200:
+        return True
+    if status in (404, 410):
         result["status"] = "lost"
-        return False
-    if result["http_status"] != 200:
+    elif status in (403, 429):
         result["status"] = "error"
-        result["error"] = f"HTTP {result['http_status']}"
-        return False
-    return True
+        result["error"] = f"HTTP {status}: host refused the checker; the page may still exist"
+    elif status is not None and 500 <= status < 600:
+        result["status"] = "server_error"
+        result["error"] = f"HTTP {status}: server failed; not proof the page or link is gone"
+    else:
+        result["status"] = "error"
+        result["error"] = f"HTTP {status}"
+    return False
+
+
+def _is_moved(source_url: str, final_url: str) -> bool:
+    """True if a redirect changed the host or path, not just scheme, www or a trailing slash."""
+    def key(url: str) -> tuple:
+        parsed = urlparse(url)
+        host = (parsed.hostname or "").lower()
+        return host[4:] if host.startswith("www.") else host, parsed.path.rstrip("/")
+    return key(source_url) != key(final_url)
 
 
 # Lower rank wins when several links on the page point at the target.
@@ -199,30 +237,31 @@ def verify_single_backlink(source_url: str, target_url: str,
     head_result = _head_check(source_url, timeout=min(timeout, 15))
     result["http_status"] = head_result["status_code"]
 
+    # A URL the safety layer blocked is never retried with GET.
     if head_result.get("blocked"):
         result["status"] = "error"
         result["error"] = head_result["error"]
-        return result
-
-    if head_result["status_code"] == 404:
-        result["status"] = "lost"
         return result
 
     if head_result["exists"]:
         result["redirect_url"] = head_result["redirect_url"]
 
     if head_only:
-        # Many servers answer HEAD with 403/405 or fail it outright; only a
-        # GET can tell whether the page exists.
+        # Only a HEAD 200 is trusted. Servers answer HEAD with 404, 405, 410,
+        # 501 or 403, or fail it outright, for pages that GET serves, so one
+        # GET confirms. Its body is not parsed in this mode.
         if not head_result["exists"]:
             _polite_delay(source_domain)
             if not _apply_get_status(result, fetch_page(source_url, timeout=timeout)):
                 return result
-        result["status"] = "moved" if result["redirect_url"] else "exists"
+        final_url = result["redirect_url"]
+        moved = bool(final_url) and _is_moved(source_url, final_url)
+        result["status"] = "moved" if moved else "exists"
         result["target_found"] = None  # Unknown without full check
         return result
 
-    # Step 2: Full GET + parse
+    # Step 2: Full GET + parse. This GET is also the confirmation for a HEAD
+    # 404, 405, 410 or 501.
     _polite_delay(source_domain)
     page_data = fetch_page(source_url, timeout=timeout)
 
@@ -235,7 +274,8 @@ def verify_single_backlink(source_url: str, target_url: str,
         return result
 
     # Step 3: Parse HTML and find target link
-    parsed = parse_html(page_data["content"], base_url=source_url)
+    # Relative links resolve against the final URL after a redirect.
+    parsed = parse_html(page_data["content"], base_url=page_data.get("url") or source_url)
     all_links = parsed.get("links", {})
     external_links = all_links.get("external", [])
     internal_links = all_links.get("internal", [])
@@ -333,7 +373,8 @@ def verify_backlinks(target_url: str, links: list, head_only: bool = False,
     """
     results = []
     summary = {"total": 0, "verified": 0, "lost": 0, "moved": 0,
-               "link_removed": 0, "unverifiable_js": 0, "exists": 0, "error": 0}
+               "link_removed": 0, "unverifiable_js": 0, "exists": 0,
+               "server_error": 0, "error": 0}
 
     for item in links:
         source_url = item.get("source_url", "")
@@ -453,9 +494,10 @@ def main():
         print(f"Backlink Verification: {data.get('target_url', args.target)}")
         print(f"  Total checked:  {summary.get('total', 0)}")
         print(f"  Verified:       {summary.get('verified', 0)}")
-        print(f"  Lost (404):     {summary.get('lost', 0)}")
+        print(f"  Lost (404/410): {summary.get('lost', 0)}")
         print(f"  Moved (3xx):    {summary.get('moved', 0)}")
         print(f"  Link removed:   {summary.get('link_removed', 0)}")
+        print(f"  Server errors:  {summary.get('server_error', 0)}")
         print(f"  Errors:         {summary.get('error', 0)}")
         if args.head_only:
             print(f"  Exists (HEAD):  {summary.get('exists', 0)}")
