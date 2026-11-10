@@ -147,4 +147,16 @@ This ensures consistent scoring regardless of which industry multipliers are act
 | Attributes | `attributes` (grouped by type) |
 | Popular times | `popular_times` |
 | Posts | My Business Updates API |
-| Verified status | Not directly exposed: infer from profile completeness + Maps SERP presence, or flag as "Unknown (manual check required)" |
+| Verified status | `is_claimed` |
+
+`is_claimed` is the boolean on DataForSEO
+`business_data/google/my_business_info/live` (and on maps search directory
+items). It shows whether the owner verified the listing on Google Maps:
+https://docs.dataforseo.com/v3/business_data/google/my_business_info/live/
+
+Score the existing Verified status row from that value. `true` means the
+Google Verified badge is active (2 points). `false` means the listing is
+unclaimed (0 points). If `is_claimed` is absent, record Unknown (manual check required)
+and do not award the points. Do not infer verification from
+profile completeness or from the listing appearing in Maps. The 50-point
+scale and `(score / 50) * 100` normalization stay as they are.

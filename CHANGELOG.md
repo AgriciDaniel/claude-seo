@@ -33,6 +33,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `https://notexample.com/...` and rejected `Example.COM` against
   `https://example.com/...`. The key file host is compared as a hostname,
   before the file is fetched.
+- **GBP verified status uses DataForSEO `is_claimed` (#334).** The checklist
+  said verification is not exposed and could be inferred from profile
+  completeness or a Maps listing. `is_claimed` is that field. The 50-point
+  scale is unchanged. An absent value is Unknown (manual check required).
 
 ## [2.5.0] - 2026-10-22
 
