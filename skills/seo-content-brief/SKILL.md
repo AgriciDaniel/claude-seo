@@ -131,7 +131,7 @@ Image alt text describes the image; it is not a required keyword placement.
 ## Meta Tag Rules
 
 **Title tag:**
-- 50-60 characters (never under 50, never over 60). This is a writing target inside the audit limits in `skills/seo/references/quality-gates.md` (30-60).
+- 50-60 characters (never under 50, never over 60). This is a writing target inside the audit limits in `${CLAUDE_PLUGIN_ROOT}/skills/seo/references/quality-gates.md` (30-60).
 - Primary keyword first, brand name last
 - Separate brand with a pipe or dash (match the site's existing pattern)
 - Lead with outcomes, numbers, or specifics when possible
