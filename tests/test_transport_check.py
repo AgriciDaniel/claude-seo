@@ -134,7 +134,8 @@ def net(monkeypatch) -> Net:
 
     def wrap_socket(self, sock, server_hostname=None, **_kwargs):
         verify = self.verify_mode != ssl.CERT_NONE
-        state.wraps.append({"verify": verify, "server_hostname": server_hostname, "sock": sock})
+        state.wraps.append({"verify": verify, "server_hostname": server_hostname, "sock": sock,
+                            "minimum_version": self.minimum_version})
         outcome = state.verified if verify else state.unverified
         if isinstance(outcome, BaseException):
             raise outcome
@@ -348,6 +349,13 @@ def test_certificate_reading_handshake_reuses_the_same_validated_ip(net, public)
     assert [w["verify"] for w in net.wraps] == [True, False]
     assert all(w["server_hostname"] == "fixture.example.test" for w in net.wraps)
     assert all(sock.closed for sock in net.socks) and net.unverified.closed
+
+
+def test_both_handshakes_refuse_protocols_older_than_tls_1_2(net, public) -> None:
+    net.verified = verify_error(10, "certificate has expired")
+    net.unverified = FakeTLS(der=FIXTURE_DER)
+    tc.check_tls("https://fixture.example.test/", now=NOW)
+    assert [w["minimum_version"] for w in net.wraps] == [ssl.TLSVersion.TLSv1_2] * 2
 
 
 # ---------------------------------------------------------------------------

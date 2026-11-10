@@ -381,8 +381,15 @@ def _handshake(ip: str, port: int, server_hostname: str, timeout: float, *, veri
     ``timeout`` bounds the TCP connect and the handshake together. With
     ``verify=False`` the certificate is not checked: that mode exists only to
     read the certificate of a site whose verified handshake already failed.
+
+    Both modes refuse anything older than TLS 1.2. That is already Python's
+    default; stating it keeps the probe from following a system OpenSSL
+    configuration that lowers the floor. A server that speaks only TLS 1.0 or
+    1.1 therefore fails the handshake and is reported as
+    ``tls-handshake-failed``.
     """
     context = ssl.create_default_context()
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     if verify:
         if getattr(ssl, "HAS_NEVER_CHECK_COMMON_NAME", False):
             # Browsers match subjectAltName only; do the same.
