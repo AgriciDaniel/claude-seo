@@ -10,6 +10,8 @@ credentials: authentication belongs to the MCP server.
 ./extensions/posthog/install.sh
 ```
 
+On Windows, run `.\extensions\posthog\install.ps1` in PowerShell.
+
 Copies the `seo-posthog` skill to `~/.claude/skills/seo-posthog/` and the agent to
 `~/.claude/agents/seo-posthog.md`. It then offers to register the MCP server with
 `claude mcp add`.

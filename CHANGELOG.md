@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **PostHog extension** (`/seo posthog`): organic traffic, top landing pages,
+  device and country splits, and referrer breakdown from the PostHog MCP server,
+  as a GA4 alternative or complement. Ships `install.sh`, `install.ps1`,
+  `uninstall.sh`, the `seo-posthog` skill and agent, and a setup guide. No
+  script and no stored credential: authentication belongs to the MCP server.
+  The audit orchestrator spawns the agent when `mcp__PostHog__exec` is
+  available. Contributed by AlexMili.
+
 ## [2.6.0] - 2026-11-10
 
 Deterministic checks ported from web-obs, the sister crawler project. Work

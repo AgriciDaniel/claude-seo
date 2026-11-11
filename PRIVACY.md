@@ -25,6 +25,7 @@ Optional extensions make API calls to third-party services when you invoke their
 | **Profound** | Profound API (tryprofound.com) | Brands and domains you track | [Profound Privacy](https://tryprofound.com/privacy) |
 | **Bing Webmaster / IndexNow** | Bing Webmaster Tools API and IndexNow endpoints | Domains, submitted URLs, and key-verification URL data | [Microsoft Privacy](https://privacy.microsoft.com/) |
 | **Matomo** | Your own Matomo instance (self-hosted or Matomo Cloud); no claude-seo vendor is contacted | `idSite`, the report parameters (method, period, date range, segment, row limit), and `token_auth` in the POST body | [Matomo Privacy](https://matomo.org/privacy-policy/) (Cloud); self-hosted = your own policy |
+| **PostHog** | Your PostHog project, through the PostHog MCP server (`mcp.posthog.com`, or your self-hosted instance); claude-seo itself contacts no PostHog endpoint and stores no credential | Read-only HogQL queries (time window, row limit, organic-search filter) sent by the MCP server; results are read back from your own PostHog project | [PostHog Privacy](https://posthog.com/privacy) (Cloud); self-hosted = your own policy |
 | **Unlighthouse** | Local only, no third-party vendor | Runs Lighthouse locally against the target URL; only the target site is contacted (to crawl it). Nothing is sent to a third-party vendor. | N/A (runs locally) |
 
 ## Backlink APIs
