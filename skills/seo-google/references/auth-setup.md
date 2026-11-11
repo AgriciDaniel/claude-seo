@@ -85,7 +85,8 @@ The `client_email` field is what you add to GSC and GA4.
 mkdir -p ~/.config/claude-seo
 ```
 
-Save to `~/.config/claude-seo/google-api.json`:
+Save to `google-api.json` in the directory that `google_auth.py --check` prints
+(`~/.config/claude-seo/` by default, see Per-Project Profiles):
 
 ```json
 {
@@ -147,6 +148,25 @@ Credential Tier: 2 -- Full (API key + Service Account + GA4)
   [OK] Google Indexing API v3
   [OK] GA4 Data API v1beta
 ```
+
+## Per-Project Profiles
+
+To give a project its own Google account and properties, set
+`CLAUDE_SEO_PROFILE_DIR` in its `.claude/settings.local.json`:
+
+```json
+{"env": {"CLAUDE_SEO_PROFILE_DIR": "~/.config/claude-seo/profiles/project-xyz"}}
+```
+
+The scripts then read and write `google-api.json`, `oauth-token.json`,
+`backlinks-api.json` and `matomo.json` only there, with no fallback to
+`~/.config/claude-seo/`, so copy the shared `api_key` or set `GOOGLE_API_KEY`.
+The path must be absolute or start with `~/`, and must not be `/` or the home
+directory. Keep it outside any git repository, because it holds API keys and
+the OAuth token. The scripts warn on stderr when it is inside a git work tree.
+
+The gcloud sign-in lives outside the profile. For a per-project gcloud account,
+also set `CLOUDSDK_CONFIG` in the same `env` block.
 
 ## Environment Variable Alternatives
 
