@@ -55,12 +55,6 @@ from render_page import render_page  # noqa: E402
 _ONCLICK_DIV_RE = re.compile(
     r"<div\b[^>]*\bonclick\s*=\s*[\"'][^\"']+[\"']", re.IGNORECASE
 )
-_INPUT_WITHOUT_LABEL_RE = re.compile(
-    r"<input\b(?![^>]*\baria-label\s*=)(?![^>]*\baria-labelledby\s*=)[^>]*>",
-    re.IGNORECASE,
-)
-_LABEL_FOR_RE = re.compile(r'<label\b[^>]*\bfor\s*=\s*[\"\']([^\"\']+)[\"\']', re.IGNORECASE)
-_INPUT_ID_RE = re.compile(r'<input\b[^>]*\bid\s*=\s*[\"\']([^\"\']+)[\"\']', re.IGNORECASE)
 _BUTTON_RE = re.compile(r"<button\b", re.IGNORECASE)
 _ANCHOR_HREF_RE = re.compile(r"<a\b[^>]*\bhref\s*=", re.IGNORECASE)
 _SEMANTIC_LANDMARK_RE = re.compile(
@@ -101,14 +95,40 @@ def analyze_html(html: str) -> dict:
         "inputs_without_label": 0,
     }
 
-    # Inputs without ARIA labels: first cut, then check label[for] coverage.
-    aria_less = _INPUT_WITHOUT_LABEL_RE.findall(html)
-    findings["inputs_without_aria"] = len(aria_less)
-
-    label_targets = set(_LABEL_FOR_RE.findall(html))
-    input_ids = _INPUT_ID_RE.findall(html)
-    unlabeled = [iid for iid in input_ids if iid not in label_targets]
-    findings["inputs_without_label"] = len(unlabeled)
+    # Inspect actual controls, including those without an id. HTML labels,
+    # ARIA names, and button values can all provide an accessible name.
+    soup = BeautifulSoup(html, "html.parser")
+    by_id = {node["id"]: node for node in soup.find_all(id=True)}
+    label_targets = {
+        label["for"] for label in soup.find_all("label", attrs={"for": True})
+        if label.get_text(" ", strip=True)
+    }
+    for control in soup.find_all("input"):
+        kind = str(control.get("type", "text")).lower()
+        if kind == "hidden":
+            continue
+        aria_name = str(control.get("aria-label", "")).strip() or any(
+            by_id[target].get_text(" ", strip=True)
+            for target in str(control.get("aria-labelledby", "")).split()
+            if target in by_id
+        )
+        if not aria_name:
+            findings["inputs_without_aria"] += 1
+        parent_label = control.find_parent("label")
+        implicit_label = (
+            parent_label is not None
+            and not parent_label.has_attr("for")
+            and parent_label.get_text(" ", strip=True)
+        )
+        named = (
+            aria_name or control.get("id") in label_targets or implicit_label
+            or str(control.get("title", "")).strip()
+            or (kind in {"button", "submit", "reset"} and str(control.get("value", "")).strip())
+            or kind in {"submit", "reset"}  # browser-provided default label
+            or (kind == "image" and str(control.get("alt", "")).strip())
+        )
+        if not named:
+            findings["inputs_without_label"] += 1
 
     return findings
 
@@ -179,7 +199,7 @@ def score(html_findings: dict, a11y_findings: dict) -> dict:
         deduction = min(20, html_findings["inputs_without_label"] * 4)
         score -= deduction
         issues.append(
-            f"{html_findings['inputs_without_label']} input(s) without label[for] "
+            f"{html_findings['inputs_without_label']} input(s) without an accessible label "
             f"(-{deduction})"
         )
 
