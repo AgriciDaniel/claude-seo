@@ -222,16 +222,17 @@ def detect_trends(metrics: dict) -> dict:
         p75s = data.get("p75_values", [])
         valid = [v for v in p75s if v is not None]
 
-        if len(valid) < 8:
+        # Keep the calendar positions. Dropping missing weeks first can
+        # label old measurements as the latest four-week window.
+        first_4 = p75s[:4]
+        last_4 = p75s[-4:]
+        if len(p75s) < 8 or any(v is None for v in first_4 + last_4):
             trends[metric_name] = {
                 "direction": "insufficient_data",
                 "label": data.get("label", metric_name),
             }
             continue
 
-        # First 4 valid vs last 4 valid
-        first_4 = valid[:4]
-        last_4 = valid[-4:]
         avg_first = sum(first_4) / len(first_4)
         avg_last = sum(last_4) / len(last_4)
 
