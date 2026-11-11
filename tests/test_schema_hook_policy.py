@@ -175,13 +175,13 @@ def test_non_object_graph_members_are_reported_without_crashing(tmp_path: Path) 
     assert "@graph member 2 must be an object" in _warnings(result)
 
 
-def test_graph_must_be_a_list(tmp_path: Path) -> None:
+def test_graph_can_be_a_single_node_object(tmp_path: Path) -> None:
     payload = {
         "@context": "https://schema.org",
         "@graph": {"@type": "Organization"},
     }
     result = _run_payload(tmp_path, payload, capture_output=True, encoding="utf-8")
-    assert "@graph must be a list" in _warnings(result)
+    assert _clean(result)
 
 
 def test_replace_placeholder_matches_tokens_not_normal_words(tmp_path: Path) -> None:

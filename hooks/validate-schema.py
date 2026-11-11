@@ -210,7 +210,7 @@ def _validate_schema_object(
         errors.append(f"{prefix}: @context should be 'https://schema.org'")
 
     graph = obj.get("@graph")
-    has_graph = isinstance(graph, list)
+    has_graph = isinstance(graph, (dict, list))
 
     # A graph container does not need its own @type. Its object members do.
     if "@type" not in obj and not has_graph:
@@ -270,11 +270,12 @@ def _validate_schema_object(
             )
 
     if "@graph" in obj:
-        if not isinstance(graph, list):
-            errors.append(f"{prefix}: @graph must be a list")
+        if not has_graph:
+            errors.append(f"{prefix}: @graph must be an object or list")
         else:
             context_is_inherited = inherited_context or "@context" in obj
-            for index, item in enumerate(graph, 1):
+            members = [graph] if isinstance(graph, dict) else graph
+            for index, item in enumerate(members, 1):
                 if not isinstance(item, dict):
                     errors.append(
                         f"{prefix}: @graph member {index} must be an object"
