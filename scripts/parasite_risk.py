@@ -180,6 +180,7 @@ def scan(urls: Iterable[str], *, timeout: int = 20) -> dict:
     for url in urls:
         try:
             resp = safe_requests_get(url, timeout=timeout, allow_redirects=True)
+            resp.raise_for_status()
             rows.append(_audit_page(resp.url, decode_response_text(resp)))
         except URLSafetyError as exc:
             errors.append({"url": url, "error": f"url_safety: {exc}"})
@@ -191,6 +192,8 @@ def scan(urls: Iterable[str], *, timeout: int = 20) -> dict:
     overall_risk = "high" if severities.get("high", 0) > 0 else (
         "medium" if severities.get("medium", 0) > 0 else "low"
     )
+    if not rows:
+        overall_risk = "unknown"
 
     return {
         "pages_audited": len(rows),
@@ -249,7 +252,7 @@ def main() -> int:
             if row["flags"]:
                 print(f"    flags:            {', '.join(row['flags'])}")
 
-    return 0 if result["overall_risk"] != "high" else 1
+    return 0 if result["pages_audited"] and result["overall_risk"] != "high" else 1
 
 
 if __name__ == "__main__":
