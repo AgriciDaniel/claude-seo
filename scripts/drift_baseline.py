@@ -185,10 +185,15 @@ def fetch_page_data(url: str) -> dict:
         result["status_code"] = int(status_match.group(1)) if status_match else 200
         result["html"] = html_content
 
+        # Relative resources belong to the final document after redirects,
+        # not the originally requested URL. Older fetch output may omit it.
+        final_url_match = re.search(r"^URL:\s*(\S+)", proc.stderr or "", re.MULTILINE)
+        final_url = final_url_match.group(1) if final_url_match else url
+
         # Step 2: Parse the HTML via parse_html.py
         parse_script = os.path.join(SCRIPTS_DIR, "parse_html.py")
         proc = subprocess.run(
-            [sys.executable, parse_script, tmp_path, "--url", url, "--json"],
+            [sys.executable, parse_script, tmp_path, "--url", final_url, "--json"],
             capture_output=True,
             text=True,
             encoding="utf-8",
