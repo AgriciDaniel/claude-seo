@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Count attempted URL inspections after blank-entry filtering and batch capping,
+  preserving `requested_total` separately so report indexation rates use the
+  number of URLs actually inspected.
+
 ## [2.6.0] - 2026-11-10
 
 Deterministic checks ported from web-obs, the sister crawler project. Work
