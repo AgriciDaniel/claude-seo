@@ -218,14 +218,15 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
                 "message": "Product (or its Offer) is missing "
                            "hasMerchantReturnPolicy.",
             })
-        elif isinstance(return_policy, dict):
-            for field in _REQUIRED_RETURN_POLICY_FIELDS:
-                if field not in return_policy:
-                    findings.append({
-                        "severity": "Medium",
-                        "rule": f"return-policy-{field}",
-                        "message": f"MerchantReturnPolicy is missing {field!r}.",
-                    })
+        else:
+            for policy in _as_dicts(return_policy):
+                for field in _REQUIRED_RETURN_POLICY_FIELDS:
+                    if field not in policy:
+                        findings.append({
+                            "severity": "Medium",
+                            "rule": f"return-policy-{field}",
+                            "message": f"MerchantReturnPolicy is missing {field!r}.",
+                        })
 
         # 5. shippingDetails (recommended or conditional).
         shipping = prod.get("shippingDetails") or first_offer.get("shippingDetails")
@@ -236,14 +237,15 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
                 "message": "Product (or its Offer) is missing "
                            "shippingDetails.",
             })
-        elif isinstance(shipping, dict):
-            for field in _REQUIRED_SHIPPING_FIELDS:
-                if field not in shipping:
-                    findings.append({
-                        "severity": "Medium",
-                        "rule": f"shipping-{field}",
-                        "message": f"OfferShippingDetails is missing {field!r}.",
-                    })
+        else:
+            for details in _as_dicts(shipping):
+                for field in _REQUIRED_SHIPPING_FIELDS:
+                    if field not in details:
+                        findings.append({
+                            "severity": "Medium",
+                            "rule": f"shipping-{field}",
+                            "message": f"OfferShippingDetails is missing {field!r}.",
+                        })
 
         # 6. Loyalty / MemberProgram visibility (Medium).
         if not prod.get("hasMemberProgram") and not any(
