@@ -189,6 +189,8 @@ def compute_statistics(values: list[float]) -> dict[str, Optional[float]]:
 
 def _normalize_price(raw: Any) -> Optional[float]:
     """Convert various price formats to float."""
+    if isinstance(raw, dict):
+        raw = raw.get("current")
     if raw is None:
         return None
     if isinstance(raw, (int, float)):
@@ -252,7 +254,7 @@ def normalize_merchant(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     Normalize Google Shopping and Amazon product data.
 
     Handles variations in DataForSEO response format:
-    - Price as string or number
+    - Price as a structured current/currency object, string or number
     - Rating as nested dict or flat float
     - Availability as various string formats
 
@@ -268,18 +270,27 @@ def normalize_merchant(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for item in items:
         # Handle rating as dict or scalar
         rating_raw = item.get("rating")
+        reviews = item.get("reviews_count")
         if isinstance(rating_raw, dict):
-            rating_val = _safe_float(rating_raw.get("value") or rating_raw.get("rating_value"))
+            rating_value = rating_raw.get("value")
+            rating_val = _safe_float(rating_raw.get("rating_value") if rating_value is None else rating_value)
+            if reviews is None:
+                reviews = rating_raw.get("votes_count")
         else:
             rating_val = _safe_float(rating_raw)
 
+        price = item.get("price")
+        currency = item.get("currency")
+        if not currency and isinstance(price, dict):
+            currency = price.get("currency")
+
         product = {
             "title": str(item.get("title", "")),
-            "price": _normalize_price(item.get("price")),
-            "currency": _normalize_currency(item.get("currency")),
+            "price": _normalize_price(price),
+            "currency": _normalize_currency(currency),
             "seller": str(item.get("seller", item.get("seller_name", ""))),
             "rating": round(rating_val, 1),
-            "reviews_count": _safe_int(item.get("reviews_count")),
+            "reviews_count": _safe_int(reviews),
             "url": str(item.get("url", "")),
             "image_url": str(item.get("image_url", item.get("marketplace_url", ""))),
             "availability": _normalize_availability(item.get("availability")),
