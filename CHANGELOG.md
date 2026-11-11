@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Export native Search Console and URL Inspection script results to XLSX,
+  retaining normalized field names, query labels, CTR percentages and inspection
+  failures in both standalone and combined reports.
+
 ## [2.6.0] - 2026-11-10
 
 Deterministic checks ported from web-obs, the sister crawler project. Work
