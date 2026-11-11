@@ -2,7 +2,7 @@
 
 Issue #337: a Google report must never silently use another site's property.
 Every test runs ``main()`` with a mocked config and no API client, so the JSON
-result carries the chosen property next to a "could not build client" error.
+result carries the chosen property without making a live API request.
 """
 
 from __future__ import annotations
@@ -64,9 +64,23 @@ def run(monkeypatch, capsys):
         return None
 
     monkeypatch.setattr(ga4_report, "_build_ga4_client", no_client)
-    monkeypatch.setattr(gsc_query, "_build_gsc_service", no_client)
-    monkeypatch.setattr(gsc_inspect, "_build_inspection_service", no_client)
-    monkeypatch.setattr(gsc_inspect, "validate_url", lambda url: True)
+    def gsc_result(prop, *args, **kwargs):
+        built.append(True)
+        return {"property": prop, "error": None}
+
+    def inspect_result(url, prop, *args, **kwargs):
+        return {"url": url, **gsc_result(prop)}
+
+    def sites_result():
+        built.append(True)
+        return {"sites": [], "error": None}
+
+    # Property routing is independent of API failures, which exit nonzero even
+    # in JSON mode. Record the selected property with successful API stubs.
+    monkeypatch.setattr(gsc_query, "query_search_analytics", gsc_result)
+    monkeypatch.setattr(gsc_query, "list_sitemaps", gsc_result)
+    monkeypatch.setattr(gsc_query, "list_sites", sites_result)
+    monkeypatch.setattr(gsc_inspect, "inspect_url", inspect_result)
 
     def _run(script, extra: list[str], config: dict):
         """``script`` is a SCRIPTS key or a (module, leading args) pair."""

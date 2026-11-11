@@ -362,6 +362,9 @@ def main():
                 for item in rr.get("detected_items", []):
                     print(f"  Type: {item.get('type')}")
 
+    if result.get("error") or result.get("summary", {}).get("error", 0):
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

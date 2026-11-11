@@ -566,6 +566,9 @@ def main():
                     keys = " | ".join(w.get("keys", []))
                     print(f"  Pos {w['position']} | {w['impressions']:,} imp | {w['clicks']} clicks | {keys}")
 
+    if result.get("error"):
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
