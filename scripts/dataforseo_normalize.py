@@ -214,14 +214,16 @@ def _normalize_currency(raw: Any) -> str:
 
 
 def _normalize_availability(raw: Any) -> str:
-    """Normalize availability to enum string."""
+    """Normalize legacy labels while retaining distinct Merchant stock states."""
     if not raw:
         return "unknown"
     text = str(raw).lower().strip()
+    if text in {"limited_stock", "backordered", "on_display_to_order"}:
+        return text
+    if "out_of_stock" in text or "out of stock" in text or "not in stock" in text:
+        return "out_of_stock"
     if "in_stock" in text or "in stock" in text:
         return "in_stock"
-    if "out_of_stock" in text or "out of stock" in text:
-        return "out_of_stock"
     if "preorder" in text or "pre-order" in text or "pre_order" in text:
         return "preorder"
     return "unknown"
@@ -282,7 +284,9 @@ def normalize_merchant(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "reviews_count": _safe_int(item.get("reviews_count")),
             "url": str(item.get("url", "")),
             "image_url": str(item.get("image_url", item.get("marketplace_url", ""))),
-            "availability": _normalize_availability(item.get("availability")),
+            "availability": _normalize_availability(
+                item.get("availability") or item.get("product_availability")
+            ),
         }
 
         # Amazon-specific fields

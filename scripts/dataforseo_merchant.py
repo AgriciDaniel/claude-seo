@@ -29,6 +29,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
+from dataforseo_normalize import _normalize_availability  # noqa: E402
+
 try:
     import requests
 except ImportError:
@@ -213,20 +215,6 @@ def _normalize_price(raw_price: Any) -> Optional[float]:
     return None
 
 
-def _normalize_availability(raw: Any) -> str:
-    """Normalize availability to enum."""
-    if not raw:
-        return "unknown"
-    text = str(raw).lower().strip()
-    if "in_stock" in text or "in stock" in text:
-        return "in_stock"
-    if "out_of_stock" in text or "out of stock" in text:
-        return "out_of_stock"
-    if "preorder" in text or "pre-order" in text or "pre_order" in text:
-        return "preorder"
-    return "unknown"
-
-
 def _normalize_product(item: dict[str, Any], marketplace: str) -> dict[str, Any]:
     """Normalize a single product item."""
     return {
@@ -241,7 +229,7 @@ def _normalize_product(item: dict[str, Any], marketplace: str) -> dict[str, Any]
         "reviews_count": int(item.get("reviews_count", 0) or 0),
         "url": item.get("url", ""),
         "image_url": item.get("image_url", item.get("marketplace_url", "")),
-        "availability": _normalize_availability(item.get("availability")),
+        "availability": _normalize_availability(item.get("availability") or item.get("product_availability")),
     }
 
 
