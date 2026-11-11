@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `--check` in the three auth scripts prints the config directory it
   reads, and `--check --json` returns it as `config_dir` and reports
   `config_dir_exists`.
+- The auth scripts print a warning on stderr when `CLAUDE_SEO_PROFILE_DIR`
+  is inside a git work tree, where its API keys and OAuth token could be
+  committed by mistake. `--check --json` reports it as
+  `config_dir_in_git_work_tree`.
 
 ## [2.6.0] - 2026-11-10
 

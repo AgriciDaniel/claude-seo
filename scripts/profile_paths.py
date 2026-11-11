@@ -7,6 +7,8 @@ backlinks-api.json and matomo.json. Unset or empty, they use
 ~/.config/claude-seo. A set profile is never combined with the default
 directory. The DataForSEO budget files do not follow it: they stay global
 so that several projects cannot each spend the daily limit of one account.
+A set profile inside a git work tree prints a warning on stderr, because
+its credentials would be one `git add` away from a commit.
 
 Usage:
     python profile_paths.py        # {"profile_dir": "<resolved directory>"}
@@ -15,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import enum
+import functools
 import json
 import os
 import sys
@@ -57,12 +60,16 @@ def profile_dir() -> Path:
 def profile_dir_or_exit() -> Path:
     """profile_dir() for module import: a rejected value ends the process
     with code 1 and a one-line message, never with a traceback, so a
-    misconfigured profile cannot fall back to the default credentials."""
+    misconfigured profile cannot fall back to the default credentials.
+    A set profile inside a git work tree prints a warning on stderr."""
     try:
-        return profile_dir()
+        directory = profile_dir()
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
+    if os.environ.get(ENV_VAR):
+        _warn_if_in_git_work_tree(directory)
+    return directory
 
 
 def describe_config_dir(config_path: str) -> str:
@@ -78,6 +85,7 @@ def config_dir_fields(config_path: str) -> dict[str, str | bool]:
     return {
         "config_dir": str(directory),
         "config_dir_exists": _dir_state(directory) is _DirState.OK,
+        "config_dir_in_git_work_tree": _git_work_tree(directory) is not None,
     }
 
 
@@ -97,6 +105,32 @@ def _dir_state(directory: Path) -> _DirState:
     except OSError:
         return _DirState.NOT_ACCESSIBLE
     return _DirState.OK
+
+
+@functools.cache
+def _warn_if_in_git_work_tree(directory: Path) -> None:
+    """Cached so a script that loads several auth modules warns once."""
+    work_tree = _git_work_tree(directory)
+    if work_tree is not None:
+        print(
+            f"Warning: {ENV_VAR} {directory} is inside the git work tree {work_tree}. "
+            "Its API keys and OAuth token are one `git add` away from a commit; "
+            "move the profile outside the repository.",
+            file=sys.stderr,
+        )
+
+
+def _git_work_tree(directory: Path) -> Path | None:
+    """The nearest ancestor holding .git, a directory in a normal checkout
+    and a file in a linked worktree or submodule. Found without running
+    git, which may be missing, and before the profile directory exists."""
+    for candidate in (directory, *directory.parents):
+        try:
+            if (candidate / ".git").exists():
+                return candidate
+        except OSError:
+            continue
+    return None
 
 
 def _resolved_home() -> Path | None:

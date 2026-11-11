@@ -100,6 +100,52 @@ def test_or_exit_turns_a_rejected_value_into_exit_code_1(
     assert "'profiles/a'" in err
 
 
+@pytest.mark.parametrize("marker", ["directory", "file"])
+def test_profile_inside_a_git_work_tree_warns(
+    home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str], marker: str,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    if marker == "directory":
+        (repo / ".git").mkdir()
+    else:
+        # A linked worktree or a submodule has a .git file, not a directory.
+        (repo / ".git").write_text("gitdir: /elsewhere/.git/worktrees/repo\n")
+    monkeypatch.setenv("CLAUDE_SEO_PROFILE_DIR", str(repo / ".claude" / "seo-profile"))
+    profile_paths.profile_dir_or_exit()
+    err = capsys.readouterr().err
+    assert "Warning: CLAUDE_SEO_PROFILE_DIR" in err
+    assert f"inside the git work tree {repo.resolve()}" in err
+
+
+def test_profile_outside_a_git_work_tree_does_not_warn(
+    home: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_PROFILE_DIR", str(tmp_path / "profiles" / "a"))
+    profile_paths.profile_dir_or_exit()
+    assert capsys.readouterr().err == ""
+
+
+def test_default_directory_inside_a_git_work_tree_does_not_warn(
+    home: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (home / ".git").mkdir()
+    monkeypatch.delenv("CLAUDE_SEO_PROFILE_DIR", raising=False)
+    profile_paths.profile_dir_or_exit()
+    assert capsys.readouterr().err == ""
+
+
+def test_git_work_tree_warning_is_printed_once_per_process(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    env = _isolated_env(tmp_path, str(repo / "seo-profile"))
+    proc = _python("import google_auth, backlinks_auth, matomo_auth", env)
+    assert proc.returncode == 0, proc.stderr
+    assert proc.stderr.count("inside the git work tree") == 1
+
+
 def test_cli_prints_the_directory_as_json(tmp_path: Path) -> None:
     profile = tmp_path / "profile"
     env = {**os.environ, "CLAUDE_SEO_PROFILE_DIR": str(profile)}
@@ -278,7 +324,17 @@ def test_check_json_reports_an_existing_profile_directory(tmp_path: Path, script
     profile = tmp_path / "profile"
     profile.mkdir(parents=True)
     proc = _check(script, ["--json"], _isolated_env(tmp_path, str(profile)))
-    assert json.loads(proc.stdout)["config_dir_exists"] is True, proc.stderr
+    payload = json.loads(proc.stdout)
+    assert payload["config_dir_exists"] is True, proc.stderr
+    assert payload["config_dir_in_git_work_tree"] is False
+
+
+@pytest.mark.parametrize("script", _AUTH_SCRIPTS)
+def test_check_json_reports_a_profile_inside_a_git_work_tree(tmp_path: Path, script: str) -> None:
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    proc = _check(script, ["--json"], _isolated_env(tmp_path, str(repo / "seo-profile")))
+    assert json.loads(proc.stdout)["config_dir_in_git_work_tree"] is True, proc.stderr
 
 
 @pytest.mark.parametrize("script", _AUTH_SCRIPTS)
@@ -455,5 +511,6 @@ def test_config_dir_fields_agree_with_describe_when_inaccessible(
     assert profile_paths.config_dir_fields(config) == {
         "config_dir": str(tmp_path),
         "config_dir_exists": False,
+        "config_dir_in_git_work_tree": False,
     }
     assert profile_paths.describe_config_dir(config) == f"{tmp_path} (not accessible)"
