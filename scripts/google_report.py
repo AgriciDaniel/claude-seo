@@ -1791,10 +1791,10 @@ def _build_indexation_section(inspect_data, chart_paths, section_num=4, fig_star
         lines.append('    </thead>')
         lines.append('    <tbody>')
         for r in results:
-            verdict = r.get("verdict", "?")
+            verdict = r.get("verdict") or ("ERROR" if r.get("error") else "?")
             cls = ("status-pass" if verdict == "PASS"
                    else ("status-fail" if verdict == "FAIL" else ""))
-            idx = r.get("index_status", {})
+            idx = r.get("index_status") or {}
             cov = idx.get("coverage_state", r.get("error", "N/A"))
             crawl = idx.get("last_crawl_time", "N/A")
             if crawl and crawl != "N/A":
