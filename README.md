@@ -374,7 +374,6 @@ Integrations built and maintained by other people, in their own repositories, ar
 | [Claude Banana](https://github.com/AgriciDaniel/banana-claude) | AI image generation for SEO assets and posts |
 | [ChatGPT SEO](https://github.com/AgriciDaniel/chatgpt-seo) | Turns a page, draft or SEO export into a sourced fix plan inside ChatGPT |
 | [FLOW](https://github.com/AgriciDaniel/flow) | An evidence-led SEO framework with 42 AI prompts |
-| [AI Marketing Claude](https://github.com/zubair-trabzada/ai-marketing-claude) | Community suite for copy, email, ads and funnels |
 
 **Docs:** [Installation](docs/INSTALLATION.md) · [Commands](docs/COMMANDS.md) · [Architecture](docs/ARCHITECTURE.md) · [Troubleshooting](docs/TROUBLESHOOTING.md) · [Extensions setup](docs/MCP-INTEGRATION.md) · [Security](SECURITY.md) · [Privacy](PRIVACY.md) · [Contributors](CONTRIBUTORS.md)
 
