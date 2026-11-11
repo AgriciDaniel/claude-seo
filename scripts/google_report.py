@@ -2399,17 +2399,17 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
                 "weasyprint is required for PDF generation. "
                 "Install the report dependencies from requirements.txt."
             )
-            return result
-        pdf_path = output_dir / f"{base_name}.pdf"
-        try:
-            HTML(string=html_content).write_pdf(str(pdf_path))
-            result["files"].append(str(pdf_path))
-            # Post-generation review
-            review = _review_pdf(str(pdf_path), html_content)
-            if review:
-                result["review"] = review
-        except Exception as e:
-            result["error"] = f"PDF generation failed: {e}"
+        else:
+            pdf_path = output_dir / f"{base_name}.pdf"
+            try:
+                HTML(string=html_content).write_pdf(str(pdf_path))
+                result["files"].append(str(pdf_path))
+                # Post-generation review
+                review = _review_pdf(str(pdf_path), html_content)
+                if review:
+                    result["review"] = review
+            except Exception as e:
+                result["error"] = f"PDF generation failed: {e}"
 
     if output_format in ("xlsx", "all"):
         xlsx_path = generate_xlsx(data, domain, report_type, output_dir)
