@@ -801,6 +801,11 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
                 result.setdefault("malformed_urls", []).append({"tag": "a", "value": href})
                 continue
 
+            # Contact/action links are not crawlable pages. Check the parsed
+            # scheme so case and leading whitespace cannot bypass this filter.
+            if parsed.scheme.lower() not in {"http", "https"}:
+                continue
+
             link_data = {
                 "href": full_url,
                 "text": _element_text(a)[:100],

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- HTML link inventories exclude mail, telephone, script and other non-HTTP(S) targets from page-link counts.
+
 ## [2.6.0] - 2026-11-10
 
 Deterministic checks ported from web-obs, the sister crawler project. Work
