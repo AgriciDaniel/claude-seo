@@ -107,9 +107,13 @@ def format_markdown_table(
 
     display_headers = headers or [col.replace("_", " ").title() for col in columns]
 
+    def escape_cell(value: str) -> str:
+        return (value.replace("\\", "\\\\").replace("|", "\\|")
+                .replace("\r\n", " ").replace("\r", " ").replace("\n", " "))
+
     # Header row
     lines = [
-        "| " + " | ".join(display_headers) + " |",
+        "| " + " | ".join(escape_cell(header) for header in display_headers) + " |",
         "| " + " | ".join(["---"] * len(columns)) + " |",
     ]
 
@@ -124,7 +128,7 @@ def format_markdown_table(
                 val = f"{val:.2f}" if not val.is_integer() else f"{int(val)}"
             else:
                 val = str(val)
-            row_values.append(val)
+            row_values.append(escape_cell(val))
         lines.append("| " + " | ".join(row_values) + " |")
 
     if len(items) > max_rows:
