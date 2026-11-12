@@ -76,6 +76,46 @@ def test_parse_profile_valid_spec_profile():
     assert report["capabilities"][0]["issues"] == []
     assert report["services"][0]["endpoint"] == "https://s.example/api/ucp/mcp"
     assert report["unknown_capabilities"] == []
+    assert report["supported_versions"] == {
+        "2026-04-08": "https://s.example/.well-known/ucp/2026-04-08",
+    }
+
+
+def test_parse_profile_keeps_supported_version_profile_uris():
+    payload = json.dumps({"ucp": {
+        "version": "2026-08-25",
+        "supported_versions": {
+            "2026-04-08": "https://s.example/.well-known/ucp/2026-04-08",
+            "not-a-date": "https://s.example/.well-known/ucp/old",
+            "2026-01-23": "/relative",
+        },
+        "services": {"dev.ucp.shopping": [
+            {"version": "2026-08-25", "spec": "https://ucp.dev/x", "transport": "mcp",
+             "endpoint": "https://s.example/api/ucp/mcp", "schema": "https://ucp.dev/y"}]},
+        "capabilities": {"dev.ucp.shopping.checkout": [
+            {"version": "2026-08-25", "spec": "https://ucp.dev/c", "schema": "https://ucp.dev/s"}]},
+    }})
+    report = ucp_check.parse_profile(payload)
+    assert report["supported_versions"] == {
+        "2026-04-08": "https://s.example/.well-known/ucp/2026-04-08",
+    }
+    assert "supported-version-key-not-a-date:'not-a-date'" in report["issues"]
+    assert "supported-version-uri-missing-or-invalid:2026-01-23" in report["issues"]
+
+
+def test_parse_profile_flags_supported_versions_list():
+    payload = json.dumps({"ucp": {
+        "version": "2026-08-25",
+        "supported_versions": ["2026-04-08"],
+        "services": {"dev.ucp.shopping": [
+            {"version": "2026-08-25", "spec": "https://ucp.dev/x", "transport": "mcp",
+             "endpoint": "https://s.example/api/ucp/mcp", "schema": "https://ucp.dev/y"}]},
+        "capabilities": {"dev.ucp.shopping.checkout": [
+            {"version": "2026-08-25", "spec": "https://ucp.dev/c", "schema": "https://ucp.dev/s"}]},
+    }})
+    report = ucp_check.parse_profile(payload)
+    assert "supported-versions-not-an-object" in report["issues"]
+    assert report["supported_versions"] == {}
 
 
 def test_parse_profile_flags_a_flat_non_spec_profile():
