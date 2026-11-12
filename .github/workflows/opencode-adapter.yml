@@ -1,0 +1,47 @@
+name: OpenCode adapter
+
+on:
+  push:
+    paths:
+      - ".opencode/**"
+      - "agents/**"
+      - "skills/**"
+      - "extensions/**"
+      - "tests/test_opencode_adapter.py"
+      - ".github/workflows/opencode-adapter.yml"
+  pull_request:
+    paths:
+      - ".opencode/**"
+      - "agents/**"
+      - "skills/**"
+      - "extensions/**"
+      - "tests/test_opencode_adapter.py"
+      - ".github/workflows/opencode-adapter.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: opencode-adapter-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  adapter:
+    name: Adapter contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install pytest ruff==0.17.1
+      - name: Check generated wrappers
+        run: python .opencode/adapter/build_agents.py --check
+      - name: Run consistency check
+        run: python scripts/consistency_check.py --json
+      - name: Run adapter contract tests
+        run: pytest tests/test_opencode_adapter.py tests/test_consistency_check.py -q
+      - name: Lint
+        run: ruff check .
