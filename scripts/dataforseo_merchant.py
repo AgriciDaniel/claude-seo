@@ -29,6 +29,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
+from dataforseo_normalize import normalize_merchant  # noqa: E402
+
 try:
     import requests
 except ImportError:
@@ -229,16 +231,15 @@ def _normalize_availability(raw: Any) -> str:
 
 def _normalize_product(item: dict[str, Any], marketplace: str) -> dict[str, Any]:
     """Normalize a single product item."""
+    normalized = normalize_merchant([item])[0]
     return {
         "marketplace": marketplace,
         "title": item.get("title", ""),
-        "price": _normalize_price(item.get("price")),
-        "currency": item.get("currency", "USD"),
+        "price": normalized["price"],
+        "currency": normalized["currency"],
         "seller": item.get("seller", item.get("seller_name", "")),
-        "rating": round(float(item.get("rating", {}).get("value", 0) or 0), 1)
-            if isinstance(item.get("rating"), dict)
-            else round(float(item.get("rating", 0) or 0), 1),
-        "reviews_count": int(item.get("reviews_count", 0) or 0),
+        "rating": normalized["rating"],
+        "reviews_count": normalized["reviews_count"],
         "url": item.get("url", ""),
         "image_url": item.get("image_url", item.get("marketplace_url", "")),
         "availability": _normalize_availability(item.get("availability")),
