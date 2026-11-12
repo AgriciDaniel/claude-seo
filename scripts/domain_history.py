@@ -162,16 +162,19 @@ def _socket_whois(domain: str) -> Optional[str]:
 def _parse_date(value: str) -> Optional[str]:
     """Best-effort ISO-8601 normalisation."""
     for fmt in (
-        "%Y-%m-%dT%H:%M:%SZ",
-        "%Y-%m-%dT%H:%M:%S.%fZ",
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%dT%H:%M:%S.%f%z",
         "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%d",
         "%d-%b-%Y",
         "%d.%m.%Y",
     ):
         try:
-            return datetime.strptime(value.strip(), fmt).date().isoformat()
-        except ValueError:
+            parsed = datetime.strptime(value.strip(), fmt)
+            if parsed.tzinfo is not None:
+                parsed = parsed.astimezone(timezone.utc)
+            return parsed.date().isoformat()
+        except (ValueError, OverflowError):
             continue
     return None
 
