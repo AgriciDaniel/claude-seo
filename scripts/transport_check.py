@@ -567,8 +567,14 @@ def _grade_hsts(raw: Optional[str], https: bool) -> dict:
     # Browsers act on the first header only (RFC 6797); requests joins repeats with commas.
     for part in raw.split(",")[0].split(";"):
         key, _sep, value = part.strip().partition("=")
-        if key.strip():
-            directives.setdefault(key.strip().lower(), value.strip().strip('"'))
+        key = key.strip().lower()
+        if key in directives:
+            message = "Duplicate HSTS directives invalidate the header, so browsers ignore it."
+            hsts["issues"].append(message)
+            hsts["preload_gaps"].append(message)
+            return hsts
+        if key:
+            directives[key] = value.strip().strip('"')
     max_age = directives.get("max-age", "")
     hsts["max_age"] = int(max_age) if max_age.isascii() and max_age.isdigit() else None
     hsts["include_subdomains"] = "includesubdomains" in directives
@@ -919,7 +925,8 @@ def _header_findings(headers: dict) -> list[dict]:
     elif https and not hsts["max_age"]:
         out.append(_finding("hsts-disabled", "Medium",
                             "The Strict-Transport-Security header has no effect because max-age "
-                            "is missing or zero.", {"value": hsts["value"]}))
+                            "is missing, invalid or zero, or the header is invalid.",
+                            {"value": hsts["value"], "issues": hsts["issues"]}))
     elif https and hsts["issues"]:
         out.append(_finding("hsts-weak", "Low", "The Strict-Transport-Security header is weak.",
                             {"value": hsts["value"], "issues": hsts["issues"]}))
