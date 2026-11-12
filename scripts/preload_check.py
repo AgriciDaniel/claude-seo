@@ -50,7 +50,7 @@ Result JSON::
 Exit status::
 
     0  analysis completed (a low score is a finding, not a failed run)
-    1  score below ``--fail-under N`` (opt-in gate, off by default)
+    1  fetch failed, or score below ``--fail-under N`` (opt-in gate)
     2  URL refused by url_safety
 """
 
@@ -62,6 +62,8 @@ import os
 import re
 import sys
 from typing import Optional
+
+from requests import RequestException
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
@@ -217,9 +219,15 @@ def main() -> int:
 
     try:
         resp = safe_requests_get(args.url, timeout=20, allow_redirects=True)
-    except URLSafetyError as exc:
-        print(f"Error: url_safety: {exc}", file=sys.stderr)
-        return 2
+        resp.raise_for_status()
+    except (URLSafetyError, RequestException) as exc:
+        refused = isinstance(exc, URLSafetyError)
+        error = f"url_safety: {exc}" if refused else f"Fetch failed: {exc}"
+        if args.json:
+            print(json.dumps({"url": args.url, "error": error}, indent=2))
+        else:
+            print(f"Error: {error}", file=sys.stderr)
+        return 2 if refused else 1
 
     result = {"url": resp.url, **analyse(decode_response_text(resp), dict(resp.headers))}
 

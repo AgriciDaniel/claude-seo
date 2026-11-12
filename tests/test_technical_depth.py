@@ -186,7 +186,8 @@ _PLAIN_HTML = "<html><head></head><body><p>nothing to preload</p></body></html>"
 
 def _run_preload_main(monkeypatch, capsys, *argv: str) -> tuple[int, str]:
     response = SimpleNamespace(url="https://example.com/", text=_PLAIN_HTML,
-                               content=_PLAIN_HTML.encode("utf-8"), headers={})
+                               content=_PLAIN_HTML.encode("utf-8"), headers={},
+                               raise_for_status=lambda: None)
     monkeypatch.setattr(preload_check, "safe_requests_get", lambda *a, **k: response)
     monkeypatch.setattr(sys, "argv", ["preload_check.py", "https://example.com/", *argv])
     code = preload_check.main()
