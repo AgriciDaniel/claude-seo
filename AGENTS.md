@@ -1,7 +1,7 @@
 # Claude SEO: Multi-Platform Agent Instructions
 
 > For **Cursor**, **Cursor Cloud Agents**, **Google Antigravity**, **Gemini CLI**,
-> **Grok Build**,
+> **Grok Build**, **OpenCode**,
 > **OpenAI Codex CLI**, **Cline**, **Aider**, and any other agent harness that
 > reads project-root agent instructions.
 >
@@ -33,6 +33,7 @@ descriptive comments) that other harnesses may ignore but do not reject.
 | **OpenAI Codex CLI** | Reads `AGENTS.md` from project root. Bash tools work as documented; some Claude-specific tool names (Read/Write/Edit) are aliased to Codex equivalents transparently. |
 | **Cline** | Loads `AGENTS.md` from project root. Skills appear as system messages; subagent delegation falls back to in-context expansion. |
 | **Aider** | Reads `AGENTS.md` if present; otherwise falls back to README. Aider does not support sub-agent dispatch; the seo-* skills run inline. |
+| **OpenCode** | Run OpenCode at the repository root. `.opencode/opencode.json` registers `skills/` and `.opencode/instructions.md`; `.opencode/commands/seo.md` adds `/seo`; 20 subagents are generated from `agents/` and `extensions/*/agents/`. After changing an agent's `description`, `maxTurns`, or `tools`, run `python3 .opencode/adapter/build_agents.py --write`. See [.opencode/README.md](.opencode/README.md). |
 
 ### Tool-name compatibility
 

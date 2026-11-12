@@ -58,6 +58,8 @@ install chromium`). No additional setup needed for either.
 - Reference files should be focused and under 200 lines
 - Follow kebab-case naming for all directories and files
 - Keep dependencies minimal
+- If you change an agent's `description`, `maxTurns`, or `tools`, run
+  `python3 .opencode/adapter/build_agents.py --write` so the OpenCode wrappers stay in sync
 
 ### Code Style
 

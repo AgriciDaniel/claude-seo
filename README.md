@@ -265,6 +265,23 @@ claude                                   # start Claude Code
 /seo local https://example.com           # local SEO and Google Business Profile
 ```
 
+### Use with OpenCode
+
+OpenCode uses the repository checkout directly; there is no separate install.
+
+```bash
+git clone --depth 1 https://github.com/AgriciDaniel/claude-seo.git
+cd claude-seo
+opencode
+```
+
+Then run `/seo audit https://example.com` from the Build agent. OpenCode loads
+the 26 core skills from `skills/`, the `/seo` command, and 20 subagents
+generated from `agents/` and `extensions/*/agents/`. Start OpenCode at the
+repository root: the skills path resolves from the working directory. See
+[.opencode/README.md](.opencode/README.md) for the adapter, update, and
+troubleshooting details.
+
 ## FAQ
 
 <details>

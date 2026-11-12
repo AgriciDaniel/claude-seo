@@ -111,7 +111,7 @@ The harness checks the installed OpenCode version, the skill registry, the 20
 subagents with `mode: subagent` and their `steps`, and the `seo` command. Run
 it after every OpenCode upgrade.
 
-## Update workflow
+## Keeping a fork in sync
 
 After an upstream release:
 
@@ -128,7 +128,7 @@ uv run --no-project --with-requirements requirements.txt --with pytest pytest te
 ruff check .
 
 git diff --stat
-git add .opencode tests/test_opencode_adapter.py .github/workflows/opencode-adapter.yml
+git add .opencode tests/test_opencode_adapter.py
 git commit -m "chore(opencode): sync adapter with upstream"
 git push origin main
 ```
@@ -162,8 +162,3 @@ prompt is preserved.
 OpenCode appends agent rules after global rules and the last matching rule
 wins. A wrapper allow can override a global deny for that subagent. Use
 OpenCode policies when you need a hard deny.
-
-## Historical design copy
-
-`.opencode/docs/opencode-adapter-spec.md` is the design snapshot. The
-generator, the tests, and this README are authoritative.
