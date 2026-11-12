@@ -2579,7 +2579,16 @@ def generate_xlsx(data, domain, report_type, output_dir):
     _auto_width(ws)
 
     # ── GSC Queries Sheet ─────────────────────────────────────────────────────
-    gsc = data.get("gsc", {})
+    gsc = data.get("gsc", data if report_type == "gsc-performance" else {})
+
+    def _xlsx_ctr(row):
+        ctr = row.get("ctr", "")
+        if not isinstance(ctr, (int, float)):
+            return str(ctr)
+        # gsc_query emits percentages; raw API rows contain fractions.
+        normalized = "row_count" in gsc or "query" in row or "page" in row
+        return f"{ctr:.2f}%" if normalized else f"{ctr:.2%}"
+
     queries = gsc.get("queries", gsc.get("rows", []))
     if queries and isinstance(queries, list):
         ws2 = wb.create_sheet("Queries")
@@ -2588,12 +2597,12 @@ def generate_xlsx(data, domain, report_type, output_dir):
         for row_data in queries[:500]:
             if isinstance(row_data, dict):
                 keys = row_data.get("keys", [])
-                query = keys[0] if keys else row_data.get("query", "")
+                query = row_data.get("query", keys[0] if keys else "")
                 ws2.append([
                     query,
                     row_data.get("clicks", 0),
                     row_data.get("impressions", 0),
-                    f"{row_data.get('ctr', 0):.2%}" if isinstance(row_data.get("ctr"), (int, float)) else str(row_data.get("ctr", "")),
+                    _xlsx_ctr(row_data),
                     round(row_data.get("position", 0), 1) if isinstance(row_data.get("position"), (int, float)) else row_data.get("position", ""),
                 ])
         ws2.auto_filter.ref = f"A1:E{ws2.max_row}"
@@ -2609,12 +2618,12 @@ def generate_xlsx(data, domain, report_type, output_dir):
         for row_data in pages[:500]:
             if isinstance(row_data, dict):
                 keys = row_data.get("keys", [])
-                page = keys[0] if keys else row_data.get("page", "")
+                page = row_data.get("page", keys[0] if keys else "")
                 ws3.append([
                     page,
                     row_data.get("clicks", 0),
                     row_data.get("impressions", 0),
-                    f"{row_data.get('ctr', 0):.2%}" if isinstance(row_data.get("ctr"), (int, float)) else str(row_data.get("ctr", "")),
+                    _xlsx_ctr(row_data),
                     round(row_data.get("position", 0), 1) if isinstance(row_data.get("position"), (int, float)) else row_data.get("position", ""),
                 ])
         ws3.auto_filter.ref = f"A1:E{ws3.max_row}"
@@ -2622,7 +2631,7 @@ def generate_xlsx(data, domain, report_type, output_dir):
         _auto_width(ws3)
 
     # ── Indexation Sheet ──────────────────────────────────────────────────────
-    inspection = data.get("inspection", {})
+    inspection = data.get("inspection", data if report_type == "indexation" else {})
     results = inspection.get("results", [])
     if results and isinstance(results, list):
         ws4 = wb.create_sheet("Indexation")
@@ -2631,14 +2640,14 @@ def generate_xlsx(data, domain, report_type, output_dir):
         for item in results[:500]:
             if isinstance(item, dict):
                 result_data = item.get("inspectionResult", item)
-                idx = result_data.get("indexStatusResult", {})
+                idx = item.get("index_status") or result_data.get("indexStatusResult", {})
                 ws4.append([
                     item.get("url", result_data.get("inspectedUrl", "")),
-                    idx.get("verdict", ""),
-                    idx.get("coverageState", ""),
-                    idx.get("indexingState", ""),
-                    idx.get("crawledAs", ""),
-                    idx.get("lastCrawlTime", ""),
+                    item.get("verdict") or idx.get("verdict") or ("ERROR" if item.get("error") else ""),
+                    idx.get("coverage_state", idx.get("coverageState", item.get("error", ""))),
+                    idx.get("indexing_state", idx.get("indexingState", "")),
+                    idx.get("crawled_as", idx.get("crawledAs", "")),
+                    idx.get("last_crawl_time", idx.get("lastCrawlTime", "")),
                 ])
         ws4.auto_filter.ref = f"A1:F{ws4.max_row}"
         ws4.freeze_panes = "A2"
