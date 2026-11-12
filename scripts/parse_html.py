@@ -829,7 +829,12 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
             # own, but its @context is inherited by the entries it holds.
             if isinstance(schema_data, dict) and "@graph" in schema_data:
                 inherited_context = schema_data.get("@context")
-                for item in schema_data["@graph"]:
+                graph = schema_data["@graph"]
+                if isinstance(graph, dict):
+                    graph = [graph]
+                elif not isinstance(graph, list):
+                    raise ValueError("@graph must be an object or list")
+                for item in graph:
                     if isinstance(item, dict):
                         result["schema"].append(_inherit_context(item, inherited_context))
             elif isinstance(schema_data, list):

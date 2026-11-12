@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Accept a single JSON-LD node object in `@graph` in the HTML parser and
+  schema hook. Preserve its context and validate the node instead of silently
+  dropping it or incorrectly requiring an array.
+
 ## [2.6.0] - 2026-11-10
 
 Deterministic checks ported from web-obs, the sister crawler project. Work
