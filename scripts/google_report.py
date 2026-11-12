@@ -2068,24 +2068,35 @@ def _build_methodology_footer(domain, timestamp, gsc_warning=""):
 
 def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
     """
-    Generate a complete professional PDF/HTML report.
+    Generate a complete professional PDF, HTML, or XLSX report.
 
     Args:
         report_type: 'cwv-audit', 'gsc-performance', 'indexation', or 'full'.
         data: Dictionary with all input data.
         domain: Domain name for the report header.
         output_dir: Directory for output files.
-        output_format: 'pdf', 'html', or 'both'.
+        output_format: 'pdf', 'html', 'xlsx', 'both', or 'all'.
 
     Returns:
         Dictionary with output paths.
     """
     output_dir = Path(output_dir)
-    charts_dir = output_dir / "charts"
-    charts_dir.mkdir(parents=True, exist_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     timestamp = datetime.now().strftime("%B %d, %Y")
     result = {"report_type": report_type, "domain": domain, "files": [], "error": None}
+
+    # A workbook contains data tables, not the rendered HTML charts.
+    if output_format == "xlsx":
+        xlsx_path = generate_xlsx(data, domain, report_type, output_dir)
+        if xlsx_path:
+            result["files"].append(xlsx_path)
+        else:
+            result["error"] = "openpyxl is required for XLSX generation. Install: pip install openpyxl"
+        return result
+
+    charts_dir = output_dir / "charts"
+    charts_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Generate Charts ──────────────────────────────────────────────────────
 
@@ -2411,7 +2422,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
         except Exception as e:
             result["error"] = f"PDF generation failed: {e}"
 
-    if output_format in ("xlsx", "all"):
+    if output_format == "all":
         xlsx_path = generate_xlsx(data, domain, report_type, output_dir)
         if xlsx_path:
             result["files"].append(xlsx_path)
