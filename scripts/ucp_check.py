@@ -89,7 +89,7 @@ def parse_profile(payload: str) -> dict:
     report: dict = {
         "valid_json": False,
         "version": None,
-        "supported_versions": [],
+        "supported_versions": {},
         "services": [],
         "capabilities": [],
         "issues": [],
@@ -122,8 +122,22 @@ def parse_profile(payload: str) -> dict:
     else:
         report["version"] = version
     supported = ucp.get("supported_versions")
-    if isinstance(supported, dict):
-        report["supported_versions"] = sorted(supported)
+    if supported is not None and not isinstance(supported, dict):
+        report["issues"].append("supported-versions-not-an-object")
+    elif isinstance(supported, dict):
+        # The spec maps each older protocol version to a profile URI.
+        # sorted(dict) only kept the version keys, so the audit dropped the
+        # URIs platforms need to fetch.
+        profiles = {}
+        for ver, uri in supported.items():
+            if not isinstance(ver, str) or not UCP_VERSION_RE.match(ver):
+                report["issues"].append(f"supported-version-key-not-a-date:{ver!r}")
+                continue
+            if not isinstance(uri, str) or not uri.startswith(("http://", "https://")):
+                report["issues"].append(f"supported-version-uri-missing-or-invalid:{ver}")
+                continue
+            profiles[ver] = uri
+        report["supported_versions"] = dict(sorted(profiles.items()))
 
     services = ucp.get("services")
     if not isinstance(services, dict) or not services:
