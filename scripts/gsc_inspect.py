@@ -193,11 +193,13 @@ def batch_inspect(
         language_code: Language code.
 
     Returns:
-        Dictionary with results list and summary.
+        Dictionary with attempted total, requested_total, results and summary.
     """
+    urls = [url.strip() for url in urls if url.strip()]
     result = {
         "property": site_url,
-        "total": len(urls),
+        "requested_total": len(urls),
+        "total": 0,
         "results": [],
         "summary": {
             "pass": 0,
@@ -215,11 +217,8 @@ def batch_inspect(
         )
         urls = urls[:DAILY_LIMIT]
 
+    result["total"] = len(urls)
     for i, url in enumerate(urls):
-        url = url.strip()
-        if not url:
-            continue
-
         print(f"Inspecting [{i + 1}/{len(urls)}]: {url}", file=sys.stderr)
 
         inspection = inspect_url(url, site_url, language_code)
