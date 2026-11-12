@@ -628,6 +628,15 @@ _REFERRER_POLICIES = frozenset({
 })
 
 
+def _restricts_frame_ancestors(sources: list[str]) -> bool:
+    """An empty list blocks all ancestors; broad web sources do not protect."""
+    return not any(
+        source in {"http:", "https:"}
+        or re.fullmatch(r"(?:https?://)?\*(?::(?:\*|\d+))?/?", source)
+        for source in sources
+    )
+
+
 def analyze_headers(headers: Optional[dict], set_cookies: Optional[list[str]] = None,
                     *, https: bool = True) -> dict:
     """Grade the security headers of one response. Makes no requests.
@@ -659,7 +668,15 @@ def analyze_headers(headers: Optional[dict], set_cookies: Optional[list[str]] = 
     nosniff = low.get("x-content-type-options")
     xfo = low.get("x-frame-options")
     xfo_ok = xfo is not None and xfo.strip().upper() in ("DENY", "SAMEORIGIN")
-    frame_ancestors = enforced is not None and "frame-ancestors" in directives
+    # Enforced frame-ancestors overrides X-Frame-Options. Every CSP is
+    # enforced, so any restrictive ancestor list is enough to limit framing.
+    ancestor_lists = []
+    for value in (enforced or "").split(","):
+        parsed = _parse_csp(value)
+        if "frame-ancestors" in parsed:
+            ancestor_lists.append(parsed["frame-ancestors"])
+    frame_ancestors = bool(ancestor_lists)
+    framing_ok = any(_restricts_frame_ancestors(s) for s in ancestor_lists) if frame_ancestors else xfo_ok
 
     referrer = low.get("referrer-policy")
     known = [t.strip().lower() for t in (referrer or "").split(",")
@@ -673,7 +690,7 @@ def analyze_headers(headers: Optional[dict], set_cookies: Optional[list[str]] = 
             "present": nosniff is not None, "value": _clip(nosniff, 60),
             "ok": nosniff is not None and nosniff.strip().lower() == "nosniff"},
         "framing": {"x_frame_options": _clip(xfo, 60), "frame_ancestors": frame_ancestors,
-                    "ok": xfo_ok or frame_ancestors},
+                    "ok": framing_ok},
         "referrer_policy": {"present": referrer is not None, "value": _clip(referrer, 120),
                             "ok": effective is not None and effective != "unsafe-url"},
         "permissions_policy": {"present": "permissions-policy" in low,
@@ -941,8 +958,7 @@ def _header_findings(headers: dict) -> list[dict]:
     framing = headers["framing"]
     if not framing["ok"]:
         out.append(_finding("clickjacking-protection-missing", "Low",
-                            "Neither X-Frame-Options nor a CSP frame-ancestors directive limits "
-                            "framing of the page.",
+                            "The effective response headers do not restrict framing to specific origins.",
                             {"x_frame_options": framing["x_frame_options"]}))
     referrer = headers["referrer_policy"]
     if not referrer["present"]:
