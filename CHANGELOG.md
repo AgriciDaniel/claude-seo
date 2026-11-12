@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **OpenCode V2 adapter.** Running OpenCode from the repository root now exposes
+  the 26 core skills, the `/seo` command, and 20 subagents generated from
+  `agents/` and `extensions/*/agents/`. The adapter lives in `.opencode/`,
+  edits no existing file, and keeps upstream merges cheap. After changing an
+  agent's `description`, `maxTurns`, or `tools`, regenerate the wrappers with
+  `python3 .opencode/adapter/build_agents.py --write`. See `.opencode/README.md`.
+
 ## [2.6.0] - 2026-11-10
 
 Deterministic checks ported from web-obs, the sister crawler project. Work
