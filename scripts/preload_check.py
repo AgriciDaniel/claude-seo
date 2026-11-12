@@ -63,28 +63,13 @@ import re
 import sys
 from typing import Optional
 
+from bs4 import BeautifulSoup
+
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from url_safety import URLSafetyError, decode_response_text, safe_requests_get  # noqa: E402
 
-_SPECULATION_BLOCK_RE = re.compile(
-    r'<script\b[^>]*\btype\s*=\s*["\']speculationrules["\'][^>]*>(?P<body>.*?)</script>',
-    re.IGNORECASE | re.DOTALL,
-)
-_PRELOAD_LINK_RE = re.compile(
-    r'<link\b[^>]*\brel\s*=\s*["\']preload["\'][^>]*>', re.IGNORECASE,
-)
-_PRERENDER_LINK_RE = re.compile(
-    r'<link\b[^>]*\brel\s*=\s*["\']prerender["\'][^>]*>', re.IGNORECASE,
-)
-_FETCHPRIORITY_HIGH_RE = re.compile(
-    r'\bfetchpriority\s*=\s*["\']high["\']', re.IGNORECASE,
-)
-_LCP_IMG_HINT_RE = re.compile(
-    r'<(?:img|video|source)\b[^>]*\bfetchpriority\s*=\s*["\']high["\']',
-    re.IGNORECASE,
-)
 _UNLOAD_LISTENER_RE = re.compile(
     r'\b(?:addEventListener|on)\s*\(\s*["\']?unload["\']?', re.IGNORECASE,
 )
@@ -112,17 +97,25 @@ def _extract_speculation_actions(body: str) -> list[str]:
 
 def analyse(html: str, headers: Optional[dict] = None) -> dict:
     headers = headers or {}
-    speculation_blocks = list(_SPECULATION_BLOCK_RE.finditer(html))
+    soup = BeautifulSoup(html, "html.parser")
+    speculation_blocks = [
+        script for script in soup.find_all("script")
+        if (script.get("type") or "").lower() == "speculationrules"
+    ]
     actions: set[str] = set()
-    for m in speculation_blocks:
-        for a in _extract_speculation_actions(m.group("body")):
+    for block in speculation_blocks:
+        for a in _extract_speculation_actions(block.string or ""):
             actions.add(a)
     speculation_header = "speculation-rules" in {k.lower() for k in headers}
 
-    preload_count = len(_PRELOAD_LINK_RE.findall(html))
-    prerender_count = len(_PRERENDER_LINK_RE.findall(html))
-    fetchpriority_count = len(_FETCHPRIORITY_HIGH_RE.findall(html))
-    lcp_img_hint = bool(_LCP_IMG_HINT_RE.search(html))
+    link_rels = [{rel.lower() for rel in link.get("rel", [])}
+                 for link in soup.find_all("link")]
+    preload_count = sum("preload" in rels for rels in link_rels)
+    prerender_count = sum("prerender" in rels for rels in link_rels)
+    high_priority = [element for element in soup.find_all(attrs={"fetchpriority": True})
+                     if element["fetchpriority"].lower() == "high"]
+    fetchpriority_count = len(high_priority)
+    lcp_img_hint = any(element.name in {"img", "video", "source"} for element in high_priority)
 
     cc_value = ""
     for key, value in headers.items():
