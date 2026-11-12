@@ -49,7 +49,7 @@ import zlib
 from collections import Counter
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta, timezone
-from urllib.parse import unquote, urlparse, urlunparse
+from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
 import requests
 from lxml import etree
@@ -234,7 +234,7 @@ def _classify(content: bytes, content_type: str, url: str) -> tuple[str | None, 
                 recover=False,
                 huge_tree=False,
             )
-            root = etree.fromstring(content, parser=parser)
+            root = etree.fromstring(content, parser=parser, base_url=url)
         except (etree.XMLSyntaxError, ValueError):
             return None, "invalid XML", None, None
         local = etree.QName(root).localname.lower()
@@ -409,6 +409,12 @@ def _xml_entries(kind: str, root) -> Iterator[tuple[str | None, str | None]]:
             if kind == "feed":
                 if tag == "link" and loc is None and child.get("rel", "alternate") == "alternate":
                     loc = (child.get("href") or "").strip()
+                    if loc:
+                        try:
+                            loc = urljoin(child.base or "", loc)
+                        except ValueError:
+                            # Leave malformed links for the URL-quality report.
+                            pass
                 elif tag == "updated" and lastmod is None:
                     lastmod = text
             elif kind == "rss":
