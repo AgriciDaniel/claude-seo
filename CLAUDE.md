@@ -90,7 +90,7 @@ claude-seo/
     seo-flow.md                  # FLOW framework integration
   hooks/                           # Quality gate hooks
     hooks.json                   # PostToolUse schema validation
-  scripts/                         # 63 Python execution scripts
+  scripts/                         # 65 Python execution scripts
     google_auth.py               # Credential management (OAuth, SA, API key, 4-tier detection)
     google_properties.py         # Picks the GSC/GA4 property for the audited domain, fails closed on a mismatch
     backlinks_auth.py            # Backlink API credential management (Moz, Bing)
@@ -153,6 +153,8 @@ claude-seo/
     release_sign.py              # SHA-256 manifest generator for release signing
     verify_release.py            # Verify checkout integrity against a release manifest
     sitemap_discovery.py         # Sitemap discovery (robots.txt, common paths)
+    shopify_env.py               # .shopify-env reader and Crawler Access precheck
+    shopify_crawl.py             # Signed sitemap-driven Shopify storefront crawl
     runtime.py                   # Managed runtime behind the claude-seo launcher
   schema/                          # Schema.org JSON-LD templates
   extensions/                      # Optional add-on install helpers
@@ -164,6 +166,7 @@ claude-seo/
     profound/                    # Profound MCP install scripts
     seranking/                   # SE Ranking MCP install scripts
     unlighthouse/                # Unlighthouse install scripts
+    shopify/                     # Shopify Crawler Access crawl extension (no MCP)
   docs/                            # Extended documentation
 ```
 
