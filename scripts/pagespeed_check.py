@@ -141,7 +141,16 @@ def run_pagespeed(
         return result
     except requests.exceptions.HTTPError as e:
         if resp.status_code == 429:
-            result["error"] = "PSI rate limit exceeded (240 QPM / 25,000 QPD). Wait and retry."
+            if api_key:
+                result["error"] = "PSI rate limit exceeded (240 QPM / 25,000 QPD). Wait and retry."
+            else:
+                # Keyless requests share one public quota that is often spent,
+                # so waiting rarely helps.
+                result["error"] = (
+                    "PSI rate limit exceeded. No API key was used, so this request shared "
+                    "Google's public keyless quota. Add a Google API key (run `/seo google setup` "
+                    "or pass --api-key) and retry."
+                )
         elif resp.status_code == 400:
             result["error"] = f"Invalid URL or parameters: {redact_google_api_key(resp.text)}"
         else:
