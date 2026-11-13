@@ -245,3 +245,33 @@ def test_cwv_trend_table_renders_zero_baseline_change_as_not_available() -> None
     assert '<td class="status-fail">DEGRADING</td>\n      <td>n/a</td>' in html
     assert "<td>+50.0%</td>" in html
     assert "None" not in html
+
+
+def test_pdf_dependency_error_names_missing_system_libraries() -> None:
+    with patch.object(google_report, "_PDF_IMPORT_ERROR", OSError("cannot load library 'libgobject-2.0-0'")), \
+         patch.object(google_report.sys, "platform", "darwin"):
+        message = google_report._pdf_dependency_error()
+    assert "brew install pango" in message and "libgobject" in message
+    with patch.object(google_report, "_PDF_IMPORT_ERROR", ImportError("No module named 'weasyprint'")):
+        assert "requirements.txt" in google_report._pdf_dependency_error()
+
+
+def test_pdf_review_passes_without_pypdf(tmp_path: Path) -> None:
+    pdf = tmp_path / "r.pdf"
+    pdf.write_bytes(b"%PDF-1.4")
+    html = '<div class="section">' + "Enough real section text to pass the thin check. " * 3 + "</div>"
+    with patch.dict("sys.modules", {"pypdf": None}):
+        review = google_report._review_pdf(str(pdf), html)
+    assert review["status"] == "PASS"
+    assert review["issues"] == [] and "pypdf" in review["notes"][0]
+
+
+def test_full_audit_is_not_branded_as_google_report(tmp_path: Path) -> None:
+    audit = google_report.generate_report(
+        "full", {"summary": {"health_score": 70}}, "example.com", tmp_path, output_format="html")
+    path = Path(audit["files"][0])
+    assert path.name == "SEO-Audit-Report-example.com-full.html"
+    assert "example.com SEO Audit Report" in path.read_text(encoding="utf-8")
+
+    cwv = google_report.generate_report("cwv-audit", {}, "example.com", tmp_path, output_format="html")
+    assert Path(cwv["files"][0]).name.startswith("Google-SEO-Report-")

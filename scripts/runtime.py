@@ -213,11 +213,40 @@ def _status(root: Path) -> dict[str, Any]:
     }
 
 
+# dyld's own default fallback list. Setting DYLD_FALLBACK_LIBRARY_PATH
+# replaces it, so it is kept at the end.
+_DYLD_DEFAULT_FALLBACK = ("~/lib", "/usr/local/lib", "/usr/lib")
+# Homebrew prefixes (Apple silicon, Intel). WeasyPrint dlopens Pango, GObject
+# and HarfBuzz by bare name, and Homebrew's lib directory is not on dyld's
+# search path.
+_HOMEBREW_LIB_DIRS = ("/opt/homebrew/lib", "/usr/local/lib")
+
+
+def _darwin_library_fallback(current: str | None) -> str | None:
+    """Return a DYLD_FALLBACK_LIBRARY_PATH that also covers Homebrew.
+
+    The launcher runs through /usr/bin/env bash, which SIP protects, so any
+    DYLD_* variable the user exported is stripped before Python starts. The
+    PDF report then fails to load WeasyPrint even with Pango installed.
+    Returns None when nothing needs to change.
+    """
+    existing = [part for part in (current or "").split(":") if part]
+    base = existing or [os.path.expanduser(p) for p in _DYLD_DEFAULT_FALLBACK]
+    extra = [d for d in _HOMEBREW_LIB_DIRS if os.path.isdir(d) and d not in base]
+    if not extra:
+        return None
+    return ":".join(extra + base)
+
+
 def _safe_env(status: dict[str, Any]) -> dict[str, str]:
     env = os.environ.copy()
     env["PYTHONUTF8"] = "1"
     env["PYTHONIOENCODING"] = "utf-8"
     env["PLAYWRIGHT_BROWSERS_PATH"] = str(status["data_dir"] / "ms-playwright")
+    if sys.platform == "darwin":
+        fallback = _darwin_library_fallback(env.get("DYLD_FALLBACK_LIBRARY_PATH"))
+        if fallback:
+            env["DYLD_FALLBACK_LIBRARY_PATH"] = fallback
     return env
 
 

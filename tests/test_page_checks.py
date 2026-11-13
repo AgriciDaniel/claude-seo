@@ -757,3 +757,53 @@ def test_script_runs_as_a_program(tmp_path):
     )
     assert proc.returncode == 0, proc.stderr
     assert ids(json.loads(proc.stdout)) == {"missing-lang"}
+
+
+APEX = "https://apex.example.com/guides/coffee-roasting"
+
+
+def _canonical_cli(capsys, monkeypatch, target: dict, canonical: str = APEX):
+    import fetch_page
+
+    page = {"url": URL, "status_code": 200, "content": build(canonical=canonical), "too_large": False,
+            "error": None, "headers": {"Content-Type": "text/html; charset=utf-8"}, "redirect_chain": []}
+    calls = []
+
+    def fake(url, timeout=30, **_k):
+        calls.append(url)
+        return page if url == URL else {"url": url, "status_code": 200, "error": None,
+                                         "redirect_chain": [], **target}
+
+    monkeypatch.setattr(fetch_page, "fetch_page", fake)
+    code, out = cli(capsys, "--url", URL)
+    assert code == 0
+    return out, calls
+
+
+def test_cli_url_mode_flags_a_canonical_that_redirects_back(capsys, monkeypatch):
+    out, calls = _canonical_cli(capsys, monkeypatch, {"url": URL, "redirect_chain": [APEX]})
+    assert calls == [URL, APEX]
+    probe = out["facts"]["canonical_probe"]
+    assert probe["redirects_back_to_page"] is True and probe["redirects"] == 1
+    item = finding(out, "canonical-points-elsewhere")
+    assert item["evidence"].startswith("canonical loop:")
+    assert "redirects back to this page" in item["message"]
+
+
+def test_cli_url_mode_notes_a_canonical_that_redirects_elsewhere_or_fails(capsys, monkeypatch):
+    other = "https://example.com/elsewhere"
+    out, _ = _canonical_cli(capsys, monkeypatch, {"url": other, "redirect_chain": [APEX]})
+    assert out["facts"]["canonical_probe"]["redirects_back_to_page"] is False
+    assert "redirects to" in finding(out, "canonical-points-elsewhere")["evidence"]
+
+    gone, _ = _canonical_cli(capsys, monkeypatch, {"status_code": 404})
+    assert "HTTP 404" in finding(gone, "canonical-points-elsewhere")["evidence"]
+
+    failed, _ = _canonical_cli(capsys, monkeypatch, {"error": "Connection error: refused"})
+    assert "refused" in failed["facts"]["canonical_probe"]["error"]
+    assert "canonical-points-elsewhere" in ids(failed)
+
+
+def test_cli_url_mode_skips_the_probe_for_a_self_canonical(capsys, monkeypatch):
+    out, calls = _canonical_cli(capsys, monkeypatch, {}, canonical=URL)
+    assert calls == [URL] and "canonical_probe" not in out["facts"]
