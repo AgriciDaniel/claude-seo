@@ -32,13 +32,18 @@ Output (JSON when ``--json`` is set)::
       "matches": {"filler": [...], "ai_patterns": [...]},
       "tokens":                 int,
       "unique_tokens":          int,
-      "coverage":               present only for CJK-dominant text, e.g.
-                                 {"script": "cjk", "entity_density": "not_computed",
+      "coverage":               present only for CJK-dominant or other
+                                 non-Latin-alphabetic-dominant text (Greek,
+                                 Cyrillic, ...), e.g.
+                                 {"script": "cjk"|"non_latin_alphabetic",
+                                  "entity_density": "not_computed",
                                   "phrase_lists": "english_only"}: the
                                  filler/AI-pattern phrase lists and the
                                  capitalisation-based entity heuristic are
-                                 English-only, so a CJK score is not directly
-                                 comparable to a Latin-script one.
+                                 English-only, so a score in one of those
+                                 scripts is not directly comparable to a
+                                 Latin-script one. Tokenisation itself is
+                                 correct for all of these scripts.
     }
 
 Attribution
@@ -147,18 +152,27 @@ _AI_PATTERNS: tuple[str, ...] = (
 )
 
 
-# Latin words, Hangul eojeol, and CJK/kana characters. Korean is space
-# delimited so a run of syllables is one token; Chinese and Japanese are
-# unspaced, so one ideograph or kana counts as one token.
+# Latin words, Hangul eojeol, CJK/kana characters, and any other
+# space-delimited alphabetic script (Greek, Cyrillic, Armenian, Georgian,
+# Arabic, Hebrew, Devanagari, Thai, ...). Korean is space delimited so a run
+# of syllables is one token; Chinese and Japanese are unspaced, so one
+# ideograph or kana counts as one token. The CJK/Hangul/kana alternatives
+# are tried first, so they still claim their own characters one at a time;
+# the final alternative is a generic Unicode "letter run" (any word
+# character that is not a digit or underscore), which only ever matches
+# characters the earlier, more specific alternatives did not.
 _TOKEN_RE = re.compile(
     r"[A-Za-z][A-Za-z'\-]*"
     r"|[\uac00-\ud7a3]+"
     r"|[\u3041-\u3096\u30a1-\u30fa\u30fc]"
     r"|[\u3400-\u4dbf\u4e00-\u9fff]"
+    r"|[^\W\d_][^\W\d_'\-]*"
 )
 _NUMBER_RE = re.compile(r"\b\d+(?:[.,]\d+)?(?:%|st|nd|rd|th)?\b")
 # Capitalised multi-word names: rough proper-noun heuristic. Two or more
-# capitalised tokens in a row count as one entity.
+# capitalised tokens in a row count as one entity. Latin-cased only: Greek,
+# Cyrillic and other cased scripts are not recognised here either (see the
+# non_latin_alphabetic coverage note below).
 _ENTITY_RE = re.compile(r"\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b")
 # NOTE: CJK scripts have no letter case, so this heuristic finds no entities
 # in Korean/Japanese/Chinese text. Density for those languages therefore rests
@@ -172,19 +186,35 @@ _CJK_CHAR_RE = re.compile(
     r"[가-힣ぁ-ゖァ-ヺー㐀-䶿一-鿿]"
 )
 _LATIN_CHAR_RE = re.compile(r"[A-Za-z]")
+# Any Unicode "letter" character (word character that is not a digit or
+# underscore). Used only to size up how much of the text is alphabetic in
+# a script that is neither ASCII Latin nor CJK/Hangul/kana -- Greek, Cyrillic,
+# Arabic, Hebrew, Armenian, Georgian, Thai, Devanagari, etc. Not a language
+# detector: it cannot say *which* script, only that it is "other".
+_ALPHA_CHAR_RE = re.compile(r"[^\W\d_]")
 
 
 def _detect_script(text: str) -> str | None:
-    """Return "cjk" when CJK/Hangul/kana characters dominate ``text``, else None.
+    """Return "cjk", "non_latin_alphabetic", or None for the dominant script.
+
+    "cjk" when CJK/Hangul/kana characters dominate. "non_latin_alphabetic"
+    when some other non-ASCII-Latin alphabetic script (Greek, Cyrillic,
+    Arabic, Hebrew, ...) dominates instead -- tokenisation (``_TOKEN_RE``)
+    handles these scripts correctly, but the filler/AI-pattern phrase lists
+    and the capitalisation-based ``_ENTITY_RE`` heuristic are English/Latin
+    text only, so those signals are not meaningful for them either.
 
     ``None`` covers Latin-script and any other text; the coverage note is
-    only added when the score's known-unreliable-for-CJK signals apply.
+    only added when the score's known-unreliable signals apply.
     """
     cjk_chars = len(_CJK_CHAR_RE.findall(text))
-    if cjk_chars == 0:
-        return None
     latin_chars = len(_LATIN_CHAR_RE.findall(text))
-    return "cjk" if cjk_chars >= latin_chars else None
+    if cjk_chars and cjk_chars >= latin_chars:
+        return "cjk"
+    other_alpha_chars = len(_ALPHA_CHAR_RE.findall(text)) - cjk_chars - latin_chars
+    if other_alpha_chars > 0 and other_alpha_chars >= latin_chars:
+        return "non_latin_alphabetic"
+    return None
 
 
 def _count_phrase_hits(text: str, patterns: Iterable[str]) -> list[str]:
@@ -288,15 +318,16 @@ def analyse(text: str) -> dict:
     }
 
     # The filler/AI-pattern phrase lists and the capitalisation-based entity
-    # heuristic are English-only; they are silently near-zero for CJK text
-    # rather than reporting "no filler found". Flag that explicitly so a CJK
-    # score is never read as comparable to a Latin-script one. Latin/other
-    # output is unchanged: no "coverage" key is added when every signal was
-    # actually computed.
+    # heuristic are English-only; they are silently near-zero for CJK and for
+    # other non-Latin alphabetic scripts (Greek, Cyrillic, ...) rather than
+    # reporting "no filler found". Flag that explicitly so a score in one of
+    # those scripts is never read as comparable to a Latin-script one.
+    # Latin/other output is unchanged: no "coverage" key is added when every
+    # signal was actually computed.
     script = _detect_script(text)
-    if script == "cjk":
+    if script in ("cjk", "non_latin_alphabetic"):
         result["coverage"] = {
-            "script": "cjk",
+            "script": script,
             "entity_density": "not_computed",
             "phrase_lists": "english_only",
         }
@@ -365,10 +396,15 @@ def main() -> int:
             print(f"  AI-pattern hits:     {', '.join(result['matches']['ai_patterns'][:5])}"
                   f"{' …' if len(result['matches']['ai_patterns']) > 5 else ''}")
         if result.get("coverage"):
+            script_label = {
+                "cjk": "CJK",
+                "non_latin_alphabetic": "non-Latin-script",
+            }.get(result["coverage"]["script"], result["coverage"]["script"])
             print(
-                "  Note: CJK text detected, entity-density and phrase-list "
-                "signals are English-only heuristics here, so this score is "
-                "not directly comparable to a Latin-script page."
+                f"  Note: {script_label} text detected, entity-density and "
+                "phrase-list signals are English-only heuristics here, so "
+                "this score is not directly comparable to a Latin-script "
+                "page."
             )
 
     return 0 if result["overall_quality"] >= args.threshold else 1

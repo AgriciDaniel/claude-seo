@@ -227,6 +227,66 @@ def test_content_quality_cjk_human_output_notes_partial_coverage() -> None:
     assert "not directly comparable" in result.stdout
 
 
+def test_content_quality_tokenises_greek() -> None:
+    """Greek is space-delimited and alphabetic, like Latin, but was not in
+    [A-Za-z] or any CJK/Hangul/kana range, so the Latin-only tokeniser saw
+    zero tokens, ``information_density`` collapsed to 0.0, and a real
+    content-quality signal was silently discarded for every Greek page
+    (issue surfaced auditing simposio.news, a Greek-language site)."""
+    text = (
+        "Είναι σημαντικό να γνωρίζουμε τη διαφορά ανάμεσα σε χορτοφάγους "
+        "και vegan καταναλωτές. Η χορτοφαγία έχει πολλές μορφές και κανόνες."
+    )
+    result = content_quality.analyse(text)
+    assert result["tokens"] > 0, result
+    assert result["unique_tokens"] > 0, result
+
+
+def test_content_quality_cjk_distinguishes_documents_in_greek_too() -> None:
+    """Regression guard mirroring the Korean case: two different Greek
+    documents of different length must not collapse to the same token
+    count."""
+    short = "Ο χορτοφάγος δεν τρώει κρέας."
+    long = (
+        "Ο χορτοφάγος δεν τρώει κρέας, ψάρι ή πουλερικά, αλλά μπορεί να "
+        "καταναλώνει γαλακτοκομικά και αυγά ανάλογα με την κατηγορία. "
+        "Ο vegan αποκλείει κάθε ζωικό προϊόν, συμπεριλαμβανομένου του "
+        "μελιού, της ζελατίνης και του δέρματος."
+    )
+    assert content_quality.analyse(long)["tokens"] > content_quality.analyse(short)["tokens"]
+
+
+def test_content_quality_greek_output_carries_coverage_object() -> None:
+    """A Greek score must be flagged as partial coverage too, with its own
+    script label, not silently compared to an English score."""
+    text = (
+        "Είναι σημαντικό να γνωρίζουμε τη διαφορά ανάμεσα σε χορτοφάγους "
+        "και vegan καταναλωτές. Η χορτοφαγία έχει πολλές μορφές και κανόνες "
+        "που αξίζει να κατανοήσουμε καλύτερα."
+    )
+    result = content_quality.analyse(text)
+    assert result["coverage"] == {
+        "script": "non_latin_alphabetic",
+        "entity_density": "not_computed",
+        "phrase_lists": "english_only",
+    }
+
+
+def test_content_quality_greek_human_output_notes_partial_coverage() -> None:
+    """The CLI's human-readable summary must call out partial coverage for
+    a non-Latin-alphabetic script with a distinct label from CJK's."""
+    script = Path(__file__).resolve().parents[1] / "scripts" / "content_quality.py"
+    text = "Είναι σημαντικό να γνωρίζουμε τη διαφορά ανάμεσα σε vegan και vegetarian. " * 5
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        input=text, capture_output=True, encoding="utf-8", errors="replace", env=env,
+    )
+    assert result.returncode in (0, 1)
+    assert "non-Latin-script text detected" in result.stdout
+    assert "not directly comparable" in result.stdout
+
+
 # ---------------------------------------------------------------------------
 # content_humanize
 # ---------------------------------------------------------------------------
@@ -391,6 +451,58 @@ def test_verify_per_is_case_insensitive_but_its_proper_noun_is_not() -> None:
     assert cited["claims"][0]["has_citation"] is True
     uncited = content_verify.verify("Fully 80% of users churned. Per week.")
     assert uncited["claims"][0]["has_citation"] is False
+
+
+def test_verify_bare_percentage_claim_is_found_in_greek_text() -> None:
+    """The numeric claim patterns (bare %, $ amounts, "Nx faster") need no
+    English words, so they already worked in Greek before this fix; this
+    guards that the new coverage note does not also suppress real claims."""
+    result = content_verify.verify(
+        "Το 47% των καταναλωτών προτιμά vegan προϊόντα, σύμφωνα με μια έρευνα."
+    )
+    assert result["claim_count"] == 1
+    assert result["claims"][0]["kind"] == "statistic"
+
+
+def test_verify_english_output_has_no_coverage_key() -> None:
+    """English text must keep its exact pre-fix output shape: no
+    ``coverage`` key when every claim pattern is meaningful for the text."""
+    result = content_verify.verify("47% of marketers report better results.")
+    assert "coverage" not in result
+
+
+def test_verify_greek_output_carries_coverage_object() -> None:
+    """A zero or low claim_count in Greek text must be flagged as partial
+    coverage, not read as "this draft has no unsupported claims": the
+    English-worded patterns (temporal "in 2025", comparative "3x faster",
+    "% of ...") cannot fire on Greek wording even though the bare-number
+    patterns can."""
+    result = content_verify.verify(
+        "Η vegan διατροφή αποκλείει όλα τα προϊόντα ζωικής προέλευσης, "
+        "συμπεριλαμβανομένου του μελιού και της ζελατίνης."
+    )
+    assert result["coverage"] == {
+        "script": "non_latin_alphabetic",
+        "claim_patterns": "english_only",
+    }
+
+
+def test_verify_greek_human_output_notes_partial_coverage() -> None:
+    """The CLI's human-readable summary must call out partial coverage for
+    Greek text, so a near-zero claim count is never read as "clean"."""
+    script = Path(__file__).resolve().parents[1] / "scripts" / "content_verify.py"
+    text = (
+        "Η vegan διατροφή αποκλείει όλα τα προϊόντα ζωικής προέλευσης, "
+        "συμπεριλαμβανομένου του μελιού και της ζελατίνης στη ζαχαροπλαστική."
+    )
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    result = subprocess.run(
+        [sys.executable, str(script)],
+        input=text, capture_output=True, encoding="utf-8", errors="replace", env=env,
+    )
+    assert result.returncode in (0, 1)
+    assert "non-Latin-script text detected" in result.stdout
+    assert "does not mean the draft has no unsupported claims" in result.stdout
 
 
 # ---------------------------------------------------------------------------
