@@ -21,22 +21,48 @@ network = pytest.mark.skipif(
     reason="live GitHub API call; set CLAUDE_SEO_NETWORK_TESTS=1 to run",
 )
 
+# sync_flow.py's own markers for "GitHub or the network said no". Kept as
+# literals so a change to the script's contract fails
+# test_script_keeps_the_markers_the_skip_relies_on below.
+EXIT_RATE_LIMITED = 75
+RATE_LIMIT_MESSAGE = "GitHub API rate limit exceeded"
+NETWORK_ERROR_MESSAGE = "Network error reaching GitHub"
 
-@network
-def test_dry_run_exits_zero():
+
+def _skip_if_github_unavailable(result):
+    """Skip when the dry run failed on a rate limit or the network.
+
+    Many CI runs starting at once exhaust the GitHub API quota even with a
+    token. That is not a defect in the sync, so the test is skipped with the
+    reason. Any other failure is left for the caller's assertions.
+    """
+    stderr = result.stderr or ""
+    if isinstance(stderr, bytes):
+        stderr = stderr.decode("utf-8", errors="replace")
+    if result.returncode == EXIT_RATE_LIMITED or RATE_LIMIT_MESSAGE in stderr:
+        pytest.skip(f"GitHub rate limit, not a sync defect: {stderr.strip()[-300:]}")
+    if result.returncode != 0 and NETWORK_ERROR_MESSAGE in stderr:
+        pytest.skip(f"GitHub unreachable, not a sync defect: {stderr.strip()[-300:]}")
+
+
+def _dry_run():
     result = subprocess.run(
         [sys.executable, str(SCRIPT), "--dry-run"],
         capture_output=True, text=True, cwd=REPO_ROOT
     )
+    _skip_if_github_unavailable(result)
+    return result
+
+
+@network
+def test_dry_run_exits_zero():
+    result = _dry_run()
     assert result.returncode == 0, f"Dry run failed:\n{result.stderr}"
 
 
 @network
 def test_dry_run_produces_valid_json():
-    result = subprocess.run(
-        [sys.executable, str(SCRIPT), "--dry-run"],
-        capture_output=True, text=True, cwd=REPO_ROOT
-    )
+    result = _dry_run()
     assert result.returncode == 0, f"Dry run failed:\n{result.stderr}"
     data = json.loads(result.stdout)
     assert "added" in data, "JSON missing 'added' key"
@@ -47,10 +73,7 @@ def test_dry_run_produces_valid_json():
 @network
 def test_dry_run_does_not_write_files():
     files_before = set(REF_DIR.rglob("*.md"))
-    subprocess.run(
-        [sys.executable, str(SCRIPT), "--dry-run"],
-        capture_output=True, cwd=REPO_ROOT
-    )
+    _dry_run()
     files_after = set(REF_DIR.rglob("*.md"))
     assert files_before == files_after, (
         f"Dry run created unexpected files: {files_after - files_before}"
@@ -189,6 +212,100 @@ def test_api_get_retries_unauthenticated_429_with_cli_token(monkeypatch):
     assert sf.api_get("file.md", None, sf._base_headers()) == {"content": ""}
     assert len(calls) == 2
     assert calls[1].get_header("Authorization") == "Bearer test-token"
+
+
+def _completed(returncode, stderr):
+    return subprocess.CompletedProcess(["sync_flow.py", "--dry-run"], returncode, "", stderr)
+
+
+def _http_error(sf, code, reason, headers=None):
+    import io
+
+    return sf.urllib.error.HTTPError(
+        "https://api.github.com/example", code, reason, headers or {}, io.BytesIO()
+    )
+
+
+def _raise_on_urlopen(monkeypatch, sf, exc):
+    def fake_urlopen(request, timeout):
+        raise exc
+
+    monkeypatch.setattr(sf.urllib.request, "urlopen", fake_urlopen)
+    # No gh token to fall back on, as in a rate-limited CI job.
+    monkeypatch.setattr(sf, "_authed_headers", sf._base_headers)
+
+
+def test_script_keeps_the_markers_the_skip_relies_on():
+    sf = _load_sync_flow_module()
+    assert sf.EXIT_RATE_LIMITED == EXIT_RATE_LIMITED
+    assert sf.RATE_LIMIT_MESSAGE == RATE_LIMIT_MESSAGE
+    assert sf.NETWORK_ERROR_MESSAGE == NETWORK_ERROR_MESSAGE
+
+
+@pytest.mark.parametrize("code, reason, headers", [
+    (403, "rate limit exceeded", {}),
+    (403, "Forbidden", {"x-ratelimit-remaining": "0"}),
+    (403, "Forbidden", {"retry-after": "60"}),
+    (429, "too many requests", {}),
+])
+def test_rate_limit_exits_with_a_recognisable_code_and_message(
+        monkeypatch, capsys, code, reason, headers):
+    sf = _load_sync_flow_module()
+    _raise_on_urlopen(monkeypatch, sf, _http_error(sf, code, reason, headers))
+    with pytest.raises(SystemExit) as exc:
+        sf.api_get("file.md", None, sf._base_headers())
+    assert exc.value.code == EXIT_RATE_LIMITED
+    err = capsys.readouterr().err
+    assert RATE_LIMIT_MESSAGE in err and f"HTTP {code}" in err
+
+
+def test_rate_limit_after_the_token_retry_is_still_reported(monkeypatch, capsys):
+    sf = _load_sync_flow_module()
+    _raise_on_urlopen(monkeypatch, sf, _http_error(sf, 403, "rate limit exceeded"))
+    monkeypatch.setattr(
+        sf, "_authed_headers",
+        lambda: {**sf._base_headers(), "Authorization": "Bearer test-token"},
+    )
+    with pytest.raises(SystemExit) as exc:
+        sf.api_get("file.md", None, sf._base_headers())
+    assert exc.value.code == EXIT_RATE_LIMITED
+    assert RATE_LIMIT_MESSAGE in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("code, reason", [(403, "Forbidden"), (404, "Not Found"), (500, "boom")])
+def test_other_http_errors_are_not_reported_as_rate_limits(monkeypatch, capsys, code, reason):
+    sf = _load_sync_flow_module()
+    _raise_on_urlopen(monkeypatch, sf, _http_error(sf, code, reason))
+    with pytest.raises(sf.urllib.error.HTTPError):
+        sf.api_get("file.md", None, sf._base_headers())
+    assert RATE_LIMIT_MESSAGE not in capsys.readouterr().err
+
+
+def test_timeout_while_reading_is_a_network_error(monkeypatch):
+    sf = _load_sync_flow_module()
+    _raise_on_urlopen(monkeypatch, sf, TimeoutError("timed out"))
+    with pytest.raises(SystemExit) as exc:
+        sf.api_get("file.md", None, sf._base_headers())
+    assert str(exc.value.code).startswith(NETWORK_ERROR_MESSAGE)
+
+
+@pytest.mark.parametrize("returncode, stderr", [
+    (EXIT_RATE_LIMITED, f"{RATE_LIMIT_MESSAGE} (HTTP 403: rate limit exceeded)."),
+    (1, f"fetch: docs/x.md\n{NETWORK_ERROR_MESSAGE}: [Errno -3] Temporary failure"),
+])
+def test_dry_run_tests_skip_when_github_is_unavailable(returncode, stderr):
+    with pytest.raises(pytest.skip.Exception):
+        _skip_if_github_unavailable(_completed(returncode, stderr))
+
+
+@pytest.mark.parametrize("returncode, stderr", [
+    (0, ""),
+    (1, "Traceback (most recent call last):\nKeyError: 'content'"),
+    (1, "urllib.error.HTTPError: HTTP Error 404: Not Found"),
+    (2, "usage: sync_flow.py [-h] [--dry-run] [--ref SHA]"),
+])
+def test_dry_run_tests_do_not_skip_on_a_real_defect(returncode, stderr):
+    _skip_if_github_unavailable(_completed(returncode, stderr))  # must not raise
 
 
 # ── Task 3 tests ──────────────────────────────────────────────────────────────

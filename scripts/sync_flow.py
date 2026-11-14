@@ -20,6 +20,13 @@ API_ROOT = "https://api.github.com/repos/AgriciDaniel/flow/contents"
 _ALLOWED_HOST = "api.github.com"
 _SIZE_LIMIT = 5 * 1024 * 1024  # 5 MB
 
+# Exit code and stderr prefixes for failures that are GitHub's or the
+# network's, not a defect in the sync. Callers (and the tests) tell them
+# apart from a real failure by these.
+EXIT_RATE_LIMITED = 75  # EX_TEMPFAIL: try again later
+RATE_LIMIT_MESSAGE = "GitHub API rate limit exceeded"
+NETWORK_ERROR_MESSAGE = "Network error reaching GitHub"
+
 
 def _validate_github_url(url):
     """Abort if url does not use HTTPS or does not target the expected GitHub API host."""
@@ -119,6 +126,25 @@ def content_url(path, ref):
     return f"{API_ROOT}/{path}" + (f"?ref={ref}" if ref else "")
 
 
+def _is_rate_limited(exc):
+    """True when an HTTPError is GitHub rate limiting, not a plain refusal.
+
+    GitHub answers 429, or 403 with ``x-ratelimit-remaining: 0``, a
+    ``retry-after`` header or a "rate limit" reason. Any other 403 (a private
+    or blocked repository, a bad token) is a real error.
+    """
+    if exc.code == 429:
+        return True
+    if exc.code != 403:
+        return False
+    headers = exc.headers or {}
+    if str(headers.get("x-ratelimit-remaining", "")).strip() == "0":
+        return True
+    if headers.get("retry-after"):
+        return True
+    return "rate limit" in str(getattr(exc, "reason", "")).lower()
+
+
 def api_get(path, ref, headers):
     url = content_url(path, ref)
     _validate_github_url(url)
@@ -134,10 +160,20 @@ def api_get(path, ref, headers):
             authed = _authed_headers()
             if "Authorization" in authed:
                 return api_get(path, ref, authed)
+        if _is_rate_limited(exc):
+            print(
+                f"{RATE_LIMIT_MESSAGE} (HTTP {exc.code}: {exc.reason}). "
+                "Wait for the limit to reset, or sign in with `gh auth login`.",
+                file=sys.stderr,
+            )
+            raise SystemExit(EXIT_RATE_LIMITED) from None
         raise
     except urllib.error.URLError as exc:
         reason = getattr(exc, "reason", exc)
-        raise SystemExit(f"Network error reaching GitHub: {reason}") from None
+        raise SystemExit(f"{NETWORK_ERROR_MESSAGE}: {reason}") from None
+    except (TimeoutError, ConnectionError) as exc:
+        # A timeout or reset while reading the body is not a URLError.
+        raise SystemExit(f"{NETWORK_ERROR_MESSAGE}: {exc}") from None
 
 
 def fetch_file(path, ref, headers):
