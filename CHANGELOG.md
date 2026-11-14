@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Drift URL normalization preserves semicolon path parameters so distinct parameterized pages do not share a baseline key.
+### Fixed
+
+- Parse preload signals as HTML elements, recognizing unquoted attributes and
+  relation tokens while ignoring comments, script strings and `data-*` lookalikes.
 
 ## [2.6.0] - 2026-11-10
 
