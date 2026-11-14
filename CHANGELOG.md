@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Drift snapshots resolve relative links and images against the final URL after redirects.
+### Fixed
+
+- Agent UX input checks recognize ARIA and implicit labels and detect unnamed controls without IDs.
 
 ## [2.6.0] - 2026-11-10
 
