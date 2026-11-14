@@ -88,7 +88,12 @@ def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
     with manifest_path.open() as fh:
         manifest = json.load(fh)
 
-    expected = manifest.get("files", {})
+    # A manifest is untrusted input: the wrong shape is an error, not a crash.
+    if not isinstance(manifest, dict):
+        raise ValueError("manifest must be a JSON object")
+    expected = manifest.get("files")
+    if not isinstance(expected, dict):
+        raise ValueError('manifest "files" must be an object of path to SHA-256')
     mismatched: list[dict] = []
     missing: list[str] = []
 
@@ -100,7 +105,13 @@ def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
         if abs_path is None:
             outside_root.append(rel)
             continue
-        if not abs_path.is_file():
+        try:
+            is_file = abs_path.is_file()
+        except (OSError, ValueError):
+            # For example a path component too long for the filesystem.
+            outside_root.append(rel)
+            continue
+        if not is_file:
             missing.append(rel)
             continue
         actual_sha = _sha256(abs_path)
@@ -110,7 +121,8 @@ def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
             )
 
     return {
-        "ok": not (mismatched or missing or outside_root),
+        # An empty manifest checks nothing, so it cannot pass.
+        "ok": bool(expected) and not (mismatched or missing or outside_root),
         "manifest": {
             "version": manifest.get("version"),
             "tag": manifest.get("tag"),
@@ -149,7 +161,11 @@ def main() -> int:
         print(f"Error: manifest not found: {args.manifest}", file=sys.stderr)
         return 2
 
-    result = verify(args.manifest, args.root)
+    try:
+        result = verify(args.manifest, args.root)
+    except (ValueError, OSError) as exc:
+        print(f"Error: cannot read manifest: {str(exc)!r}", file=sys.stderr)
+        return 2
 
     if args.json:
         json.dump(result, sys.stdout, indent=2)
@@ -158,21 +174,25 @@ def main() -> int:
         m = result["manifest"]
         status = "OK" if result["ok"] else "FAIL"
         print(f"Verification: {status}")
-        print(f"  Manifest version: {m['version']}  tag: {m['tag']}")
-        print(f"  Manifest commit:  {m['commit']}")
-        print(f"  Generated at:     {m['generated_at']}")
-        print(f"  Tree SHA-256:     {m['tree_sha256']}")
+        # Manifest values are printed with !r so that a newline or a terminal
+        # escape in them is shown, not acted on.
+        print(f"  Manifest version: {m['version']!r}  tag: {m['tag']!r}")
+        print(f"  Manifest commit:  {m['commit']!r}")
+        print(f"  Generated at:     {m['generated_at']!r}")
+        print(f"  Tree SHA-256:     {m['tree_sha256']!r}")
         print(f"  Files checked:    {result['checked']}")
+        if not result["checked"]:
+            print("\n  The manifest lists no files, so nothing was verified.")
         if result["mismatched"]:
             print(f"\n  Mismatched ({len(result['mismatched'])}):")
             for row in result["mismatched"]:
-                print(f"    - {row['path']}")
-                print(f"        expected: {row['expected']}")
+                print(f"    - {row['path']!r}")
+                print(f"        expected: {row['expected']!r}")
                 print(f"        actual:   {row['actual']}")
         if result["missing"]:
             print(f"\n  Missing ({len(result['missing'])}):")
             for path in result["missing"]:
-                print(f"    - {path}")
+                print(f"    - {path!r}")
         if result["outside_root"]:
             print(f"\n  Outside the checkout, refused ({len(result['outside_root'])}):")
             for path in result["outside_root"]:

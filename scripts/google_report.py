@@ -164,6 +164,48 @@ def _require_chart_dependencies() -> None:
 
 # ─── Chart Functions ─────────────────────────────────────────────────────────
 
+# Characters a chart cannot draw: control characters, lone surrogates and the
+# two non-characters. A lone surrogate makes matplotlib raise at draw time.
+_CHART_UNDRAWABLE = re.compile(r"[\x00-\x1f\x7f-\x9f\ud800-\udfff\ufffe\uffff]")
+
+
+def _chart_text(value, limit=60):
+    """Make a data-derived string safe to draw on a chart.
+
+    matplotlib reads text between two dollar signs as math and raises on
+    anything it cannot parse, so a search query such as "ca$$h app" would stop
+    the report. Every dollar sign is escaped, which matplotlib prints as a
+    plain "$". Whitespace runs become one space, undrawable characters are
+    dropped, and the text is cut to ``limit`` characters (a very long label
+    costs gigabytes of memory to lay out).
+    """
+    text = _CHART_UNDRAWABLE.sub("", " ".join(str(value).split()))
+    if len(text) > limit:
+        text = text[:limit - 3] + "..."
+    return text.replace("$", "\\$")
+
+
+def _draw_chart(chart_func, data, output_dir):
+    """Run one chart function; a chart that fails is left out of the report.
+
+    Missing chart libraries still raise, so the caller can report them. Any
+    other failure is specific to this chart's data: it is named on stderr and
+    the report is built without the chart.
+    """
+    try:
+        return chart_func(data, output_dir)
+    except Exception as exc:
+        if plt is None or np is None:
+            raise
+        plt.close("all")
+        print(
+            f"Warning: chart {chart_func.__name__} skipped: "
+            f"{type(exc).__name__}: {str(exc)[:200]!r}",
+            file=sys.stderr,
+        )
+        return ""
+
+
 def chart_lighthouse_gauges(data: dict, output_dir: Path) -> str:
     """Generate 2x2 Lighthouse score gauges."""
     scores = data.get("lighthouse_scores", {})
@@ -187,7 +229,7 @@ def chart_lighthouse_gauges(data: dict, output_dir: Path) -> str:
         ax.plot(theta_bg, [1] * 100, linewidth=14, color="#e2e8f0", solid_capstyle="round")
         ax.plot(theta_fill, [1] * 100, linewidth=14, color=_score_color(score), solid_capstyle="round")
 
-        ax.text(np.pi / 2, 0.35, f"{score}", ha="center", va="center",
+        ax.text(np.pi / 2, 0.35, _chart_text(score, 12), ha="center", va="center",
                 fontsize=24, fontweight="bold", color=BRAND["dark"])
         ax.text(np.pi / 2, -0.05, label, ha="center", va="center",
                 fontsize=10, color=BRAND["muted"])
@@ -223,7 +265,7 @@ def chart_cwv_distributions(data: dict, output_dir: Path) -> str:
         if not m or "distribution" not in m:
             continue
         d = m["distribution"]
-        labels.append(m.get("label", name))
+        labels.append(_chart_text(m.get("label", name)))
         goods.append(d.get("good", 0))
         nis.append(d.get("needs_improvement", 0))
         poors.append(d.get("poor", 0))
@@ -286,11 +328,11 @@ def chart_cwv_timeline(data: dict, output_dir: Path) -> str:
     if len(available) == 1:
         axes = [axes]
 
-    x_labels = [p.get("last", "")[-5:] for p in periods]  # MM-DD format
+    x_labels = [_chart_text(p.get("last", "")[-5:]) for p in periods]  # MM-DD format
     for ax, metric_name in zip(axes, available):
         m = metrics[metric_name]
         p75s = m.get("p75_values", [])
-        label = m.get("label", metric_name)
+        label = _chart_text(m.get("label", metric_name))
         good_t = m.get("good_threshold", 0)
         poor_t = m.get("poor_threshold", 0)
 
@@ -310,7 +352,7 @@ def chart_cwv_timeline(data: dict, output_dir: Path) -> str:
         ax.plot(valid_x, valid_y, color=BRAND["primary"], linewidth=2, marker="o", markersize=3)
         ax.fill_between(valid_x, valid_y, alpha=0.1, color=BRAND["primary"])
 
-        unit = m.get("unit", "")
+        unit = _chart_text(m.get("unit", ""), 12)
         ax.set_ylabel(f"{label} (p75{unit})")
         ax.set_title(label, fontsize=12, fontweight="bold")
 
@@ -341,7 +383,7 @@ def chart_top_queries(data: dict, output_dir: Path) -> str:
     if not top:
         return ""
 
-    labels = [r.get("query", r.get("keys", ["?"])[0])[:35] for r in top]
+    labels = [_chart_text(r.get("query", r.get("keys", ["?"])[0])[:35]) for r in top]
     impressions = [r.get("impressions", 0) for r in top]
     clicks = [r.get("clicks", 0) for r in top]
 
@@ -365,7 +407,7 @@ def chart_top_queries(data: dict, output_dir: Path) -> str:
             ax.text(
                 bar.get_width() + max(clicks) * 0.02,
                 bar.get_y() + bar.get_height() / 2,
-                str(val), va="center", fontsize=8, color=BRAND["dark"],
+                _chart_text(val, 24), va="center", fontsize=8, color=BRAND["dark"],
             )
 
     plt.tight_layout()
@@ -390,7 +432,7 @@ def chart_index_status(data: dict, output_dir: Path) -> str:
     ]:
         val = summary.get(key, 0)
         if val > 0:
-            labels.append(f"{label} ({val})")
+            labels.append(_chart_text(f"{label} ({val})"))
             sizes.append(val)
             colors.append(color)
 
@@ -406,7 +448,7 @@ def chart_index_status(data: dict, output_dir: Path) -> str:
     centre = plt.Circle((0, 0), 0.50, fc="white")
     ax.add_artist(centre)
     total = sum(sizes)
-    ax.text(0, 0, f"{total}\nURLs", ha="center", va="center",
+    ax.text(0, 0, f"{_chart_text(total, 24)}\nURLs", ha="center", va="center",
             fontsize=16, fontweight="bold", color=BRAND["dark"])
 
     plt.tight_layout()
@@ -1274,9 +1316,9 @@ def _build_executive_summary(domain, timestamp, data, report_type):
     # GSC totals
     gsc = data.get("gsc", {})
     if gsc.get("totals"):
-        clicks = gsc["totals"].get("clicks", 0)
+        clicks = gsc["totals"].get("clicks") or 0
         cards.append(("clicks", f"{clicks:,}", "Total Clicks", BRAND["primary"]))
-        impr = gsc["totals"].get("impressions", 0)
+        impr = gsc["totals"].get("impressions") or 0
         cards.append(("impr", f"{impr:,}", "Impressions", BRAND["secondary"]))
 
     # Indexation
@@ -1313,10 +1355,10 @@ def _build_executive_summary(domain, timestamp, data, report_type):
 
     failed_audits = mobile.get("failed_audits", [])
     if failed_audits:
-        top_fail = sorted(failed_audits, key=lambda a: a.get("score", 1))[:3]
+        top_fail = sorted(failed_audits, key=lambda a: 1 if a.get("score") is None else a["score"])[:3]
         for a in top_fail:
             issues.append(f'<strong>{escape(str(a.get("title", "Unknown")))}</strong> '
-                          f'(score: {a.get("score", 0):.0%})')
+                          f'(score: {a.get("score") or 0:.0%})')
 
     seo_audits = mobile.get("seo_audits", [])
     seo_failed = [a for a in seo_audits if not a.get("pass")]
@@ -1598,7 +1640,7 @@ def _build_cwv_section(psi_data, crux_data, chart_paths, history_data=None, sect
         lines.append('    <tbody>')
         for a in a11y:
             lines.append(f'      <tr><td>{escape(str(a.get("title", "")))}</td>'
-                         f'<td class="status-fail">{a.get("score", 0):.0%}</td></tr>')
+                         f'<td class="status-fail">{a.get("score") or 0:.0%}</td></tr>')
         lines.append('    </tbody>')
         lines.append('  </table>')
         lines.append('')
@@ -1653,13 +1695,13 @@ def _build_gsc_section(gsc_data, chart_paths, section_num=3, fig_start=1):
             lines.append(f'  <div class="highlight"><strong>GSC data warning:</strong> '
                          f'{escape(gsc_warning)}</div>')
         queries_count = escape(str(gsc_data.get("row_count", 0)))
-        impr_total = totals.get("impressions", 0)
+        impr_total = totals.get("impressions") or 0
         lines.append(f'  <p><strong>{domain}</strong> appeared in <strong>{queries_count}</strong> unique search queries '
                      f'with <strong>{impr_total:,}</strong> total impressions during this period.</p>')
         lines.append('')
 
-        clicks_val = f'{totals.get("clicks", 0):,}'
-        impr_val = f'{totals.get("impressions", 0):,}'
+        clicks_val = f'{totals.get("clicks") or 0:,}'
+        impr_val = f'{totals.get("impressions") or 0:,}'
         ctr_val = f'{totals.get("ctr", 0)}%'
         rows_val = str(gsc_data.get("row_count", 0))
 
@@ -1745,8 +1787,8 @@ def _build_gsc_section(gsc_data, chart_paths, section_num=3, fig_start=1):
         for w in qw:
             query = w.get("keys", ["?"])[0] if w.get("keys") else w.get("query", "?")
             lines.append(f'      <tr><td>{escape(str(query))}</td>'
-                         f'<td>{w.get("position", 0):.1f}</td>'
-                         f'<td>{w.get("impressions", 0):,}</td>'
+                         f'<td>{w.get("position") or 0:.1f}</td>'
+                         f'<td>{w.get("impressions") or 0:,}</td>'
                          f'<td>{escape(str(w.get("clicks", 0)))}</td></tr>')
         lines.append('    </tbody>')
         lines.append('  </table>')
@@ -1923,9 +1965,9 @@ def _build_recommendations(data, section_num=5):
     # High priority items
     high_items = []
     failed_audits = mobile.get("failed_audits", [])
-    top_fails = sorted(failed_audits, key=lambda a: a.get("score", 1))[:5]
+    top_fails = sorted(failed_audits, key=lambda a: 1 if a.get("score") is None else a["score"])[:5]
     for a in top_fails:
-        if a.get("score", 1) < 0.5:
+        if a.get("score") is not None and a["score"] < 0.5:
             high_items.append(
                 (f"Address: {a.get('title', 'Unknown')}", "Medium (1-2 hrs)",
                  f"Score: {a['score']:.0%}. {a.get('display', 'Review and optimize this audit.')}")
@@ -2211,30 +2253,30 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
         if report_type in ("cwv-audit", "full"):
             psi = data.get("psi", data)
             mobile = psi.get("psi", {}).get("mobile", psi) if isinstance(psi, dict) else {}
-            path = chart_lighthouse_gauges(mobile, charts_dir)
+            path = _draw_chart(chart_lighthouse_gauges, mobile, charts_dir)
             if path:
                 chart_paths["gauges_path"] = path
 
             crux = data.get("crux", {})
-            path = chart_cwv_distributions({"crux": crux} if crux else data, charts_dir)
+            path = _draw_chart(chart_cwv_distributions, {"crux": crux} if crux else data, charts_dir)
             if path:
                 chart_paths["distributions_path"] = path
 
             history = data.get("crux_history", {})
             if history and not history.get("error"):
-                path = chart_cwv_timeline(history, charts_dir)
+                path = _draw_chart(chart_cwv_timeline, history, charts_dir)
                 if path:
                     chart_paths["timeline_path"] = path
 
         if report_type in ("gsc-performance", "full"):
             gsc = data.get("gsc", data)
-            path = chart_top_queries(gsc, charts_dir)
+            path = _draw_chart(chart_top_queries, gsc, charts_dir)
             if path:
                 chart_paths["top_queries_path"] = path
 
         if report_type in ("indexation", "full"):
             inspect = data.get("inspection", data)
-            path = chart_index_status(inspect, charts_dir)
+            path = _draw_chart(chart_index_status, inspect, charts_dir)
             if path:
                 chart_paths["index_status_path"] = path
     except RuntimeError as exc:
@@ -2293,7 +2335,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
     # ── GSC-PERFORMANCE report ───────────────────────────────────────────────
     elif report_type == "gsc-performance":
         gsc = data.get("gsc", data)
-        clicks = gsc.get("totals", {}).get("clicks", 0)
+        clicks = gsc.get("totals", {}).get("clicks") or 0
 
         sections.append(_build_title_page(
             domain, "Search Console Performance",
@@ -2500,6 +2542,8 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
 
     # ── Write Output Files ───────────────────────────────────────────────────
 
+    # A lone surrogate from the input JSON cannot be written as UTF-8.
+    html_content = html_content.encode("utf-8", "replace").decode("utf-8")
     safe_domain = _safe_filename_part(domain)
     base_name = f"Google-SEO-Report-{safe_domain}-{report_type}"
 
@@ -2533,9 +2577,13 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
             result["error"] = f"PDF generation failed: {e}"
 
     if output_format in ("xlsx", "all"):
-        xlsx_path = generate_xlsx(data, domain, report_type, output_dir)
-        if xlsx_path:
-            result["files"].append(xlsx_path)
+        try:
+            xlsx_path = generate_xlsx(data, domain, report_type, output_dir)
+            if xlsx_path:
+                result["files"].append(xlsx_path)
+        except Exception as e:
+            xlsx_error = f"XLSX generation failed: {e}"
+            result["error"] = f'{result["error"]}; {xlsx_error}' if result["error"] else xlsx_error
 
     return result
 
@@ -2596,8 +2644,19 @@ def _review_pdf(pdf_path: str, html_content: str) -> dict:
 # Leading characters that make a spreadsheet treat a cell as a formula or a
 # DDE call (OWASP CSV injection guidance).
 _XLSX_FORMULA_TRIGGERS = ("=", "+", "-", "@", "\t", "\r")
-# Control characters that openpyxl refuses to write.
-_XLSX_ILLEGAL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+# Characters that openpyxl refuses to write or that break the saved file:
+# control characters, lone surrogates and the two non-characters.
+_XLSX_ILLEGAL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
+# Longest text a spreadsheet cell can hold.
+_XLSX_MAX_CELL_CHARS = 32767
+
+
+def _xlsx_number_ok(value):
+    """Whether a number fits a numeric cell: finite and within float range."""
+    try:
+        return value == value and abs(float(value)) != float("inf")
+    except OverflowError:
+        return False
 
 
 def _xlsx_append_row(ws, values):
@@ -2610,13 +2669,17 @@ def _xlsx_append_row(ws, values):
     style flag, which is what a spreadsheet sets for text typed with a
     leading apostrophe, so the text stays inert when the cell is edited and
     the visible value is unchanged. Other value types are stringified first.
+    A number a numeric cell cannot hold (NaN, infinity, an integer beyond
+    float range) is written as text.
     """
     cleaned = []
     for value in values:
         if value is not None and not isinstance(value, (str, int, float)):
             value = str(value)
+        if isinstance(value, (int, float)) and not _xlsx_number_ok(value):
+            value = str(value)
         if isinstance(value, str):
-            value = _XLSX_ILLEGAL_CHARS.sub("", value)
+            value = _XLSX_ILLEGAL_CHARS.sub("", value)[:_XLSX_MAX_CELL_CHARS]
         cleaned.append(value)
     ws.append(cleaned)
     if not cleaned:

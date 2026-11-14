@@ -274,13 +274,20 @@ def _load_oauth_token() -> Optional[dict]:
     _chmod_quiet(TOKEN_PATH, 0o600)
     try:
         with open(TOKEN_PATH, "r") as f:
-            return json.load(f)
+            token_data = json.load(f)
     except (json.JSONDecodeError, IOError):
         return None
+    # A token file holding a JSON string or list is not a token.
+    return token_data if isinstance(token_data, dict) else None
 
 
 def _save_oauth_token(token_data: dict):
-    """Save OAuth token to TOKEN_PATH with secure (0o600) permissions."""
+    """Save OAuth token to TOKEN_PATH with secure (0o600) permissions.
+
+    The client secret never belongs in the token file. It is dropped here, so
+    a hand-edited or foreign token file is cleaned on the next save.
+    """
+    token_data = {k: v for k, v in token_data.items() if k != "client_secret"}
     _write_private_json(TOKEN_PATH, token_data)
 
 
@@ -545,7 +552,9 @@ def _token_has_scope(token_data: Optional[dict], scope: str) -> Optional[bool]:
     None when the token does not record its scopes, so the caller can let
     the API decide instead of refusing a token that may well be valid.
     """
-    granted = (token_data or {}).get("scope")
+    if not isinstance(token_data, dict):
+        return None
+    granted = token_data.get("scope")
     if isinstance(granted, (list, tuple)):
         granted = " ".join(str(item) for item in granted)
     if not isinstance(granted, str) or not granted.strip():

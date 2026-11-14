@@ -62,6 +62,7 @@ import json
 import os
 import re
 import sys
+import time
 from typing import Any, Optional
 from urllib.parse import urldefrag, urljoin, urlparse
 
@@ -87,9 +88,14 @@ from url_safety import (  # noqa: E402, I001
     URLSafetyError,
     decode_body,
     json_depth_exceeds,
-    read_bounded,
+    read_bounded_until,
     safe_requests_get,
 )
+
+# Wall-clock budget in seconds for the whole --url fetch. The 30 second
+# timeout only limits each read, so a server that drips bytes could hold the
+# fetch for hours. Same budget as fetch_page.py at its default timeout.
+URL_FETCH_MAX_SECONDS = 60.0
 
 # Lazy-loader detection: covers native + the major JS lazy-loaders found on
 # WordPress/WooCommerce sites (Perfmatters, EWWW Image Optimizer, generic
@@ -892,15 +898,24 @@ def main():
     else:
         html = sys.stdin.read()
         if not html and args.url:
+            deadline = time.monotonic() + URL_FETCH_MAX_SECONDS
             resp = safe_requests_get(
                 args.url, timeout=30, allow_redirects=True, stream=True
             )
-            # Streamed so the body is read under the cap; .content must not
-            # be read after this.
+            # Streamed so the body is read under the cap and the deadline;
+            # .content must not be read after this.
             try:
-                raw, too_large = read_bounded(resp, MAX_PAGE_BYTES)
+                raw, too_large, timed_out = read_bounded_until(
+                    resp, MAX_PAGE_BYTES, deadline
+                )
             finally:
                 resp.close()
+            if timed_out:
+                print(
+                    f"Warning: page fetch exceeded {URL_FETCH_MAX_SECONDS:g} "
+                    "seconds; parsing the part read before the deadline.",
+                    file=sys.stderr,
+                )
             if too_large:
                 print(
                     f"Warning: page body exceeded {MAX_PAGE_BYTES} bytes; "
