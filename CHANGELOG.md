@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Drift compares CWV percentiles only within a shared URL or origin scope, avoiding false regressions when coverage changes.
+### Fixed
+
+- Merchant schema checks validate every object in repeated return-policy and shipping-detail properties.
 
 ## [2.6.0] - 2026-11-10
 
