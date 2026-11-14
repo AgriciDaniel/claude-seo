@@ -61,6 +61,7 @@ import copy
 import json
 import os
 import re
+import stat
 import sys
 from typing import Any, Optional
 from urllib.parse import urldefrag, urljoin, urlparse
@@ -879,6 +880,34 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     return result
 
 
+def _stdin_has_piped_input() -> bool:
+    """Return True when stdin is a pipe or a regular file.
+
+    With ``--url`` and no file, stdin is only worth reading when something
+    was piped or redirected into it. An inherited socket (as in the Claude
+    desktop app) or a terminal stays open without ever being written, so a
+    blind ``sys.stdin.read()`` blocks forever; ``isatty()`` alone does not
+    catch the socket case.
+    """
+    if sys.stdin is None:
+        return False
+    try:
+        fd = sys.stdin.fileno()
+    except (AttributeError, OSError, ValueError):
+        # A replaced in-memory stdin (tests, embedding) has no descriptor
+        # and cannot block, so it is safe to read.
+        return True
+    try:
+        mode = os.fstat(fd).st_mode
+    except OSError:
+        return False
+    return stat.S_ISFIFO(mode) or stat.S_ISREG(mode)
+
+
+def _looks_like_url(value: str) -> bool:
+    return value.lower().startswith(("http://", "https://"))
+
+
 def main():
     parser = argparse.ArgumentParser(description="Parse HTML for SEO analysis")
     parser.add_argument("file", nargs="?", help="HTML file to parse")
@@ -895,12 +924,24 @@ def main():
     if args.file:
         real_path = os.path.realpath(args.file)
         if not os.path.isfile(real_path):
-            print(f"Error: File not found: {args.file}", file=sys.stderr)
+            if _looks_like_url(args.file):
+                print(
+                    f"Error: {args.file} looks like a URL, not an HTML file; "
+                    f"pass it with --url: parse_html.py --url {args.file}",
+                    file=sys.stderr,
+                )
+            else:
+                print(f"Error: File not found: {args.file}", file=sys.stderr)
             sys.exit(1)
         with open(real_path, "r", encoding="utf-8") as f:
             html = f.read()
     else:
-        html = sys.stdin.read()
+        # With --url, read stdin only when something was piped or redirected
+        # in; an open but silent stdin (socket, terminal) would block forever.
+        if args.url and not _stdin_has_piped_input():
+            html = ""
+        else:
+            html = sys.stdin.read()
         if not html and args.url:
             resp = safe_requests_get(
                 args.url, timeout=30, allow_redirects=True, stream=True

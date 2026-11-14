@@ -18,7 +18,7 @@ When delegated tasks during an SEO audit or analysis:
 
 1. Detect e-commerce signals: product schema, price elements, add-to-cart buttons,
    shopping cart, product grids, Shopify/WooCommerce/Magento markers
-2. Analyze product pages with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run render_page.py <URL> --mode auto` and `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run parse_html.py <URL>`
+2. Analyze product pages with `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run render_page.py <URL> --mode auto` and `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run parse_html.py --url <URL> --json`
 3. Validate Product schema against Google's required and recommended fields
 4. If DataForSEO credentials available, fetch marketplace data via
    `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_merchant.py`
