@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- The headless browser now sends every connection through a local guard that checks each
+  destination, including every redirect, so an audited site can no longer redirect Chromium to
+  loopback, private network or cloud metadata addresses. Unlighthouse runs behind the same
+  guard. Reported by namaserajesh and by Tobi (Nordalux), who also wrote the initial fix
+  (GHSA-8wrm-4mmq-6fx3, GHSA-9pc7-p6cr-942h).
+- Chromium now runs with its sandbox enabled. If the sandbox cannot start (running as root,
+  some containers), the run stops with an error that names the opt-out,
+  `CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1`. Reported by stephaneRR and shayanabbas
+  (GHSA-4fm4-49gc-r4pf, GHSA-mh4v-hwxp-8fg3).
+- Report values from Search Console, PageSpeed, CrUX, URL Inspection and audit JSON are
+  HTML-escaped everywhere in the PDF and HTML report, and PDF rendering can load only the
+  chart images generated for that report and the bundled logo. Other local files and all
+  network URLs are refused. Reported by samnguyen80 and namaserajesh
+  (GHSA-f8h8-fv8r-g2wh, GHSA-x43m-h8x6-rr52).
+- The XLSX export stores every text value as plain text, so values starting with `=`, `+`,
+  `-` or `@` can no longer run as formulas. Reported by 0xGenesi (GHSA-gc25-jx72-jj4q).
+- `parse_html.py --url` reads the page under the 10 MB cap instead of loading the whole
+  response into memory, and behind an HTTP proxy every redirect is validated before it is
+  followed. Reported by samnguyen80 (GHSA-f8h8-fv8r-g2wh).
+- `youtube_search.py` removes the Google API key from every error it prints or returns.
+  Reported by georgekhananaev (GHSA-xgff-93hv-6369).
+- `verify_release.py` refuses manifest entries that are absolute or point outside the
+  checkout, including through `..` or a symlink. Reported by tangzheng202202
+  (GHSA-hxhx-mm7f-q4qm).
+- The Google sign-in is read-only by default (`webmasters.readonly` and
+  `analytics.readonly`). The Indexing API scope is granted only with
+  `google_auth.py --auth --indexing`, and the unused Search Console write scope is no longer
+  requested. Existing sign-ins keep working. Reported by namaserajesh (GHSA-xhpf-w7hf-f6ph).
+
+### Changed
+
+- A render, screenshot or visual analysis that ends on a blank page, a browser error page or
+  a blocked address is reported as an error instead of being returned as the page.
+  `render_page.py` keeps the raw fetch in that case.
+- Browser commands behind a proxy support `http://` proxies on public addresses. A SOCKS
+  proxy, an `https://` proxy URL or a proxy on a local address gives a clear error.
+- `indexing_notify.py` and `google_auth.py --check indexing` say when the saved sign-in lacks
+  the Indexing scope and print the command to grant it.
+
+### Fixed
+
+- Charts were missing from the PDF report when the output directory was a relative path.
+- The XLSX report file name is sanitised like the PDF name.
+
 ## [2.6.0] - 2026-11-10
 
 Deterministic checks ported from web-obs, the sister crawler project. Work
