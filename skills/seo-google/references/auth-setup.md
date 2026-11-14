@@ -45,21 +45,8 @@ Navigate to **APIs & Services > Library** and enable:
 4. Click on the created service account > **Keys > Add Key > Create new key > JSON**
 5. Download the JSON file and store it securely (e.g., `~/.config/claude-seo/service_account.json`)
 
-The JSON file looks like:
-```json
-{
-  "type": "service_account",
-  "project_id": "your-project-id",
-  "private_key_id": "...",
-  "private_key": "<service-account-private-key>",
-  "client_email": "<service-account-identifier>",
-  "client_id": "...",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token"
-}
-```
-
-The `client_email` field is what you add to GSC and GA4.
+The JSON file has `"type": "service_account"`, a `project_id`, a `private_key` and a
+`client_email`. The `client_email` field is what you add to GSC and GA4.
 
 ## Step 5: Grant Search Console Access
 
@@ -95,28 +82,20 @@ Save to `google-api.json` in the directory that `google_auth.py --check` prints
   "default_property": "sc-domain:example.com",
   "ga4_property_id": "properties/123456789",
   "sites": {
-    "example.com": {
-      "gsc_property": "sc-domain:example.com",
-      "ga4_property_id": "properties/123456789"
-    },
-    "client.example": {
-      "gsc_property": "sc-domain:client.example",
-      "ga4_property_id": "properties/987654321"
-    }
+    "example.com": {"gsc_property": "sc-domain:example.com", "ga4_property_id": "properties/123456789"},
+    "client.example": {"gsc_property": "sc-domain:client.example", "ga4_property_id": "properties/987654321"}
   }
 }
 ```
 
-For site audits, pass `--domain <audited-domain>` (a host or site URL, never a
-property) to `gsc_query.py` and `ga4_report.py`; `gsc_inspect.py` accepts the
-same flag (or derives the host from a single inspected URL). `sites` keys are
-hostnames and map to that site's properties. A key matches its host with or
-without `www.`, and an entry whose `gsc_property` is `sc-domain:D` also covers
-subdomains of D (`shop.example.com`, never `notexample.com`). If no entry
-matches, a legacy global property is usable only when its GSC domain matches
-the requested domain; otherwise the script fails closed rather than querying
-another site's data. Keep explicit `--property` / `--site-url` for intentional
-direct property queries outside a domain-specific audit.
+For site audits, pass `--domain <audited-domain>` (a host or site URL, never a property) to
+`gsc_query.py` and `ga4_report.py`; `gsc_inspect.py` accepts the same flag (or derives the host from
+a single inspected URL). `sites` keys are hostnames and map to that site's properties. A key matches
+its host with or without `www.`, and an entry whose `gsc_property` is `sc-domain:D` also covers
+subdomains of D (`shop.example.com`, never `notexample.com`). If no entry matches, a legacy global
+property is usable only when its GSC domain matches the requested domain; otherwise the script fails
+closed rather than querying another site's data. Keep explicit `--property` / `--site-url` for
+intentional direct property queries outside a domain-specific audit.
 
 With neither flag, `gsc_query.py` and `ga4_report.py` use the global default
 and name it on stderr and in the JSON `property` field. Once a `sites` mapping
@@ -158,12 +137,11 @@ To give a project its own Google account and properties, set
 {"env": {"CLAUDE_SEO_PROFILE_DIR": "~/.config/claude-seo/profiles/project-xyz"}}
 ```
 
-The scripts then read and write `google-api.json`, `oauth-token.json`,
-`backlinks-api.json` and `matomo.json` only there, with no fallback to
-`~/.config/claude-seo/`, so copy the shared `api_key` or set `GOOGLE_API_KEY`.
-The path must be absolute or start with `~/`, and must not be `/` or the home
-directory. Keep it outside any git repository, because it holds API keys and
-the OAuth token. The scripts warn on stderr when it is inside a git work tree.
+The scripts then read and write `google-api.json`, `oauth-token.json`, `backlinks-api.json` and
+`matomo.json` only there, with no fallback to `~/.config/claude-seo/`, so copy the shared `api_key`
+or set `GOOGLE_API_KEY`. The path must be absolute or start with `~/`, and must not be `/` or the
+home directory. Keep it outside any git repository, because it holds API keys and the OAuth token.
+The scripts warn on stderr when it is inside a git work tree.
 
 The gcloud sign-in lives outside the profile. For a per-project gcloud account,
 also set `CLOUDSDK_CONFIG` in the same `env` block.

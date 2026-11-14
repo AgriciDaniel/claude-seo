@@ -1,7 +1,7 @@
 <!--
   Claude SEO (claude-seo): free, open-source SEO audit plugin for Claude Code by Agrici Daniel.
   Technical SEO, Core Web Vitals, E-E-A-T, Schema.org, AI search (GEO), local SEO, e-commerce and international SEO.
-  26 sub-skills and 19 specialist agents. MIT licensed.
+  27 sub-skills and 19 specialist agents. MIT licensed.
 -->
 
 <img src="assets/readme/v3/hero.svg" width="1200" height="420" alt="Claude SEO: rank in Google, get cited by AI. Three bots climb from #48 to #1 by fixing crawl, speed, schema, AI access and authority, then Google, ChatGPT, Perplexity, Gemini and Claude cite the site." />
@@ -47,7 +47,7 @@ It checks everything a good SEO consultant would:
 - **AI search (GEO).** How likely Google AI Overviews, AI Mode, ChatGPT, Perplexity and Gemini are to cite your pages.
 - **Local and e-commerce SEO.** Google Business Profile, reviews, map pack, product pages and international sites.
 
-Claude SEO is built from 26 sub-skills and 19 specialist agents, and up to 17 agents work on your site at the same time. Every recommendation explains why it matters and how you will know it worked.
+Claude SEO is built from 27 sub-skills and 19 specialist agents, and up to 17 agents work on your site at the same time. Every recommendation explains why it matters and how you will know it worked.
 
 ## See it in action
 
@@ -196,7 +196,7 @@ Want the details? Read the [methodology](skills/seo/references/thinking-framewor
 
 ## Install
 
-<img src="assets/readme/v3/install.svg" width="1200" height="420" alt="Installing Claude SEO: add the marketplace, install the plugin, 26 skills and 19 agents arrive, /seo setup readies the browser, then /seo audit starts the first level." />
+<img src="assets/readme/v3/install.svg" width="1200" height="420" alt="Installing Claude SEO: add the marketplace, install the plugin, 27 skills and 19 agents arrive, /seo setup readies the browser, then /seo audit starts the first level." />
 
 You need [Claude Code](https://claude.com/product/claude-code) 1.0.33 or newer. Run these three commands inside it:
 

@@ -12,7 +12,8 @@
 
 - HTTP Basic Auth (login:password)
 - Rate limit: **2,000 API calls/minute** across all endpoints
-- Each POST supports up to **100 tasks** in a single request
+- Live endpoints (every `/live/` path in this file, including the Maps SERP geo-grid endpoint) take **one task per request**; send parallel requests within the rate limit instead of batching
+- Standard endpoints (`/task_post`) accept up to **100 tasks** in a single POST
 - Minimum deposit: $50. $1 free trial credit. Credits never expire.
 
 ---

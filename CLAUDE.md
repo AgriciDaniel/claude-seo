@@ -4,15 +4,15 @@
 
 This repository contains **Claude SEO**, a Tier 4 Claude Code skill for comprehensive
 SEO analysis across all industries. It follows the Agent Skills open standard and the
-3-layer architecture (directive, orchestration, execution). 26 sub-skills (22 core +
-1 orchestrator + 1 framework integration + 2 extension mirrors), 19 sub-agents (16 core +
+3-layer architecture (directive, orchestration, execution). 27 sub-skills (22 core +
+1 orchestrator + 1 framework integration + 3 extension mirrors), 19 sub-agents (16 core +
 1 framework integration + 2 extension mirrors), and an extensible reference
 system cover technical SEO, content quality,
 schema markup, image optimization, sitemap architecture, AI search optimization,
 local SEO (GBP, citations, reviews, map pack), maps intelligence, semantic topic
 clustering, search experience optimization (SXO), SEO drift monitoring, e-commerce
-SEO, and international SEO with cultural adaptation profiles. Matomo is available
-as an optional extension for self-hosted analytics.
+SEO, and international SEO with cultural adaptation profiles. Matomo and PostHog are
+available as optional analytics extensions (GA4 alternative or complement).
 
 ## Architecture
 
@@ -24,7 +24,7 @@ claude-seo/
   .claude-plugin/
     plugin.json                    # Plugin manifest (v2.6.0)
     marketplace.json               # Marketplace catalog for distribution
-  skills/                            # 26 sub-skills (auto-discovered)
+  skills/                            # 27 sub-skills (auto-discovered)
     seo/                           # Main orchestrator skill
       SKILL.md                     # Entry point, routing table, core rules
       references/                  # On-demand knowledge files (13 files)
@@ -68,6 +68,7 @@ claude-seo/
     seo-image-gen/              # AI image generation for SEO assets (extension mirror)
       SKILL.md
       references/                # Image gen reference files (7 files)
+    seo-bing/SKILL.md           # Bing Webmaster Tools and IndexNow (extension mirror)
   agents/                          # 19 subagents (auto-discovered)
     seo-technical.md             # Crawlability, indexability, security
     seo-content.md               # E-E-A-T, readability, thin content
@@ -158,15 +159,17 @@ claude-seo/
     shopify_crawl.py             # Signed sitemap-driven Shopify storefront crawl
     runtime.py                   # Managed runtime behind the claude-seo launcher
   schema/                          # Schema.org JSON-LD templates
-  extensions/                      # Optional add-on install helpers
+  extensions/                      # 11 optional add-ons (5 MCP, 6 non-MCP)
     dataforseo/                  # DataForSEO MCP install scripts
     firecrawl/                   # Firecrawl MCP install scripts
     banana/                      # Banana MCP install scripts
     ahrefs/                      # Ahrefs MCP install scripts
-    bing-webmaster/              # Bing Webmaster and IndexNow install scripts
-    profound/                    # Profound MCP install scripts
-    seranking/                   # SE Ranking MCP install scripts
-    unlighthouse/                # Unlighthouse install scripts
+    posthog/                     # PostHog MCP skill, agent and install scripts
+    bing-webmaster/              # Bing Webmaster and IndexNow key setup (API keys, no MCP)
+    matomo/                      # Matomo Reporting API skill, agent and install scripts (no MCP)
+    profound/                    # Profound API key install scripts (no MCP)
+    seranking/                   # SE Ranking API key install scripts (no MCP)
+    unlighthouse/                # Unlighthouse install scripts (local CLI, no MCP)
     shopify/                     # Shopify Crawler Access crawl extension (no MCP)
   docs/                            # Extended documentation
 ```
@@ -206,7 +209,10 @@ claude-seo/
 | `/seo seranking [command]` | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, AI Mode (extension) |
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
+| `/seo matomo [command] [args]` | Matomo Reporting API: GA4 alternative or complement (extension) |
+| `/seo posthog [command]` | PostHog via MCP: GA4 alternative or complement (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
+| `/seo shopify [crawl\|check] <url>` | Uncapped signed crawl of a Shopify store you administer, then the audit (extension) |
 
 ## Development Rules
 
@@ -254,7 +260,7 @@ Part of the Claude Code skill family:
 1. **Progressive Disclosure**: Metadata always loaded, instructions on activation, resources on demand
 2. **Industry Detection**: Auto-detect SaaS, e-commerce, local, publisher, agency
 3. **Parallel Execution**: Full audits spawn up to 17 subagents simultaneously
-4. **Extension System**: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, and Unlighthouse extensions
+4. **Extension System**: 11 extensions. DataForSEO, Firecrawl, Banana, Ahrefs, and PostHog connect an MCP server; SE Ranking, Profound, Bing Webmaster, Matomo, Unlighthouse, and Shopify do not
 
 ## Repository Topology (public + private)
 

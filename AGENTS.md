@@ -54,8 +54,8 @@ in case a recipe needs a specific call.
 
 ## Overview
 
-Claude SEO is a Tier 4 SEO analysis skill with 26 sub-skills (22 core + 1 orchestrator +
-1 framework integration + 2 extension mirrors), 19 sub-agents (16 core + 1 framework
+Claude SEO is a Tier 4 SEO analysis skill with 27 sub-skills (22 core + 1 orchestrator +
+1 framework integration + 3 extension mirrors), 19 sub-agents (16 core + 1 framework
 integration + 2 extension mirrors), and 66 Python execution scripts.
 
 ## Quick Reference
@@ -96,7 +96,9 @@ integration + 2 extension mirrors), and 66 Python execution scripts.
 | `/seo profound [cmd]` | LLM brand-citation tracking (extension) |
 | `/seo seranking [cmd]` | AI share-of-voice tracking (extension) |
 | `/seo matomo [cmd] [args]` | Matomo Reporting API: GA4 alternative or supplement (extension) |
+| `/seo posthog [cmd]` | PostHog via MCP: GA4 alternative or supplement (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse audits (extension) |
+| `/seo shopify [crawl\|check] <url>` | Signed crawl of a Shopify store you administer, then the audit (extension) |
 
 ## Using with Cursor / Cursor Cloud
 
@@ -110,7 +112,7 @@ provide execution capabilities.
 ./scripts/claude-seo run fetch_page.py https://example.com
 
 # HTML parsing for SEO elements
-./scripts/claude-seo run parse_html.py https://example.com
+./scripts/claude-seo run parse_html.py --url https://example.com
 
 # PageSpeed Insights
 ./scripts/claude-seo run pagespeed_check.py https://example.com --json
@@ -139,7 +141,7 @@ bash install.sh
 ## Architecture
 
 ```
-skills/                    # 26 sub-skills (auto-discovered)
+skills/                    # 27 sub-skills (auto-discovered)
   seo/SKILL.md            # Main orchestrator + routing
   seo-cluster/            # Semantic clustering (v1.9.0)
   seo-sxo/                # Search Experience Optimization (v1.9.0)
@@ -166,10 +168,11 @@ skills/                    # 26 sub-skills (auto-discovered)
   seo-flow/               # FLOW framework integration
   seo-dataforseo/         # DataForSEO (extension)
   seo-image-gen/          # AI images (extension)
+  seo-bing/               # Bing Webmaster and IndexNow (extension)
 agents/                    # 19 subagents
 scripts/                   # 66 Python scripts, including the managed runtime
 schema/                    # JSON-LD templates
-extensions/                # 11 extensions (10 MCP plus the Shopify crawl): DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Matomo, PostHog, Unlighthouse, Shopify
+extensions/                # 11 extensions. 5 MCP: DataForSEO, Firecrawl, Banana, Ahrefs, PostHog. 6 non-MCP: SE Ranking, Profound, Bing Webmaster, Matomo, Unlighthouse, Shopify
 ```
 
 ## Key Principles

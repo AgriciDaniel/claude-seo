@@ -60,8 +60,9 @@ Use the Google Maps SERP API with `location_coordinate` parameter:
 For each grid point, fire one API call with the point's lat/lng. Parse the
 `items` array to find the target business rank (position in results).
 
-**Rate optimization:** DataForSEO allows up to 100 tasks per POST. For a 7x7
-grid, batch all 49 tasks into a single request to minimize HTTP overhead.
+**One task per request:** this is a Live endpoint, and Live endpoints accept
+exactly one task per POST. A 7x7 grid is 49 separate requests. They may run in
+parallel, within the documented rate limit of 2,000 API calls per minute.
 
 ---
 

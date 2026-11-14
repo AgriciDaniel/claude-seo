@@ -1,10 +1,10 @@
 """Core copies and extension copies must not drift apart.
 
-The plugin ships the seo-dataforseo and seo-image-gen skills and agents in
-both the core tree and their extension folders. A manual install copies the
-extension files over the core ones (install.sh copies extension skills and
-agents after the core set), so any drift changes behaviour depending on how
-the plugin was installed.
+The plugin ships the seo-dataforseo and seo-image-gen skills and agents, and
+the seo-bing skill, in both the core tree and their extension folders. A manual
+install copies the extension files over the core ones (install.sh copies
+extension skills and agents after the core set), so any drift changes behaviour
+depending on how the plugin was installed.
 """
 
 from pathlib import Path
@@ -24,6 +24,12 @@ AGENT_MIRRORS = [
 # (SKILL.md and references) must match.
 DATAFORSEO_CORE = ROOT / "skills/seo-dataforseo"
 DATAFORSEO_EXT = ROOT / "extensions/dataforseo/skills/seo-dataforseo"
+
+# The Bing skill (#458) is mirrored so plugin installs load it with
+# ${CLAUDE_PLUGIN_ROOT} set; like DataForSEO it has no install-specific content.
+IDENTICAL_SKILL_MIRRORS = [
+    ("skills/seo-bing", "extensions/bing-webmaster/skills/seo-bing"),
+]
 
 # The image-gen skill differs on purpose: the core copy has no scripts and
 # points at the installed Banana MCP, while the extension copy ships
@@ -60,6 +66,36 @@ def test_dataforseo_skill_mirror_is_identical():
         if (DATAFORSEO_CORE / name).read_bytes() != (DATAFORSEO_EXT / name).read_bytes()
     ]
     assert not drifted, f"seo-dataforseo copies have drifted: {drifted}"
+
+
+@pytest.mark.parametrize("core, ext", IDENTICAL_SKILL_MIRRORS)
+def test_skill_mirror_folders_are_identical(core, ext):
+    core_dir, ext_dir = ROOT / core, ROOT / ext
+    assert (core_dir / "SKILL.md").is_file(), f"{core}/SKILL.md missing"
+    core_files, ext_files = _files(core_dir), _files(ext_dir)
+    assert core_files == ext_files, f"file sets differ: {sorted(core_files ^ ext_files)}"
+    drifted = [
+        name
+        for name in sorted(core_files)
+        if (core_dir / name).read_bytes() != (ext_dir / name).read_bytes()
+    ]
+    assert not drifted, f"{ext} has drifted from {core}; edit both together: {drifted}"
+
+
+def test_bing_installers_work_for_plugin_installs():
+    """#458: the installers must not require ~/.claude/skills/seo, and must not
+    copy the skill unrewritten (a copied personal skill has no plugin root)."""
+    sh = (ROOT / "extensions/bing-webmaster/install.sh").read_text(encoding="utf-8")
+    ps = (ROOT / "extensions/bing-webmaster/install.ps1").read_text(encoding="utf-8")
+    for text in (sh, ps):
+        assert "plugins/cache/" in text
+        assert "CLAUDE_PLUGIN_ROOT" in text
+        assert "storing keys only" in text
+        assert '"$HOME/.claude/skills/seo/scripts/claude-seo"' in text
+    assert 'cp "${SOURCE_DIR}/skills/seo-bing/SKILL.md"' not in sh
+    assert "Copy-Item (Join-Path $SourceDir \"skills/seo-bing/SKILL.md\")" not in ps
+    assert 'if [ "${INSTALL_MODE}" = "manual" ]; then' in sh
+    assert 'if ($InstallMode -eq "manual") {' in ps
 
 
 def test_image_gen_references_differ_only_where_documented():

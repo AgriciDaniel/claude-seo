@@ -6,7 +6,7 @@ Claude SEO follows Anthropic's official Claude Code skill specification with a m
 
 ## Directory Structure
 
-The plugin ships 26 sub-skills (22 core + 1 orchestrator + 1 framework integration + 2 extension mirrors) and 19 sub-agents (16 core + 1 framework integration + 2 extension mirrors).
+The plugin ships 27 sub-skills (22 core + 1 orchestrator + 1 framework integration + 3 extension mirrors) and 19 sub-agents (16 core + 1 framework integration + 2 extension mirrors).
 
 ```
 ~/.claude/plugins/.../claude-seo/
@@ -39,7 +39,8 @@ The plugin ships 26 sub-skills (22 core + 1 orchestrator + 1 framework integrati
 │   ├── seo-google/             # Google SEO APIs (GSC, PSI, CrUX, GA4)
 │   ├── seo-flow/               # FLOW framework integration (CC BY 4.0)
 │   ├── seo-dataforseo/         # DataForSEO MCP mirror (extension surface)
-│   └── seo-image-gen/          # Banana MCP mirror (extension surface)
+│   ├── seo-image-gen/          # Banana MCP mirror (extension surface)
+│   └── seo-bing/               # Bing Webmaster + IndexNow mirror (extension surface)
 │
 └── agents/
     ├── seo-technical.md        # Crawlability, indexability, security
@@ -259,7 +260,7 @@ It forwards arguments without a shell, preserves child exit codes, forces UTF-8
 child streams, and uses the same persistent Playwright browser directory created
 by setup.
 
-Extensions are opt-in add-ons that integrate external data sources via MCP servers. They live in `extensions/<name>/` and ship their own install / uninstall scripts.
+Extensions are opt-in add-ons that integrate external data sources. There are 11: 5 connect an MCP server (DataForSEO, Firecrawl, Banana, Ahrefs, PostHog) and 6 do not (SE Ranking, Profound, Bing Webmaster and Matomo use API keys; Unlighthouse and Shopify run locally). They live in `extensions/<name>/` and ship their own install / uninstall scripts.
 
 ```
 extensions/
@@ -313,19 +314,42 @@ extensions/
 │   ├── skills/seo-profound/SKILL.md
 │   └── docs/PROFOUND-SETUP.md
 │
-├── bing-webmaster/           # Bing Webmaster Tools + IndexNow
+├── bing-webmaster/           # Bing Webmaster Tools + IndexNow (skill mirrored in skills/seo-bing)
 │   ├── install.sh
 │   ├── install.ps1
 │   ├── uninstall.sh
 │   ├── skills/seo-bing/SKILL.md
 │   └── docs/BING-WEBMASTER-SETUP.md
 │
-└── unlighthouse/             # Multi-page Lighthouse runner (local)
+├── matomo/                   # Matomo Reporting API (GA4 alternative)
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-matomo/SKILL.md
+│   ├── agents/seo-matomo.md
+│   └── docs/MATOMO-SETUP.md
+│
+├── posthog/                  # PostHog MCP analytics (GA4 alternative)
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-posthog/SKILL.md
+│   ├── agents/seo-posthog.md
+│   └── docs/POSTHOG-SETUP.md
+│
+├── unlighthouse/             # Multi-page Lighthouse runner (local)
+│   ├── install.sh
+│   ├── install.ps1
+│   ├── uninstall.sh
+│   ├── skills/seo-unlighthouse/SKILL.md
+│   └── docs/UNLIGHTHOUSE-SETUP.md
+│
+└── shopify/                  # Shopify Crawler Access signed crawl (local)
     ├── install.sh
     ├── install.ps1
     ├── uninstall.sh
-    ├── skills/seo-unlighthouse/SKILL.md
-    └── docs/UNLIGHTHOUSE-SETUP.md
+    ├── skills/seo-shopify/SKILL.md
+    └── docs/SHOPIFY-SETUP.md
 ```
 
 ### Available Extensions
@@ -339,7 +363,10 @@ extensions/
 | **SE Ranking** | SE Ranking API | AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, and AI Mode |
 | **Profound** | Profound API | LLM citation tracking with time-series data |
 | **Bing Webmaster** | Bing Webmaster Tools API | Bing Webmaster Tools + IndexNow URL submission |
+| **Matomo** | Matomo Reporting API | Organic traffic, landing pages, device, country and referrer reports from your own Matomo |
+| **PostHog** | PostHog MCP server (`mcp.posthog.com`) | Organic traffic, landing pages, device, country and referrer reports through read-only HogQL |
 | **Unlighthouse** | `unlighthouse@0.13.5` | Multi-page Lighthouse runner, runs locally |
+| **Shopify Crawler Access** | Local crawler, no package | Uncapped signed crawl of a Shopify store you administer |
 
 ### Extension Convention
 
@@ -348,5 +375,5 @@ extensions/
 3. Own `uninstall.sh` (and `uninstall.ps1` where present) that reverses installation
 4. Installs the sub-skill mirror to the plugin's skill directory
 5. Installs the sub-agent mirror to the plugin's agent directory (extensions that ship one; lighter extensions are skill-only)
-6. Merges MCP config into `~/.claude/settings.json` non-destructively
+6. MCP extensions merge their server entry into `~/.claude.json` non-destructively (PostHog uses `claude mcp add`); API-key extensions write only their `env` keys or their own config file
 7. MCP server versions are pinned (`@<version>`) for supply-chain stability

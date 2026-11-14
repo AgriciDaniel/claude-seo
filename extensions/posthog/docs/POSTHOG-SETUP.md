@@ -4,6 +4,13 @@ This extension lets claude-seo use the PostHog MCP server as an analytics source
 the same way the Matomo extension uses the Matomo Reporting API. It stores no
 credentials: authentication belongs to the MCP server.
 
+> **Use read-only access.** The PostHog MCP `exec` tool can read data and also
+> create, update and delete PostHog objects (insights, dashboards, feature
+> flags and more). claude-seo only ever needs to read, and its read-only rule is
+> an instruction to the agent, not a technical limit. Authenticate the MCP
+> server with a read-only scoped personal API key, or sign in as a member whose
+> access to the project is read-only, so a write cannot succeed.
+
 ## 1. Install
 
 ```bash
@@ -24,13 +31,15 @@ Manual equivalent:
 claude mcp add --transport http posthog https://mcp.posthog.com/mcp
 ```
 
-Then run `/mcp` inside Claude Code and authenticate. For EU Cloud or self-hosted
-PostHog, use the matching MCP URL from the PostHog docs. Check the PostHog MCP
-documentation for the current URL and auth options.
+Then run `/mcp` inside Claude Code and authenticate, with the read-only login
+or key recommended above. For EU Cloud or self-hosted PostHog, use the matching
+MCP URL from the PostHog docs. Check the PostHog MCP documentation for the
+current URL, auth options and how to scope a key to read-only.
 
-The server exposes one tool, `exec`, so it appears as `mcp__PostHog__exec` (or
-`mcp__posthog__exec` when registered in lowercase). The agent's `tools`
-allowlist accepts both spellings. Queries go through
+The server exposes one tool, `exec`. Registered as `posthog` (the command
+above, and what the installer runs) it appears as `mcp__posthog__exec`;
+registered as `PostHog` it appears as `mcp__PostHog__exec`. The agent's `tools`
+allowlist and the audit orchestrator accept both spellings. Queries go through
 `call execute-sql {"query": "..."}`.
 
 ## 3. Use

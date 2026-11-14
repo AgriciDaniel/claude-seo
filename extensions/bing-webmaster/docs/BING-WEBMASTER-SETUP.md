@@ -17,6 +17,11 @@
 .\extensions\bing-webmaster\install.ps1
 ```
 
+The `seo-bing` skill ships with the claude-seo plugin, so on a plugin install
+the installer only stores your keys; run it from the plugin or repository
+folder. On a manual install (`~/.claude/skills/seo`) it also copies the skill
+with its launcher path set for that layout.
+
 You'll be prompted for:
 
 - Bing Webmaster Tools API key (https://www.bing.com/webmasters/api)
@@ -51,7 +56,10 @@ guarantee indexing speed.
 ./extensions/bing-webmaster/uninstall.sh
 ```
 
-PowerShell manual removal:
+`uninstall.sh` removes the stored keys and, on a manual install, the copied
+skill. On a plugin install the skill stays, because the plugin provides it.
+
+PowerShell manual removal (skip the first line on a plugin install):
 ```powershell
 Remove-Item -Recurse -Force "$HOME\.claude\skills\seo-bing"
 notepad "$HOME\.claude\settings.json"

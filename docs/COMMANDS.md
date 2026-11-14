@@ -688,7 +688,7 @@ Ahrefs API metrics (extension). **Prerequisites:** Ahrefs extension installed (`
 
 ### `/seo bing [command]`
 
-Bing Webmaster Tools + IndexNow (extension). **Prerequisites:** Bing extension installed (`./extensions/bing-webmaster/install.sh`).
+Bing Webmaster Tools + IndexNow (extension). The `seo-bing` skill ships with the plugin. **Prerequisites:** keys stored once with `./extensions/bing-webmaster/install.sh` (or `install.ps1`).
 ```
 /seo bing links <url>                 # Inbound links from Bing Webmaster
 /seo bing compare <urlA> <urlB>       # Compare two URLs' Bing link profiles
@@ -822,4 +822,5 @@ Uncapped, sitemap-complete crawl of a Shopify store you administer, signed with 
 | `/seo profound [command]` | LLM citation tracking with time-series data (extension) |
 | `/seo bing [command] <url>` | Bing Webmaster Tools + IndexNow URL submission (extension) |
 | `/seo matomo [command] [args]` | Matomo Reporting API: GA4 alternative or complement (extension) |
+| `/seo posthog [command]` | PostHog via MCP: GA4 alternative or complement (extension) |
 | `/seo unlighthouse <url>` | Multi-page Lighthouse runner, runs locally (extension) |
