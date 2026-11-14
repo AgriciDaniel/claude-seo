@@ -43,6 +43,8 @@ def _browser_launch_environment(monkeypatch):
     monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 1000, raising=False)
     monkeypatch.setattr(url_safety.requests.utils, "getproxies", lambda: {})
     monkeypatch.delenv(browser_proxy.NO_SANDBOX_ENV, raising=False)
+    monkeypatch.delenv(browser_proxy.REQUIRE_SANDBOX_ENV, raising=False)
+    monkeypatch.setattr(browser_proxy, "_warned_reasons", set())
 
 # ---------------------------------------------------------------------------
 # _is_spa: SPA shell detector
@@ -588,7 +590,7 @@ def test_render_page_result_dict_has_all_documented_fields() -> None:
         "accessibility_error", "accessibility_partial",
         "headers", "redirect_chain", "console_errors", "render_engine",
         "render_diagnostics", "render_ms", "mode_used", "too_large", "js_gap",
-        "error",
+        "sandbox", "error",
     }
     assert set(result.keys()) == expected_fields
     # No render happened, so there is nothing to compare.
@@ -824,12 +826,110 @@ def test_render_that_ended_on_a_non_public_page_is_refused(monkeypatch, url) -> 
     assert result["raw_fallback_available"] is True
 
 
-def test_render_reports_a_sandbox_failure_with_the_opt_out(monkeypatch) -> None:
+SANDBOX_LOG = "[pid] zygote_host_impl_linux.cc(128)] No usable sandbox! If you are running on Ubuntu"
+
+
+def _render_in_sandbox_mode(page, monkeypatch, mode):
+    """Render through the real launch helper; returns (result, launches).
+
+    ``mode``: 'sandboxed', 'fallback' (the sandboxed launch fails with
+    Chromium's message) or 'opt_out' (the variable is set).
+    """
+    import browser_proxy
+
+    launches: list[bool] = []
+
+    def manager():
+        fake = _FakePlaywrightManager(page)
+        real_launch = fake.playwright.chromium.launch
+
+        def launch(**kwargs):
+            launches.append(kwargs["chromium_sandbox"])
+            if mode == "fallback" and kwargs["chromium_sandbox"]:
+                raise RuntimeError(SANDBOX_LOG)
+            return real_launch(**kwargs)
+
+        fake.playwright.chromium.launch = launch
+        return fake
+
+    if mode == "opt_out":
+        monkeypatch.setenv(browser_proxy.NO_SANDBOX_ENV, "1")
+    spa_html = '<html><body><div id="root"></div></body></html>'
+    with patch.object(render_page, "validate_url_strict", side_effect=_mock_validate_strict), \
+         patch.object(render_page, "safe_requests_get", return_value=_fake_response(spa_html)), \
+         patch.object(render_page, "require_public_page", return_value=None), \
+         patch.object(render_page, "sync_playwright", manager):
+        result = render_page.render_page("https://app.example/", mode="auto", timeout_ms=1000)
+    return result, launches
+
+
+@pytest.mark.parametrize(
+    "mode,sandbox,launches,warning",
+    [
+        ("sandboxed", True, [True], ""),
+        ("fallback", False, [True, False], "sandbox is unavailable on this system"),
+        ("opt_out", False, [False], "disabled by CLAUDE_SEO_CHROMIUM_NO_SANDBOX"),
+    ],
+)
+def test_render_json_says_whether_chromium_was_sandboxed(
+    monkeypatch, capsys, mode, sandbox, launches, warning
+) -> None:
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    result, seen = _render_in_sandbox_mode(page, monkeypatch, mode)
+    assert result["error"] is None
+    assert seen == launches
+    payload = json.loads(json.dumps(render_page._json_summary(result), default=str))
+    assert payload["sandbox"] is sandbox
+    err = capsys.readouterr().err
+    assert (warning in err) if warning else (err == "")
+
+
+def test_render_as_root_falls_back_and_says_so(monkeypatch, capsys) -> None:
     import browser_proxy
 
     monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 0, raising=False)
     page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    result, launches = _render_in_sandbox_mode(page, monkeypatch, "sandboxed")
+    assert result["error"] is None and result["content"]
+    assert result["sandbox"] is False
+    assert launches == [False]
+    assert "a browser exploit would run as root" in capsys.readouterr().err
+
+
+def test_raw_mode_launches_no_browser_and_reports_no_sandbox_state() -> None:
+    with patch.object(render_page, "validate_url_strict", side_effect=_mock_validate_strict), \
+         patch.object(render_page, "safe_requests_get", return_value=_fake_response("<html></html>")):
+        result = render_page.render_page("https://x.example/", mode="never")
+    assert result["mode_used"] == "raw"
+    assert result["sandbox"] is None
+
+
+def test_render_error_after_launch_keeps_the_sandbox_state(monkeypatch, capsys) -> None:
+    """A page error that quotes Chromium's sandbox message is not a launch
+    failure: no relaunch, no fallback, and the result still says sandboxed."""
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+
+    def goto(_url, **_kwargs):
+        raise RuntimeError("Page.goto: Target crashed\n" + SANDBOX_LOG)
+
+    page.goto = goto
+    result, launches = _render_in_sandbox_mode(page, monkeypatch, "sandboxed")
+    assert result["error"].startswith("playwright error: Page.goto: Target crashed")
+    assert launches == [True]
+    assert result["sandbox"] is True
+    assert result["raw_fallback_available"] is True
+    assert capsys.readouterr().err == ""
+
+
+def test_render_in_strict_mode_reports_the_sandbox_failure(monkeypatch) -> None:
+    import browser_proxy
+
+    monkeypatch.setenv(browser_proxy.REQUIRE_SANDBOX_ENV, "1")
+    monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 0, raising=False)
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
     result = _render_checking_the_page(page, monkeypatch)
+    assert "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX" in result["error"]
     assert "CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1" in result["error"]
     assert result["raw_fallback_available"] is True
+    assert result["sandbox"] is None  # no browser was launched
     assert page.goto_options is None  # the browser never started

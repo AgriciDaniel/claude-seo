@@ -183,6 +183,8 @@ def _hermetic_environment(monkeypatch):
     monkeypatch.delenv("CLAUDE_SEO_LOCAL_TARGETS", raising=False)
     monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 1000, raising=False)
     monkeypatch.delenv(browser_proxy.NO_SANDBOX_ENV, raising=False)
+    monkeypatch.delenv(browser_proxy.REQUIRE_SANDBOX_ENV, raising=False)
+    monkeypatch.setattr(browser_proxy, "_warned_reasons", set())
 
 
 def test_browser_proxy_refuses_local_allowlist(monkeypatch):
@@ -744,13 +746,19 @@ def test_public_page_passes(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Chromium launch: sandbox on by default, explicit opt-out
+# Chromium launch: sandbox first, one fallback where it cannot start,
+# strict mode and opt-out on request
 # ---------------------------------------------------------------------------
+
+SANDBOX_LOG = "[pid] zygote_host_impl_linux.cc(128)] No usable sandbox! If you are running on Ubuntu"
 
 
 class _FakeBrowserType:
-    def __init__(self, error=None):
+    """``error`` fails every launch; ``sandbox_error`` only a sandboxed one."""
+
+    def __init__(self, error=None, sandbox_error=None):
         self.error = error
+        self.sandbox_error = sandbox_error
         self.calls: list[dict] = []
         self.browser = SimpleNamespace(closed=0)
         self.browser.close = lambda: setattr(self.browser, "closed", self.browser.closed + 1)
@@ -759,6 +767,8 @@ class _FakeBrowserType:
         self.calls.append(kwargs)
         if self.error:
             raise self.error
+        if self.sandbox_error and kwargs["chromium_sandbox"]:
+            raise self.sandbox_error
         return self.browser
 
 
@@ -771,6 +781,7 @@ def test_chromium_launches_sandboxed_and_proxied_by_default(regular_user):
     browser_type = _FakeBrowserType()
     with browser_proxy.guarded_chromium(browser_type) as browser:
         assert browser is browser_type.browser
+        assert browser_proxy.chromium_sandboxed(browser) is True
     (kwargs,) = browser_type.calls
     assert kwargs["chromium_sandbox"] is True
     assert kwargs["headless"] is True
@@ -783,61 +794,227 @@ def test_chromium_launches_sandboxed_and_proxied_by_default(regular_user):
     assert browser_type.browser.closed == 1
 
 
-@pytest.mark.parametrize("value", ["1", "true", " YES "])
-def test_no_sandbox_opt_out_is_explicit(monkeypatch, regular_user, value):
+@pytest.mark.parametrize("value", ["1", "true", " YES ", "on"])
+def test_no_sandbox_opt_out_skips_the_sandboxed_attempt(monkeypatch, regular_user, value, capsys):
     monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_NO_SANDBOX", value)
     browser_type = _FakeBrowserType()
-    with browser_proxy.guarded_chromium(browser_type):
-        pass
-    assert browser_type.calls[0]["chromium_sandbox"] is False
+    with browser_proxy.guarded_chromium(browser_type) as browser:
+        assert browser_proxy.chromium_sandboxed(browser) is False
+    (kwargs,) = browser_type.calls
+    assert kwargs["chromium_sandbox"] is False
+    warning = capsys.readouterr().err
+    assert "disabled by CLAUDE_SEO_CHROMIUM_NO_SANDBOX" in warning
+    assert "rendered without it" in warning
+    assert "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1" in warning
 
 
 @pytest.mark.parametrize("value", ["", "0", "false", "no"])
-def test_other_values_keep_the_sandbox(monkeypatch, regular_user, value):
+def test_other_values_keep_the_sandbox(monkeypatch, regular_user, value, capsys):
     monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_NO_SANDBOX", value)
+    monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX", value)
     browser_type = _FakeBrowserType()
+    with browser_proxy.guarded_chromium(browser_type) as browser:
+        assert browser_proxy.chromium_sandboxed(browser) is True
+    assert browser_type.calls[0]["chromium_sandbox"] is True
+    assert capsys.readouterr().err == ""
+
+
+SANDBOX_LOGS = [
+    "BrowserType.launch: Target page, context or browser has been closed\n"
+    "Browser logs:\nChromium sandboxing failed!\n====",
+    "[err] The SUID sandbox helper binary was found, but is not configured correctly. "
+    "Rather than run without sandboxing I'm aborting now.",
+    "[err] The setuid sandbox is not running as root. Common causes:",
+    SANDBOX_LOG,
+    "Running as root without --no-sandbox is not supported. See https://crbug.com/638180.",
+    "Failed to move to new namespace: PID namespaces supported, Network namespace "
+    "supported, but failed: errno = Operation not permitted",
+]
+
+
+@pytest.mark.parametrize("log", SANDBOX_LOGS)
+def test_sandbox_failure_falls_back_once_behind_the_same_guard(
+    monkeypatch, regular_user, log, capsys
+):
+    monkeypatch.setattr(browser_proxy.sys, "platform", "linux")
+    browser_type = _FakeBrowserType(sandbox_error=RuntimeError(log))
+    with browser_proxy.guarded_chromium(browser_type) as browser:
+        assert browser is browser_type.browser
+        assert browser_proxy.chromium_sandboxed(browser) is False
+    first, second = browser_type.calls  # exactly two launches
+    assert first["chromium_sandbox"] is True and second["chromium_sandbox"] is False
+    # Same guard, same per-run credential, same arguments.
+    assert first["proxy"] == second["proxy"]
+    assert len(second["proxy"]["password"]) >= 32
+    assert {k: v for k, v in first.items() if k != "chromium_sandbox"} == {
+        k: v for k, v in second.items() if k != "chromium_sandbox"
+    }
+    assert "--no-sandbox" not in second["args"]
+    assert browser_type.browser.closed == 1
+
+    warning = capsys.readouterr().err
+    assert warning.count("claude-seo warning") == 1
+    assert "sandbox is unavailable on this system" in warning
+    assert "rendered without it" in warning
+    assert "Ubuntu 23.10 and later block unprivileged user namespaces" in warning
+    assert browser_proxy.USERNS_DOC_URL in warning
+    assert "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1" in warning
+    # No secret and no path in the warning.
+    assert second["proxy"]["password"] not in warning
+    assert "127.0.0.1" not in warning and "zygote" not in warning
+    assert len(warning.strip().splitlines()) <= 3
+
+
+def test_the_ubuntu_hint_is_for_linux_only(monkeypatch, regular_user, capsys):
+    monkeypatch.setattr(browser_proxy.sys, "platform", "darwin")
+    browser_type = _FakeBrowserType(sandbox_error=RuntimeError(SANDBOX_LOG))
     with browser_proxy.guarded_chromium(browser_type):
         pass
-    assert browser_type.calls[0]["chromium_sandbox"] is True
+    warning = capsys.readouterr().err
+    assert "sandbox is unavailable on this system" in warning
+    assert "Ubuntu" not in warning
 
 
-def test_root_gets_a_clear_error_before_launch(monkeypatch):
+def test_root_falls_back_without_a_sandboxed_attempt(monkeypatch, capsys):
     monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 0, raising=False)
     browser_type = _FakeBrowserType()
-    with pytest.raises(browser_proxy.ChromiumSandboxError) as excinfo:
-        with browser_proxy.guarded_chromium(browser_type):
-            pass
-    assert "CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1" in str(excinfo.value)
-    assert "root" in str(excinfo.value)
-    assert browser_type.calls == []
+    with browser_proxy.guarded_chromium(browser_type) as browser:
+        assert browser_proxy.chromium_sandboxed(browser) is False
+    (kwargs,) = browser_type.calls  # exactly one launch, already unsandboxed
+    assert kwargs["chromium_sandbox"] is False
+    assert kwargs["proxy"]["bypass"] == "" and len(kwargs["proxy"]["password"]) >= 32
+    assert "--proxy-bypass-list=<-loopback>" in kwargs["args"]
+    warning = capsys.readouterr().err
+    assert "running as root" in warning
+    assert "rendered without it" in warning
+    assert "a browser exploit would run as root" in warning
+    assert "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1" in warning
 
+
+def test_root_with_the_opt_out_still_gets_the_root_wording(monkeypatch, capsys):
+    monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 0, raising=False)
     monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_NO_SANDBOX", "1")
+    browser_type = _FakeBrowserType()
     with browser_proxy.guarded_chromium(browser_type):
         pass
-    assert browser_type.calls[0]["chromium_sandbox"] is False
+    assert [call["chromium_sandbox"] for call in browser_type.calls] == [False]
+    warning = capsys.readouterr().err
+    assert "disabled by CLAUDE_SEO_CHROMIUM_NO_SANDBOX" in warning
+    assert "a browser exploit would run as root" in warning
 
 
-@pytest.mark.parametrize(
-    "log",
-    [
-        "BrowserType.launch: Target page, context or browser has been closed\n"
-        "Browser logs:\nChromium sandboxing failed!\n====",
-        "[err] The SUID sandbox helper binary was found, but is not configured correctly. "
-        "Rather than run without sandboxing I'm aborting now.",
-        "[err] The setuid sandbox is not running as root. Common causes:",
-        "[pid] zygote_host_impl_linux.cc(128)] No usable sandbox! If you are running on Ubuntu",
-        "Running as root without --no-sandbox is not supported. See https://crbug.com/638180.",
-        "Failed to move to new namespace: PID namespaces supported, Network namespace "
-        "supported, but failed: errno = Operation not permitted",
-    ],
-)
-def test_sandbox_launch_failure_names_the_opt_out(regular_user, log):
-    browser_type = _FakeBrowserType(error=RuntimeError(log))
+def test_the_warning_is_printed_once_per_process(regular_user, capsys):
+    for _ in range(3):
+        browser_type = _FakeBrowserType(sandbox_error=RuntimeError(SANDBOX_LOG))
+        with browser_proxy.guarded_chromium(browser_type) as browser:
+            assert browser_proxy.chromium_sandboxed(browser) is False
+    assert capsys.readouterr().err.count("claude-seo warning") == 1
+
+
+def test_a_failed_fallback_launch_is_raised_unchanged(regular_user, capsys):
+    """One fallback only: its own failure is not retried and not rewritten."""
+    browser_type = _FakeBrowserType(sandbox_error=RuntimeError(SANDBOX_LOG))
+    second = RuntimeError("BrowserType.launch: Executable doesn't exist at /x/chrome")
+    real_launch = browser_type.launch
+
+    def launch(**kwargs):
+        if not kwargs["chromium_sandbox"]:
+            browser_type.calls.append(kwargs)
+            raise second
+        return real_launch(**kwargs)
+
+    browser_type.launch = launch
+    with pytest.raises(RuntimeError) as excinfo:
+        with browser_proxy.guarded_chromium(browser_type):
+            pass
+    assert excinfo.value is second
+    assert len(browser_type.calls) == 2
+    assert capsys.readouterr().err == ""  # nothing was rendered unsandboxed
+
+
+@pytest.mark.parametrize("value", ["1", "true", " YES ", "on"])
+@pytest.mark.parametrize("log", SANDBOX_LOGS[:2] + [SANDBOX_LOG])
+def test_strict_mode_fails_instead_of_falling_back(monkeypatch, regular_user, value, log, capsys):
+    monkeypatch.setattr(browser_proxy.sys, "platform", "linux")
+    monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX", value)
+    browser_type = _FakeBrowserType(sandbox_error=RuntimeError(log))
     with pytest.raises(browser_proxy.ChromiumSandboxError) as excinfo:
         with browser_proxy.guarded_chromium(browser_type):
             pass
-    assert "CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1" in str(excinfo.value)
-    assert excinfo.value.__cause__ is browser_type.error
+    message = str(excinfo.value)
+    assert "sandbox could not start on this system" in message
+    assert "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX" in message
+    assert "CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1" in message
+    assert browser_proxy.USERNS_DOC_URL in message
+    assert excinfo.value.__cause__ is browser_type.sandbox_error
+    assert [call["chromium_sandbox"] for call in browser_type.calls] == [True]
+    assert capsys.readouterr().err == ""
+
+
+def test_strict_mode_as_root_fails_before_launch(monkeypatch):
+    monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 0, raising=False)
+    monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX", "1")
+    browser_type = _FakeBrowserType()
+    with pytest.raises(browser_proxy.ChromiumSandboxError) as excinfo:
+        with browser_proxy.guarded_chromium(browser_type):
+            pass
+    message = str(excinfo.value)
+    assert "root" in message
+    assert "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX" in message
+    assert "CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1" in message
+    assert browser_type.calls == []
+
+
+def test_strict_mode_keeps_a_working_sandbox(monkeypatch, regular_user, capsys):
+    monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX", "1")
+    browser_type = _FakeBrowserType()
+    with browser_proxy.guarded_chromium(browser_type) as browser:
+        assert browser_proxy.chromium_sandboxed(browser) is True
+    assert [call["chromium_sandbox"] for call in browser_type.calls] == [True]
+    assert capsys.readouterr().err == ""
+
+
+@pytest.mark.parametrize("euid", [1000, 0])
+def test_both_variables_set_is_a_conflict_and_require_wins(monkeypatch, euid, capsys):
+    monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: euid, raising=False)
+    monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX", "1")
+    monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_NO_SANDBOX", "1")
+    browser_type = _FakeBrowserType()
+    with pytest.raises(browser_proxy.ChromiumSandboxError) as excinfo:
+        with browser_proxy.guarded_chromium(browser_type):
+            pass
+    message = str(excinfo.value)
+    assert "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX and CLAUDE_SEO_CHROMIUM_NO_SANDBOX are both set" in message
+    assert "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX wins" in message
+    assert browser_type.calls == []
+    assert capsys.readouterr().err == ""
+
+
+@pytest.mark.parametrize("strict", [False, True])
+def test_an_error_after_launch_never_relaunches_or_changes_the_state(
+    monkeypatch, regular_user, strict, capsys
+):
+    """The fallback is decided on the launch error only. A renderer crash or
+    a page error that quotes Chromium's sandbox message is not a launch."""
+    if strict:
+        monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX", "1")
+    browser_type = _FakeBrowserType()
+    error = RuntimeError("Page.goto: Target crashed\n" + SANDBOX_LOG)
+    seen = {}
+    with pytest.raises(RuntimeError) as excinfo:
+        with browser_proxy.guarded_chromium(browser_type) as browser:
+            seen["browser"] = browser
+            raise error
+    assert excinfo.value is error
+    assert not isinstance(excinfo.value, browser_proxy.ChromiumSandboxError)
+    assert [call["chromium_sandbox"] for call in browser_type.calls] == [True]
+    assert browser_proxy.chromium_sandboxed(seen["browser"]) is True
+    assert browser_type.browser.closed == 1
+    assert capsys.readouterr().err == ""
+
+
+def test_chromium_sandboxed_is_none_for_a_foreign_browser():
+    assert browser_proxy.chromium_sandboxed(SimpleNamespace()) is None
 
 
 @pytest.mark.parametrize(
@@ -870,6 +1047,7 @@ def test_unrelated_launch_failures_mentioning_sandbox_keep_their_error(regular_u
             pass
     assert excinfo.value is error
     assert not isinstance(excinfo.value, browser_proxy.ChromiumSandboxError)
+    assert len(browser_type.calls) == 1  # no retry
 
 
 def test_other_launch_failures_are_not_blamed_on_the_sandbox(monkeypatch, regular_user):
@@ -879,6 +1057,7 @@ def test_other_launch_failures_are_not_blamed_on_the_sandbox(monkeypatch, regula
         with browser_proxy.guarded_chromium(browser_type):
             pass
     assert excinfo.value is error
+    assert len(browser_type.calls) == 1  # no retry
 
     # With the opt-out set, a sandbox message is not ours to rewrite either.
     monkeypatch.setenv("CLAUDE_SEO_CHROMIUM_NO_SANDBOX", "1")
@@ -888,6 +1067,7 @@ def test_other_launch_failures_are_not_blamed_on_the_sandbox(monkeypatch, regula
         with browser_proxy.guarded_chromium(browser_type):
             pass
     assert excinfo.value is error
+    assert [call["chromium_sandbox"] for call in browser_type.calls] == [False]
 
 
 def test_guard_proxy_stops_when_the_browser_block_ends(regular_user):
@@ -1007,6 +1187,92 @@ def test_analyze_visual_runs_on_a_public_page(monkeypatch, regular_user):
     result = analyze_visual.analyze_visual(url)
     assert result["error"] is None
     assert result["fonts"]["base_size"] == 16
+    assert result["sandbox"] is True
+
+
+def _visual_manager_in_mode(url, mode, launches):
+    manager = _VisualManager(url)
+    real_launch = manager.playwright.chromium.launch
+
+    def launch(**kwargs):
+        launches.append(kwargs["chromium_sandbox"])
+        if mode == "fallback" and kwargs["chromium_sandbox"]:
+            raise RuntimeError(SANDBOX_LOG)
+        return real_launch(**kwargs)
+
+    manager.playwright.chromium.launch = launch
+    return manager
+
+
+@pytest.mark.parametrize(
+    "mode,sandbox,expected,warning",
+    [
+        ("sandboxed", True, [True], ""),
+        ("fallback", False, [True, False], "sandbox is unavailable on this system"),
+        ("opt_out", False, [False], "disabled by CLAUDE_SEO_CHROMIUM_NO_SANDBOX"),
+    ],
+)
+def test_analyze_visual_json_says_whether_chromium_was_sandboxed(
+    monkeypatch, regular_user, capsys, mode, sandbox, expected, warning
+):
+    import json
+
+    _map_public_host(monkeypatch, 443)
+    url = f"https://{PUBLIC_HOST}/"
+    if mode == "opt_out":
+        monkeypatch.setenv(browser_proxy.NO_SANDBOX_ENV, "1")
+    launches: list[bool] = []
+    monkeypatch.setattr(analyze_visual, "validate_url_strict", lambda u: (u, "93.184.216.34"))
+    monkeypatch.setattr(
+        analyze_visual, "sync_playwright", lambda: _visual_manager_in_mode(url, mode, launches)
+    )
+    monkeypatch.setattr(sys, "argv", ["analyze_visual.py", url, "--json"])
+    analyze_visual.main()
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)  # stdout is JSON only
+    assert payload["error"] is None
+    assert payload["sandbox"] is sandbox
+    assert launches == expected
+    assert (warning in captured.err) if warning else (captured.err == "")
+
+
+def test_analyze_visual_error_after_launch_keeps_the_sandbox_state(
+    monkeypatch, regular_user, capsys
+):
+    """A page error that quotes Chromium's sandbox message is not a launch
+    failure: no relaunch, no fallback, and the result still says sandboxed."""
+    url = f"https://{PUBLIC_HOST}/"
+    launches: list[bool] = []
+
+    def manager():
+        fake = _visual_manager_in_mode(url, "sandboxed", launches)
+
+        def goto(*_a, **_k):
+            raise RuntimeError("Page.goto: Target crashed\n" + SANDBOX_LOG)
+
+        fake.page.goto = goto
+        return fake
+
+    monkeypatch.setattr(analyze_visual, "validate_url_strict", lambda u: (u, "93.184.216.34"))
+    monkeypatch.setattr(analyze_visual, "sync_playwright", manager)
+    result = analyze_visual.analyze_visual(url)
+    assert result["error"].startswith("Page.goto: Target crashed")
+    assert launches == [True]
+    assert result["sandbox"] is True
+    assert capsys.readouterr().err == ""
+
+
+def test_analyze_visual_in_strict_mode_reports_the_sandbox_failure(monkeypatch):
+    monkeypatch.setenv(browser_proxy.REQUIRE_SANDBOX_ENV, "1")
+    monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 0, raising=False)
+    monkeypatch.setattr(analyze_visual, "validate_url_strict", lambda u: (u, "93.184.216.34"))
+    monkeypatch.setattr(
+        analyze_visual, "sync_playwright", lambda: _VisualManager("https://site.example/")
+    )
+    result = analyze_visual.analyze_visual("https://site.example/")
+    assert "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX" in result["error"]
+    assert "CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1" in result["error"]
+    assert result["sandbox"] is None
 
 
 # ---------------------------------------------------------------------------

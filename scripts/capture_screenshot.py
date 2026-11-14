@@ -3,12 +3,15 @@
 Capture screenshots of web pages using Playwright.
 
 The SSRF pre-flight check is delegated to url_safety. Chromium is launched
-through browser_proxy.guarded_chromium: sandboxed, with every connection
+through browser_proxy.guarded_chromium: sandboxed where the host can start
+the Chromium sandbox ("sandbox" in the result says so), with every connection
 (redirect hops included) forced through a local proxy that validates and
 pins the destination. A Playwright route() handler also aborts any request
-whose hostname resolves to a non-public IP (defence in depth). Set
-CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1 only where the Chromium sandbox cannot
-start (root, some containers).
+whose hostname resolves to a non-public IP (defence in depth). Where the
+sandbox cannot start (Ubuntu 23.10 and later, most containers, root) the
+browser runs without it, with a warning on stderr and "sandbox": false.
+CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1 makes that an error;
+CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1 skips the sandbox attempt.
 
 Full-page captures (--full) get two hygiene steps before the picture is
 taken, both bounded so a page cannot hang the capture:
@@ -97,6 +100,7 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from browser_proxy import (  # noqa: E402
     PageNotLoadedError,
+    chromium_sandboxed,
     guarded_chromium,
     require_public_page,
 )
@@ -438,6 +442,9 @@ def capture_screenshot(
         "output": output_path,
         "viewport": viewport,
         "success": False,
+        # True or False once a browser was launched (False: no Chromium
+        # sandbox on this system); None when none was.
+        "sandbox": None,
         "error": None,
         "full_page": full_page,
         "scroll_through": None,
@@ -473,6 +480,7 @@ def capture_screenshot(
 
     try:
         with sync_playwright() as p, guarded_chromium(p.chromium, url) as browser:
+            result["sandbox"] = chromium_sandboxed(browser)
             context = new_guarded_context(
                 browser,
                 route_handler,

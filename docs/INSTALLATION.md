@@ -78,6 +78,12 @@ back to global or user package installation.
 If core setup failed, rerun the inspected installer. If only Chromium failed,
 the installer reports a degraded result and raw-fetch analysis remains available.
 
+Chromium runs with its sandbox wherever the system can start it. On Ubuntu
+23.10 and later, in most containers and as root it cannot, so pages are
+rendered without the sandbox and a warning says so (`"sandbox": false` in JSON
+results). Set `CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1` to fail instead. See
+[Troubleshooting](TROUBLESHOOTING.md) for how to enable the sandbox.
+
 ## Installation Paths
 
 The installer copies files to:

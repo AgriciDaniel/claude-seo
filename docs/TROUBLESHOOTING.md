@@ -112,6 +112,61 @@ interpreter and persistent browser directory:
 
 ---
 
+### Chromium Sandbox Warning
+
+**Symptom:** rendering, screenshots or visual analysis work, but stderr shows
+`claude-seo warning: Chromium's sandbox is unavailable on this system, so the
+page is rendered without it` (or `running as root`, or `disabled by
+CLAUDE_SEO_CHROMIUM_NO_SANDBOX`), and the JSON result has `"sandbox": false`.
+
+**Cause:** Claude SEO starts Chromium with its sandbox wherever the system can
+start it. Some systems cannot:
+
+- **Ubuntu 23.10 and later** (and GitHub's Ubuntu runners): AppArmor blocks
+  unprivileged user namespaces by default, which the sandbox needs.
+- **Docker and other containers:** the default seccomp profile blocks user
+  namespaces, and most images run as root.
+- **root:** Chromium does not run sandboxed as root.
+
+There the browser is launched once more without the sandbox, behind the same
+egress guard. The audit still works, but a browser exploit served by an audited
+page is not contained (as root, it runs as root).
+
+**Solution:** to get the sandbox back:
+
+- Ubuntu: follow Chromium's guide on AppArmor user namespace restrictions:
+  <https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md>
+- Containers: run as a non-root user and allow user namespaces (Playwright's
+  Docker guide ships a seccomp profile for this).
+- root: run Claude SEO as a regular user.
+
+Two environment variables change the policy:
+
+| Variable | Effect |
+|----------|--------|
+| `CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1` | Strict mode: never render without the sandbox; fail instead |
+| `CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1` | Skip the sandbox attempt (the warning still appears) |
+
+Accepted values are `1`, `true`, `yes` and `on`.
+
+---
+
+### Chromium Sandbox Required but Unavailable
+
+**Symptom:** the result's `error` says `Chromium's sandbox could not start on
+this system` (or `cannot start as root`) `and CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX
+is set, so nothing was rendered`, or that both variables are set and contradict
+each other.
+
+**Cause:** strict mode is on and the sandbox cannot start (see the entry above
+for why). With both variables set, strict mode wins and the launch is refused.
+
+**Solution:** enable the sandbox as described above, or unset
+`CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX` to allow the automatic fallback with a
+warning. For the conflict, unset one of the two variables.
+
+---
+
 ### Permission Denied Errors
 
 **Symptom:** `Permission denied` when running scripts

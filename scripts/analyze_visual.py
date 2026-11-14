@@ -2,10 +2,13 @@
 """
 Analyze visual aspects of a web page using Playwright.
 
-Chromium is launched through browser_proxy.guarded_chromium: sandboxed, with
-every connection forced through a local proxy that refuses non-public
-destinations, redirect hops included. Set CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1
-only where the Chromium sandbox cannot start (root, some containers).
+Chromium is launched through browser_proxy.guarded_chromium: sandboxed where
+the host can start the Chromium sandbox, with every connection forced through
+a local proxy that refuses non-public destinations, redirect hops included.
+Where the sandbox cannot start (Ubuntu 23.10 and later, most containers,
+root) the browser runs without it, with a warning on stderr and
+"sandbox": false in the result. CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1 makes
+that an error; CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1 skips the sandbox attempt.
 
 Usage:
     python analyze_visual.py https://example.com
@@ -29,6 +32,7 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from browser_proxy import (  # noqa: E402
     PageNotLoadedError,
+    chromium_sandboxed,
     guarded_chromium,
     require_public_page,
 )
@@ -86,6 +90,9 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             "base_size": None,
             "readable": True,
         },
+        # True or False once a browser was launched (False: no Chromium
+        # sandbox on this system); None when none was.
+        "sandbox": None,
         "error": None,
     }
 
@@ -107,6 +114,7 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
 
     try:
         with sync_playwright() as p, guarded_chromium(p.chromium, url) as browser:
+            result["sandbox"] = chromium_sandboxed(browser)
 
             # Desktop analysis
             desktop = new_guarded_context(browser, route_handler, viewport={"width": 1920, "height": 1080})
