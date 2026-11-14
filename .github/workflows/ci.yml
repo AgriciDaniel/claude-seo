@@ -137,13 +137,9 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-    env:
-      # GitHub's Ubuntu runners block unprivileged user namespaces, so
-      # Chromium's sandbox cannot start there. Linux leg only, and only for
-      # now: an automatic fallback in browser_proxy.py may replace this.
-      # The test files clear the variable in their autouse fixtures, so it
-      # reaches only code that runs outside those fixtures.
-      CLAUDE_SEO_CHROMIUM_NO_SANDBOX: ${{ matrix.os == 'ubuntu-latest' && '1' || '' }}
+    # GitHub's Ubuntu runners block unprivileged user namespaces, so Chromium's
+    # sandbox cannot start there and the Linux leg exercises the automatic
+    # fallback in browser_proxy.py. Windows and macOS run sandboxed.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

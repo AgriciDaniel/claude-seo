@@ -14,15 +14,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   loopback, private network or cloud metadata addresses. Unlighthouse runs behind the same
   guard. Reported by namaserajesh and by Tobi (Nordalux), who also wrote the initial fix
   (GHSA-8wrm-4mmq-6fx3, GHSA-9pc7-p6cr-942h).
-- Chromium now runs with its sandbox enabled. If the sandbox cannot start (running as root,
-  some containers), the run stops with an error that names the opt-out,
-  `CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1`. Reported by stephaneRR and shayanabbas
+- Chromium now runs with its sandbox wherever the system can start it. Where it cannot
+  (Ubuntu 23.10 and later, most containers, root), the page is rendered without it, a warning
+  on stderr says why, and the JSON result carries `sandbox: false`. Set
+  `CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1` to fail instead; `CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1`
+  skips the sandbox. Reported by stephaneRR and shayanabbas
   (GHSA-4fm4-49gc-r4pf, GHSA-mh4v-hwxp-8fg3).
 - Report values from Search Console, PageSpeed, CrUX, URL Inspection and audit JSON are
   HTML-escaped everywhere in the PDF and HTML report, and PDF rendering can load only the
   chart images generated for that report and the bundled logo. Other local files and all
   network URLs are refused. Reported by samnguyen80 and namaserajesh
   (GHSA-f8h8-fv8r-g2wh, GHSA-x43m-h8x6-rr52).
+- On Windows the PDF renderer no longer contacts a network share when report markup contains
+  a `file:` URL that points at a UNC or device path. Such URLs are refused before any file
+  access.
 - The XLSX export stores every text value as plain text, so values starting with `=`, `+`,
   `-` or `@` can no longer run as formulas. Reported by 0xGenesi (GHSA-gc25-jx72-jj4q).
 - `parse_html.py --url` reads the page under the 10 MB cap instead of loading the whole
@@ -66,6 +71,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   files, and prints manifest values in quoted form so a manifest cannot forge output lines.
 - `parse_html.py --url` stops after 60 seconds in total, so a server that sends data very
   slowly can no longer hold it open.
+- Reports for domains with characters Windows does not allow in file names are written under
+  a safe name, and a report file that cannot be written returns a clear error.
+- The browser guard gives a plain-HTTP response head one 30 second deadline and drops a
+  request as soon as its client disconnects.
 
 ## [2.6.0] - 2026-11-10
 
