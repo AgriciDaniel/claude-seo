@@ -27,7 +27,7 @@ Result JSON::
       "host": "<normalized host>",
       "tls": {
         "host", "port", "connected_ip",
-        "verified": <bool>,            # system trust store and hostname
+        "verified": <bool>,            # trusted roots (below) and hostname
         "verify_error": <str|null>,    # OpenSSL text when verified is false
         "verify_code": <int|null>,
         "certificate_read": <bool>,
@@ -93,6 +93,11 @@ can say why (expired, wrong host); no data is sent on it either. Header and
 redirect checks go through ``url_safety.safe_requests_get`` only. When a proxy
 environment variable is set, the raw socket would bypass the proxy, so the
 TLS section is skipped.
+
+Trusted roots: the certificate is verified against Python's default context
+(the system trust store) plus certifi's CA bundle when certifi is importable.
+certifi comes with ``requests``. The extra bundle matters on Windows, where
+Python sees only the roots already present in the local store.
 
 Exit status::
 
@@ -375,6 +380,24 @@ def _pinned_address(value) -> str:
     return str(ipaddress.ip_address(str(value).strip().strip("[]")))
 
 
+def _load_certifi_roots(context: ssl.SSLContext) -> bool:
+    """Add certifi's CA bundle to ``context`` when certifi is installed.
+
+    On Windows, Python sees only the roots already present in the local
+    certificate store; Windows downloads the others on demand for its own
+    TLS stack, not for OpenSSL. A valid chain to a root that has not been
+    fetched yet then fails here while it works in every browser (#421). The
+    default context is kept and certifi's roots are added to it. A missing
+    or unreadable bundle is never an error: the system store still applies.
+    """
+    try:
+        import certifi
+        context.load_verify_locations(certifi.where())
+    except Exception:  # optional extra roots must never break the probe
+        return False
+    return True
+
+
 def _handshake(ip: str, port: int, server_hostname: str, timeout: float, *, verify: bool) -> dict:
     """One TLS handshake to ``ip``. Sends and reads nothing after it.
 
@@ -391,6 +414,7 @@ def _handshake(ip: str, port: int, server_hostname: str, timeout: float, *, veri
     context = ssl.create_default_context()
     context.minimum_version = ssl.TLSVersion.TLSv1_2
     if verify:
+        _load_certifi_roots(context)
         if getattr(ssl, "HAS_NEVER_CHECK_COMMON_NAME", False):
             # Browsers match subjectAltName only; do the same.
             context.hostname_checks_common_name = False
@@ -401,7 +425,9 @@ def _handshake(ip: str, port: int, server_hostname: str, timeout: float, *, veri
     raw = socket.create_connection((ip, port), timeout=timeout)
     tls = None
     try:
-        raw.settimeout(max(0.1, deadline - time.monotonic()))
+        # Never above the requested timeout: (now + timeout) - now can come
+        # out a few ulps over it when the clock has not ticked in between.
+        raw.settimeout(min(timeout, max(0.1, deadline - time.monotonic())))
         tls = context.wrap_socket(raw, server_hostname=server_hostname)
         cipher = tls.cipher() or (None, None, None)
         return {
@@ -910,7 +936,8 @@ def _tls_findings(tls: dict, redirects: dict) -> list[dict]:
                             {"host": tls["host"], "san": tls.get("san", [])[:10], **verify}))
     if not tls["verified"] and not (expired or not_yet or mismatch):
         out.append(_finding("tls-cert-not-trusted", "High",
-                            "The certificate chain did not verify against the system trust store.",
+                            "The certificate chain did not verify against the trusted root "
+                            "certificates (system store, plus certifi's bundle when installed).",
                             verify))
     days = tls.get("days_until_expiry")
     if not expired and days is not None and 0 <= days <= EXPIRY_WARN_DAYS:

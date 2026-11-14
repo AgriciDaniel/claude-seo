@@ -326,6 +326,96 @@ def test_socket_connects_to_validated_ip_and_hostname_is_sni_only(net, public, m
     assert net.verified.closed and net.socks[0].closed
 
 
+def test_handshake_timeout_never_exceeds_the_requested_timeout(net, public, monkeypatch) -> None:
+    # Windows CI saw 7.000000000000057 for a 7 second budget: the clock had
+    # not ticked between the two monotonic() calls and (t + 7) - t rounds up.
+    frozen = 511.604
+    assert (frozen + 7) - frozen > 7
+    monkeypatch.setattr(tc.time, "monotonic", lambda: frozen)
+    net.verified = FakeTLS(cert=peercert("example.com"))
+    tc.check_tls("https://example.com/", timeout=7, now=NOW)
+    assert net.socks[0].timeouts == [7]
+
+
+# ---------------------------------------------------------------------------
+# Trusted roots: the default context plus certifi's bundle (#421)
+# ---------------------------------------------------------------------------
+
+class _FakeCertifi:
+    def __init__(self, path: str) -> None:
+        self._path = path
+
+    def where(self) -> str:
+        return self._path
+
+
+@pytest.fixture
+def loaded_roots(monkeypatch) -> list:
+    loaded: list = []
+
+    def load_verify_locations(self, cafile=None, capath=None, cadata=None):
+        loaded.append(cafile)
+
+    monkeypatch.setattr(ssl.SSLContext, "load_verify_locations", load_verify_locations)
+    return loaded
+
+
+def test_verifying_handshake_adds_certifi_roots_to_the_default_context(
+        net, public, monkeypatch, loaded_roots) -> None:
+    monkeypatch.setitem(sys.modules, "certifi", _FakeCertifi("/bundle/cacert.pem"))
+    defaults: list = []
+    real_default = ssl.create_default_context
+
+    def recording_default(*args, **kwargs):
+        defaults.append(1)
+        return real_default(*args, **kwargs)
+
+    monkeypatch.setattr(ssl, "create_default_context", recording_default)
+    net.verified = FakeTLS(cert=peercert("example.com"))
+    tls = tc.check_tls("https://example.com/", now=NOW)
+    assert tls["verified"] is True
+    assert defaults == [1]  # the system store is still the starting point
+    assert loaded_roots == ["/bundle/cacert.pem"]
+
+
+def test_certificate_reading_handshake_does_not_load_certifi(
+        net, public, monkeypatch, loaded_roots) -> None:
+    monkeypatch.setitem(sys.modules, "certifi", _FakeCertifi("/bundle/cacert.pem"))
+    net.verified = ssl.SSLCertVerificationError(1, "certificate verify failed")
+    net.unverified = FakeTLS(der=FIXTURE_DER)
+    tc.check_tls("https://fixture.example.test/", now=FIXTURE_MID_VALIDITY)
+    assert [w["verify"] for w in net.wraps] == [True, False]
+    assert loaded_roots == ["/bundle/cacert.pem"]
+
+
+def test_missing_certifi_is_not_an_error(net, public, monkeypatch, loaded_roots) -> None:
+    monkeypatch.setitem(sys.modules, "certifi", None)  # import certifi raises ImportError
+    net.verified = FakeTLS(cert=peercert("example.com"))
+    tls = tc.check_tls("https://example.com/", now=NOW)
+    assert tls["verified"] is True and "error" not in tls
+    assert loaded_roots == []
+
+
+def test_unreadable_certifi_bundle_is_not_an_error(net, public, monkeypatch) -> None:
+    def unreadable(self, cafile=None, capath=None, cadata=None):
+        raise FileNotFoundError(cafile)
+
+    monkeypatch.setattr(ssl.SSLContext, "load_verify_locations", unreadable)
+    monkeypatch.setitem(sys.modules, "certifi", _FakeCertifi("/gone/cacert.pem"))
+    net.verified = FakeTLS(cert=peercert("example.com"))
+    tls = tc.check_tls("https://example.com/", now=NOW)
+    assert tls["verified"] is True and "error" not in tls
+
+
+def test_not_trusted_finding_no_longer_claims_only_the_system_store() -> None:
+    tls = {"verified": False, "verify_error": "unable to get local issuer certificate",
+           "verify_code": 20, "host": "example.com", "covers_host": True}
+    findings = tc._tls_findings(tls, {})
+    [finding] = [f for f in findings if f["id"] == "tls-cert-not-trusted"]
+    assert "certifi" in finding["message"]
+    assert "against the system trust store." not in finding["message"]
+
+
 def test_ipv6_validated_address_and_explicit_port_are_used(net, monkeypatch) -> None:
     monkeypatch.setattr(tc, "validate_url_strict", lambda url: (url, "2606:2800:220:1::1946"))
     net.verified = FakeTLS(cert=peercert("example.com"))
