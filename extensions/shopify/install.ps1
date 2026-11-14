@@ -43,17 +43,23 @@ if ($InstallMode -eq "manual") {
 # Optional: start .shopify-env from the template. It will hold a client
 # credential, so access is cut down to the current user and an existing file is kept.
 $EnvTarget = Join-Path (Get-Location).Path ".shopify-env"
-if (Test-Path $EnvTarget) {
+if (Test-Path -LiteralPath $EnvTarget) {
     Write-Host "$EnvTarget already exists; left untouched."
 } else {
     Write-Host ""
     Write-Host "The signature belongs in .shopify-env, in the folder you run audits from."
     $Reply = Read-Host "Create $EnvTarget from the template now? [y/N]"
     if ($Reply -match '^[Yy]$') {
-        Copy-Item (Join-Path $SourceDir ".shopify-env.example") $EnvTarget
-        # Windows has no mode bits: drop inherited access and grant only this user.
-        & icacls $EnvTarget /inheritance:r /grant:r "$($env:USERNAME):F" | Out-Null
-        if ($LASTEXITCODE -ne 0) { Write-Host "! Could not restrict access to $EnvTarget. Restrict it by hand before adding a signature." }
+        Copy-Item -LiteralPath (Join-Path $SourceDir ".shopify-env.example") -Destination $EnvTarget
+        # Windows has no mode bits: drop inherited access and grant only this
+        # user, named by SID so a renamed or domain account still matches.
+        $Restricted = $false
+        try {
+            $Sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+            & icacls $EnvTarget /inheritance:r /grant:r "*$($Sid):F" | Out-Null
+            $Restricted = ($LASTEXITCODE -eq 0)
+        } catch { $Restricted = $false }
+        if (-not $Restricted) { Write-Host "! Could not restrict access to $EnvTarget. Restrict it by hand before adding a signature." }
         Write-Host "Created $EnvTarget (placeholders only). Keep it out of git."
     }
 }

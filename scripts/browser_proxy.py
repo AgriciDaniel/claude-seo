@@ -20,8 +20,9 @@ What it enforces
   itself, so the pin degrades to the validation, as on the raw HTTP path.
 * That policy (``url_safety.upstream_http_proxy``) wants a public
   ``http://`` proxy, or one the operator named in
-  ``CLAUDE_SEO_TRUSTED_PROXIES``, which may then sit on loopback, RFC 1918
-  or RFC 6598 (never link-local or a metadata address). Trusting a proxy
+  ``CLAUDE_SEO_TRUSTED_PROXIES``, which may then sit on loopback, RFC 1918,
+  RFC 6598 or another non-public range (never link-local or a known metadata
+  address). Trusting a proxy
   changes where the guard may send a request, never which destinations it
   accepts: every request and CONNECT is still resolved here and refused
   unless every address is public, the proxy's own address included. The

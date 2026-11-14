@@ -655,3 +655,38 @@ def test_nothing_in_a_response_can_add_to_the_list(monkeypatch) -> None:
     assert os.environ.get(ENV) == before.get(ENV) == "127.0.0.1:3128"
     assert url_safety._trusted_proxies() == (("127.0.0.1", 3128),)
     assert url_safety._is_trusted_proxy("10.0.0.5", 3128) is False
+
+
+# Review round 3: metadata addresses the first list missed, 6to4 wrapping,
+# and proxy URLs whose parse errors would echo credentials.
+@pytest.mark.parametrize(
+    "address",
+    ["fd20:ce::254", "fd20:00ce:0:0:0:0:0:254", "192.0.0.192", "::ffff:192.0.0.192",
+     "2002:a9fe:a9fe::1", "2002:6464:64c8::"],
+)
+def test_more_metadata_forms_are_never_allowlistable(address):
+    assert not url_safety._is_allowlistable_ip(address)
+
+
+def test_a_6to4_wrapped_private_address_is_judged_by_the_wrapped_address():
+    assert url_safety._is_allowlistable_ip("2002:0a00:0001::1")  # 10.0.0.1
+
+
+@pytest.mark.parametrize(
+    "proxy",
+    ["http://puser:S3cretPw-zzQ@127.0.0.1:99999", "http://puser:S3cretPw-zzQ@127.0.0.1:70000"],
+)
+def test_a_malformed_proxy_url_never_echoes_its_credentials(monkeypatch, proxy):
+    _proxies(monkeypatch, {"http": proxy, "https": proxy})
+    for call in (lambda: url_safety.upstream_http_proxy("http://example.com/"),
+                 lambda: url_safety._proxy_endpoints("http://example.com/")):
+        with pytest.raises(url_safety.URLSafetyError) as info:
+            call()
+        assert "S3cretPw" not in str(info.value) and "puser" not in str(info.value)
+
+
+def test_an_unknown_proxy_scheme_is_not_echoed(monkeypatch):
+    _proxies(monkeypatch, {"http": "puser:pw@127.0.0.1:3128"})
+    with pytest.raises(url_safety.URLSafetyError) as info:
+        url_safety.upstream_http_proxy("http://example.com/")
+    assert "puser" not in str(info.value)

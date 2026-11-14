@@ -69,7 +69,8 @@ main() {
     # credential, so it is created owner-only and an existing file is kept.
     ENV_TARGET="${PWD}/.shopify-env"
     REPLY=""
-    if [ -e "${ENV_TARGET}" ]; then
+    if [ -e "${ENV_TARGET}" ] || [ -L "${ENV_TARGET}" ]; then
+        # A dangling symlink counts too: BSD cp would write through it.
         echo "✓ ${ENV_TARGET} already exists; left untouched."
     else
         echo

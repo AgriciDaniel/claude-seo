@@ -344,9 +344,33 @@ _NEVER_ALLOWLISTABLE_HOSTNAMES: frozenset[str] = frozenset(
         "169.254.169.254",  # AWS, Azure, GCP, Oracle, Alibaba metadata IPv4
         "100.100.100.200",  # Alibaba metadata, inside RFC 6598
         "fd00:ec2::254",    # AWS IMDS IPv6
+        "fd20:ce::254",     # GCP metadata IPv6
+        "192.0.0.192",      # Oracle Cloud metadata IPv4
         "0.0.0.0",
     }
 )
+
+
+_KNOWN_PROXY_SCHEMES = frozenset({"http", "https", "socks4", "socks4a", "socks5", "socks5h"})
+
+
+def _parse_proxy_url(proxy: str):  # type: ignore[no-untyped-def]
+    """Parse a configured proxy URL without ever echoing it.
+
+    A proxy URL can carry a username and password. urllib3 and urlparse put
+    the whole URL into their error text when it is malformed (an
+    out-of-range port, for one), so every failure here becomes one fixed
+    message that names no part of the URL.
+    """
+    try:
+        parsed = urlparse(requests.utils.prepend_scheme_if_needed(proxy, "http"))
+        parsed.port  # noqa: B018  (raises ValueError for an out-of-range port)
+    except (ValueError, _urllib3_exceptions.LocationParseError):
+        raise URLSafetyError(
+            "Configured HTTP proxy URL is malformed; check the proxy "
+            "environment variables."
+        ) from None
+    return parsed
 
 
 def _is_allowlistable_ip(ip_str: str) -> bool:
@@ -368,6 +392,10 @@ def _is_allowlistable_ip(ip_str: str) -> bool:
         return False  # Zone identifier, refused as in is_safe_ip.
     if ip.version == 6 and ip.ipv4_mapped is not None:
         ip = ip.ipv4_mapped
+    if ip.version == 6 and ip.sixtofour is not None:
+        # 6to4 (2002::/16) wraps an IPv4 address; judge the wrapped one, so
+        # 2002:a9fe:a9fe:: cannot stand in for 169.254.169.254.
+        ip = ip.sixtofour
     if str(ip) in _NEVER_ALLOWLISTABLE_HOSTNAMES:
         return False
     if ip.is_link_local or ip.is_multicast or ip.is_unspecified:
@@ -452,8 +480,8 @@ def _is_allowlisted_local_target(hostname: str, port: Optional[int]) -> bool:
 #   * A host must be named. ``host:port`` matches that port only. There is no
 #     range, wildcard, scheme or credential: an entry that carries one is
 #     dropped, so a typo trusts nothing.
-#   * The ranges are those of ``CLAUDE_SEO_LOCAL_TARGETS``: loopback, RFC 1918
-#     and RFC 6598. Link-local and the cloud metadata endpoints are refused
+#   * The ranges are those of ``CLAUDE_SEO_LOCAL_TARGETS`` (loopback, RFC 1918,
+#     RFC 6598 and other non-public ranges, see ``_is_allowlistable_ip``). Link-local and the cloud metadata endpoints are refused
 #     even when listed, when the entry is checked and again when a listed
 #     name resolves inside the pinned scope.
 #   * It is read from the process environment only. Nothing a page, a
@@ -822,7 +850,7 @@ def _proxy_endpoints(url: str, proxies: Optional[dict] = None) -> frozenset:
     proxy = requests.utils.select_proxy(url, merged)
     if not proxy:
         return frozenset()
-    parsed = urlparse(requests.utils.prepend_scheme_if_needed(proxy, "http"))
+    parsed = _parse_proxy_url(proxy)
     if not parsed.hostname:
         return frozenset()
     return frozenset({(parsed.hostname.lower(), _proxy_port(parsed))})
@@ -1059,11 +1087,12 @@ def upstream_http_proxy(url: str) -> Optional[tuple[str, int, Optional[str]]]:
     proxy = requests.utils.select_proxy(url, requests.utils.get_environ_proxies(url))
     if not proxy:
         return None
-    parsed = urlparse(requests.utils.prepend_scheme_if_needed(proxy, "http"))
+    parsed = _parse_proxy_url(proxy)
     if parsed.scheme != "http" or not parsed.hostname:
+        shown = repr(parsed.scheme) if parsed.scheme in _KNOWN_PROXY_SCHEMES else "that is not http"
         raise URLSafetyError(
             f"Unsupported proxy for browser rendering: scheme "
-            f"{parsed.scheme!r}. Only http:// proxies are supported; point "
+            f"{shown}. Only http:// proxies are supported; point "
             "the proxy environment variable at one, or unset it."
         )
     port = _proxy_port(parsed)
