@@ -1017,13 +1017,23 @@ def _webmcp_markup(soup, base: str, data: dict) -> list:
 # --------------------------------------------------------------------------- markdown
 
 
+def _vary_covers_accept(vary: str) -> bool:
+    """True when a Vary header names the Accept request header, or is ``*``.
+
+    Vary is a comma-separated list of field names, so ``Accept-Encoding`` or
+    ``Accept-Language`` must not count as ``Accept``.
+    """
+    tokens = {token.strip().lower() for token in str(vary or "").split(",")}
+    return "accept" in tokens or "*" in tokens
+
+
 def audit_markdown(url: str, page: dict) -> tuple[list, dict]:
     neg = fetch(url, headers={"Accept": "text/markdown"})
     neg_ct = _ctype(neg)
-    vary = (neg.get("headers") or {}).get("vary", "").lower()
+    vary_accept = _vary_covers_accept((neg.get("headers") or {}).get("vary", ""))
     negotiated = neg["status"] == 200 and "text/markdown" in neg_ct
     data = {"negotiation": {"status": neg["status"], "content_type": neg_ct,
-                            "vary_accept": "accept" in vary,
+                            "vary_accept": vary_accept,
                             "x_markdown_tokens": (neg.get("headers") or {}).get("x-markdown-tokens"),
                             "content_signal_header": (neg.get("headers") or {}).get("content-signal")}}
     alternates = []
@@ -1040,7 +1050,7 @@ def audit_markdown(url: str, page: dict) -> tuple[list, dict]:
                           "ok": sib["status"] == 200 and not _ctype(sib).startswith("text/html")}
     ok = negotiated or any(a["ok"] for a in alternates) or data["md_sibling"]["ok"]
     issues = []
-    if negotiated and "accept" not in vary:
+    if negotiated and not vary_accept:
         issues.append("Markdown negotiation without 'Vary: Accept' lets caches serve "
                       "Markdown to browsers or HTML to agents.")
     status = "pass" if ok and not issues else ("warn" if ok else "info")
