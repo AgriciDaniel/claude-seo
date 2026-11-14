@@ -525,11 +525,15 @@ def test_route_handler_aborts_private_resolution() -> None:
 
 
 def test_route_handler_allows_data_urls() -> None:
-    """data:, blob:, chrome-extension: schemes are not DNS-bound."""
+    """Only inert, in-memory schemes can pass without DNS validation."""
     handler = url_safety.make_safe_playwright_route_handler()
     route = _FakeRoute()
     handler(route, _FakeRequest("data:image/png;base64,iVBOR..."))
     assert route.action == "continue"
+
+    route = _FakeRoute()
+    handler(route, _FakeRequest("file:///etc/passwd"))
+    assert route.action == "abort"
 
 
 def test_route_handler_blocks_specified_resource_types() -> None:

@@ -1298,8 +1298,12 @@ def make_safe_playwright_route_handler(
 
             parsed = urlparse(request.url)
             if parsed.scheme not in ("http", "https"):
-                # data:, blob:, chrome-extension:, etc.: no DNS involved.
-                route.continue_()
+                # In-memory resources need no socket. Refuse file:, chrome:
+                # and extension schemes rather than trusting page navigation.
+                if parsed.scheme in ("data", "blob", "about"):
+                    route.continue_()
+                else:
+                    route.abort()
                 return
             host = parsed.hostname
             if not host:

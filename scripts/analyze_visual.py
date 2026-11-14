@@ -22,6 +22,7 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
+from browser_proxy import guarded_chromium, require_public_page  # noqa: E402
 from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     URLSafetyError,
     make_safe_playwright_route_handler,
@@ -96,14 +97,14 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
     route_handler = make_safe_playwright_route_handler()
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+        with sync_playwright() as p, guarded_chromium(p.chromium) as browser:
 
             # Desktop analysis
             desktop = new_guarded_context(browser, route_handler, viewport={"width": 1920, "height": 1080})
             page = desktop.new_page()
             page.route("**/*", route_handler)
             page.goto(url, wait_until="networkidle", timeout=timeout)
+            require_public_page(page)
 
             # Check H1 visibility above fold
             h1 = page.query_selector("h1")
@@ -159,6 +160,7 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             page = mobile.new_page()
             page.route("**/*", route_handler)
             page.goto(url, wait_until="networkidle", timeout=timeout)
+            require_public_page(page)
 
             # Check viewport meta
             viewport_meta = page.query_selector('meta[name="viewport"]')

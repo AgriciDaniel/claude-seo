@@ -197,6 +197,7 @@ class FakeManager:
 
 def _capture(monkeypatch, page, **kwargs):
     monkeypatch.setattr(cs, "validate_url_strict", lambda url: (url, "93.184.216.34"))
+    monkeypatch.setattr(cs, "require_public_page", lambda page: None)
     monkeypatch.setattr(cs, "sync_playwright", lambda: FakeManager(page))
     return cs.capture_screenshot(URL, "/out/shot.png", **kwargs)
 
@@ -749,6 +750,7 @@ def test_cli_json_says_when_the_scroll_timed_out(tmp_path, monkeypatch, capsys) 
     monkeypatch.chdir(tmp_path)
     page = FakePage(hang="scroll_to")
     monkeypatch.setattr(cs, "validate_url_strict", lambda url: (url, "93.184.216.34"))
+    monkeypatch.setattr(cs, "require_public_page", lambda page: None)
     monkeypatch.setattr(cs, "sync_playwright", lambda: FakeManager(page))
     monkeypatch.setattr(sys, "argv", ["capture_screenshot.py", URL, "--full", "--json"])
     cs.main()

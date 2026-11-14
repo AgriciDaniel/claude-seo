@@ -135,6 +135,7 @@ except ImportError:  # pragma: no cover
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
+from browser_proxy import guarded_chromium, require_public_page  # noqa: E402
 from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     MAX_PAGE_BYTES,
     URLSafetyError,
@@ -783,8 +784,7 @@ def render_page(
         start = time.monotonic()
 
         try:
-            with sync_playwright() as p:
-                browser = p.chromium.launch(headless=True)
+            with sync_playwright() as p, guarded_chromium(p.chromium) as browser:
                 context = new_guarded_context(
                     browser,
                     route_handler,
@@ -817,6 +817,7 @@ def render_page(
                         "captured the available DOM"
                     )
 
+                require_public_page(page)
                 result["url"] = page.url
                 result["content"] = page.content()
                 result["status_code"] = response.status if response else raw_status
@@ -850,7 +851,6 @@ def render_page(
                             result["accessibility_error"]
                         )
 
-                browser.close()
         except Exception as exc:
             result["error"] = f"playwright error: {exc}"
             _keep_raw_on_render_failure()

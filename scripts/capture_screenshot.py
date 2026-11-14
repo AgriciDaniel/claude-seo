@@ -92,6 +92,7 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
+from browser_proxy import guarded_chromium, require_public_page  # noqa: E402
 from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     URLSafetyError,
     make_safe_playwright_route_handler,
@@ -464,8 +465,7 @@ def capture_screenshot(
     loaded = False
 
     try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+        with sync_playwright() as p, guarded_chromium(p.chromium) as browser:
             context = new_guarded_context(
                 browser,
                 route_handler,
@@ -480,6 +480,7 @@ def capture_screenshot(
 
             # Navigate and wait for network idle
             page.goto(url, wait_until="networkidle", timeout=timeout)
+            require_public_page(page)
             loaded = True
 
             # Wait a bit more for any lazy-loaded content
@@ -507,7 +508,6 @@ def capture_screenshot(
             page.screenshot(path=output_path, full_page=full_page)
 
             result["success"] = True
-            browser.close()
 
     except PlaywrightTimeout:
         # After the load, only the screenshot can time out here: the page-side

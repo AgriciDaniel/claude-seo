@@ -395,6 +395,7 @@ def _render_with_fake_browser(page, *, extract_accessibility=False):
     spa_html = '<html><body><div id="root"></div></body></html>'
     with patch.object(render_page, "validate_url_strict", side_effect=_mock_validate_strict), \
          patch.object(render_page, "safe_requests_get", return_value=_fake_response(spa_html)), \
+         patch.object(render_page, "require_public_page", return_value=None), \
          patch.object(render_page, "sync_playwright", lambda: _FakePlaywrightManager(page)):
         return render_page.render_page(
             "https://app.example/",
