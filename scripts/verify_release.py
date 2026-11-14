@@ -33,7 +33,7 @@ import argparse
 import hashlib
 import json
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -46,6 +46,28 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def _contained_path(resolved_root: Path, rel: object) -> Path | None:
+    """The path of manifest entry ``rel`` under ``resolved_root``, or None.
+
+    None means the entry must not be read: it is not a string, is empty or
+    absolute, or resolves (through ``..`` or a symlink) outside the root.
+    A manifest is untrusted input, so this runs before any file is opened.
+    """
+    if not isinstance(rel, str) or not rel or "\0" in rel:
+        return None
+    if Path(rel).is_absolute() or PureWindowsPath(rel).is_absolute():
+        return None
+    if PureWindowsPath(rel).drive or rel.startswith(("/", "\\")):
+        return None
+    try:
+        candidate = (resolved_root / rel).resolve()
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if candidate == resolved_root or not candidate.is_relative_to(resolved_root):
+        return None
+    return candidate
+
+
 def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
     """Compare a manifest against the working tree at ``root``.
 
@@ -55,6 +77,10 @@ def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
                       version/tag/commit context).
         mismatched  : paths whose SHA-256 differs.
         missing     : paths in manifest but absent from disk.
+        outside_root: manifest entries that are absolute or resolve
+                      (through ``..`` or a symlink) to a place outside
+                      ``root``. They are never opened or hashed and
+                      always fail verification.
         extra       : paths on disk (and git-tracked) but not in
                       manifest. Empty unless caller passes a tracked
                       file list; default behaviour leaves this empty.
@@ -66,8 +92,14 @@ def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
     mismatched: list[dict] = []
     missing: list[str] = []
 
+    outside_root: list[str] = []
+    resolved_root = root.resolve()
+
     for rel, expected_sha in sorted(expected.items()):
-        abs_path = root / rel
+        abs_path = _contained_path(resolved_root, rel)
+        if abs_path is None:
+            outside_root.append(rel)
+            continue
         if not abs_path.is_file():
             missing.append(rel)
             continue
@@ -78,7 +110,7 @@ def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
             )
 
     return {
-        "ok": not (mismatched or missing),
+        "ok": not (mismatched or missing or outside_root),
         "manifest": {
             "version": manifest.get("version"),
             "tag": manifest.get("tag"),
@@ -89,6 +121,7 @@ def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
         "checked": len(expected),
         "mismatched": mismatched,
         "missing": missing,
+        "outside_root": outside_root,
     }
 
 
@@ -140,6 +173,10 @@ def main() -> int:
             print(f"\n  Missing ({len(result['missing'])}):")
             for path in result["missing"]:
                 print(f"    - {path}")
+        if result["outside_root"]:
+            print(f"\n  Outside the checkout, refused ({len(result['outside_root'])}):")
+            for path in result["outside_root"]:
+                print(f"    - {path!r}")
 
     return 0 if result["ok"] else 1
 
