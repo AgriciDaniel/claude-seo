@@ -29,7 +29,8 @@ GOOD_SHA = hashlib.sha256(GOOD).hexdigest()
 def tree(tmp_path):
     root = tmp_path / "checkout"
     (root / "scripts").mkdir(parents=True)
-    (root / "scripts" / "ok.py").write_bytes(GOOD)
+    (root / "lib").mkdir(parents=True)
+    (root / "lib" / "ok.py").write_bytes(GOOD)
     outside = tmp_path / "outside.txt"
     outside.write_bytes(SECRET)
     return root, outside
@@ -103,7 +104,7 @@ def test_files_inside_the_tree_still_verify(tree, tmp_path) -> None:
         links = {"inside-link.txt": GOOD_SHA}
     except (OSError, NotImplementedError):
         links = {}
-    files = {"scripts/ok.py": GOOD_SHA, "scripts/../docs/inner.txt": GOOD_SHA, **links}
+    files = {"lib/ok.py": GOOD_SHA, "scripts/../docs/inner.txt": GOOD_SHA, **links}
     result = verify_release.verify(_manifest(tmp_path, files), root)
     assert result["ok"] is True
     assert result["outside_root"] == []
@@ -113,19 +114,19 @@ def test_files_inside_the_tree_still_verify(tree, tmp_path) -> None:
 def test_mismatch_and_missing_reports_are_unchanged(tree, tmp_path) -> None:
     root, _outside = tree
     result = verify_release.verify(
-        _manifest(tmp_path, {"scripts/ok.py": "0" * 64, "scripts/gone.py": GOOD_SHA}), root
+        _manifest(tmp_path, {"lib/ok.py": "0" * 64, "lib/gone.py": GOOD_SHA}), root
     )
     assert result["ok"] is False
     assert result["mismatched"] == [
-        {"path": "scripts/ok.py", "expected": "0" * 64, "actual": GOOD_SHA}
+        {"path": "lib/ok.py", "expected": "0" * 64, "actual": GOOD_SHA}
     ]
-    assert result["missing"] == ["scripts/gone.py"]
+    assert result["missing"] == ["lib/gone.py"]
     assert result["outside_root"] == []
 
 
 def test_cli_fails_and_names_the_entry_without_its_hash(tree, tmp_path, monkeypatch, capsys) -> None:
     root, outside = tree
-    manifest = _manifest(tmp_path, {str(outside): "0" * 64, "scripts/ok.py": GOOD_SHA})
+    manifest = _manifest(tmp_path, {str(outside): "0" * 64, "lib/ok.py": GOOD_SHA})
     monkeypatch.setattr(sys, "argv", ["verify_release.py", str(manifest), "--root", str(root)])
     assert verify_release.main() == 1
     out = capsys.readouterr().out
