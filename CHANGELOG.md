@@ -139,6 +139,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Generate workbook-only Google reports without requiring chart or PDF rendering
   dependencies, and report a missing `openpyxl` dependency as an export error.
+### Fixed
+
+- Export native Search Console and URL Inspection script results to XLSX,
+  retaining normalized field names, query labels, CTR percentages and inspection
+  failures in both standalone and combined reports.
 
 ## [2.6.0] - 2026-11-10
 
