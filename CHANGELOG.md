@@ -43,6 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A render, screenshot or visual analysis that ends on a blank page, a browser error page or
   a blocked address is reported as an error instead of being returned as the page.
   `render_page.py` keeps the raw fetch in that case.
+- The browser guard tries every validated address of a host under one 10 second connect
+  budget, and requires a random per-run credential from Chromium so other local programs
+  cannot use it. The Unlighthouse guard stays unauthenticated (see SECURITY.md).
 - Browser commands behind a proxy support `http://` proxies on public addresses. A SOCKS
   proxy, an `https://` proxy URL or a proxy on a local address gives a clear error.
 - `indexing_notify.py` and `google_auth.py --check indexing` say when the saved sign-in lacks
@@ -52,6 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Charts were missing from the PDF report when the output directory was a relative path.
 - The XLSX report file name is sanitised like the PDF name.
+- Reports no longer fail when a search query or other chart label contains a dollar sign (for
+  example "ca$$h app"). Chart labels are also shortened to a sensible length, and if one chart
+  cannot be drawn the report is still produced without it.
+- The Excel export accepts text with invalid Unicode characters and numbers that are not finite
+  or are too large. If the workbook cannot be written, the PDF and HTML are still delivered.
+- Reports no longer fail when audit scores, quick-win positions or Search Console totals are
+  null.
+- `verify_release.py` fails cleanly on a malformed manifest, fails when the manifest lists no
+  files, and prints manifest values in quoted form so a manifest cannot forge output lines.
+- `parse_html.py --url` stops after 60 seconds in total, so a server that sends data very
+  slowly can no longer hold it open.
 
 ## [2.6.0] - 2026-11-10
 
