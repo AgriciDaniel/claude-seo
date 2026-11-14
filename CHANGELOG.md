@@ -115,9 +115,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   workbook. (#436, Afloat16)
 - **Report:** `google_report.py --format all` still writes the XLSX and HTML files when the
   PDF renderer is unavailable, and reports the PDF error. (#450, Afloat16)
-- **Report:** charts were missing from the PDF report when the output directory was a relative
-  path.
-- **Report:** the XLSX report file name is sanitised like the PDF name.
 - **Transport:** a certificate that chains to a valid root no longer fails verification on
   Windows. `transport_check.py` trusts certifi's root certificates as well as the system store.
   (issue #421)
@@ -191,14 +188,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Maps:** the maps agent no longer tries to call DataForSEO itself. The orchestrator passes
   the paid maps data to it, and the agent states which tier it used. The geo-grid guidance now
   sends one task per request, which is what the DataForSEO Live endpoints accept. (issue #459)
-- **Report:** reports no longer fail when a search query or other chart label contains a dollar sign (for
-  example "ca$$h app"). Chart labels are also shortened to a sensible length, and if one chart
-  cannot be drawn the report is still produced without it.
-- **Report:** the Excel export accepts text with invalid Unicode characters and numbers that are not finite
-  or are too large. If the workbook cannot be written, the PDF and HTML are still delivered.
-- **Report:** reports no longer fail when audit scores, quick-win positions or Search Console totals are
-  null.
-
 - The Shopify and PostHog installers no longer stop with "claude-seo base not installed" on a
   plugin install. They detect the plugin the way the Bing installer does and copy nothing
   there: PostHog offers to register the MCP server, and Shopify offers to create
