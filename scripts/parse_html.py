@@ -83,9 +83,11 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 import requests  # noqa: E402  (url_safety already hard-requires it)
 from url_safety import (  # noqa: E402, I001
+    MAX_PAGE_BYTES,
     URLSafetyError,
-    decode_response_text,
+    decode_body,
     json_depth_exceeds,
+    read_bounded,
     safe_requests_get,
 )
 
@@ -890,8 +892,22 @@ def main():
     else:
         html = sys.stdin.read()
         if not html and args.url:
-            resp = safe_requests_get(args.url, timeout=30, allow_redirects=True)
-            html = decode_response_text(resp)
+            resp = safe_requests_get(
+                args.url, timeout=30, allow_redirects=True, stream=True
+            )
+            # Streamed so the body is read under the cap; .content must not
+            # be read after this.
+            try:
+                raw, too_large = read_bounded(resp, MAX_PAGE_BYTES)
+            finally:
+                resp.close()
+            if too_large:
+                print(
+                    f"Warning: page body exceeded {MAX_PAGE_BYTES} bytes; "
+                    "parsing the part read before the cap.",
+                    file=sys.stderr,
+                )
+            html = decode_body(raw, resp.headers.get("Content-Type", ""))
             args.url = resp.url
 
     result = parse_html(html, args.url)
