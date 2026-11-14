@@ -31,6 +31,19 @@ Attribution header on every bundled prompt file (automated by `scripts/sync_flow
 
 ## Community Pull Requests
 
+### v2.6.2
+
+| Contributor | PR | Contribution category | Review outcome |
+|------------|----|-----------------------|----------------|
+| [@Afloat16](https://github.com/Afloat16) | [#423](https://github.com/AgriciDaniel/claude-seo/pull/423), [#424](https://github.com/AgriciDaniel/claude-seo/pull/424), [#425](https://github.com/AgriciDaniel/claude-seo/pull/425), [#426](https://github.com/AgriciDaniel/claude-seo/pull/426), [#427](https://github.com/AgriciDaniel/claude-seo/pull/427), [#428](https://github.com/AgriciDaniel/claude-seo/pull/428), [#429](https://github.com/AgriciDaniel/claude-seo/pull/429), [#430](https://github.com/AgriciDaniel/claude-seo/pull/430), [#431](https://github.com/AgriciDaniel/claude-seo/pull/431), [#432](https://github.com/AgriciDaniel/claude-seo/pull/432), [#433](https://github.com/AgriciDaniel/claude-seo/pull/433), [#434](https://github.com/AgriciDaniel/claude-seo/pull/434), [#435](https://github.com/AgriciDaniel/claude-seo/pull/435), [#436](https://github.com/AgriciDaniel/claude-seo/pull/436), [#437](https://github.com/AgriciDaniel/claude-seo/pull/437), [#438](https://github.com/AgriciDaniel/claude-seo/pull/438), [#439](https://github.com/AgriciDaniel/claude-seo/pull/439), [#440](https://github.com/AgriciDaniel/claude-seo/pull/440), [#441](https://github.com/AgriciDaniel/claude-seo/pull/441), [#442](https://github.com/AgriciDaniel/claude-seo/pull/442), [#443](https://github.com/AgriciDaniel/claude-seo/pull/443), [#444](https://github.com/AgriciDaniel/claude-seo/pull/444), [#445](https://github.com/AgriciDaniel/claude-seo/pull/445), [#446](https://github.com/AgriciDaniel/claude-seo/pull/446), [#448](https://github.com/AgriciDaniel/claude-seo/pull/448), [#449](https://github.com/AgriciDaniel/claude-seo/pull/449), [#450](https://github.com/AgriciDaniel/claude-seo/pull/450), [#451](https://github.com/AgriciDaniel/claude-seo/pull/451), [#452](https://github.com/AgriciDaniel/claude-seo/pull/452) | 29 correctness fixes: reports, drift, schema, transport grading, DataForSEO, preload, sitemap, CrUX, Search Console, IndexNow, parasite risk, domain history | Merged; follow-ups on #426 and #440 |
+| [@Nordalux](https://github.com/Nordalux) | [#302](https://github.com/AgriciDaniel/claude-seo/pull/302) | Shopify extension: signed sitemap-complete crawl | Merged, with a signing gate, rate-limit stop and robots handling on top |
+| [@AlexMili](https://github.com/AlexMili) | [#336](https://github.com/AgriciDaniel/claude-seo/pull/336) | PostHog MCP extension | Merged, read-only agent and organic rule follow-ups |
+| [@eduardopicazzo](https://github.com/eduardopicazzo) | [#398](https://github.com/AgriciDaniel/claude-seo/pull/398) | Trusted local proxy opt-in (`CLAUDE_SEO_TRUSTED_PROXIES`) | Merged, bound to host and port and extended to the browser guard |
+| [@lciolecki](https://github.com/lciolecki) | [#341](https://github.com/AgriciDaniel/claude-seo/pull/341) | Per-project credentials (`CLAUDE_SEO_PROFILE_DIR`) | Merged |
+| [@Vivek-Chaudhari30](https://github.com/Vivek-Chaudhari30) | [#457](https://github.com/AgriciDaniel/claude-seo/pull/457) | PDF reports on macOS, clearer errors, canonical loop detection | Merged |
+| [@rampilea](https://github.com/rampilea) | [#455](https://github.com/AgriciDaniel/claude-seo/pull/455) | Word counts for Greek and other non-Latin scripts | Merged, tokeniser extended |
+| [@kevin9327](https://github.com/kevin9327) | [#454](https://github.com/AgriciDaniel/claude-seo/pull/454) | UCP profile URIs in the audit report | Merged |
+
 ### v2.6.1
 
 Security release. The researchers who reported the fixed problems are credited in

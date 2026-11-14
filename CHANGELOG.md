@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.2] - 2026-11-14
+
 ### Security
 
 - Hardening that ships with the opt-in. An entry with a scheme, credentials, a
