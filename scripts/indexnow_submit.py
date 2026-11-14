@@ -40,10 +40,11 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import posixpath
 import sys
 from pathlib import Path
 from typing import Iterable
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
@@ -64,7 +65,18 @@ def _normalized_host(value: str) -> str:
 def _belongs_to_host(url: str, host: str) -> bool:
     parsed_host = _normalized_host(url)
     declared_host = _normalized_host(host)
-    return parsed_host == declared_host or parsed_host.endswith(f".{declared_host}")
+    return parsed_host == declared_host
+
+
+def _within_key_directory(url: str, key_location: str) -> bool:
+    """A non-root key only covers URLs under the directory containing it."""
+    key_path = posixpath.normpath(unquote(urlparse(key_location).path))
+    directory = posixpath.dirname(key_path).rstrip("/") + "/"
+    raw_path = unquote(urlparse(url).path) or "/"
+    path = posixpath.normpath(raw_path)
+    if raw_path.endswith("/") and not path.endswith("/"):
+        path += "/"
+    return path.startswith(directory)
 
 
 def submit(
@@ -106,6 +118,17 @@ def submit(
         except URLSafetyError as exc:
             return {"ok": False, "error": f"url_safety refused {u!r}: {exc}",
                     "submitted": 0}
+
+    if _normalized_host(key_location) != _normalized_host(host):
+        return {"ok": False, "error": "keyLocation host does not match declared host", "submitted": 0}
+    outside = [u for u in url_list if not _within_key_directory(u, key_location)]
+    if outside:
+        return {
+            "ok": False,
+            "error": f"{len(outside)} URLs are outside the keyLocation directory scope",
+            "examples": outside[:3],
+            "submitted": 0,
+        }
 
     payload = {
         "host": host,

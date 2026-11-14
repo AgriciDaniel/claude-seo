@@ -98,6 +98,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Accept a single JSON-LD node object in `@graph` in the HTML parser and
   schema hook. Preserve its context and validate the node instead of silently
   dropping it or incorrectly requiring an array.
+### Fixed
+
+- IndexNow rejects submitted URLs outside the exact host and directory covered by the ownership key.
 
 ## [2.6.0] - 2026-11-10
 
