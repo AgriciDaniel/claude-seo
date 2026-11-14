@@ -10,12 +10,21 @@ What it enforces
 * Every destination goes through ``validate_public_url_strict``: the
   ``CLAUDE_SEO_LOCAL_TARGETS`` allowlist is never read here, so rendering a
   local or private host stays unsupported, as it was before this guard.
-* A direct connection dials the validated address, not the name, so a DNS
-  answer cannot change between the check and the connect.
+* A direct connection dials a validated address, not the name, so a DNS
+  answer cannot change between the check and the connect. When a host has
+  several addresses, each one that passed validation is tried in turn under
+  one connect budget; the name is never resolved a second time.
 * Behind the operator's own HTTP proxy (``HTTPS_PROXY`` and friends) the
   guard chains to it after validating the destination. That proxy must pass
   the same policy as in ``url_safety`` and it resolves the destination
   itself, so the pin degrades to the validation, as on the raw HTTP path.
+* ``guarded_chromium`` gives its guard a random per-run credential and hands
+  it to Chromium, so another local process cannot use the listener. A guard
+  started with plain ``guarded_proxy()`` (Unlighthouse, whose Chrome takes
+  the proxy from a command-line flag that cannot carry one) has none.
+* A plain-HTTP response is relayed with the origin's own framing and the
+  client connection is reset when the origin fails mid-response, so a
+  truncated transfer is never passed off as a complete one.
 
 Chromium
 ========
@@ -26,12 +35,17 @@ sandbox off for root and container environments where it cannot start.
 
 from __future__ import annotations
 
+import base64
+import hmac
 import http.client
 import os
 import re
+import secrets
 import select
 import socket
+import struct
 import threading
+import time
 from contextlib import contextmanager, suppress
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
@@ -41,14 +55,24 @@ from url_safety import (
     URLSafetyError,
     is_safe_ip,
     upstream_http_proxy,
-    validate_public_url_strict,
+    validate_public_url_addresses,
 )
 
+# One budget for reaching a destination, shared by all of its addresses.
 _CONNECT_TIMEOUT = 10
+# The least an address that does not answer is given before the next is tried.
+_MIN_CONNECT_SHARE = 1.0
 _HTTP_IO_TIMEOUT = 30
 _TUNNEL_IDLE_TIMEOUT = 60
 _MAX_REQUEST_BODY = 10 * 1024 * 1024
 _MAX_CONNECT_RESPONSE = 64 * 1024
+# A plain-HTTP response head, all lines together. Chromium's own limit is
+# 256 KiB; the line count only bounds the work spent on a hostile head.
+_MAX_RESPONSE_HEAD = 256 * 1024
+_MAX_RESPONSE_HEADERS = 1000
+# Informational (1xx) responses skipped before the final one.
+_MAX_INTERIM_RESPONSES = 10
+_RELAY_CHUNK = 65536
 _HOP_HEADERS = {
     "connection",
     "proxy-connection",
@@ -65,15 +89,31 @@ _HOP_HEADERS = {
 _HOST_RE = re.compile(r"^[A-Za-z0-9._\-:]+$")
 # Authority-form of CONNECT: ``host:port`` or ``[v6]:port``, nothing else.
 _CONNECT_TARGET_RE = re.compile(r"^(?:\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9._\-]+):[0-9]{1,5}$")
+_STATUS_LINE_RE = re.compile(rb"^HTTP/1\.[01] ([0-9]{3})(?: [^\x00-\x08\x0a-\x1f\x7f]*)?$")
+_HEADER_NAME_RE = re.compile(rb"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+_HEADER_VALUE_BAD_RE = re.compile(rb"[\x00\r\n]")
+# SO_LINGER with a zero timeout: closing the socket sends a reset, not a FIN.
+_LINGER_RESET = struct.pack("HH" if os.name == "nt" else "ii", 1, 0)
+_PROXY_AUTH_REALM = "claude-seo egress guard"
+_PROXY_USERNAME = "claude-seo"
 
 NO_SANDBOX_ENV = "CLAUDE_SEO_CHROMIUM_NO_SANDBOX"
-# Text Chromium or Playwright prints when the sandbox cannot start.
+# Messages that mean the sandbox itself could not start: Chromium's own
+# wording (zygote_host_impl_linux.cc, the setuid sandbox host) and the banner
+# Playwright prints in their place. Whole phrases only. A bare word such as
+# "sandbox" also matches install paths and the launch command line, and
+# would blame an unrelated failure (a missing shared library) on the sandbox.
 _SANDBOX_FAILURE_MARKERS = (
-    "sandbox",
+    "chromium sandboxing failed!",
+    "no usable sandbox",
+    "running as root without --no-sandbox is not supported",
+    "failed to move to new namespace",
+    "zygote_host_impl_linux.cc",
+    "the suid sandbox helper binary was found, but is not configured correctly",
+    "the setuid sandbox is not running as root",
+    "the setuid sandbox provides api version",
     "crbug.com/638180",
     "crbug.com/357670",
-    "zygote",
-    "failed to move to new namespace",
 )
 
 
@@ -85,18 +125,57 @@ class PageNotLoadedError(RuntimeError):
     """The browser holds no loaded document (blank or an error page)."""
 
 
-def _destination(url: str) -> tuple[str, str, int]:
-    """Validate ``url`` and return ``(pinned_ip, hostname, port)``."""
-    normalized, ip = validate_public_url_strict(url)
+def _destination(url: str) -> tuple[tuple[str, ...], str, int]:
+    """Validate ``url`` and return ``(addresses, hostname, port)``.
+
+    ``addresses`` holds every address of the host that passed validation,
+    the pinned one first. They come from the one lookup the validator made;
+    nothing resolves the name again before the connect.
+    """
+    normalized, addresses = validate_public_url_addresses(url)
     # Belt and braces: the validator above never reads the operator's
     # local-target allowlist, which applies to raw HTTP only.
-    if not is_safe_ip(ip):
+    if not addresses or not all(is_safe_ip(ip) for ip in addresses):
         raise URLSafetyError("Browser destination is not public")
     parsed = urlsplit(normalized)
     assert parsed.hostname is not None
     if not _HOST_RE.match(parsed.hostname):
         raise URLSafetyError("Browser destination has an invalid hostname")
-    return ip, parsed.hostname, parsed.port or (443 if parsed.scheme == "https" else 80)
+    return (
+        tuple(addresses),
+        parsed.hostname,
+        parsed.port or (443 if parsed.scheme == "https" else 80),
+    )
+
+
+def _as_addresses(value) -> tuple[str, ...]:  # type: ignore[no-untyped-def]
+    """The address list of a ``_destination`` result (one address is fine)."""
+    return (value,) if isinstance(value, str) else tuple(value)
+
+
+def _connect(addresses: tuple[str, ...], port: int) -> socket.socket:
+    """Connect to the first of ``addresses`` that answers.
+
+    Every address was validated by the caller. They are tried in order under
+    one ``_CONNECT_TIMEOUT`` budget: an address that does not answer gets an
+    even share of what is left (at least ``_MIN_CONNECT_SHARE``), and one
+    that fails at once (refused, no route, no IPv4 or IPv6 on this network)
+    leaves its share to the rest. Raises the last ``OSError``.
+    """
+    deadline = time.monotonic() + _CONNECT_TIMEOUT
+    error: OSError = OSError("no address to connect to")
+    for index, address in enumerate(addresses):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            break
+        share = max(remaining / (len(addresses) - index), _MIN_CONNECT_SHARE)
+        try:
+            return socket.create_connection(
+                (address, port), timeout=min(share, remaining)
+            )
+        except OSError as exc:
+            error = exc
+    raise error
 
 
 def _authority(host: str, port: int, default_port: Optional[int] = None) -> str:
@@ -147,24 +226,117 @@ class _Rejected(Exception):
         self.reason = reason
 
 
-def _open_tunnel(ip: str, host: str, port: int) -> tuple[socket.socket, bytes]:
+class _ResponseHeadTooLarge(Exception):
+    """The origin's response head is over this proxy's size limits."""
+
+
+def _read_response_head(reader) -> tuple[bytes, int, list[tuple[bytes, bytes]]]:  # type: ignore[no-untyped-def]
+    """Read one response head: ``(status_line, status, headers)``.
+
+    ``status_line`` is the origin's own, checked to be ``HTTP/1.x``, three
+    digits and a reason without control characters. Headers come back as
+    ``(name, value)`` in the order sent, repeats kept. A line that is not a
+    well-formed header is left out, as Chromium does, along with any folded
+    lines that continue it; a folded line continues the header before it.
+
+    Raises:
+        _ResponseHeadTooLarge: over ``_MAX_RESPONSE_HEAD`` bytes or
+            ``_MAX_RESPONSE_HEADERS`` lines.
+        ValueError: the status line is not HTTP/1.x.
+        OSError: the connection ended or failed inside the head.
+    """
+    budget = _MAX_RESPONSE_HEAD
+
+    def read_line() -> bytes:
+        nonlocal budget
+        line = reader.readline(budget + 1)
+        if not line:
+            raise OSError("connection closed inside the response head")
+        if len(line) > budget:
+            raise _ResponseHeadTooLarge()
+        if not line.endswith(b"\n"):
+            raise OSError("connection closed inside the response head")
+        budget -= len(line)
+        return line.rstrip(b"\r\n")
+
+    status_line = read_line()
+    matched = _STATUS_LINE_RE.match(status_line)
+    if matched is None:
+        raise ValueError("malformed status line")
+    headers: list[tuple[bytes, bytes]] = []
+    lines = 0
+    kept = False  # whether the header a folded line would continue was kept
+    while line := read_line():
+        lines += 1
+        if lines > _MAX_RESPONSE_HEADERS:
+            raise _ResponseHeadTooLarge()
+        folded = line[:1] in (b" ", b"\t")
+        if _HEADER_VALUE_BAD_RE.search(line):
+            kept = kept and folded
+            if folded and kept:
+                headers.pop()
+                kept = False
+            continue
+        if folded:
+            if kept:
+                name, value = headers[-1]
+                headers[-1] = (name, (value + b" " + line.strip(b" \t")).strip(b" "))
+            continue
+        name, colon, value = line.partition(b":")
+        kept = bool(colon and _HEADER_NAME_RE.match(name))
+        if kept:
+            headers.append((name, value.strip(b" \t")))
+    return status_line, int(matched.group(1)), headers
+
+
+def _read_final_response_head(reader) -> tuple[bytes, int, list[tuple[bytes, bytes]]]:  # type: ignore[no-untyped-def]
+    """Like ``_read_response_head``, past any informational responses.
+
+    ``100 Continue``, ``103 Early Hints`` and other 1xx responses come before
+    the final response on the same connection and are dropped. ``101`` would
+    switch a request this proxy never asked to upgrade (it strips
+    ``Upgrade``) to another protocol, so it is an error.
+    """
+    for _ in range(_MAX_INTERIM_RESPONSES + 1):
+        status_line, status, headers = _read_response_head(reader)
+        if status == 101:
+            raise ValueError("unrequested protocol switch")
+        if not 100 <= status < 200:
+            return status_line, status, headers
+    raise ValueError("too many informational responses")
+
+
+def _body_length(method: str, status: int, headers: list[tuple[bytes, bytes]]) -> Optional[int]:
+    """Bytes of body that follow the head, or None when only the origin's
+    framing (chunked, or the close of the connection) marks the end."""
+    if method == "HEAD" or status in (204, 304):
+        return 0
+    lengths = [value for name, value in headers if name.lower() == b"content-length"]
+    chunked = any(name.lower() == b"transfer-encoding" for name, _ in headers)
+    if chunked or len(lengths) != 1 or not lengths[0].isdigit():
+        return None
+    return int(lengths[0])
+
+
+def _open_tunnel(addresses: tuple[str, ...], host: str, port: int) -> tuple[socket.socket, bytes]:
     """Open the TCP stream for a CONNECT to an already validated destination.
 
-    Direct: connect to the validated address. Behind the operator's proxy:
-    connect to that proxy and ask it for the tunnel. Returns the socket and
-    any bytes the far side sent after the proxy's response head.
+    Direct: connect to one of the validated addresses. Behind the operator's
+    proxy: connect to that proxy and ask it for the tunnel. Returns the
+    socket and any bytes the far side sent after the proxy's response head.
     """
     proxy = upstream_http_proxy(f"https://{_authority(host, port)}/")
     if proxy is None:
-        return socket.create_connection((ip, port), timeout=_CONNECT_TIMEOUT), b""
+        return _connect(addresses, port), b""
 
     address, proxy_port, authorization = proxy
     authority = _authority(host, port)
     head = f"CONNECT {authority} HTTP/1.1\r\nHost: {authority}\r\n"
     if authorization:
         head += f"Proxy-Authorization: {authorization}\r\n"
-    upstream = socket.create_connection((address, proxy_port), timeout=_CONNECT_TIMEOUT)
+    upstream = _connect((address,), proxy_port)
     try:
+        upstream.settimeout(_CONNECT_TIMEOUT)
         upstream.sendall((head + "\r\n").encode("ascii"))
         buffered = b""
         while b"\r\n\r\n" not in buffered:
@@ -200,13 +372,50 @@ class _ProxyHandler(BaseHTTPRequestHandler):
         with suppress(OSError):
             self.send_error(status, reason)
 
+    def _authorized(self) -> bool:
+        """Check the per-run credential; answer 407 when it is missing or wrong.
+
+        A guard started without a credential accepts every local client.
+        """
+        expected = getattr(self.server, "proxy_authorization", None)
+        if expected is None:
+            return True
+        scheme, _, token = (self.headers.get("Proxy-Authorization") or "").strip().partition(" ")
+        supplied = token.strip().encode("latin-1", "replace")
+        if scheme.lower() == "basic" and hmac.compare_digest(supplied, expected):
+            return True
+        self.close_connection = True
+        with suppress(OSError):
+            self.send_response_only(407, "Proxy Authentication Required")
+            self.send_header("Proxy-Authenticate", f'Basic realm="{_PROXY_AUTH_REALM}"')
+            self.send_header("Content-Length", "0")
+            self.send_header("Connection", "close")
+            self.end_headers()
+        return False
+
+    def _abort_client(self) -> None:
+        """Reset the client connection instead of closing it cleanly.
+
+        Used once a response is in flight and the origin failed: a clean
+        close would let a body with no declared length pass as complete.
+        """
+        with suppress(OSError):
+            self.connection.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, _LINGER_RESET)
+        # Closing here, before the server's own shutdown() can send a FIN,
+        # is what turns the close into a reset. The descriptor is released
+        # when the handler's read buffer is closed in finish().
+        with suppress(OSError):
+            self.connection.close()
+
     def do_CONNECT(self) -> None:
+        if not self._authorized():
+            return
         try:
             if not _CONNECT_TARGET_RE.match(self.path):
                 raise URLSafetyError("Malformed CONNECT target")
             # urlsplit validates IPv6 brackets and rejects malformed ports.
-            ip, host, port = _destination(f"https://{self.path}/")
-            upstream, early = _open_tunnel(ip, host, port)
+            pinned, host, port = _destination(f"https://{self.path}/")
+            upstream, early = _open_tunnel(_as_addresses(pinned), host, port)
         except (URLSafetyError, ValueError):
             self._reject(403, "Destination refused")
             return
@@ -219,8 +428,17 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.flush()
             client = self.connection
-            client.settimeout(_TUNNEL_IDLE_TIMEOUT)
             upstream.settimeout(_TUNNEL_IDLE_TIMEOUT)
+            # Bytes the client sent right behind the CONNECT head were read
+            # into the handler's buffer with it; the relay below reads the
+            # socket, so they are passed on first.
+            client.setblocking(False)
+            sent_early = b""
+            with suppress(OSError):
+                sent_early = self.rfile.read1(_RELAY_CHUNK) or b""
+            client.settimeout(_TUNNEL_IDLE_TIMEOUT)
+            if sent_early:
+                upstream.sendall(sent_early)
             if early:
                 client.sendall(early)
             sockets = (client, upstream)
@@ -286,10 +504,19 @@ class _ProxyHandler(BaseHTTPRequestHandler):
         proxy's own error page. A destination that cannot be reached gets no
         response at all, so the browser reports a failed load instead of
         rendering a proxy error page as if the site had sent it.
+
+        The response is relayed, not re-framed: status line, headers
+        (hop-by-hop ones aside) and body bytes go to the client as the origin
+        sent them, after any informational 1xx responses. The client
+        therefore sees the origin's own ``Content-Length`` or chunked framing
+        and detects a short body itself, and when the origin fails after the
+        head was passed on, the client connection is reset.
         """
         self.close_connection = True
+        if not self._authorized():
+            return
         try:
-            ip, host, port = _destination(self.path)
+            pinned, host, port = _destination(self.path)
             parsed = urlsplit(self.path)
             if parsed.scheme != "http":
                 raise URLSafetyError("Only HTTP requests use direct proxy forwarding")
@@ -305,11 +532,11 @@ class _ProxyHandler(BaseHTTPRequestHandler):
         target = (parsed.path or "/") + (f"?{parsed.query}" if parsed.query else "")
         host_header = _authority(host, port, default_port=80)
         if proxy is None:
-            peer = (ip, port)
+            peers, peer_port = _as_addresses(pinned), port
         else:
             # The operator's proxy takes the absolute form and resolves the
             # (already validated) host itself.
-            peer = proxy[:2]
+            peers, peer_port = (proxy[0],), proxy[1]
             target = f"http://{host_header}{target}"
 
         # Headers the client marked as hop-by-hop are not forwarded either.
@@ -317,8 +544,17 @@ class _ProxyHandler(BaseHTTPRequestHandler):
         dropped = _HOP_HEADERS | {"host", "content-length"} | {
             token.strip().lower() for token in listed.split(",") if token.strip()
         }
-        connection = http.client.HTTPConnection(peer[0], peer[1], timeout=_HTTP_IO_TIMEOUT)
+        # http.client writes the request (it refuses control characters in
+        # the target and in header values) on a socket this proxy connected
+        # itself, so it never dials. The response is read from that socket
+        # directly, below.
+        connection = http.client.HTTPConnection(peers[0], peer_port, timeout=_HTTP_IO_TIMEOUT)
+        connection.auto_open = 0
+        reader = None
+        in_flight = False
         try:
+            connection.sock = _connect(peers, peer_port)
+            connection.sock.settimeout(_HTTP_IO_TIMEOUT)
             connection.putrequest(
                 self.command, target, skip_host=True, skip_accept_encoding=True
             )
@@ -332,23 +568,47 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             if body or self.command in ("POST", "PUT", "PATCH"):
                 connection.putheader("Content-Length", str(len(body)))
             connection.endheaders(body or None)
-            response = connection.getresponse()
 
-            # send_response_only: no Server or Date header of this proxy is
-            # added, so the page's own headers reach the audit unchanged.
-            self.send_response_only(response.status, response.reason)
-            for key, value in response.getheaders():
-                if key.lower() not in _HOP_HEADERS and key.lower() != "transfer-encoding":
-                    self.send_header(key, value)
-            self.send_header("Connection", "close")
-            self.end_headers()
-            while chunk := response.read(65536):
+            reader = connection.sock.makefile("rb")
+            status_line, status, headers = _read_final_response_head(reader)
+            # The page's own status line and headers reach the audit as sent:
+            # no Server or Date header of this proxy is added. The origin's
+            # framing headers go through too, because the body is relayed as
+            # received and the client decides whether it is complete.
+            head = [status_line]
+            for name, value in headers:
+                if name.decode("ascii").lower() not in _HOP_HEADERS:
+                    head.append(name + b": " + value)
+            head.append(b"Connection: close")
+            in_flight = True
+            self.wfile.write(b"\r\n".join(head) + b"\r\n\r\n")
+
+            remaining = _body_length(self.command, status, headers)
+            while remaining is None or remaining > 0:
+                chunk = reader.read1(
+                    _RELAY_CHUNK if remaining is None else min(_RELAY_CHUNK, remaining)
+                )
+                if not chunk:
+                    if remaining is not None:
+                        raise OSError("origin closed before the declared length")
+                    break
                 self.wfile.write(chunk)
+                if remaining is not None:
+                    remaining -= len(chunk)
+        except _ResponseHeadTooLarge:
+            # Not silence: the operator should see why the page did not load.
+            self._reject(502, "Upstream response headers too large")
         except (OSError, ValueError, http.client.HTTPException):
-            # Unreachable, reset, or malformed in either direction: drop the
-            # client connection. Nothing is appended to a response in flight.
-            pass
+            # Unreachable, reset, timed out or malformed. Before the head was
+            # passed on the client gets no response at all. After it, nothing
+            # is appended to the response in flight; the connection is reset
+            # so the client cannot take a cut-off body for a complete one.
+            if in_flight:
+                self._abort_client()
         finally:
+            if reader is not None:
+                with suppress(OSError):
+                    reader.close()
             connection.close()
 
 
@@ -359,6 +619,8 @@ class _GuardServer(ThreadingHTTPServer):
     block_on_close = False
     # Chromium opens many connections at once; the default backlog is 5.
     request_queue_size = 128
+    # ``base64(user:password)`` every request must present, or None.
+    proxy_authorization: Optional[bytes] = None
 
     def handle_error(self, request, client_address) -> None:  # type: ignore[no-untyped-def]
         # A client that went away mid-request is routine; keep stderr clean.
@@ -366,9 +628,20 @@ class _GuardServer(ThreadingHTTPServer):
 
 
 @contextmanager
-def guarded_proxy():
-    """Run a local proxy that refuses non-public destinations at each hop."""
+def guarded_proxy(credentials: Optional[tuple[str, str]] = None):
+    """Run a local proxy that refuses non-public destinations at each hop.
+
+    ``credentials`` is a ``(username, password)`` pair every request must
+    then present as ``Proxy-Authorization: Basic``; anything else gets a 407.
+    Without it any local process can use the proxy while it runs. That is
+    the mode for a client that cannot authenticate to a proxy (Chrome under
+    Unlighthouse, which takes the proxy from ``--proxy-server``).
+    """
     server = _GuardServer(("127.0.0.1", 0), _ProxyHandler)
+    if credentials is not None:
+        server.proxy_authorization = base64.b64encode(
+            ":".join(credentials).encode("utf-8")
+        )
     # A short poll interval keeps shutdown prompt: serve_forever only notices
     # the shutdown request between polls.
     thread = threading.Thread(
@@ -403,7 +676,19 @@ def _sandbox_error(detail: str) -> ChromiumSandboxError:
     )
 
 
-def _launch(browser_type, proxy_url: str):  # type: ignore[no-untyped-def]
+def _reports_sandbox_failure(error: BaseException) -> bool:
+    """True when a launch error carries one of Chromium's sandbox messages.
+
+    The launch command line that Playwright echoes into the error is left
+    out, and only whole phrases count, so a path or a flag never matches.
+    """
+    text = "\n".join(
+        line for line in str(error).splitlines() if "<launching>" not in line
+    ).lower()
+    return any(marker in text for marker in _SANDBOX_FAILURE_MARKERS)
+
+
+def _launch(browser_type, proxy_url: str, credentials: tuple[str, str]):  # type: ignore[no-untyped-def]
     """Launch headless Chromium behind ``proxy_url``, sandboxed by default."""
     sandbox = chromium_sandbox_enabled()
     geteuid = getattr(os, "geteuid", None)
@@ -416,7 +701,14 @@ def _launch(browser_type, proxy_url: str):  # type: ignore[no-untyped-def]
             # Playwright passes --no-sandbox unless this is exactly True.
             chromium_sandbox=sandbox,
             # An empty bypass keeps PLAYWRIGHT_PROXY_BYPASS_FOR_TESTING out.
-            proxy={"server": proxy_url, "bypass": ""},
+            # The credential goes to Chromium through Playwright, which
+            # answers the guard's 407. It is not on the command line.
+            proxy={
+                "server": proxy_url,
+                "bypass": "",
+                "username": credentials[0],
+                "password": credentials[1],
+            },
             args=[
                 # Chromium skips the proxy for loopback and link-local
                 # addresses unless those implicit rules are subtracted.
@@ -426,8 +718,7 @@ def _launch(browser_type, proxy_url: str):  # type: ignore[no-untyped-def]
             ],
         )
     except Exception as exc:
-        text = str(exc).lower()
-        if sandbox and any(marker in text for marker in _SANDBOX_FAILURE_MARKERS):
+        if sandbox and _reports_sandbox_failure(exc):
             raise _sandbox_error("the browser reported a sandbox failure") from exc
         raise
 
@@ -449,8 +740,10 @@ def guarded_chromium(browser_type, url: Optional[str] = None):  # type: ignore[n
     """
     if url is not None:
         upstream_http_proxy(url)
-    with guarded_proxy() as proxy_url:
-        browser = _launch(browser_type, proxy_url)
+    # A fresh secret per run: only this browser can use this guard.
+    credentials = (_PROXY_USERNAME, secrets.token_urlsafe(32))
+    with guarded_proxy(credentials) as proxy_url:
+        browser = _launch(browser_type, proxy_url, credentials)
         try:
             yield browser
         finally:

@@ -121,6 +121,46 @@ def test_readonly_scope_does_not_count_as_a_prefix_match(isolated) -> None:
     assert google_auth._token_has_scope({"scope": [READ_GSC, INDEXING]}, INDEXING) is True
 
 
+@pytest.mark.parametrize("content", ['"just a string"', '["a", "list"]', "42", "null"])
+def test_token_file_that_is_not_an_object_is_treated_as_unknown(isolated, content) -> None:
+    assert google_auth._token_has_scope(json.loads(content), INDEXING) is None
+    (isolated / "oauth-token.json").write_text(content)
+    assert google_auth._load_oauth_token() is None
+    assert google_auth.indexing_scope_error() is None
+
+
+def test_saving_a_token_never_writes_the_client_secret(isolated) -> None:
+    token = {"access_token": "at", "refresh_token": "rt", "client_secret": "s3cret-value"}
+    google_auth._save_oauth_token(token)
+    saved = (isolated / "oauth-token.json").read_text()
+    assert "client_secret" not in saved and "s3cret-value" not in saved
+    assert json.loads(saved) == {"access_token": "at", "refresh_token": "rt"}
+
+
+def test_refresh_cleans_a_token_file_that_holds_a_client_secret(isolated, monkeypatch) -> None:
+    import urllib.request
+
+    class _Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def read(self):
+            return json.dumps({"access_token": "new-at", "expires_in": 3600}).encode()
+
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *args, **kwargs: _Response())
+    path = isolated / "oauth-token.json"
+    path.write_text(json.dumps({"access_token": "old", "refresh_token": "rt", "client_secret": "s3cret-value"}))
+    client = {"client_id": "id", "client_secret": "s3cret-value"}
+    refreshed = google_auth._refresh_oauth_token(client, google_auth._load_oauth_token())
+    assert refreshed["access_token"] == "new-at"
+    saved = json.loads(path.read_text())
+    assert saved["access_token"] == "new-at" and saved["refresh_token"] == "rt"
+    assert "client_secret" not in saved
+
+
 class TestIndexingNotify:
     @pytest.fixture
     def notify(self, isolated, monkeypatch):

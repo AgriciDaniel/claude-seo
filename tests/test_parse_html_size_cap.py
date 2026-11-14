@@ -94,3 +94,36 @@ def test_small_page_is_parsed_whole_without_a_warning(monkeypatch, capsys) -> No
     assert json.loads(captured.out)["title"] == "Bounded"
     assert captured.err == ""
     assert response.closed is True
+
+
+class _DripResponse(_EndlessResponse):
+    """A body that arrives a piece at a time while the clock runs."""
+
+    def __init__(self, clock: list) -> None:
+        super().__init__()
+        self._clock = clock
+
+    def iter_content(self, chunk_size=None):
+        yield HEAD
+        while True:
+            self._clock[0] += 29.0
+            self.sent += 1
+            yield b"a"
+
+
+def test_url_fetch_stops_at_the_wall_clock_deadline(monkeypatch, capsys) -> None:
+    """A slow drip passes every 30 second read timeout; the deadline ends it."""
+    clock = [1000.0]
+    monkeypatch.setattr(parse_html.time, "monotonic", lambda: clock[0])
+    response = _DripResponse(clock)
+    _run(monkeypatch, response, ["--url", "https://example.com/", "--json"])
+    captured = capsys.readouterr()
+
+    budget = parse_html.URL_FETCH_MAX_SECONDS
+    assert budget == 60.0
+    # Cut off at the deadline plus at most one read.
+    assert clock[0] - 1000.0 <= budget + 29.0
+    assert response.sent <= 4
+    assert response.closed is True
+    assert json.loads(captured.out)["title"] == "Bounded"
+    assert "seconds" in captured.err and "exceeded" in captured.err

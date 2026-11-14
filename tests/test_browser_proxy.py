@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import http.server
 import re
 import socket
+import struct
 import sys
 import threading
 import time
@@ -38,6 +40,73 @@ def _exchange(proxy_url: str, request: bytes, *, timeout: float = 5) -> bytes:
         while chunk := client.recv(65536):
             chunks.append(chunk)
         return b"".join(chunks)
+
+
+def _exchange_until_end(proxy_url: str, request: bytes, *, timeout: float = 5) -> tuple[bytes, bool]:
+    """Like ``_exchange``; also says whether the guard reset the connection."""
+    port = int(proxy_url.rsplit(":", 1)[1])
+    received = b""
+    with socket.create_connection(("127.0.0.1", port), timeout=timeout) as client:
+        client.sendall(request)
+        try:
+            while chunk := client.recv(65536):
+                received += chunk
+        except ConnectionResetError:
+            return received, True
+    return received, False
+
+
+class _RawOrigin:
+    """A loopback origin that answers each request with scripted raw bytes.
+
+    ``script(conn)`` runs once the request head has arrived; the connection
+    is closed cleanly when it returns.
+    """
+
+    def __init__(self, script):
+        self.script = script
+        self.heads: list[bytes] = []
+        self.listener = socket.create_server(("127.0.0.1", 0))
+        self.port = self.listener.getsockname()[1]
+        threading.Thread(target=self._serve, daemon=True).start()
+
+    def _serve(self):
+        while True:
+            try:
+                conn, _ = self.listener.accept()
+            except OSError:
+                return
+            threading.Thread(target=self._answer, args=(conn,), daemon=True).start()
+
+    def _answer(self, conn):
+        with conn:
+            conn.settimeout(5)
+            head = b""
+            try:
+                while b"\r\n\r\n" not in head:
+                    chunk = conn.recv(65536)
+                    if not chunk:
+                        return
+                    head += chunk
+                self.heads.append(head)
+                self.script(conn)
+            except OSError:
+                pass
+
+    def close(self):
+        self.listener.close()
+
+
+def _via_raw_origin(monkeypatch, script, method: str = "GET") -> tuple[bytes, bool]:
+    """Send one plain-HTTP request through the guard to a scripted origin."""
+    server = _RawOrigin(script)
+    try:
+        _map_public_host(monkeypatch, server.port)
+        request = f"{method} http://{PUBLIC_HOST}:{server.port}/ HTTP/1.1\r\nHost: x\r\n\r\n"
+        with browser_proxy.guarded_proxy() as proxy:
+            return _exchange_until_end(proxy, request.encode())
+    finally:
+        server.close()
 
 
 class _Origin:
@@ -118,7 +187,9 @@ def _hermetic_environment(monkeypatch):
 
 def test_browser_proxy_refuses_local_allowlist(monkeypatch):
     monkeypatch.setattr(
-        browser_proxy, "validate_public_url_strict", lambda url: (url, "127.0.0.1")
+        browser_proxy,
+        "validate_public_url_addresses",
+        lambda url: (url, ("93.184.216.34", "127.0.0.1")),
     )
     with pytest.raises(url_safety.URLSafetyError, match="not public"):
         browser_proxy._destination("http://localhost:8000/")
@@ -420,11 +491,14 @@ def test_a_response_cut_short_gets_no_error_page_appended(monkeypatch):
         _map_public_host(monkeypatch, server.port)
         request = f"GET http://{PUBLIC_HOST}:{server.port}/ HTTP/1.1\r\nHost: x\r\n\r\n".encode()
         with browser_proxy.guarded_proxy() as proxy:
-            answer = _exchange(proxy, request)
+            answer, reset = _exchange_until_end(proxy, request)
     finally:
         server.close()
-    assert answer.count(b"HTTP/1.0 ") == 1
+    assert answer.count(b"HTTP/1.0 ") <= 1
     assert b"Destination refused" not in answer and b"Error response" not in answer
+    # Ten of the hundred declared bytes arrived: the transfer must read as
+    # failed, not as a complete response.
+    assert reset
 
 
 # ---------------------------------------------------------------------------
@@ -748,6 +822,9 @@ def test_root_gets_a_clear_error_before_launch(monkeypatch):
     [
         "BrowserType.launch: Target page, context or browser has been closed\n"
         "Browser logs:\nChromium sandboxing failed!\n====",
+        "[err] The SUID sandbox helper binary was found, but is not configured correctly. "
+        "Rather than run without sandboxing I'm aborting now.",
+        "[err] The setuid sandbox is not running as root. Common causes:",
         "[pid] zygote_host_impl_linux.cc(128)] No usable sandbox! If you are running on Ubuntu",
         "Running as root without --no-sandbox is not supported. See https://crbug.com/638180.",
         "Failed to move to new namespace: PID namespaces supported, Network namespace "
@@ -761,6 +838,38 @@ def test_sandbox_launch_failure_names_the_opt_out(regular_user, log):
             pass
     assert "CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1" in str(excinfo.value)
     assert excinfo.value.__cause__ is browser_type.error
+
+
+@pytest.mark.parametrize(
+    "log",
+    [
+        # The reviewer's case: browsers installed under a folder named
+        # "sandbox", and a launch that fails for an unrelated reason.
+        "BrowserType.launch: Target page, context or browser has been closed\n"
+        "Browser logs:\n\n"
+        "<launching> /tmp/sandbox-user/pw/chromium_headless_shell-1200/chrome-linux/"
+        "headless_shell --disable-field-trial-config --no-sandbox-and-elevated "
+        "--user-data-dir=/tmp/sandbox-user/profile --remote-debugging-pipe "
+        "--no-startup-window\n<launched> pid=4242\n"
+        "[pid=4242][err] /tmp/sandbox-user/pw/chromium_headless_shell-1200/chrome-linux/"
+        "headless_shell: error while loading shared libraries: libnss3.so: cannot open "
+        "shared object file: No such file or directory\n"
+        "Call log:\n  - <launching> /tmp/sandbox-user/pw/chromium_headless_shell-1200/"
+        "chrome-linux/headless_shell --no-startup-window\n  - <launched> pid=4242\n",
+        "BrowserType.launch: Executable doesn't exist at /home/zygote/sandbox/chrome",
+        "[err] [0101/000000.000:ERROR:gpu/zygote_helper.cc(1)] GPU zygote sandbox warning",
+        # A marker inside the echoed command line is not Chromium speaking.
+        "<launching> /opt/No usable sandbox/chrome --flag\n[err] libnss3.so: cannot open",
+    ],
+)
+def test_unrelated_launch_failures_mentioning_sandbox_keep_their_error(regular_user, log):
+    error = RuntimeError(log)
+    browser_type = _FakeBrowserType(error=error)
+    with pytest.raises(RuntimeError) as excinfo:
+        with browser_proxy.guarded_chromium(browser_type):
+            pass
+    assert excinfo.value is error
+    assert not isinstance(excinfo.value, browser_proxy.ChromiumSandboxError)
 
 
 def test_other_launch_failures_are_not_blamed_on_the_sandbox(monkeypatch, regular_user):
@@ -898,3 +1007,504 @@ def test_analyze_visual_runs_on_a_public_page(monkeypatch, regular_user):
     result = analyze_visual.analyze_visual(url)
     assert result["error"] is None
     assert result["fonts"]["base_size"] == 16
+
+
+# ---------------------------------------------------------------------------
+# Address failover: every validated address is tried, nothing else is dialled
+# ---------------------------------------------------------------------------
+
+DEAD, ALIVE = "93.184.216.34", "93.184.216.35"
+
+
+def _two_address_host(monkeypatch, port: int) -> dict:
+    """``multi.example`` resolves once to DEAD and ALIVE; DEAD refuses and
+    ALIVE is the loopback listener on ``port``. Records lookups and dials."""
+    seen = {"lookups": 0, "dialled": []}
+    real_getaddrinfo = socket.getaddrinfo
+    real_connect = socket.create_connection
+
+    def getaddrinfo(host, lookup_port, *args, **kwargs):
+        if host != "multi.example":
+            return real_getaddrinfo(host, lookup_port, *args, **kwargs)
+        seen["lookups"] += 1
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, lookup_port or 0))
+            for ip in (ALIVE, DEAD)
+        ]
+
+    def create_connection(address, *args, **kwargs):
+        if address[0] in (DEAD, ALIVE):
+            seen["dialled"].append(address)
+            if address[0] == DEAD:
+                raise ConnectionRefusedError("dead address")
+            return real_connect(("127.0.0.1", port), *args, **kwargs)
+        return real_connect(address, *args, **kwargs)
+
+    monkeypatch.setattr(url_safety.socket, "getaddrinfo", getaddrinfo)
+    monkeypatch.setattr(browser_proxy.socket, "create_connection", create_connection)
+    return seen
+
+
+def test_destination_returns_every_validated_address(monkeypatch):
+    _two_address_host(monkeypatch, 1)
+    assert browser_proxy._destination("https://multi.example/") == (
+        (DEAD, ALIVE),
+        "multi.example",
+        443,
+    )
+
+
+def test_connect_falls_back_to_the_next_validated_address(monkeypatch):
+    echo = _EchoServer()
+    try:
+        seen = _two_address_host(monkeypatch, echo.port)
+        with browser_proxy.guarded_proxy() as proxy:
+            client, head = _open_tunnel(proxy, f"multi.example:{echo.port}")
+            with client:
+                assert head.startswith(b"HTTP/1.0 200 ")
+                client.sendall(b"ping")
+                assert client.recv(4096) == b"PING"
+    finally:
+        echo.close()
+    assert seen["dialled"] == [(DEAD, echo.port), (ALIVE, echo.port)]
+    assert seen["lookups"] == 1  # never resolved again before the connect
+
+
+def test_plain_http_falls_back_to_the_next_validated_address(monkeypatch, origin):
+    seen = _two_address_host(monkeypatch, origin.port)
+    request = f"GET http://multi.example:{origin.port}/p HTTP/1.1\r\nHost: x\r\n\r\n".encode()
+    with browser_proxy.guarded_proxy() as proxy:
+        answer = _exchange(proxy, request)
+    assert answer.endswith(b"origin body")
+    assert seen["dialled"] == [(DEAD, origin.port), (ALIVE, origin.port)]
+    assert seen["lookups"] == 1
+    assert origin.requests[0][1]["host"] == [f"multi.example:{origin.port}"]
+
+
+def test_one_non_public_record_still_refuses_the_whole_host(monkeypatch):
+    dialled = []
+    real_getaddrinfo = socket.getaddrinfo
+    real_connect = socket.create_connection
+
+    def getaddrinfo(host, port, *args, **kwargs):
+        if host != "mixed.example":
+            return real_getaddrinfo(host, port, *args, **kwargs)
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port or 0))
+            for ip in (ALIVE, "10.0.0.7")
+        ]
+
+    def create_connection(address, *args, **kwargs):
+        if address[0] != "127.0.0.1":
+            dialled.append(address)
+            raise ConnectionRefusedError("must not be dialled")
+        return real_connect(address, *args, **kwargs)
+
+    monkeypatch.setattr(url_safety.socket, "getaddrinfo", getaddrinfo)
+    monkeypatch.setattr(browser_proxy.socket, "create_connection", create_connection)
+    with browser_proxy.guarded_proxy() as proxy:
+        for line in (b"GET http://mixed.example/", b"CONNECT mixed.example:443"):
+            answer = _exchange(proxy, line + b" HTTP/1.1\r\nHost: x\r\n\r\n")
+            assert answer.startswith(b"HTTP/1.0 403 ")
+    assert dialled == []
+
+
+def test_all_addresses_down_is_still_a_failed_load(monkeypatch):
+    def refuse(address, *args, **kwargs):
+        raise ConnectionRefusedError("down")
+
+    monkeypatch.setattr(
+        browser_proxy, "_destination", lambda url: ((DEAD, ALIVE), "multi.example", 80)
+    )
+    with browser_proxy.guarded_proxy() as proxy:
+        port = int(proxy.rsplit(":", 1)[1])
+        clients = [socket.create_connection(("127.0.0.1", port), timeout=5) for _ in range(2)]
+        monkeypatch.setattr(browser_proxy.socket, "create_connection", refuse)
+        answers = []
+        for client, request in zip(
+            clients,
+            (b"GET http://multi.example/ HTTP/1.1\r\n\r\n", b"CONNECT multi.example:80 HTTP/1.1\r\n\r\n"),
+        ):
+            with client:
+                client.sendall(request)
+                answers.append(client.recv(65536))
+    assert answers[0] == b""
+    assert answers[1].startswith(b"HTTP/1.0 502 ")
+
+
+def test_failover_shares_one_connect_budget(monkeypatch):
+    """Addresses that never answer share the budget; the total wait does not
+    grow with the number of addresses."""
+    clock = {"now": 1000.0}
+    timeouts = []
+
+    def never_answers(address, timeout=None, **kwargs):
+        timeouts.append(timeout)
+        clock["now"] += timeout
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(browser_proxy.time, "monotonic", lambda: clock["now"])
+    monkeypatch.setattr(browser_proxy.socket, "create_connection", never_answers)
+    addresses = tuple(f"93.184.216.{n}" for n in range(1, 4))
+    with pytest.raises(TimeoutError):
+        browser_proxy._connect(addresses, 443)
+    assert len(timeouts) == 3
+    assert sum(timeouts) == pytest.approx(browser_proxy._CONNECT_TIMEOUT)
+    assert min(timeouts) >= browser_proxy._MIN_CONNECT_SHARE
+
+    # Far more addresses than the budget has shares for: it still ends on time.
+    timeouts.clear()
+    with pytest.raises(TimeoutError):
+        browser_proxy._connect(tuple(f"93.184.216.{n}" for n in range(1, 60)), 443)
+    assert sum(timeouts) <= browser_proxy._CONNECT_TIMEOUT + 1e-6
+    assert len(timeouts) <= browser_proxy._CONNECT_TIMEOUT / browser_proxy._MIN_CONNECT_SHARE
+
+    # An address that fails at once leaves its share to the others.
+    timeouts.clear()
+
+    def first_refuses(address, timeout=None, **kwargs):
+        timeouts.append(timeout)
+        if len(timeouts) == 1:
+            raise ConnectionRefusedError("refused")
+        clock["now"] += timeout
+        raise TimeoutError("timed out")
+
+    monkeypatch.setattr(browser_proxy.socket, "create_connection", first_refuses)
+    with pytest.raises(TimeoutError):
+        browser_proxy._connect(addresses[:2], 443)
+    assert timeouts[1] == pytest.approx(browser_proxy._CONNECT_TIMEOUT)
+
+
+# ---------------------------------------------------------------------------
+# Plain-HTTP responses: informational responses, framing, truncation
+# ---------------------------------------------------------------------------
+
+_FINAL = b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 9\r\n\r\nREAL PAGE"
+
+
+@pytest.mark.parametrize(
+    "interim",
+    [
+        b"HTTP/1.1 103 Early Hints\r\nLink: </a.css>; rel=preload; as=style\r\n\r\n",
+        b"HTTP/1.1 100 Continue\r\n\r\n",
+        b"HTTP/1.1 102 Processing\r\n\r\nHTTP/1.1 103 Early Hints\r\nLink: </a.css>\r\n\r\n",
+    ],
+)
+def test_informational_responses_are_skipped(monkeypatch, interim):
+    def script(conn):
+        conn.sendall(interim)
+        time.sleep(0.1)
+        conn.sendall(_FINAL)
+
+    answer, reset = _via_raw_origin(monkeypatch, script)
+    head, _, body = answer.partition(b"\r\n\r\n")
+    assert head.startswith(b"HTTP/1.1 200 OK\r\n")
+    assert b"Early Hints" not in answer and b"rel=preload" not in answer
+    assert body == b"REAL PAGE" and not reset
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        # A protocol switch nobody asked for (Upgrade is stripped on the way out).
+        b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\n\r\nRAWBYTES",
+        # Informational responses without end.
+        b"HTTP/1.1 103 Early Hints\r\n\r\n" * 50,
+        b"SSH-2.0-OpenSSH_9.0\r\n",
+        b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n",
+    ],
+)
+def test_unusable_response_heads_get_no_response(monkeypatch, response):
+    answer, _reset = _via_raw_origin(monkeypatch, lambda conn: conn.sendall(response))
+    assert answer == b""
+
+
+def test_a_chunked_response_keeps_its_framing(monkeypatch):
+    chunked = b"5\r\nhello\r\n6\r\n world\r\n0\r\n\r\n"
+
+    def script(conn):
+        conn.sendall(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n" + chunked)
+
+    answer, reset = _via_raw_origin(monkeypatch, script)
+    head, _, body = answer.partition(b"\r\n\r\n")
+    assert head.split(b"\r\n") == [
+        b"HTTP/1.1 200 OK",
+        b"Transfer-Encoding: chunked",
+        b"Connection: close",
+    ]
+    assert body == chunked and not reset
+
+
+def test_a_truncated_chunked_response_is_not_completed(monkeypatch):
+    """The origin goes away inside a chunk. The client gets the chunked
+    framing with no terminating chunk, which a browser reports as a failed
+    transfer (ERR_INCOMPLETE_CHUNKED_ENCODING)."""
+
+    def script(conn):
+        conn.sendall(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n5\r\nhello\r\n5\r\nwo")
+
+    answer, _reset = _via_raw_origin(monkeypatch, script)
+    head, _, body = answer.partition(b"\r\n\r\n")
+    assert b"Transfer-Encoding: chunked" in head
+    assert body == b"5\r\nhello\r\n5\r\nwo"
+    assert not body.endswith(b"0\r\n\r\n")
+
+
+def test_a_short_body_resets_the_client(monkeypatch):
+    def script(conn):
+        conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\n0123456789")
+
+    answer, reset = _via_raw_origin(monkeypatch, script)
+    assert reset
+    assert b"Content-Length: 100" in answer or answer == b""
+
+
+def test_an_origin_reset_mid_body_resets_the_client(monkeypatch):
+    """No declared length: only the way the connection ends can tell the
+    client that the body was cut off."""
+
+    def script(conn):
+        conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>partial")
+        time.sleep(0.3)
+        conn.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+
+    _answer, reset = _via_raw_origin(monkeypatch, script)
+    assert reset
+
+
+def test_an_origin_stalling_mid_body_resets_the_client(monkeypatch):
+    monkeypatch.setattr(browser_proxy, "_HTTP_IO_TIMEOUT", 0.3)
+
+    def script(conn):
+        conn.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>partial")
+        time.sleep(1.5)
+
+    _answer, reset = _via_raw_origin(monkeypatch, script)
+    assert reset
+
+
+def test_a_complete_body_ends_cleanly_even_if_the_origin_keeps_the_connection(monkeypatch):
+    def script(conn):
+        conn.sendall(_FINAL)
+        time.sleep(1.0)
+
+    started = time.monotonic()
+    answer, reset = _via_raw_origin(monkeypatch, script)
+    assert answer.endswith(b"\r\n\r\nREAL PAGE") and not reset
+    assert time.monotonic() - started < 0.9
+
+
+@pytest.mark.parametrize("method,status", [("HEAD", b"200 OK"), ("GET", b"304 Not Modified")])
+def test_bodiless_responses_end_at_the_head(monkeypatch, method, status):
+    def script(conn):
+        conn.sendall(b"HTTP/1.1 " + status + b"\r\nContent-Length: 200\r\nETag: x\r\n\r\n")
+        time.sleep(1.0)
+
+    started = time.monotonic()
+    answer, reset = _via_raw_origin(monkeypatch, script, method=method)
+    assert answer.startswith(b"HTTP/1.1 " + status) and answer.endswith(b"\r\n\r\n")
+    assert not reset and time.monotonic() - started < 0.9
+
+
+def test_a_response_with_many_headers_is_forwarded(monkeypatch):
+    """http.client stops at 100 header lines; real sites send more."""
+    extra = b"".join(b"Set-Cookie: c%d=1\r\n" % n for n in range(150))
+
+    def script(conn):
+        conn.sendall(b"HTTP/1.1 200 OK\r\n" + extra + b"Content-Length: 2\r\n\r\nok")
+
+    answer, reset = _via_raw_origin(monkeypatch, script)
+    head, _, body = answer.partition(b"\r\n\r\n")
+    assert head.count(b"Set-Cookie: ") == 150
+    assert body == b"ok" and not reset
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        b"".join(b"X-%d: 1\r\n" % n for n in range(1500)),
+        b"X-Big: " + b"a" * (300 * 1024) + b"\r\n",
+    ],
+)
+def test_an_oversized_response_head_is_a_clear_error(monkeypatch, extra):
+    def script(conn):
+        conn.sendall(b"HTTP/1.1 200 OK\r\n" + extra + b"Content-Length: 2\r\n\r\nok")
+
+    answer, _reset = _via_raw_origin(monkeypatch, script)
+    assert answer.startswith(b"HTTP/1.0 502 ")
+    assert b"Upstream response headers too large" in answer
+
+
+def test_response_header_lines_are_rebuilt_not_copied(monkeypatch):
+    """Malformed lines are dropped, a folded line joins its header, and
+    hop-by-hop headers of the origin stay behind."""
+
+    def script(conn):
+        conn.sendall(
+            b"HTTP/1.1 200 OK\r\n"
+            b"X-A: 1\r\n\tfolded\r\n"
+            b"not a header line\r\n"
+            b"Bad Name: x\r\n"
+            b"X-Nul: a\x00b\r\n continues the dropped line\r\n"
+            b"X-B: 2\r\n bad\x00fold\r\n"
+            b"Keep-Alive: timeout=5\r\nProxy-Authenticate: Basic\r\nConnection: keep-alive\r\n"
+            b"Content-Length: 2\r\n\r\nok"
+        )
+
+    answer, _reset = _via_raw_origin(monkeypatch, script)
+    head, _, body = answer.partition(b"\r\n\r\n")
+    assert head.split(b"\r\n") == [
+        b"HTTP/1.1 200 OK",
+        b"X-A: 1 folded",
+        b"Content-Length: 2",
+        b"Connection: close",
+    ]
+    assert body == b"ok"
+
+
+# ---------------------------------------------------------------------------
+# The per-run proxy credential
+# ---------------------------------------------------------------------------
+
+
+def _basic(username: str, password: str) -> bytes:
+    token = base64.b64encode(f"{username}:{password}".encode()).decode()
+    return f"Proxy-Authorization: Basic {token}\r\n".encode()
+
+
+@pytest.mark.parametrize(
+    "credential_header",
+    [
+        b"",
+        _basic("claude-seo", "wrong"),
+        _basic("other", "s3cret"),
+        _basic("claude-seo", "s3cre"),
+        _basic("claude-seo", "s3cret-and-more"),
+        b"Proxy-Authorization: Bearer s3cret\r\n",
+        b"Proxy-Authorization: Basic\r\n",
+        b"Proxy-Authorization: Basic !!!not-base64!!!\r\n",
+        b"Authorization: Basic Y2xhdWRlLXNlbzpzM2NyZXQ=\r\n",
+    ],
+)
+def test_authenticated_guard_refuses_a_missing_or_wrong_credential(
+    monkeypatch, origin, credential_header
+):
+    _map_public_host(monkeypatch, origin.port)
+    with browser_proxy.guarded_proxy(("claude-seo", "s3cret")) as proxy:
+        for line in (
+            f"GET http://{PUBLIC_HOST}:{origin.port}/".encode(),
+            f"CONNECT {PUBLIC_HOST}:{origin.port}".encode(),
+            # Refused before the destination is even looked at.
+            b"GET http://127.0.0.1:9000/",
+        ):
+            answer = _exchange(proxy, line + b" HTTP/1.1\r\nHost: x\r\n" + credential_header + b"\r\n")
+            head = answer.partition(b"\r\n\r\n")[0].split(b"\r\n")
+            assert head[0] == b"HTTP/1.0 407 Proxy Authentication Required"
+            assert b'Proxy-Authenticate: Basic realm="claude-seo egress guard"' in head
+    assert origin.requests == []
+
+
+def test_authenticated_guard_serves_the_right_credential(monkeypatch, origin):
+    _map_public_host(monkeypatch, origin.port)
+    echo = _EchoServer()
+    try:
+        with browser_proxy.guarded_proxy(("claude-seo", "s3cret")) as proxy:
+            request = (
+                f"GET http://{PUBLIC_HOST}:{origin.port}/ HTTP/1.1\r\nHost: x\r\n".encode()
+                + _basic("claude-seo", "s3cret")
+                + b"\r\n"
+            )
+            assert _exchange(proxy, request).endswith(b"origin body")
+            # The credential is for the guard only; the site never sees it.
+            assert "proxy-authorization" not in origin.requests[0][1]
+
+            connect = (
+                f"CONNECT {PUBLIC_HOST}:{echo.port} HTTP/1.1\r\n".encode()
+                + _basic("claude-seo", "s3cret")
+                + b"\r\n"
+            )
+            port = int(proxy.rsplit(":", 1)[1])
+            with socket.create_connection(("127.0.0.1", port), timeout=5) as client:
+                client.sendall(connect)
+                assert client.recv(4096).startswith(b"HTTP/1.0 200 ")
+                client.sendall(b"ping")
+                assert client.recv(4096) == b"PING"
+
+            # The destination policy is unchanged for an authenticated client.
+            internal = b"GET http://127.0.0.1:9000/ HTTP/1.1\r\n" + _basic("claude-seo", "s3cret") + b"\r\n"
+            assert _exchange(proxy, internal).startswith(b"HTTP/1.0 403 ")
+    finally:
+        echo.close()
+
+
+def test_guarded_chromium_gives_the_browser_a_fresh_credential(monkeypatch, regular_user, origin):
+    _map_public_host(monkeypatch, origin.port)
+    passwords = []
+    for _ in range(2):
+        browser_type = _FakeBrowserType()
+        with browser_proxy.guarded_chromium(browser_type):
+            proxy = browser_type.calls[0]["proxy"]
+            passwords.append(proxy["password"])
+            request = f"GET http://{PUBLIC_HOST}:{origin.port}/ HTTP/1.1\r\nHost: x\r\n".encode()
+            # Another local process, which does not know the credential.
+            assert _exchange(proxy["server"], request + b"\r\n").startswith(b"HTTP/1.0 407 ")
+            # The browser, which was given it.
+            answer = _exchange(
+                proxy["server"], request + _basic(proxy["username"], proxy["password"]) + b"\r\n"
+            )
+            assert answer.endswith(b"origin body")
+        # Never on the command line, where other local users could read it.
+        assert not any(proxy["password"] in arg for arg in browser_type.calls[0]["args"])
+        assert proxy["password"] not in proxy["server"]
+    assert len(passwords[0]) >= 32 and passwords[0] != passwords[1]
+
+
+def test_plain_guarded_proxy_stays_open_for_unlighthouse(monkeypatch, origin):
+    """Chrome under Unlighthouse gets the proxy from a command-line flag and
+    cannot authenticate, so that guard has no credential (see SECURITY.md)."""
+    _map_public_host(monkeypatch, origin.port)
+    request = f"GET http://{PUBLIC_HOST}:{origin.port}/ HTTP/1.1\r\nHost: x\r\n\r\n".encode()
+    with browser_proxy.guarded_proxy() as proxy:
+        assert _exchange(proxy, request).endswith(b"origin body")
+
+
+def test_real_chromium_authenticates_to_the_guard(monkeypatch, origin):
+    with sync_playwright() as pw:
+        if not Path(pw.chromium.executable_path).exists():
+            pytest.skip("Playwright Chromium is not installed")
+        _map_public_host(monkeypatch, origin.port)
+        url = f"http://{PUBLIC_HOST}:{origin.port}/"
+        with browser_proxy.guarded_chromium(pw.chromium) as browser:
+            page = browser.new_page()
+            response = page.goto(url, timeout=15000)
+            assert response.status == 200
+            assert "origin body" in page.content()
+    assert origin.requests
+
+
+# ---------------------------------------------------------------------------
+# CONNECT: bytes sent together with the request head
+# ---------------------------------------------------------------------------
+
+
+def test_bytes_sent_with_the_connect_head_reach_the_tunnel(monkeypatch):
+    echo = _EchoServer()
+    try:
+        _map_public_host(monkeypatch, echo.port)
+        with browser_proxy.guarded_proxy() as proxy:
+            port = int(proxy.rsplit(":", 1)[1])
+            target = f"{PUBLIC_HOST}:{echo.port}"
+            with socket.create_connection(("127.0.0.1", port), timeout=5) as client:
+                client.sendall(
+                    f"CONNECT {target} HTTP/1.1\r\nHost: {target}\r\n\r\n".encode() + b"early bytes"
+                )
+                received = b""
+                while b"EARLY BYTES" not in received:
+                    chunk = client.recv(4096)
+                    assert chunk, received
+                    received += chunk
+                assert received.startswith(b"HTTP/1.0 200 ")
+                client.sendall(b" later")
+                assert client.recv(4096) == b" LATER"
+    finally:
+        echo.close()
