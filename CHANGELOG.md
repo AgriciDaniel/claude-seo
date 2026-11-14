@@ -49,6 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Recognize full HTTP and HTTPS Schema.org type IRIs in merchant schema
   validation, including products, offers, loyalty pricing and deprecated types.
+### Fixed
+
+- Preserve domain registration, renewal and expiry dates when WHOIS timestamps
+  use numeric UTC offsets, normalizing aware timestamps to their UTC date.
 
 ## [2.6.0] - 2026-11-10
 
