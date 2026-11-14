@@ -101,6 +101,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - IndexNow rejects submitted URLs outside the exact host and directory covered by the ownership key.
+### Fixed
+
+- CrUX trends keep their original four-week windows and report insufficient data when endpoint weeks are missing.
 
 ## [2.6.0] - 2026-11-10
 
