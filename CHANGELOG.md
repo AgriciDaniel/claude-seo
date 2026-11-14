@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- `youtube_search.py` no longer prints the Google API key in error output.
+  The YouTube client sends the key as `?key=` and its errors quote the
+  request URL, so a rejected `video`, `channel` or `search` call put the key
+  into the JSON result and stderr. Errors now pass through the same
+  redaction as the PageSpeed, CrUX and NLP scripts.
+
 ## [2.6.0] - 2026-11-10
 
 Deterministic checks ported from web-obs, the sister crawler project. Work

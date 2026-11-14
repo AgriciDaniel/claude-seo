@@ -152,6 +152,74 @@ def test_lcp_subparts_uses_header_not_query_key() -> None:
     assert QUERY_KEY_ASSIGNMENT not in _dump(result)
 
 
+def _youtube_http_error(status: int = 400):
+    """The error googleapiclient raises: its text carries the request URI."""
+    httplib2 = pytest.importorskip("httplib2")
+    errors = pytest.importorskip("googleapiclient.errors")
+    uri = (
+        "https://youtube.googleapis.com/youtube/v3/videos"
+        f"?id=abc&part=snippet&{QUERY_KEY_ASSIGNMENT}{SECRET}&alt=json"
+    )
+    return errors.HttpError(
+        httplib2.Response({"status": status}),
+        b'{"error": {"message": "API key not valid."}}',
+        uri=uri,
+    )
+
+
+class _FailingYouTubeService:
+    """Stands in for the discovery client; every call raises ``error``."""
+
+    def __init__(self, error: Exception) -> None:
+        self._error = error
+
+    def __getattr__(self, _name: str):
+        return lambda **_kwargs: self
+
+    def execute(self):
+        raise self._error
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda yt: yt.search_videos("claude seo", api_key=SECRET),
+        lambda yt: yt.get_video_details("abc", api_key=SECRET),
+        lambda yt: yt.get_channel_info("UCabc", api_key=SECRET),
+    ],
+    ids=["search", "video", "channel"],
+)
+def test_youtube_redacts_api_errors(call) -> None:
+    pytest.importorskip("googleapiclient")
+    import youtube_search
+
+    error = _youtube_http_error()
+    assert SECRET in str(error)
+
+    with patch.object(
+        youtube_search, "build", return_value=_FailingYouTubeService(error)
+    ):
+        result = call(youtube_search)
+
+    assert result["error"]
+    assert SECRET not in _dump(result)
+    assert QUERY_KEY_ASSIGNMENT not in _dump(result)
+
+
+def test_youtube_redacts_service_build_errors(capsys) -> None:
+    pytest.importorskip("googleapiclient")
+    import youtube_search
+
+    with patch.object(youtube_search, "build", side_effect=_youtube_http_error()):
+        service = youtube_search._build_youtube_service(SECRET)
+
+    assert service is None
+    stderr = capsys.readouterr().err
+    assert "Error building YouTube service" in stderr
+    assert SECRET not in stderr
+    assert QUERY_KEY_ASSIGNMENT not in stderr
+
+
 def test_mcp_docs_do_not_show_google_query_key_examples() -> None:
     text = open(
         os.path.join(_REPO_ROOT, "docs", "MCP-INTEGRATION.md"),
