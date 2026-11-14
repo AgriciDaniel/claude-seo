@@ -241,6 +241,8 @@ def _normalize_seller(item: dict[str, Any]) -> dict[str, Any]:
         "price": _normalize_price(item.get("price")),
         "delivery_info": item.get("delivery_info", ""),
         "url": item.get("url", ""),
+        # Sellers items carry the native product_availability field.
+        "availability": _normalize_availability(item.get("availability") or item.get("product_availability")),
     }
 
 

@@ -17,6 +17,7 @@ Original concept: Matej Marjanovic (Pro Hub Challenge)
 import argparse
 import json
 import math
+import re
 import sys
 from typing import Any, Optional
 
@@ -219,6 +220,14 @@ def _normalize_currency(raw: Any) -> str:
     return symbol_map.get(text, text[:3] if len(text) >= 3 else "USD")
 
 
+# A negative reading is tested before a positive one, so "not in stock",
+# "no longer in stock", "out of stock" and "unavailable" never read as in stock.
+_NEGATIVE_AVAILABILITY_RE = re.compile(
+    r"out of stock|outofstock|sold out|unavailable"
+    r"|\b(?:not|no longer|never)(?: \w+){0,3} (?:in stock|available)\b"
+)
+
+
 def _normalize_availability(raw: Any) -> str:
     """Normalize legacy labels while retaining distinct Merchant stock states."""
     if not raw:
@@ -226,11 +235,13 @@ def _normalize_availability(raw: Any) -> str:
     text = str(raw).lower().strip()
     if text in {"limited_stock", "backordered", "on_display_to_order"}:
         return text
-    if "out_of_stock" in text or "out of stock" in text or "not in stock" in text:
+    # Underscores, hyphens and runs of whitespace all read as one space.
+    flat = re.sub(r"[\s_\-]+", " ", text)
+    if _NEGATIVE_AVAILABILITY_RE.search(flat):
         return "out_of_stock"
-    if "in_stock" in text or "in stock" in text:
+    if "in stock" in flat or "instock" in flat:
         return "in_stock"
-    if "preorder" in text or "pre-order" in text or "pre_order" in text:
+    if "preorder" in flat or "pre order" in flat:
         return "preorder"
     return "unknown"
 
