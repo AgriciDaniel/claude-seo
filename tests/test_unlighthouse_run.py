@@ -67,14 +67,35 @@ def test_write_config_file_emits_valid_esm_default_export(tmp_path):
     assert payload == config
 
 
-def test_build_config_routes_only_puppeteer_through_guarded_proxy():
+def test_build_config_routes_puppeteer_through_guarded_proxy():
     config = ul.build_config(25, 45_000, "http://127.0.0.1:12345")
-    assert config["scanner"]["robotsTxt"] is False
-    assert config["scanner"]["sitemap"] is False
-    assert config["scanner"]["skipJavascript"] is False
     assert "--proxy-server=http://127.0.0.1:12345" in config["puppeteerOptions"]["args"]
     assert "--proxy-bypass-list=<-loopback>" in config["puppeteerOptions"]["args"]
     assert "--disable-quic" in config["puppeteerOptions"]["args"]
+
+
+def test_build_config_keeps_robots_and_sitemap_discovery():
+    """The egress guard does not need discovery switched off: the Node
+    preload routes those fetches through it. Leaving the keys out keeps the
+    upstream defaults, as before the guard (robots.txt and sitemaps read,
+    HTML link discovery without JavaScript)."""
+    scanner = ul.build_config(25, 45_000, "http://127.0.0.1:12345")["scanner"]
+    assert scanner == {"maxRoutes": 25}
+
+
+def test_preload_guards_node_http_and_https_requests():
+    """Discovery is only safe while the preload covers both Node clients and
+    fails closed without the guard address."""
+    text = (ROOT / "scripts" / "unlighthouse_http_proxy.cjs").read_text(encoding="utf-8")
+    for needle in (
+        "http.request = guardedHttp",
+        "https.request = guardedHttps",
+        "http.get =",
+        "https.get =",
+        "new URL(process.env.CLAUDE_SEO_GUARD_PROXY)",
+        "CONNECT ${authority}",
+    ):
+        assert needle in text
 
 
 def test_run_keeps_guard_active_during_unlighthouse_process(monkeypatch, tmp_path):

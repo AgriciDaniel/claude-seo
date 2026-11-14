@@ -10,6 +10,11 @@ support without a paid Google Cloud bill.
 
 This wrapper:
   - Validates the target via url_safety before any subprocess starts.
+  - Runs the crawl behind the egress guard in ``browser_proxy.py``: Chrome
+    gets the guard as its proxy, and ``unlighthouse_http_proxy.cjs`` is
+    preloaded so the CLI's own Node requests (site check, robots.txt,
+    sitemaps, HTML link discovery) go through it too. Redirects to
+    loopback, private or metadata addresses are refused at each hop.
   - Invokes ``npx --yes unlighthouse-ci@0.13.5 …`` with sensible
     defaults (mobile form factor, JSON reporter, generated config file).
   - Captures the JSON result the CLI writes and returns it parsed,
@@ -91,15 +96,11 @@ def build_config(max_routes: int | None, page_timeout_ms: int, proxy_url: str) -
     matching the documented type ``number | false``.
     """
     return {
-        # Unlighthouse 0.13.5 uses Axios with proxy=false for robots.txt,
-        # sitemap, and skipJavascript scans. Only the Puppeteer crawler can
-        # be routed through the guarded proxy.
-        "scanner": {
-            "maxRoutes": max_routes if max_routes is not None else False,
-            "robotsTxt": False,
-            "sitemap": False,
-            "skipJavascript": False,
-        },
+        # robots.txt, sitemap and HTML link discovery keep their upstream
+        # defaults. Unlighthouse 0.13.5 fetches them from Node (Axios with
+        # proxy=false, and sitemapper on got), which the preload in
+        # unlighthouse_http_proxy.cjs sends through the guarded proxy.
+        "scanner": {"maxRoutes": max_routes if max_routes is not None else False},
         "puppeteerOptions": {"args": [
             f"--proxy-server={proxy_url}",
             "--proxy-bypass-list=<-loopback>",

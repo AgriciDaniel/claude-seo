@@ -41,6 +41,12 @@ safe_requests_session(url) -> context manager yielding requests.Session
     Same protection as ``safe_requests_get`` for callers that need a
     session (cookies, redirect chains, multiple requests to one host).
 
+validate_public_url_strict(url) -> tuple[str, str]
+    ``validate_url_strict`` without the ``CLAUDE_SEO_LOCAL_TARGETS``
+    allowlist. Used for every URL that is not the operator's own top-level
+    target: redirect hops sent through an HTTP proxy and every connection
+    the browser egress guard (``browser_proxy.py``) opens.
+
 is_safe_ip(ip_str) -> bool
     True iff the address parses as IPv4/IPv6 and is none of:
     private, loopback, reserved, link-local, multicast, unspecified,
@@ -73,24 +79,33 @@ raise rather than corrupt the global ``socket.getaddrinfo`` reference.
 claude-seo scripts are intentionally single-threaded; parallelism is
 delegated to the agent-process layer.
 
-Limitations
-===========
+Proxies and redirects
+=====================
+Behind an HTTP(S) proxy the proxy resolves each host itself, so the
+patched resolver in ``_pin_dns`` never sees a redirect target. Every
+request that is about to be sent through a proxy, redirect hops included,
+is therefore validated first (see ``_ProxyGuardSession``). A request that
+goes direct is covered by the pin, as before.
+
+Browser fetches
+===============
 Playwright/Chromium-based fetches (``render_page.py``,
-``capture_screenshot.py``) perform their own DNS resolution inside
-Chromium and therefore cannot be DNS-pinned at the Python layer. Those
-scripts must:
+``capture_screenshot.py``, ``analyze_visual.py``) resolve DNS inside
+Chromium and cannot be pinned by ``_pin_dns``. Those scripts must:
 
-  1. Call ``validate_url_strict()`` as a pre-flight check, AND
-  2. Attach a Playwright ``route()`` handler that re-validates each
-     resolved request IP and aborts subresource fetches to private
-     ranges.
+  1. Call ``validate_url_strict()`` as a pre-flight check,
+  2. Launch Chromium through ``browser_proxy.guarded_chromium``, which
+     forces every browser connection through a local proxy that validates
+     and pins the destination per connection, redirect hops included, AND
+  3. Attach the Playwright ``route()`` handler from this module as
+     defence in depth.
 
-The residual DNS-rebinding risk for browser-based fetches is documented
-in SECURITY.md.
+The limits of that design are documented in SECURITY.md.
 """
 
 from __future__ import annotations
 
+import base64
 import ipaddress
 import os
 import re
@@ -99,7 +114,7 @@ import threading
 import time
 from contextlib import contextmanager
 from typing import Iterator, Optional
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 try:
     import requests
@@ -120,6 +135,7 @@ __all__ = [
     "normalize_hostname",
     "validate_url",
     "validate_url_strict",
+    "validate_public_url_strict",
     "safe_requests_get",
     "safe_requests_head",
     "safe_requests_session",
@@ -551,6 +567,23 @@ def validate_url_strict(url: str) -> tuple[str, str]:
     only for a host that publishes AAAA records alone, or for an IPv6
     literal, which keeps its brackets in the returned URL.
     """
+    return _validate_url_strict(url, local_targets=True)
+
+
+def validate_public_url_strict(url: str) -> tuple[str, str]:
+    """
+    :func:`validate_url_strict` without ``CLAUDE_SEO_LOCAL_TARGETS``.
+
+    For every URL that is not the operator's own top-level target: a
+    redirect hop that will be sent through an HTTP proxy, and every
+    connection the browser egress guard opens. Every resolved address must
+    be public; the allowlist is never read.
+    """
+    return _validate_url_strict(url, local_targets=False)
+
+
+def _validate_url_strict(url: str, *, local_targets: bool) -> tuple[str, str]:
+    """Shared body of the two strict validators; see their docstrings."""
     parsed = urlparse(url)
     _reject_authority_confusion(url, parsed)
     if parsed.scheme not in ("http", "https"):
@@ -566,7 +599,7 @@ def validate_url_strict(url: str) -> tuple[str, str]:
     # The CLAUDE_SEO_LOCAL_TARGETS allowlist is read here, which is what keeps
     # it top-level only. The request chain reaches it again in one place, the
     # pin's port check for this same host (``_local_pin_allows_port``).
-    allowlisted = _is_allowlisted_local_target(hostname, port)
+    allowlisted = local_targets and _is_allowlisted_local_target(hostname, port)
     if hostname in _BLOCKED_HOSTNAMES and not allowlisted:
         raise URLSafetyError(f"Blocked hostname: {hostname}")
 
@@ -662,6 +695,16 @@ def _assert_proxy_host_is_public(host: str) -> str:
 
     Returns the normalized hostname. Raises ``URLSafetyError`` otherwise.
     """
+    return _resolve_public_proxy_host(host)[0]
+
+
+def _resolve_public_proxy_host(host: str) -> tuple[str, tuple[str, ...]]:
+    """:func:`_assert_proxy_host_is_public`, also returning the addresses.
+
+    Returns ``(normalized_hostname, addresses)`` with IPv4 first, so a
+    caller that opens the connection itself can dial an address this check
+    has seen instead of resolving the name a second time.
+    """
     normalized = normalize_hostname(host)
     hint = (
         "Point the proxy environment variable at a publicly routable "
@@ -684,7 +727,7 @@ def _assert_proxy_host_is_public(host: str) -> str:
                 f"Refusing configured HTTP proxy {host!r}: non-public "
                 f"address {normalized}. {hint}"
             )
-        return normalized
+        return normalized, (str(literal),)
 
     try:
         addrinfo = socket.getaddrinfo(
@@ -699,7 +742,9 @@ def _assert_proxy_host_is_public(host: str) -> str:
             f"failed ({exc}). {hint}"
         ) from exc
 
-    resolved_ips = sorted({info[4][0] for info in addrinfo if info[4]})
+    resolved_ips = sorted(
+        {info[4][0] for info in addrinfo if info[4]}, key=lambda ip: (":" in ip, ip)
+    )
     if not resolved_ips:
         raise URLSafetyError(
             f"Refusing configured HTTP proxy {host!r}: no address records. "
@@ -711,7 +756,7 @@ def _assert_proxy_host_is_public(host: str) -> str:
                 f"Refusing configured HTTP proxy {host!r}: it resolves to "
                 f"non-public IP {ip_str}. {hint}"
             )
-    return normalized
+    return normalized, tuple(resolved_ips)
 
 
 def _validated_proxy_hosts(url: str, proxies: Optional[dict] = None) -> frozenset:
@@ -725,6 +770,45 @@ def _validated_proxy_hosts(url: str, proxies: Optional[dict] = None) -> frozense
     return frozenset(
         _assert_proxy_host_is_public(host) for host in _proxy_hosts(url, proxies)
     )
+
+
+def upstream_http_proxy(url: str) -> Optional[tuple[str, int, Optional[str]]]:
+    """The environment's HTTP proxy for ``url``, validated and resolved.
+
+    Returns ``None`` when a request for ``url`` goes direct, otherwise
+    ``(address, port, proxy_authorization)``: an address that passed the
+    same policy as :func:`_validated_proxy_hosts`, the proxy port, and a
+    ``Basic`` credential when the proxy URL carries userinfo. Selection
+    follows ``requests`` (``HTTPS_PROXY``, ``HTTP_PROXY``, ``ALL_PROXY``,
+    ``NO_PROXY``, and the system settings ``urllib`` reads).
+
+    Used by the browser egress guard to chain to the operator's proxy.
+    Only ``http://`` proxies are supported there; any other scheme raises
+    ``URLSafetyError`` so the caller reports a clear error instead of
+    connecting direct.
+    """
+    proxy = requests.utils.select_proxy(url, requests.utils.get_environ_proxies(url))
+    if not proxy:
+        return None
+    parsed = urlparse(requests.utils.prepend_scheme_if_needed(proxy, "http"))
+    if parsed.scheme != "http" or not parsed.hostname:
+        raise URLSafetyError(
+            f"Unsupported proxy for browser rendering: scheme "
+            f"{parsed.scheme!r}. Only http:// proxies are supported; point "
+            "the proxy environment variable at one, or unset it."
+        )
+    try:
+        port = parsed.port or 80
+    except ValueError as exc:
+        raise URLSafetyError("Configured HTTP proxy has an invalid port") from exc
+    _normalized, addresses = _resolve_public_proxy_host(parsed.hostname)
+    authorization = None
+    if parsed.username is not None:
+        credentials = f"{unquote(parsed.username)}:{unquote(parsed.password or '')}"
+        authorization = "Basic " + base64.b64encode(
+            credentials.encode("utf-8")
+        ).decode("ascii")
+    return addresses[0], port, authorization
 
 
 def _local_pin_allows_port(hostname: str, validated_port: int, requested_port) -> bool:
@@ -791,9 +875,10 @@ def _pin_dns(
     the tunnel, which the fall-through check otherwise refused. Callers pass
     :func:`_validated_proxy_hosts`, which has already put that host through
     the hostname blocklist and :func:`is_safe_ip`, so a proxy on loopback or
-    at a metadata address never reaches this set. Behind a CONNECT proxy the
-    target is resolved by the proxy, and :func:`validate_url_strict`'s
-    pre-flight check remains the guard for it.
+    at a metadata address never reaches this set. Behind a proxy the target
+    is resolved by the proxy and never reaches this function, so the guard
+    there is validation before each request is sent: the pre-flight check for
+    the first URL and :class:`_ProxyGuardSession` for every later hop.
 
     The fall-through validation is the v2 fix for redirect-target DNS
     rebinding: ``requests.Session.get(allow_redirects=True)`` may follow
@@ -1193,6 +1278,84 @@ def _with_default_headers(kwargs: dict) -> dict:
     return kwargs
 
 
+class ProxiedRequestRefused(URLSafetyError, requests.exceptions.ConnectionError):
+    """A request that would go through an HTTP proxy failed validation.
+
+    Both a ``URLSafetyError`` and a ``requests`` ``ConnectionError``. A
+    redirect refused on a direct connection already surfaces as
+    ``ConnectionError`` (the pinned resolver raises ``gaierror``), so callers
+    reach the same error path whether or not a proxy is configured.
+    """
+
+
+class _ProxyGuardSession(requests.Session):
+    """A ``Session`` that validates every request it sends through a proxy.
+
+    A proxy resolves the target host itself, so the patched resolver in
+    :func:`_pin_dns` never sees a redirect hop that is sent through one.
+    ``requests`` sends each hop with ``Session.send``, so the check sits
+    there: it sees the exact URL about to be requested, before any byte
+    leaves, whatever hooks or arguments the caller passed. The redirect
+    limit and the redirect body cap are untouched.
+
+    A request that goes direct is left to the pin. The first, pre-validated
+    host keeps the operator's allowlist, as it does under the pin; any other
+    host must be public.
+    """
+
+    def __init__(self, validated_url: str) -> None:
+        super().__init__()
+        self._validated_url = validated_url
+        self._validated_host = _hostname_or_none(validated_url)
+
+    def send(self, request, **kwargs):  # type: ignore[no-untyped-def]
+        proxies = kwargs.get("proxies")
+        if proxies is None:
+            proxies = requests.utils.resolve_proxies(
+                request, self.proxies, self.trust_env
+            )
+        url = request.url or ""
+        if url != self._validated_url and requests.utils.select_proxy(url, proxies):
+            try:
+                if _hostname_or_none(url) == self._validated_host:
+                    validate_url_strict(url)
+                else:
+                    validate_public_url_strict(url)
+            except URLSafetyError as exc:
+                raise ProxiedRequestRefused(
+                    f"url_safety: refused to send a request through the "
+                    f"configured proxy: {exc}"
+                ) from exc
+        return super().send(request, **kwargs)
+
+
+def _hostname_or_none(url: str) -> Optional[str]:
+    """The normalized hostname of ``url``, or ``None`` if it has none."""
+    try:
+        return normalize_hostname(urlparse(url).hostname or "")
+    except (URLSafetyError, ValueError):
+        return None
+
+
+def _proxy_configured(proxies: Optional[dict]) -> bool:
+    """Whether any HTTP proxy could apply to a request or one of its hops."""
+    return bool(proxies) or bool(requests.utils.getproxies())
+
+
+def _pinned_request(method: str, url: str, **kwargs):  # type: ignore[no-untyped-def]
+    """``requests.get`` / ``requests.head``, guarding hops sent through a proxy.
+
+    With no proxy configured this is the plain ``requests`` call it always
+    was. With one, the same request runs on a :class:`_ProxyGuardSession`,
+    which is what ``requests.get`` does internally with a plain ``Session``.
+    """
+    if not _proxy_configured(kwargs.get("proxies")):
+        return getattr(requests, method)(url, **kwargs)
+    kwargs.setdefault("allow_redirects", method != "head")
+    with _ProxyGuardSession(url) as session:
+        return session.request(method, url, **kwargs)
+
+
 def safe_requests_get(
     url: str,
     *,
@@ -1214,7 +1377,7 @@ def safe_requests_get(
     kwargs = _with_redirect_body_cap(_with_default_headers(kwargs))
     exempt = _validated_proxy_hosts(norm_url, kwargs.get("proxies"))
     with _pin_dns(parsed.hostname, pinned_ip, port, exempt_hosts=exempt):
-        return requests.get(norm_url, timeout=timeout, **kwargs)
+        return _pinned_request("get", norm_url, timeout=timeout, **kwargs)
 
 
 def safe_requests_head(
@@ -1238,7 +1401,7 @@ def safe_requests_head(
     kwargs = _with_default_headers(kwargs)
     exempt = _validated_proxy_hosts(norm_url, kwargs.get("proxies"))
     with _pin_dns(parsed.hostname, pinned_ip, port, exempt_hosts=exempt):
-        return requests.head(norm_url, timeout=timeout, **kwargs)
+        return _pinned_request("head", norm_url, timeout=timeout, **kwargs)
 
 
 @contextmanager
@@ -1252,7 +1415,7 @@ def safe_requests_session(url: str) -> Iterator[requests.Session]:
     parsed = urlparse(norm_url)
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     assert parsed.hostname is not None
-    session = requests.Session()
+    session = _ProxyGuardSession(norm_url)
     # Session hooks apply to every request made on it, including each
     # redirect hop, unless a request passes its own response hooks.
     session.hooks["response"].append(_bound_redirect_body)
