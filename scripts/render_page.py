@@ -50,6 +50,9 @@ A dict with::
     js_gap            raw-versus-rendered difference (see below), or None
                       when no render happened (or the HTML was too large
                       to compare, which render_diagnostics then says)
+    sandbox           True when Chromium ran with its sandbox, False when
+                      it ran without (unavailable on this system, root, or
+                      opted out), None when no browser was launched
     error             str or None
 
 JavaScript content gap
@@ -83,14 +86,17 @@ SSRF
 ====
 The URL is validated via :func:`url_safety.validate_url_strict` before
 Playwright sees it. Chromium is launched through
-:func:`browser_proxy.guarded_chromium`: sandboxed, with every connection
+:func:`browser_proxy.guarded_chromium`: sandboxed where the host can start
+the Chromium sandbox (``sandbox`` in the result says so), with every connection
 (redirect hops included) forced through a local proxy that validates and
 pins the destination. A ``route()`` handler also aborts requests whose
 hostname resolves to a non-public IP, as defence in depth. A render that
 ends on a blank, failed or refused page is an error with the raw fetch
 kept (``raw_fallback_available``). The limits are documented in
-SECURITY.md. ``CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1`` launches without the
-Chromium sandbox where it cannot start (root, some containers).
+SECURITY.md. Where the sandbox cannot start (Ubuntu 23.10 and later, most
+containers, root) the browser runs without it, with a warning on stderr and
+``sandbox: false``; ``CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1`` makes that an
+error and ``CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1`` skips the sandbox attempt.
 
 CLI
 ===
@@ -141,6 +147,7 @@ if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 from browser_proxy import (  # noqa: E402
     PageNotLoadedError,
+    chromium_sandboxed,
     guarded_chromium,
     require_public_page,
 )
@@ -714,6 +721,9 @@ def render_page(
         "mode_used": None,
         "too_large": False,
         "js_gap": None,
+        # True or False once a browser was launched (False: no Chromium
+        # sandbox on this system); None when nothing was rendered.
+        "sandbox": None,
         "error": None,
     }
 
@@ -793,6 +803,7 @@ def render_page(
 
         try:
             with sync_playwright() as p, guarded_chromium(p.chromium, norm_url) as browser:
+                result["sandbox"] = chromium_sandboxed(browser)
                 context = new_guarded_context(
                     browser,
                     route_handler,

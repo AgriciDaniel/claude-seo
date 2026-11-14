@@ -82,7 +82,7 @@ def test_chart_text_cuts_long_text_and_drops_undrawable_characters() -> None:
     text = google_report._chart_text("W" * 5000)
     assert len(text) == 60 and text.endswith("...")
     assert google_report._chart_text("$" * 5000, 10) == "\\$" * 7 + "..."
-    assert google_report._chart_text("a\ud800b\x00c￾d￿\x1b[31m") == "abcd[31m"
+    assert google_report._chart_text("a\ud800b\x00c\ufffed\uffff\x1b[31m") == "abcd[31m"
     assert google_report._chart_text("two\nlines\tand  spaces") == "two lines and spaces"
     assert google_report._chart_text(None) == "None"
     assert google_report._chart_text(10 ** 400, 12) == "1" + "0" * 8 + "..."
@@ -157,7 +157,7 @@ def test_xlsx_cells_accept_surrogates_noncharacters_and_odd_numbers(tmp_path: Pa
     wb = openpyxl.Workbook()
     ws = wb.active
     google_report._xlsx_append_row(ws, [
-        "a\ud800b", "￾", "a￿b", 10 ** 400, -(10 ** 400),
+        "a\ud800b", "\ufffe", "a\uffffb", 10 ** 400, -(10 ** 400),
         float("nan"), float("inf"), float("-inf"), 10 ** 15, 2.5, True, "x" * 40000,
     ])
     path = tmp_path / "odd.xlsx"
@@ -179,7 +179,7 @@ def test_xlsx_report_with_odd_values_is_written(tmp_path: Path) -> None:
     openpyxl = pytest.importorskip("openpyxl")
     rows = [
         {"query": "q\ud800", "clicks": 10 ** 400, "impressions": float("nan"), "ctr": 0.1, "position": 1},
-        {"keys": ["￿"], "clicks": float("inf"), "impressions": 2, "ctr": 0.1, "position": 1},
+        {"keys": ["\uffff"], "clicks": float("inf"), "impressions": 2, "ctr": 0.1, "position": 1},
     ]
     path = google_report.generate_xlsx({"gsc": {"rows": rows}}, "example.com", "full", tmp_path)
     ws = openpyxl.load_workbook(path)["Queries"]

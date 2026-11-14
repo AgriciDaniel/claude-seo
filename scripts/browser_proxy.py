@@ -25,12 +25,19 @@ What it enforces
 * A plain-HTTP response is relayed with the origin's own framing and the
   client connection is reset when the origin fails mid-response, so a
   truncated transfer is never passed off as a complete one.
+* A plain-HTTP response head has one overall deadline, and a request whose
+  client has gone away is dropped at once, so a slow origin cannot pile up
+  guard threads and sockets behind requests the page already abandoned.
 
 Chromium
 ========
 ``guarded_chromium`` is the one place that launches a browser. It launches
-with the Chromium sandbox on. ``CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1`` turns the
-sandbox off for root and container environments where it cannot start.
+with the Chromium sandbox on. Where the sandbox cannot start (Ubuntu 23.10
+and later, most containers, root) it relaunches once without it, behind the
+same guard, and prints a warning on stderr; ``chromium_sandboxed`` tells the
+caller which of the two happened. ``CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1``
+turns that fallback into an error, and ``CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1``
+skips the sandboxed attempt.
 """
 
 from __future__ import annotations
@@ -44,6 +51,7 @@ import secrets
 import select
 import socket
 import struct
+import sys
 import threading
 import time
 from contextlib import contextmanager, suppress
@@ -63,6 +71,10 @@ _CONNECT_TIMEOUT = 10
 # The least an address that does not answer is given before the next is tried.
 _MIN_CONNECT_SHARE = 1.0
 _HTTP_IO_TIMEOUT = 30
+# One budget for a whole plain-HTTP response head, informational responses
+# included. The idle timeout alone would let an origin hold a guard thread
+# and two sockets for hours by sending one header line every few seconds.
+_RESPONSE_HEAD_TIMEOUT = 30
 _TUNNEL_IDLE_TIMEOUT = 60
 _MAX_REQUEST_BODY = 10 * 1024 * 1024
 _MAX_CONNECT_RESPONSE = 64 * 1024
@@ -98,6 +110,17 @@ _PROXY_AUTH_REALM = "claude-seo egress guard"
 _PROXY_USERNAME = "claude-seo"
 
 NO_SANDBOX_ENV = "CLAUDE_SEO_CHROMIUM_NO_SANDBOX"
+REQUIRE_SANDBOX_ENV = "CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX"
+USERNS_DOC_URL = (
+    "https://chromium.googlesource.com/chromium/src/+/main/docs/security/"
+    "apparmor-userns-restrictions.md"
+)
+# Set on the browser ``guarded_chromium`` yields; read it with
+# ``chromium_sandboxed``.
+_SANDBOXED_ATTR = "claude_seo_sandboxed"
+# Reasons already warned about, so a run that launches several browsers
+# (``capture_screenshot.py --all``) says it once.
+_warned_reasons: set[str] = set()
 # Messages that mean the sandbox itself could not start: Chromium's own
 # wording (zygote_host_impl_linux.cc, the setuid sandbox host) and the banner
 # Playwright prints in their place. Whole phrases only. A bare word such as
@@ -108,7 +131,6 @@ _SANDBOX_FAILURE_MARKERS = (
     "no usable sandbox",
     "running as root without --no-sandbox is not supported",
     "failed to move to new namespace",
-    "zygote_host_impl_linux.cc",
     "the suid sandbox helper binary was found, but is not configured correctly",
     "the setuid sandbox is not running as root",
     "the setuid sandbox provides api version",
@@ -230,6 +252,65 @@ class _ResponseHeadTooLarge(Exception):
     """The origin's response head is over this proxy's size limits."""
 
 
+class _OriginReader:
+    """Reads a plain-HTTP response from the origin while watching the client.
+
+    Every wait ends on the first of: origin bytes, the idle timeout
+    (``_HTTP_IO_TIMEOUT`` per read), ``deadline`` (a ``time.monotonic()``
+    value, or None for no overall limit) and the client hanging up. The last
+    three raise ``OSError``, so the caller drops the request and both sockets.
+
+    The request was read in full and the connection serves no second one, so
+    anything the client still sends is discarded; the end of its stream means
+    it has gone away.
+    """
+
+    def __init__(self, origin: socket.socket, client: socket.socket) -> None:
+        self._origin = origin
+        self._client = client
+        self._buffer = bytearray()
+        self._ended = False
+        self.deadline: Optional[float] = None
+
+    def _fill(self) -> None:
+        """Wait for the origin and buffer what it sent (nothing at its end)."""
+        idle_until = time.monotonic() + _HTTP_IO_TIMEOUT
+        while not self._ended:
+            until = idle_until if self.deadline is None else min(idle_until, self.deadline)
+            wait = until - time.monotonic()
+            if wait <= 0:
+                raise socket.timeout("timed out waiting for the origin")
+            readable, _, _ = select.select((self._origin, self._client), (), (), wait)
+            if self._client in readable and not self._client.recv(_RELAY_CHUNK):
+                raise OSError("client disconnected")
+            if self._origin in readable:
+                data = self._origin.recv(_RELAY_CHUNK)
+                self._ended = not data
+                self._buffer += data
+                return
+
+    def readline(self, limit: int) -> bytes:
+        """One line with its newline, at most ``limit`` bytes; short at the end."""
+        scanned = 0
+        while (end := self._buffer.find(b"\n", scanned, limit) + 1) == 0:
+            scanned = len(self._buffer)
+            if scanned >= limit or self._ended:
+                end = limit
+                break
+            self._fill()
+        line = bytes(self._buffer[:end])
+        del self._buffer[:end]
+        return line
+
+    def read1(self, size: int) -> bytes:
+        """Up to ``size`` bytes after at most one wait; empty at the end."""
+        if not self._buffer:
+            self._fill()
+        chunk = bytes(self._buffer[:size])
+        del self._buffer[:size]
+        return chunk
+
+
 def _read_response_head(reader) -> tuple[bytes, int, list[tuple[bytes, bytes]]]:  # type: ignore[no-untyped-def]
     """Read one response head: ``(status_line, status, headers)``.
 
@@ -243,7 +324,8 @@ def _read_response_head(reader) -> tuple[bytes, int, list[tuple[bytes, bytes]]]:
         _ResponseHeadTooLarge: over ``_MAX_RESPONSE_HEAD`` bytes or
             ``_MAX_RESPONSE_HEADERS`` lines.
         ValueError: the status line is not HTTP/1.x.
-        OSError: the connection ended or failed inside the head.
+        OSError: the connection ended or failed inside the head, the
+            reader's deadline passed, or the client went away.
     """
     budget = _MAX_RESPONSE_HEAD
 
@@ -550,7 +632,6 @@ class _ProxyHandler(BaseHTTPRequestHandler):
         # directly, below.
         connection = http.client.HTTPConnection(peers[0], peer_port, timeout=_HTTP_IO_TIMEOUT)
         connection.auto_open = 0
-        reader = None
         in_flight = False
         try:
             connection.sock = _connect(peers, peer_port)
@@ -569,8 +650,13 @@ class _ProxyHandler(BaseHTTPRequestHandler):
                 connection.putheader("Content-Length", str(len(body)))
             connection.endheaders(body or None)
 
-            reader = connection.sock.makefile("rb")
+            reader = _OriginReader(connection.sock, self.connection)
+            # The whole head, informational responses included, under one
+            # deadline. The body after it may take as long as it likes while
+            # bytes keep coming (downloads, streams) and the client stays.
+            reader.deadline = time.monotonic() + _RESPONSE_HEAD_TIMEOUT
             status_line, status, headers = _read_final_response_head(reader)
+            reader.deadline = None
             # The page's own status line and headers reach the audit as sent:
             # no Server or Date header of this proxy is added. The origin's
             # framing headers go through too, because the body is relayed as
@@ -599,16 +685,14 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             # Not silence: the operator should see why the page did not load.
             self._reject(502, "Upstream response headers too large")
         except (OSError, ValueError, http.client.HTTPException):
-            # Unreachable, reset, timed out or malformed. Before the head was
-            # passed on the client gets no response at all. After it, nothing
-            # is appended to the response in flight; the connection is reset
-            # so the client cannot take a cut-off body for a complete one.
+            # Unreachable, reset, timed out (the head deadline included),
+            # malformed, or the client went away. Before the head was passed
+            # on the client gets no response at all. After it, nothing is
+            # appended to the response in flight; the connection is reset so
+            # the client cannot take a cut-off body for a complete one.
             if in_flight:
                 self._abort_client()
         finally:
-            if reader is not None:
-                with suppress(OSError):
-                    reader.close()
             connection.close()
 
 
@@ -656,24 +740,106 @@ def guarded_proxy(credentials: Optional[tuple[str, str]] = None):
         thread.join(timeout=2)
 
 
+def _env_flag(name: str) -> bool:
+    return os.environ.get(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
 def chromium_sandbox_enabled() -> bool:
     """False only when ``CLAUDE_SEO_CHROMIUM_NO_SANDBOX`` opts out."""
-    return os.environ.get(NO_SANDBOX_ENV, "").strip().lower() not in (
-        "1",
-        "true",
-        "yes",
-        "on",
+    return not _env_flag(NO_SANDBOX_ENV)
+
+
+def chromium_sandbox_required() -> bool:
+    """True when ``CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX`` forbids the fallback."""
+    return _env_flag(REQUIRE_SANDBOX_ENV)
+
+
+def chromium_sandboxed(browser) -> Optional[bool]:  # type: ignore[no-untyped-def]
+    """Whether a browser from ``guarded_chromium`` runs with the sandbox.
+
+    None for an object that did not come from ``guarded_chromium``.
+    """
+    return getattr(browser, _SANDBOXED_ATTR, None)
+
+
+def _is_root() -> bool:
+    geteuid = getattr(os, "geteuid", None)
+    return geteuid is not None and geteuid() == 0
+
+
+def _userns_hint() -> str:
+    """Where to read on, for the systems where the cause is usually this."""
+    if not sys.platform.startswith("linux"):
+        return ""
+    return (
+        "Ubuntu 23.10 and later block unprivileged user namespaces by "
+        f"default; to enable the sandbox see {USERNS_DOC_URL}"
     )
 
 
-def _sandbox_error(detail: str) -> ChromiumSandboxError:
+def _strict_error(reason: str) -> ChromiumSandboxError:
+    """The error for a launch that strict mode does not let fall back."""
+    if reason == "conflict":
+        return ChromiumSandboxError(
+            f"{REQUIRE_SANDBOX_ENV} and {NO_SANDBOX_ENV} are both set and "
+            f"contradict each other. {REQUIRE_SANDBOX_ENV} wins, so nothing "
+            "was rendered. Unset one of them."
+        )
+    if reason == "root":
+        cause = "Chromium's sandbox cannot start as root"
+        fix = "Run as a regular user to get the sandbox."
+    else:
+        cause = "Chromium's sandbox could not start on this system"
+        fix = _userns_hint() or "Run on a system that supports the Chromium sandbox."
     return ChromiumSandboxError(
-        f"Chromium could not start with its sandbox enabled ({detail}). "
-        "claude-seo renders untrusted pages, so the sandbox is on by default. "
-        "Run as a regular user on a system that supports the Chromium "
-        f"sandbox, or set {NO_SANDBOX_ENV}=1 to launch without it (for root "
-        "and container environments; a browser exploit is then not contained)."
+        f"{cause}, and {REQUIRE_SANDBOX_ENV} is set, so nothing was rendered. "
+        f"To render without the sandbox, unset {REQUIRE_SANDBOX_ENV} "
+        f"(automatic fallback with a warning); {NO_SANDBOX_ENV}=1 skips the "
+        f"sandbox attempt altogether. {fix}"
     )
+
+
+def _unsandboxed_warning(reason: str, root: bool) -> str:
+    """The stderr warning for a browser that runs without the sandbox.
+
+    ``reason`` is ``unavailable`` (the sandboxed launch failed), ``root`` or
+    ``disabled`` (the opt-out variable).
+    """
+    risk = (
+        "a browser exploit would run as root"
+        if root
+        else "a browser exploit is not contained"
+    )
+    if reason == "root":
+        lines = [
+            "claude-seo warning: running as root, where Chromium's sandbox "
+            f"cannot start, so the page is rendered without it: {risk}.",
+            f"Run as a regular user to get the sandbox, or set "
+            f"{REQUIRE_SANDBOX_ENV}=1 to fail instead of rendering unsandboxed.",
+        ]
+    elif reason == "disabled":
+        lines = [
+            f"claude-seo warning: Chromium's sandbox is disabled by "
+            f"{NO_SANDBOX_ENV}, so the page is rendered without it: {risk}.",
+            f"Unset it to use the sandbox where the system can start it, and "
+            f"set {REQUIRE_SANDBOX_ENV}=1 to make the sandbox mandatory.",
+        ]
+    else:
+        lines = [
+            "claude-seo warning: Chromium's sandbox is unavailable on this "
+            f"system, so the page is rendered without it: {risk}.",
+            _userns_hint(),
+            f"Set {REQUIRE_SANDBOX_ENV}=1 to fail instead of rendering "
+            "unsandboxed.",
+        ]
+    return "\n".join(line for line in lines if line)
+
+
+def _warn_unsandboxed(reason: str, root: bool) -> None:
+    if reason in _warned_reasons:
+        return
+    _warned_reasons.add(reason)
+    print(_unsandboxed_warning(reason, root), file=sys.stderr)
 
 
 def _reports_sandbox_failure(error: BaseException) -> bool:
@@ -689,13 +855,27 @@ def _reports_sandbox_failure(error: BaseException) -> bool:
 
 
 def _launch(browser_type, proxy_url: str, credentials: tuple[str, str]):  # type: ignore[no-untyped-def]
-    """Launch headless Chromium behind ``proxy_url``, sandboxed by default."""
-    sandbox = chromium_sandbox_enabled()
-    geteuid = getattr(os, "geteuid", None)
-    if sandbox and geteuid is not None and geteuid() == 0:
-        # Chromium refuses to run sandboxed as root; say so before it does.
-        raise _sandbox_error("running as root")
-    try:
+    """Launch headless Chromium behind ``proxy_url``: ``(browser, sandboxed)``.
+
+    The sandboxed launch comes first. When it fails with one of Chromium's
+    sandbox messages, or the process is root (where it cannot work), one
+    launch without the sandbox follows, with the same proxy, credential and
+    arguments, and a warning on stderr. That decision is made here, on the
+    launch error alone: nothing that happens after this function returns
+    (a crash, a failed navigation, a page error) can relaunch the browser.
+
+    Raises:
+        ChromiumSandboxError: the sandbox cannot start and
+            ``CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX`` forbids the fallback, or
+            that variable and the opt-out are both set.
+    """
+    require = chromium_sandbox_required()
+    opt_out = not chromium_sandbox_enabled()
+    root = _is_root()
+    if require and opt_out:
+        raise _strict_error("conflict")
+
+    def start(sandbox: bool):  # type: ignore[no-untyped-def]
         return browser_type.launch(
             headless=True,
             # Playwright passes --no-sandbox unless this is exactly True.
@@ -717,10 +897,27 @@ def _launch(browser_type, proxy_url: str, credentials: tuple[str, str]):  # type
                 "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
             ],
         )
-    except Exception as exc:
-        if sandbox and _reports_sandbox_failure(exc):
-            raise _sandbox_error("the browser reported a sandbox failure") from exc
-        raise
+
+    if opt_out:
+        reason = "disabled"
+    elif root:
+        # Chromium refuses to run sandboxed as root; do not ask it to.
+        if require:
+            raise _strict_error("root")
+        reason = "root"
+    else:
+        try:
+            return start(True), True
+        except Exception as exc:
+            # Any other launch failure is the caller's, unchanged.
+            if not _reports_sandbox_failure(exc):
+                raise
+            if require:
+                raise _strict_error("unavailable") from exc
+            reason = "unavailable"
+    browser = start(False)
+    _warn_unsandboxed(reason, root)
+    return browser, False
 
 
 @contextmanager
@@ -733,9 +930,15 @@ def guarded_chromium(browser_type, url: Optional[str] = None):  # type: ignore[n
     ``URLSafetyError`` here, before the browser starts, instead of failing
     every request later.
 
+    The browser is sandboxed wherever the host can start the sandbox, and
+    runs without it (with a warning on stderr) where it cannot or where
+    ``CLAUDE_SEO_CHROMIUM_NO_SANDBOX`` says so. ``chromium_sandboxed(browser)``
+    returns which; it is fixed at launch and never changes afterwards.
+
     Raises:
-        ChromiumSandboxError: Chromium cannot start sandboxed. The message
-            names ``CLAUDE_SEO_CHROMIUM_NO_SANDBOX``.
+        ChromiumSandboxError: Chromium cannot start sandboxed and
+            ``CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX`` is set. The message names
+            both variables.
         URLSafetyError: the configured proxy for ``url`` is refused.
     """
     if url is not None:
@@ -743,8 +946,9 @@ def guarded_chromium(browser_type, url: Optional[str] = None):  # type: ignore[n
     # A fresh secret per run: only this browser can use this guard.
     credentials = (_PROXY_USERNAME, secrets.token_urlsafe(32))
     with guarded_proxy(credentials) as proxy_url:
-        browser = _launch(browser_type, proxy_url, credentials)
+        browser, sandboxed = _launch(browser_type, proxy_url, credentials)
         try:
+            setattr(browser, _SANDBOXED_ATTR, sandboxed)
             yield browser
         finally:
             # A browser that already crashed must not mask the real error.

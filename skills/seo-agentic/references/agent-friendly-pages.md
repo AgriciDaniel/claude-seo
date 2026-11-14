@@ -108,6 +108,12 @@ success. Present these as reasoned practice, not measured uplift.
 The Agent-UX score is a local heuristic. Never present it as the Lighthouse
 Agentic Browsing result, which is a fraction (X of N), not a 0-100 score.
 
+If a result has `sandbox: false` (or stderr shows a `claude-seo warning` about
+Chromium's sandbox), say once in the report that the page was rendered without
+the browser sandbox on this system and why. Never set
+`CLAUDE_SEO_CHROMIUM_NO_SANDBOX` or `CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX`
+yourself; if a launch fails with the strict-mode error, report it and ask the user.
+
 ## Quick manual check
 
 In DevTools, open the Accessibility pane or the full-page accessibility tree

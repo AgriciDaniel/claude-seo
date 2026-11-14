@@ -32,7 +32,7 @@ def root(tmp_path):
 
 def _write(tmp_path, payload) -> Path:
     path = tmp_path / "release-manifest.json"
-    path.write_text(payload if isinstance(payload, str) else json.dumps(payload))
+    path.write_text(payload if isinstance(payload, str) else json.dumps(payload), encoding="utf-8")
     return path
 
 
@@ -50,6 +50,59 @@ def test_over_long_paths_are_refused_not_a_crash(root, tmp_path, entry) -> None:
     assert result["ok"] is False
     assert result["outside_root"] == [entry]
     assert result["missing"] == [] and result["mismatched"] == []
+
+
+@pytest.mark.parametrize("entry", [
+    "lib/" + "d" * 256,
+    "lib/" + "d" * 256 + "/ok.py",
+    "lib/" + "\u00e9" * 128,
+    "lib/" + "\ud800" * 86,
+    "/".join(["e" * 100] * 41),
+])
+def test_length_limits_are_decided_from_the_string_alone(root, tmp_path, monkeypatch, entry) -> None:
+    """The same entries are refused on every platform, before any file access.
+
+    Windows reports an over-long component as "not found", which used to put
+    the entry under ``missing`` there and under ``outside_root`` elsewhere.
+    """
+    def no_file_access(self, *args, **kwargs):
+        raise AssertionError(f"file system reached for {str(self)[:60]!r}")
+
+    resolved = root.resolve()
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "resolve", no_file_access)
+        patch.setattr(Path, "is_file", no_file_access)
+        contained = verify_release._contained_path(resolved, entry)
+    assert contained is None
+
+    manifest = _write(tmp_path, {"version": "0", "files": {entry: "0" * 64, "lib/ok.py": GOOD_SHA}})
+    result = verify_release.verify(manifest, root)
+    assert result["ok"] is False
+    assert result["outside_root"] == [entry]
+    assert result["missing"] == []
+
+
+@pytest.mark.parametrize("entry", [
+    "lib/" + "d" * 255,
+    "lib/" + "\u00e9" * 127,
+    "/".join(["e" * 100] * 40),
+])
+def test_entries_at_the_length_limit_pass_the_string_checks(root, monkeypatch, entry) -> None:
+    """Only the string rules are under test, so resolving is switched off:
+    what a real file system does with a long path differs by platform."""
+    resolved = root.resolve()
+    monkeypatch.setattr(Path, "resolve", lambda self, *args, **kwargs: self)
+    contained = verify_release._contained_path(resolved, entry)
+    assert contained == resolved / entry
+
+
+def test_manifest_is_read_as_utf8_whatever_the_locale(root, tmp_path) -> None:
+    (root / "lib" / "caf\u00e9.py").write_bytes(GOOD)
+    manifest = tmp_path / "release-manifest.json"
+    payload = {"version": "0", "files": {"lib/caf\u00e9.py": GOOD_SHA}}
+    manifest.write_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+    result = verify_release.verify(manifest, root)
+    assert result["ok"] is True and result["missing"] == []
 
 
 @pytest.mark.parametrize("payload", [

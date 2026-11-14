@@ -37,6 +37,12 @@ from pathlib import Path, PureWindowsPath
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+# Limits for a manifest entry, checked on the string so that every platform
+# refuses the same entries. 255 bytes is the longest file name common file
+# systems accept; 4096 bytes is the Linux limit for a whole path.
+MAX_COMPONENT_BYTES = 255
+MAX_ENTRY_BYTES = 4096
+
 
 def _sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -49,11 +55,17 @@ def _sha256(path: Path) -> str:
 def _contained_path(resolved_root: Path, rel: object) -> Path | None:
     """The path of manifest entry ``rel`` under ``resolved_root``, or None.
 
-    None means the entry must not be read: it is not a string, is empty or
-    absolute, or resolves (through ``..`` or a symlink) outside the root.
+    None means the entry must not be read: it is not a string, is empty,
+    over-long or absolute, or resolves (through ``..`` or a symlink) outside
+    the root.
     A manifest is untrusted input, so this runs before any file is opened.
     """
     if not isinstance(rel, str) or not rel or "\0" in rel:
+        return None
+    encoded = rel.encode("utf-8", "surrogatepass")
+    if len(encoded) > MAX_ENTRY_BYTES:
+        return None
+    if any(len(part) > MAX_COMPONENT_BYTES for part in encoded.split(b"/")):
         return None
     if Path(rel).is_absolute() or PureWindowsPath(rel).is_absolute():
         return None
@@ -85,7 +97,7 @@ def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
                       manifest. Empty unless caller passes a tracked
                       file list; default behaviour leaves this empty.
     """
-    with manifest_path.open() as fh:
+    with manifest_path.open(encoding="utf-8") as fh:
         manifest = json.load(fh)
 
     # A manifest is untrusted input: the wrong shape is an error, not a crash.
