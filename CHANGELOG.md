@@ -131,6 +131,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   stops at 500 pages unless told otherwise, and `Concurrency` and `Delay` are
   bounded to 1-16 and 0-60 s. `seo-audit` falls back to its 500-page link crawl
   whenever no valid signature exists.
+### Fixed
+
+- Render failed URL Inspection results in indexation reports instead of crashing
+  when the inspection result has no index status.
 
 ## [2.6.0] - 2026-11-10
 
