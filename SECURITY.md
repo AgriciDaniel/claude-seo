@@ -49,7 +49,7 @@ claude-seo is a research and audit toolkit that runs on a user's workstation. It
 
    **Mitigation status:** SHA-256 manifest tooling (`scripts/release_sign.py`, `scripts/verify_release.py`) shipped in v2.0.0, but the install scripts do not verify a manifest yet and releases do not attach one. Installer verification is planned for a later release; it is not in v2.6.0. Until then, install by cloning the release tag explicitly (`git clone --branch vX.Y.Z`), check the tag signature, and inspect the diff against the previous release. Release tags are SSH-signed. To verify one locally, put the maintainer's signing key from `https://api.github.com/users/AgriciDaniel/ssh_signing_keys` in an allowed-signers file as `223140489+AgriciDaniel@users.noreply.github.com namespaces="git" <key>`, then run `git -c gpg.ssh.allowedSignersFile=<file> tag -v vX.Y.Z` and look for `Good "git" signature`.
 
-3. **Local privilege escalation against stored credentials.** The OAuth token at `~/.config/claude-seo/oauth-token.json` is the most sensitive on-disk artifact.
+3. **Local privilege escalation against stored credentials.** The OAuth token at `~/.config/claude-seo/oauth-token.json` (or in the `CLAUDE_SEO_PROFILE_DIR` directory) is the most sensitive on-disk artifact.
 
    **Mitigation:** v2 forces `0o600` on every write (`os.open` + `os.fchmod`) and remediates legacy `0o644` files in place on first load. Tokens never contain the OAuth `client_secret`, only the access/refresh pair plus expiry metadata.
 
@@ -90,6 +90,6 @@ If you are auditing, these are the high-leverage files:
 ## Security-relevant practices
 
 - No credentials or API keys are committed to this repository. `.gitignore` blocks every known credential filename pattern.
-- Install scripts write only to user-level directories under `~/.claude/` and `~/.config/claude-seo/`.
+- Install scripts write only under `~/.claude/` and `~/.config/claude-seo/`, or under the directory the user sets in `CLAUDE_SEO_PROFILE_DIR`.
 - Python dependencies install into an isolated virtual environment. Plugin installs use persistent `CLAUDE_PLUGIN_DATA`; manual installs use `~/.claude/skills/seo/.venv/`. The runtime never falls back to global or user package installation.
 - Every new fetcher of a user-supplied or page-derived URL must route through `scripts/url_safety.py`. There is no exception for "trusted" URLs.

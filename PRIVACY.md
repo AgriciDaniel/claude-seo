@@ -91,6 +91,6 @@ you have one set for the `gh` CLI.
 
 ## Credentials
 
-- API keys and OAuth tokens are stored locally in `~/.config/claude-seo/` or environment variables
+- API keys and OAuth tokens are stored locally in `~/.config/claude-seo/`, in the `CLAUDE_SEO_PROFILE_DIR` directory, or in environment variables
 - Credentials are never committed to the repository (blocked by `.gitignore`)
 - OAuth tokens use refresh tokens and never store client secrets in token files

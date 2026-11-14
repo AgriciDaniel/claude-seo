@@ -8,6 +8,7 @@ account does have it. These tests never touch the network.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -68,3 +69,11 @@ def test_explicit_choice_beats_a_configured_service_account(isolated, monkeypatc
 def test_no_sign_in_anywhere_still_explains_the_options(isolated):
     check = google_auth.check_credentials("gsc")
     assert not check["available"] and "service account" in check["error"]
+
+
+def test_cloudsdk_config_expands_a_leading_tilde(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    monkeypatch.setenv("CLOUDSDK_CONFIG", "~/gcloud-xyz")
+    expected = os.path.join(str(tmp_path), "gcloud-xyz", "application_default_credentials.json")
+    assert os.path.normpath(google_auth._gcloud_adc_path()) == os.path.normpath(expected)

@@ -49,7 +49,9 @@ except ImportError as _import_exc:
         "Install with: pip install -r requirements.txt"
     ) from _import_exc
 
-CONFIG_PATH = os.path.expanduser("~/.config/claude-seo/backlinks-api.json")
+from profile_paths import config_dir_fields, describe_config_dir, profile_dir_or_exit  # noqa: E402
+
+CONFIG_PATH = str(profile_dir_or_exit() / "backlinks-api.json")
 CACHE_DIR = os.path.expanduser("~/.cache/claude-seo/commoncrawl")
 
 # Which services need which auth type
@@ -154,8 +156,9 @@ def load_config() -> dict:
     """
     Load configuration from config file with environment variable fallbacks.
 
-    Reads ~/.config/claude-seo/backlinks-api.json first. Any missing fields
-    are filled from environment variables.
+    Reads CONFIG_PATH (backlinks-api.json in the profile directory, see
+    profile_paths.py) first. Any missing fields are filled from environment
+    variables.
 
     Returns:
         Dictionary with keys: moz_api_key, bing_api_key,
@@ -573,11 +576,17 @@ def main():
 
         if args.json:
             tier_info = detect_tier()
-            output = {"status": "success", "tier": tier_info, "services": results}
+            output = {
+                "status": "success",
+                "tier": tier_info,
+                **config_dir_fields(CONFIG_PATH),
+                "services": results,
+            }
             print(json.dumps(output, indent=2))
         else:
             tier_info = detect_tier()
             print(f"Backlink Tier: {tier_info['tier']} -- {tier_info['description']}")
+            print(f"Config directory: {describe_config_dir(CONFIG_PATH)}")
             print()
             for svc, result in results.items():
                 status = "OK" if result["available"] else "MISSING"

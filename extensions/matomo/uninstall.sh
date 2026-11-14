@@ -6,7 +6,11 @@ SETTINGS_JSON="${HOME}/.claude/settings.json"
 CONFIG_JSON="${HOME}/.config/claude-seo/matomo.json"
 [ -d "${SKILL_DIR}" ] && rm -rf "${SKILL_DIR}" && echo "✓ Removed ${SKILL_DIR}"
 [ -f "${AGENT_FILE}" ] && rm -f "${AGENT_FILE}" && echo "✓ Removed ${AGENT_FILE}"
-[ -f "${CONFIG_JSON}" ] && rm -f "${CONFIG_JSON}" && echo "✓ Removed ${CONFIG_JSON}"
+if [ -n "${CLAUDE_SEO_PROFILE_DIR:-}" ]; then
+    echo "CLAUDE_SEO_PROFILE_DIR is set: kept ${CONFIG_JSON}."
+else
+    [ -f "${CONFIG_JSON}" ] && rm -f "${CONFIG_JSON}" && echo "✓ Removed ${CONFIG_JSON}"
+fi
 # Installers before v2.4.0 put the token in settings.json env. Clear it there
 # too, so an upgrade-then-uninstall does not leave the old copy behind.
 if [ -f "${SETTINGS_JSON}" ]; then
@@ -49,5 +53,7 @@ if removed:
 PY
 fi
 
+echo "Note: matomo.json copies in CLAUDE_SEO_PROFILE_DIR profiles were not"
+echo "touched; remove them by hand."
 echo "Note: CLAUDE_SEO_LOCAL_TARGETS, if you set it for a private instance,"
 echo "is your own environment setting and was not touched."
