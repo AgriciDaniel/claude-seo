@@ -30,7 +30,8 @@ Endpoint details for Google Shopping and Amazon marketplace data.
 - `reviews_count` -- number of reviews
 - `url` -- product listing URL
 - `image_url` -- product image URL
-- `availability` -- "in_stock", "out_of_stock", "preorder"
+- `availability` -- `in_stock`, `out_of_stock`, `preorder`, `limited_stock`,
+  `backordered`, `on_display_to_order`, or `unknown`
 - `delivery_info` -- shipping details text
 - `product_id` -- Google Shopping product ID
 
@@ -106,7 +107,7 @@ When consuming responses, normalize:
 |-------|-----|-----------|
 | Price | String "$29.99" or float | Float `29.99` |
 | Currency | Mixed formats | ISO 4217 code (USD, EUR, GBP) |
-| Availability | Various strings | Enum: `in_stock`, `out_of_stock`, `preorder`, `unknown` |
+| Availability | `availability` or native `product_availability` | Enum: `in_stock`, `out_of_stock`, `preorder`, `limited_stock`, `backordered`, `on_display_to_order`, `unknown` |
 | Rating | Integer or float | Float rounded to 1 decimal |
 | Reviews | String or int | Integer |
 

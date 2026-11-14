@@ -115,6 +115,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Return a failed preload audit for HTTP and network errors instead of scoring
   error pages, and preserve machine-readable errors when `--json` is requested.
+### Fixed
+
+- Preserve Merchant API `product_availability` values during normalization,
+  including limited stock, backorders and display-to-order states; avoid treating
+  "not in stock" as available.
 
 ## [2.6.0] - 2026-11-10
 
