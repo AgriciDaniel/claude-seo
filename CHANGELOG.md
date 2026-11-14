@@ -74,6 +74,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Resolve Atom sitemap links against the final feed URL and inherited `xml:base`
   so valid relative links appear in expanded URL samples and counts.
+### Fixed
+
+- Grade the effective framing policy in `transport_check.py`: broad
+  `frame-ancestors` sources no longer pass by presence or an overridden
+  `X-Frame-Options` value, while restrictive additional CSP policies count.
 
 ## [2.6.0] - 2026-11-10
 
