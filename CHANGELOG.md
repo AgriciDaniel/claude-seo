@@ -70,6 +70,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Count attempted URL inspections after blank-entry filtering and batch capping,
   preserving `requested_total` separately so report indexation rates use the
   number of URLs actually inspected.
+### Fixed
+
+- Resolve Atom sitemap links against the final feed URL and inherited `xml:base`
+  so valid relative links appear in expanded URL samples and counts.
 
 ## [2.6.0] - 2026-11-10
 
