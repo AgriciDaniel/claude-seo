@@ -6,7 +6,7 @@ argument-hint: "[command] [url]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.6.0"
+  version: "2.6.1"
   category: seo
 ---
 

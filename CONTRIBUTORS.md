@@ -31,6 +31,15 @@ Attribution header on every bundled prompt file (automated by `scripts/sync_flow
 
 ## Community Pull Requests
 
+### v2.6.1
+
+Security release. The researchers who reported the fixed problems are credited in
+`CHANGELOG.md` and in the published advisories.
+
+| Contributor | PR | Contribution category | Review outcome |
+|------------|----|-----------------------|----------------|
+| [@Nordalux](https://github.com/Nordalux) | Advisory fix (GHSA-9pc7-p6cr-942h) | Egress guard for the headless browser | Merged with authorship kept, hardened in follow-up commits |
+
 ### v2.6.0
 
 | Contributor | PR | Contribution category | Review outcome |
