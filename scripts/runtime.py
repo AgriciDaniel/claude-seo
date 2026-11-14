@@ -213,11 +213,33 @@ def _status(root: Path) -> dict[str, Any]:
     }
 
 
+def _macos_native_lib_dirs() -> list[str]:
+    """Homebrew lib dirs that hold WeasyPrint's native deps (pango, cairo, gobject).
+
+    macOS strips DYLD_* from the environment when it execs a SIP-protected
+    binary (such as the system python the launcher starts), so these libraries
+    are invisible to the runtime even when installed. The managed venv python
+    is not SIP-protected, so passing the path in the subprocess env reaches it.
+    """
+    dirs: list[str] = []
+    for prefix in ("/opt/homebrew", "/usr/local"):
+        lib = Path(prefix) / "lib"
+        if lib.is_dir():
+            dirs.append(str(lib))
+    return dirs
+
+
 def _safe_env(status: dict[str, Any]) -> dict[str, str]:
     env = os.environ.copy()
     env["PYTHONUTF8"] = "1"
     env["PYTHONIOENCODING"] = "utf-8"
     env["PLAYWRIGHT_BROWSERS_PATH"] = str(status["data_dir"] / "ms-playwright")
+    if sys.platform == "darwin":
+        lib_dirs = _macos_native_lib_dirs()
+        if lib_dirs:
+            existing = env.get("DYLD_FALLBACK_LIBRARY_PATH", "")
+            parts = lib_dirs + ([existing] if existing else [])
+            env["DYLD_FALLBACK_LIBRARY_PATH"] = os.pathsep.join(parts)
     return env
 
 
