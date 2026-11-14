@@ -4,9 +4,9 @@
 
 This repository contains **Claude SEO**, a Tier 4 Claude Code skill for comprehensive
 SEO analysis across all industries. It follows the Agent Skills open standard and the
-3-layer architecture (directive, orchestration, execution). 27 sub-skills (22 core +
-1 orchestrator + 1 framework integration + 3 extension mirrors), 19 sub-agents (16 core +
-1 framework integration + 2 extension mirrors), and an extensible reference
+3-layer architecture (directive, orchestration, execution). 29 sub-skills (22 core +
+1 orchestrator + 1 framework integration + 5 extension mirrors), 20 sub-agents (16 core +
+1 framework integration + 3 extension mirrors), and an extensible reference
 system cover technical SEO, content quality,
 schema markup, image optimization, sitemap architecture, AI search optimization,
 local SEO (GBP, citations, reviews, map pack), maps intelligence, semantic topic
@@ -24,7 +24,7 @@ claude-seo/
   .claude-plugin/
     plugin.json                    # Plugin manifest (v2.6.1)
     marketplace.json               # Marketplace catalog for distribution
-  skills/                            # 27 sub-skills (auto-discovered)
+  skills/                            # 29 sub-skills (auto-discovered)
     seo/                           # Main orchestrator skill
       SKILL.md                     # Entry point, routing table, core rules
       references/                  # On-demand knowledge files (13 files)
@@ -69,7 +69,9 @@ claude-seo/
       SKILL.md
       references/                # Image gen reference files (7 files)
     seo-bing/SKILL.md           # Bing Webmaster Tools and IndexNow (extension mirror)
-  agents/                          # 19 subagents (auto-discovered)
+    seo-shopify/SKILL.md        # Shopify Crawler Access signed crawl (extension mirror)
+    seo-posthog/SKILL.md        # PostHog analytics via MCP (extension mirror)
+  agents/                          # 20 subagents (auto-discovered)
     seo-technical.md             # Crawlability, indexability, security
     seo-content.md               # E-E-A-T, readability, thin content
     seo-schema.md                # Structured data validation
@@ -84,6 +86,7 @@ claude-seo/
     seo-backlinks.md             # Backlink profile analyst (Moz, Bing, CC, verify)
     seo-dataforseo.md            # DataForSEO data analyst
     seo-image-gen.md             # SEO image audit analyst
+    seo-posthog.md               # PostHog analytics analyst (read-only HogQL via MCP)
     seo-cluster.md               # Semantic clustering analysis
     seo-sxo.md                   # Search experience optimization
     seo-drift.md                 # SEO drift monitoring
@@ -165,13 +168,13 @@ claude-seo/
     firecrawl/                   # Firecrawl MCP install scripts
     banana/                      # Banana MCP install scripts
     ahrefs/                      # Ahrefs MCP install scripts
-    posthog/                     # PostHog MCP skill, agent and install scripts
+    posthog/                     # PostHog MCP install scripts (skill and agent mirrored)
     bing-webmaster/              # Bing Webmaster and IndexNow key setup (API keys, no MCP)
     matomo/                      # Matomo Reporting API skill, agent and install scripts (no MCP)
     profound/                    # Profound API key install scripts (no MCP)
     seranking/                   # SE Ranking API key install scripts (no MCP)
     unlighthouse/                # Unlighthouse install scripts (local CLI, no MCP)
-    shopify/                     # Shopify Crawler Access crawl extension (no MCP)
+    shopify/                     # Shopify Crawler Access crawl extension (no MCP, skill mirrored)
   docs/                            # Extended documentation
 ```
 

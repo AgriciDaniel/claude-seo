@@ -6,7 +6,7 @@ Claude SEO follows Anthropic's official Claude Code skill specification with a m
 
 ## Directory Structure
 
-The plugin ships 27 sub-skills (22 core + 1 orchestrator + 1 framework integration + 3 extension mirrors) and 19 sub-agents (16 core + 1 framework integration + 2 extension mirrors).
+The plugin ships 29 sub-skills (22 core + 1 orchestrator + 1 framework integration + 5 extension mirrors) and 20 sub-agents (16 core + 1 framework integration + 3 extension mirrors).
 
 ```
 ~/.claude/plugins/.../claude-seo/
@@ -40,7 +40,9 @@ The plugin ships 27 sub-skills (22 core + 1 orchestrator + 1 framework integrati
 │   ├── seo-flow/               # FLOW framework integration (CC BY 4.0)
 │   ├── seo-dataforseo/         # DataForSEO MCP mirror (extension surface)
 │   ├── seo-image-gen/          # Banana MCP mirror (extension surface)
-│   └── seo-bing/               # Bing Webmaster + IndexNow mirror (extension surface)
+│   ├── seo-bing/               # Bing Webmaster + IndexNow mirror (extension surface)
+│   ├── seo-shopify/            # Shopify Crawler Access mirror (extension surface)
+│   └── seo-posthog/            # PostHog MCP mirror (extension surface)
 │
 └── agents/
     ├── seo-technical.md        # Crawlability, indexability, security
@@ -61,7 +63,8 @@ The plugin ships 27 sub-skills (22 core + 1 orchestrator + 1 framework integrati
     ├── seo-google.md           # GSC, PSI, CrUX, GA4 analyst
     ├── seo-flow.md             # FLOW framework prompt selection
     ├── seo-dataforseo.md       # DataForSEO MCP mirror
-    └── seo-image-gen.md        # Banana MCP mirror
+    ├── seo-image-gen.md        # Banana MCP mirror
+    └── seo-posthog.md          # PostHog MCP mirror
 ```
 
 ## Component Types
@@ -337,7 +340,7 @@ extensions/
 │   ├── agents/seo-matomo.md
 │   └── docs/MATOMO-SETUP.md
 │
-├── posthog/                  # PostHog MCP analytics (GA4 alternative)
+├── posthog/                  # PostHog MCP analytics (skill and agent mirrored in skills/ and agents/)
 │   ├── install.sh
 │   ├── install.ps1
 │   ├── uninstall.sh
@@ -352,7 +355,7 @@ extensions/
 │   ├── skills/seo-unlighthouse/SKILL.md
 │   └── docs/UNLIGHTHOUSE-SETUP.md
 │
-└── shopify/                  # Shopify Crawler Access signed crawl (local)
+└── shopify/                  # Shopify Crawler Access signed crawl (skill mirrored in skills/seo-shopify)
     ├── install.sh
     ├── install.ps1
     ├── uninstall.sh

@@ -25,8 +25,8 @@ directory because hosted marketplaces reject one. Repository users run
 with a bare Python interpreter.
 
 Comprehensive SEO analysis across all industries (SaaS, local services,
-e-commerce, publishers, agencies). Orchestrates 26 sub-skills (22 core + 1 framework
-integration + 3 extension mirrors) and 19 sub-agents. A separate optional Firecrawl
+e-commerce, publishers, agencies). Orchestrates 28 sub-skills (22 core + 1 framework
+integration + 5 extension mirrors) and 20 sub-agents. A separate optional Firecrawl
 extension is also installable (see "Optional Extensions" below).
 
 ## Quick Reference
@@ -240,8 +240,8 @@ Weighted aggregate of all categories:
 
 ## Sub-Skills
 
-This skill orchestrates 26 sub-skills (22 core + 1 framework integration + 3 extension
-mirrors). The orchestrator itself (`seo`) is the 27th in `skills/`, but does not
+This skill orchestrates 28 sub-skills (22 core + 1 framework integration + 5 extension
+mirrors). The orchestrator itself (`seo`) is the 29th in `skills/`, but does not
 orchestrate itself, so it is not enumerated below.
 
 1. **seo-audit** -- Full website audit with parallel delegation
@@ -270,6 +270,8 @@ orchestrate itself, so it is not enumerated below.
 24. **seo-flow** -- FLOW framework integration (Find -> Leverage -> Optimize -> Win, 41 AI prompts, CC BY 4.0)
 25. **seo-agentic** -- Agent readiness: Lighthouse Agentic Browsing, accessibility tree for agents, AI agent access policy, llms.txt, Markdown, ai-catalog.json, WebMCP
 26. **seo-bing** -- Bing Webmaster Tools link data and IndexNow URL submission (extension mirror)
+27. **seo-shopify** -- Uncapped signed crawl of a Shopify store you administer, then the audit pipeline (extension mirror)
+28. **seo-posthog** -- PostHog analytics via the PostHog MCP server (extension mirror)
 
 ### Optional Extensions
 
@@ -281,9 +283,9 @@ installed: firecrawl, dataforseo, and image-gen, plus `/seo ahrefs`,
 `/seo bing`, `/seo matomo`, `/seo posthog`, `/seo profound`, `/seo seranking`,
 `/seo shopify`, and `/seo unlighthouse`. Each installs as its own sub-skill,
 so the model also auto-routes to their descriptions without the `/seo` prefix.
-The seo-dataforseo, seo-image-gen and seo-bing skills already ship in `skills/`
-as mirrors; their installers only add what the skill needs (an MCP server or
-API keys).
+The seo-dataforseo, seo-image-gen, seo-bing, seo-shopify and seo-posthog skills
+already ship in `skills/` as mirrors; their installers only add what the skill
+needs (an MCP server, API keys, or a `.shopify-env` template).
 
 - **seo-firecrawl** -- Full-site crawling and site mapping via Firecrawl MCP. Install
   via `extensions/firecrawl/install.sh` (Unix) or `extensions/firecrawl/install.ps1`
@@ -294,10 +296,6 @@ API keys).
   (Windows). Once installed, invoke via `/seo matomo <command>` or rely
   on the audit orchestrator to spawn the seo-matomo agent automatically
   when credentials are present.
-- **seo-posthog** -- PostHog analytics via the PostHog MCP server as a GA4
-  alternative or complement. Install via `extensions/posthog/install.sh`.
-  Once installed, invoke via `/seo posthog <command>` or rely on the audit
-  orchestrator to spawn the seo-posthog agent when the MCP is connected.
 
 ## Subagents
 
@@ -321,6 +319,7 @@ For parallel analysis during audits:
 - `seo-flow` -- FLOW framework prompts (conditional: spawned for content strategy workflows)
 - `seo-dataforseo` -- Live SERP, keyword, backlink, local SEO data (extension, optional)
 - `seo-image-gen` -- SEO image audit and generation plan (extension, optional)
+- `seo-posthog` -- Organic traffic, landing pages, device, country and referrer reports via the PostHog MCP (extension, optional; conditional: spawned when the PostHog MCP `exec` tool is available)
 
 ## Error Handling
 

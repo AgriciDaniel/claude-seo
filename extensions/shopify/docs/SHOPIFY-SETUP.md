@@ -24,8 +24,14 @@ you or your client administer. Everything else keeps crawling unsigned.
 .\extensions\shopify\install.ps1
 ```
 
-No API keys. The installer copies the `seo-shopify` skill next to the other
-skills; the scripts ship with claude-seo already.
+No API keys. The `seo-shopify` skill ships with the claude-seo plugin, so on a
+plugin install the installer copies nothing; run it from the plugin or repository
+folder. On a manual install (`~/.claude/skills/seo`) it copies the skill next to
+the other skills with its launcher path rewritten. The scripts ship with
+claude-seo already. In both cases it offers to create `.shopify-env` in the
+current folder from the template, readable by you only (mode 0600), and never
+overwrites an existing file. `uninstall.sh` removes the copied skill of a manual
+install and leaves `.shopify-env` alone.
 
 ## 1. Issue the signature
 

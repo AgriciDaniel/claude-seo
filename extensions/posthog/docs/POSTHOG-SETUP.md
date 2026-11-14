@@ -19,9 +19,11 @@ credentials: authentication belongs to the MCP server.
 
 On Windows, run `.\extensions\posthog\install.ps1` in PowerShell.
 
-Copies the `seo-posthog` skill to `~/.claude/skills/seo-posthog/` and the agent to
-`~/.claude/agents/seo-posthog.md`. It then offers to register the MCP server with
-`claude mcp add`.
+The `seo-posthog` skill and agent ship with the claude-seo plugin, so on a
+plugin install the installer copies nothing; run it from the plugin or repository
+folder. On a manual install (`~/.claude/skills/seo`) it copies the skill to
+`~/.claude/skills/seo-posthog/` and the agent to `~/.claude/agents/seo-posthog.md`.
+In both cases it then offers to register the MCP server with `claude mcp add`.
 
 ## 2. Connect the MCP server
 
@@ -66,3 +68,7 @@ During `/seo audit`, the agent is spawned when PostHog MCP tools are available.
 ```bash
 ./extensions/posthog/uninstall.sh
 ```
+
+On a manual install this removes the copied skill and agent. On a plugin install
+both stay, because the plugin provides them. The MCP server registration is not
+touched; remove it with `claude mcp remove posthog`.

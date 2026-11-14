@@ -1,7 +1,7 @@
 <!--
   Claude SEO (claude-seo): free, open-source SEO audit plugin for Claude Code by Agrici Daniel.
   Technical SEO, Core Web Vitals, E-E-A-T, Schema.org, AI search (GEO), local SEO, e-commerce and international SEO.
-  27 sub-skills and 19 specialist agents. MIT licensed.
+  29 sub-skills and 20 specialist agents. MIT licensed.
 -->
 
 <img src="assets/readme/v3/hero.svg" width="1200" height="420" alt="Claude SEO: rank in Google, get cited by AI. Three bots climb from #48 to #1 by fixing crawl, speed, schema, AI access and authority, then Google, ChatGPT, Perplexity, Gemini and Claude cite the site." />
@@ -47,7 +47,7 @@ It checks everything a good SEO consultant would:
 - **AI search (GEO).** How likely Google AI Overviews, AI Mode, ChatGPT, Perplexity and Gemini are to cite your pages.
 - **Local and e-commerce SEO.** Google Business Profile, reviews, map pack, product pages and international sites.
 
-Claude SEO is built from 27 sub-skills and 19 specialist agents, and up to 17 agents work on your site at the same time. Every recommendation explains why it matters and how you will know it worked.
+Claude SEO is built from 29 sub-skills and 20 specialist agents, and up to 17 agents work on your site at the same time. Every recommendation explains why it matters and how you will know it worked.
 
 ## See it in action
 
@@ -73,10 +73,10 @@ The project's own site, [claude-seo.md](https://claude-seo.md), audited with Cla
 
 ## Meet the team
 
-<img src="assets/readme/v3/team.svg" width="1200" height="420" alt="The Claude SEO team: 19 specialist agents on a website, each standing on the part it checks, shown one at a time with its role, model, ability and command." />
+<img src="assets/readme/v3/team.svg" width="1200" height="420" alt="The Claude SEO team: 19 of the 20 specialist agents on a website, each standing on the part it checks, shown one at a time with its role, model, ability and command." />
 
 <details>
-<summary><b>All 19 agents</b></summary>
+<summary><b>All 20 agents</b></summary>
 <br />
 
 | Agent | Role | Model | Command |
@@ -95,6 +95,7 @@ The project's own site, [claude-seo.md](https://claude-seo.md), audited with Cla
 | `seo-backlinks` | Link Analyst | Sonnet | `/seo backlinks` |
 | Live data (extension) | Live Data Analyst | Sonnet | `/seo audit` |
 | `seo-image-gen` | Image Producer (extension) | Sonnet | `/seo image-gen` |
+| `seo-posthog` | PostHog Analyst (extension) | Sonnet | `/seo posthog` |
 | `seo-cluster` | Topic Strategist | Opus | `/seo cluster` |
 | `seo-sxo` | Search Experience Designer | Opus | `/seo sxo` |
 | `seo-drift` | Change Monitor | Opus | `/seo drift` |
@@ -196,7 +197,7 @@ Want the details? Read the [methodology](skills/seo/references/thinking-framewor
 
 ## Install
 
-<img src="assets/readme/v3/install.svg" width="1200" height="420" alt="Installing Claude SEO: add the marketplace, install the plugin, 27 skills and 19 agents arrive, /seo setup readies the browser, then /seo audit starts the first level." />
+<img src="assets/readme/v3/install.svg" width="1200" height="420" alt="Installing Claude SEO: add the marketplace, install the plugin, 29 skills and 20 agents arrive, /seo setup readies the browser, then /seo audit starts the first level." />
 
 You need [Claude Code](https://claude.com/product/claude-code) 1.0.33 or newer. Run these three commands inside it:
 

@@ -722,7 +722,7 @@ All commands accept `--days` (default 28), `--limit` (default 50),
 
 ### `/seo posthog [command]`
 
-PostHog analytics via the PostHog MCP server (extension). **Prerequisites:** PostHog extension installed (`./extensions/posthog/install.sh`) and the PostHog MCP server connected and authenticated (`/mcp`). No credentials are stored by claude-seo. Queries run as HogQL through the MCP `exec` tool (`call execute-sql`).
+PostHog analytics via the PostHog MCP server (extension). The `seo-posthog` skill and agent ship with the plugin. **Prerequisites:** the PostHog MCP server registered (`./extensions/posthog/install.sh` or `install.ps1` offers to do it), connected and authenticated (`/mcp`). No credentials are stored by claude-seo. Queries run as HogQL through the MCP `exec` tool (`call execute-sql`).
 
 Use as a GA4 alternative or supplement when the site already sends `$pageview` events to PostHog. PostHog has no keyword data; use `/seo google` for Search Console.
 ```
@@ -776,7 +776,7 @@ Multi-page Lighthouse audit via Unlighthouse (extension, MIT, no API quota). **P
 
 ### `/seo shopify [crawl|check] <url>`
 
-Uncapped, sitemap-complete crawl of a Shopify store you administer, signed with the store's Crawler Access signature from a project-local `.shopify-env`, then the `seo-audit` pipeline on the crawl artifacts (extension, no API keys). Without a valid signature for the host, `seo-audit` runs unchanged. **Prerequisites:** a signature from the Shopify admin (Online Store > Preferences > Crawler access) in `.shopify-env` (`./extensions/shopify/install.sh`, see `extensions/shopify/docs/SHOPIFY-SETUP.md`).
+Uncapped, sitemap-complete crawl of a Shopify store you administer, signed with the store's Crawler Access signature from a project-local `.shopify-env`, then the `seo-audit` pipeline on the crawl artifacts (extension, no API keys). The `seo-shopify` skill ships with the plugin. Without a valid signature for the host, `seo-audit` runs unchanged. **Prerequisites:** a signature from the Shopify admin (Online Store > Preferences > Crawler access) in `.shopify-env` (`./extensions/shopify/install.sh` or `install.ps1` can create the file from the template; see `extensions/shopify/docs/SHOPIFY-SETUP.md`).
 ```
 /seo shopify https://shop.example              # precheck, signed crawl, full audit
 /seo shopify crawl https://shop.example        # crawl only, artifacts in ./crawl
