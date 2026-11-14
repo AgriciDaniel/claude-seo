@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Parse preload signals as HTML elements, recognizing unquoted attributes and
   relation tokens while ignoring comments, script strings and `data-*` lookalikes.
+### Fixed
+
+- Recognize full HTTP and HTTPS Schema.org type IRIs in merchant schema
+  validation, including products, offers, loyalty pricing and deprecated types.
 
 ## [2.6.0] - 2026-11-10
 

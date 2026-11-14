@@ -69,13 +69,29 @@ _REQUIRED_SHIPPING_FIELDS = (
 )
 
 
+def _node_types(payload: dict) -> list[str]:
+    """Normalize Schema.org type IRIs without conflating other vocabularies."""
+    kinds = payload.get("@type", [])
+    if isinstance(kinds, str):
+        kinds = [kinds]
+    if not isinstance(kinds, list):
+        return []
+    names = []
+    for kind in kinds:
+        if not isinstance(kind, str):
+            continue
+        for namespace in ("https://schema.org/", "http://schema.org/"):
+            if kind.startswith(namespace):
+                kind = kind[len(namespace):]
+                break
+        names.append(kind)
+    return names
+
+
 def _iter_typed(payload, target_type: str):
     """Yield every dict in ``payload`` whose @type matches ``target_type``."""
     if isinstance(payload, dict):
-        kind = payload.get("@type")
-        if isinstance(kind, str) and kind == target_type:
-            yield payload
-        elif isinstance(kind, list) and target_type in kind:
+        if _has_type(payload, target_type):
             yield payload
         for v in payload.values():
             yield from _iter_typed(v, target_type)
@@ -87,11 +103,7 @@ def _iter_typed(payload, target_type: str):
 def _all_types(payload) -> list[str]:
     types: list[str] = []
     if isinstance(payload, dict):
-        kind = payload.get("@type")
-        if isinstance(kind, str):
-            types.append(kind)
-        elif isinstance(kind, list):
-            types.extend(t for t in kind if isinstance(t, str))
+        types.extend(_node_types(payload))
         for v in payload.values():
             types.extend(_all_types(v))
     elif isinstance(payload, list):
@@ -117,12 +129,7 @@ def _has_loyalty_price(offer: dict) -> bool:
 
 
 def _has_type(payload: dict, target_type: str) -> bool:
-    kind = payload.get("@type")
-    if isinstance(kind, str):
-        return kind == target_type
-    if isinstance(kind, list):
-        return target_type in kind
-    return False
+    return target_type in _node_types(payload)
 
 
 def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
