@@ -184,9 +184,11 @@ Before attributing a traffic or ranking change to anything, list the confirmed
 Google updates in that window from the primary-source ledger:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run seo_updates.py --since <yyyy-mm> --json
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run seo_updates.py --since <yyyy-mm> --limit 0 --json
 ```
 
+`--limit 0` lists every match; without it only the 10 newest are returned and
+`truncated` is true, so an older core update in the window can go unseen.
 Every entry cites a Google-owned URL. If `freshness.stale` is true, say the
 ledger may miss recent updates and check status.search.google.com before
 drawing conclusions. A date overlap is a hypothesis, never proof of cause.
