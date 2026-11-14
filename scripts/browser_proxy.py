@@ -138,29 +138,34 @@ class _ProxyHandler(BaseHTTPRequestHandler):
 
 
 @contextmanager
-def guarded_chromium(browser_type):  # type: ignore[no-untyped-def]
-    """Launch Chromium with all HTTP(S) traffic forced through the local guard."""
+def guarded_proxy():
+    """Run a local proxy that refuses non-public destinations at each hop."""
     server = ThreadingHTTPServer(("127.0.0.1", 0), _ProxyHandler)
     server.daemon_threads = True
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    browser = None
     try:
+        yield f"http://127.0.0.1:{server.server_port}"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+@contextmanager
+def guarded_chromium(browser_type):  # type: ignore[no-untyped-def]
+    """Launch Chromium with all HTTP(S) traffic forced through the local guard."""
+    with guarded_proxy() as proxy_url:
         browser = browser_type.launch(
             headless=True,
-            proxy={"server": f"http://127.0.0.1:{server.server_port}", "bypass": ""},
+            proxy={"server": proxy_url, "bypass": ""},
             args=[
                 "--proxy-bypass-list=<-loopback>",
                 "--disable-quic",
                 "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
             ],
         )
-        yield browser
-    finally:
         try:
-            if browser is not None:
-                browser.close()
+            yield browser
         finally:
-            server.shutdown()
-            server.server_close()
-            thread.join(timeout=2)
+            browser.close()

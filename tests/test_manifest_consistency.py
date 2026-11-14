@@ -442,12 +442,13 @@ def test_reference_files_have_at_least_one_link():
 
 
 def test_script_count_claims_match_tracked_scripts():
-    """CLAUDE.md and AGENTS.md script counts must equal the tracked scripts/*.py files."""
+    """Documentation counts executable scripts, excluding the proxy helper."""
     import subprocess
     tracked = subprocess.run(
         ["git", "-C", str(REPO_ROOT), "ls-files", "scripts/*.py"],
         capture_output=True, text=True, check=True,
     ).stdout.split()
+    tracked = [path for path in tracked if path != "scripts/browser_proxy.py"]
     for name in ("CLAUDE.md", "AGENTS.md"):
         text = (REPO_ROOT / name).read_text(encoding="utf-8")
         claimed = _extract_count(text, "Python execution scripts")
@@ -462,7 +463,7 @@ def test_claude_md_script_inventory_lists_every_tracked_script():
             ["git", "-C", str(REPO_ROOT), "ls-files", "scripts/*.py"],
             capture_output=True, text=True, check=True,
         ).stdout.split()
-    }
+    } - {"browser_proxy.py"}
     listed = set(re.findall(r"^\s{4}([a-z0-9_]+\.py)\s", (REPO_ROOT / "CLAUDE.md").read_text(encoding="utf-8"), re.M))
     assert tracked - listed == set(), f"unlisted scripts: {sorted(tracked - listed)}"
     assert listed - tracked == set(), f"listed but not shipped: {sorted(listed - tracked)}"

@@ -64,6 +64,7 @@ from typing import Any
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
+from browser_proxy import guarded_proxy  # noqa: E402
 from url_safety import URLSafetyError, validate_url_strict  # noqa: E402
 
 UNLIGHTHOUSE_PIN = "unlighthouse@0.13.5"
@@ -83,14 +84,28 @@ def _check_node() -> str | None:
     return None
 
 
-def build_config(max_routes: int | None, page_timeout_ms: int) -> dict[str, Any]:
+def build_config(max_routes: int | None, page_timeout_ms: int, proxy_url: str) -> dict[str, Any]:
     """Build the object written to the generated unlighthouse config file.
 
     ``max_routes=None`` maps to ``scanner.maxRoutes: false`` (unlimited),
     matching the documented type ``number | false``.
     """
     return {
-        "scanner": {"maxRoutes": max_routes if max_routes is not None else False},
+        # Unlighthouse 0.13.5 uses Axios with proxy=false for robots.txt,
+        # sitemap, and skipJavascript scans. Only the Puppeteer crawler can
+        # be routed through the guarded proxy.
+        "scanner": {
+            "maxRoutes": max_routes if max_routes is not None else False,
+            "robotsTxt": False,
+            "sitemap": False,
+            "skipJavascript": False,
+        },
+        "puppeteerOptions": {"args": [
+            f"--proxy-server={proxy_url}",
+            "--proxy-bypass-list=<-loopback>",
+            "--disable-quic",
+            "--force-webrtc-ip-handling-policy=disable_non_proxied_udp",
+        ]},
         "puppeteerClusterOptions": {"timeout": page_timeout_ms},
     }
 
@@ -111,7 +126,7 @@ def build_cmd(target: str, *, device: str, out_dir: Path, config_path: Path) -> 
     ``packages/cli/src/createCli.ts`` and ``packages/cli/src/ci.ts`` upstream.
     """
     return [
-        "npx", "--yes", "--package", UNLIGHTHOUSE_PIN, "unlighthouse-ci",
+        shutil.which("npx") or "npx", "--yes", "--package", UNLIGHTHOUSE_PIN, "unlighthouse-ci",
         "--site", target,
         "--desktop" if device == "desktop" else "--mobile",
         "--output-path", str(out_dir),
@@ -204,20 +219,25 @@ def run(
         prefix="claude-seo-unlighthouse-"))
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    config = build_config(max_routes, page_timeout * 1000)
-    config_path = write_config_file(out_dir, config)
-    cmd = build_cmd(target, device=device, out_dir=out_dir, config_path=config_path)
-
     try:
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout,
-            check=False,
-        )
+        with guarded_proxy() as proxy_url:
+            config = build_config(max_routes, page_timeout * 1000, proxy_url)
+            config_path = write_config_file(out_dir, config)
+            cmd = build_cmd(target, device=device, out_dir=out_dir, config_path=config_path)
+            preload = Path(__file__).with_name("unlighthouse_http_proxy.cjs")
+            env = os.environ.copy()
+            env["CLAUDE_SEO_GUARD_PROXY"] = proxy_url
+            env["NODE_OPTIONS"] = f'{env.get("NODE_OPTIONS", "")} --require="{preload.as_posix()}"'.strip()
+            proc = subprocess.run(
+                cmd,
+                env=env,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+                check=False,
+            )
     except subprocess.TimeoutExpired:
         return {"ok": False, "error": f"unlighthouse timed out after {timeout}s",
                 "output_dir": str(out_dir)}
