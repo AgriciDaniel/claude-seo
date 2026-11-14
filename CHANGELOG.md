@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is inside a git work tree, where its API keys and OAuth token could be
   committed by mistake. `--check --json` reports it as
   `config_dir_in_git_work_tree`.
+### Fixed
+
+- Drift snapshots resolve relative links and images against the final URL after redirects.
 
 ## [2.6.0] - 2026-11-10
 
