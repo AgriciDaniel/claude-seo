@@ -25,6 +25,9 @@ What it enforces
 * A plain-HTTP response is relayed with the origin's own framing and the
   client connection is reset when the origin fails mid-response, so a
   truncated transfer is never passed off as a complete one.
+* A plain-HTTP response head has one overall deadline, and a request whose
+  client has gone away is dropped at once, so a slow origin cannot pile up
+  guard threads and sockets behind requests the page already abandoned.
 
 Chromium
 ========
@@ -63,6 +66,10 @@ _CONNECT_TIMEOUT = 10
 # The least an address that does not answer is given before the next is tried.
 _MIN_CONNECT_SHARE = 1.0
 _HTTP_IO_TIMEOUT = 30
+# One budget for a whole plain-HTTP response head, informational responses
+# included. The idle timeout alone would let an origin hold a guard thread
+# and two sockets for hours by sending one header line every few seconds.
+_RESPONSE_HEAD_TIMEOUT = 30
 _TUNNEL_IDLE_TIMEOUT = 60
 _MAX_REQUEST_BODY = 10 * 1024 * 1024
 _MAX_CONNECT_RESPONSE = 64 * 1024
@@ -230,6 +237,65 @@ class _ResponseHeadTooLarge(Exception):
     """The origin's response head is over this proxy's size limits."""
 
 
+class _OriginReader:
+    """Reads a plain-HTTP response from the origin while watching the client.
+
+    Every wait ends on the first of: origin bytes, the idle timeout
+    (``_HTTP_IO_TIMEOUT`` per read), ``deadline`` (a ``time.monotonic()``
+    value, or None for no overall limit) and the client hanging up. The last
+    three raise ``OSError``, so the caller drops the request and both sockets.
+
+    The request was read in full and the connection serves no second one, so
+    anything the client still sends is discarded; the end of its stream means
+    it has gone away.
+    """
+
+    def __init__(self, origin: socket.socket, client: socket.socket) -> None:
+        self._origin = origin
+        self._client = client
+        self._buffer = bytearray()
+        self._ended = False
+        self.deadline: Optional[float] = None
+
+    def _fill(self) -> None:
+        """Wait for the origin and buffer what it sent (nothing at its end)."""
+        idle_until = time.monotonic() + _HTTP_IO_TIMEOUT
+        while not self._ended:
+            until = idle_until if self.deadline is None else min(idle_until, self.deadline)
+            wait = until - time.monotonic()
+            if wait <= 0:
+                raise socket.timeout("timed out waiting for the origin")
+            readable, _, _ = select.select((self._origin, self._client), (), (), wait)
+            if self._client in readable and not self._client.recv(_RELAY_CHUNK):
+                raise OSError("client disconnected")
+            if self._origin in readable:
+                data = self._origin.recv(_RELAY_CHUNK)
+                self._ended = not data
+                self._buffer += data
+                return
+
+    def readline(self, limit: int) -> bytes:
+        """One line with its newline, at most ``limit`` bytes; short at the end."""
+        scanned = 0
+        while (end := self._buffer.find(b"\n", scanned, limit) + 1) == 0:
+            scanned = len(self._buffer)
+            if scanned >= limit or self._ended:
+                end = limit
+                break
+            self._fill()
+        line = bytes(self._buffer[:end])
+        del self._buffer[:end]
+        return line
+
+    def read1(self, size: int) -> bytes:
+        """Up to ``size`` bytes after at most one wait; empty at the end."""
+        if not self._buffer:
+            self._fill()
+        chunk = bytes(self._buffer[:size])
+        del self._buffer[:size]
+        return chunk
+
+
 def _read_response_head(reader) -> tuple[bytes, int, list[tuple[bytes, bytes]]]:  # type: ignore[no-untyped-def]
     """Read one response head: ``(status_line, status, headers)``.
 
@@ -243,7 +309,8 @@ def _read_response_head(reader) -> tuple[bytes, int, list[tuple[bytes, bytes]]]:
         _ResponseHeadTooLarge: over ``_MAX_RESPONSE_HEAD`` bytes or
             ``_MAX_RESPONSE_HEADERS`` lines.
         ValueError: the status line is not HTTP/1.x.
-        OSError: the connection ended or failed inside the head.
+        OSError: the connection ended or failed inside the head, the
+            reader's deadline passed, or the client went away.
     """
     budget = _MAX_RESPONSE_HEAD
 
@@ -550,7 +617,6 @@ class _ProxyHandler(BaseHTTPRequestHandler):
         # directly, below.
         connection = http.client.HTTPConnection(peers[0], peer_port, timeout=_HTTP_IO_TIMEOUT)
         connection.auto_open = 0
-        reader = None
         in_flight = False
         try:
             connection.sock = _connect(peers, peer_port)
@@ -569,8 +635,13 @@ class _ProxyHandler(BaseHTTPRequestHandler):
                 connection.putheader("Content-Length", str(len(body)))
             connection.endheaders(body or None)
 
-            reader = connection.sock.makefile("rb")
+            reader = _OriginReader(connection.sock, self.connection)
+            # The whole head, informational responses included, under one
+            # deadline. The body after it may take as long as it likes while
+            # bytes keep coming (downloads, streams) and the client stays.
+            reader.deadline = time.monotonic() + _RESPONSE_HEAD_TIMEOUT
             status_line, status, headers = _read_final_response_head(reader)
+            reader.deadline = None
             # The page's own status line and headers reach the audit as sent:
             # no Server or Date header of this proxy is added. The origin's
             # framing headers go through too, because the body is relayed as
@@ -599,16 +670,14 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             # Not silence: the operator should see why the page did not load.
             self._reject(502, "Upstream response headers too large")
         except (OSError, ValueError, http.client.HTTPException):
-            # Unreachable, reset, timed out or malformed. Before the head was
-            # passed on the client gets no response at all. After it, nothing
-            # is appended to the response in flight; the connection is reset
-            # so the client cannot take a cut-off body for a complete one.
+            # Unreachable, reset, timed out (the head deadline included),
+            # malformed, or the client went away. Before the head was passed
+            # on the client gets no response at all. After it, nothing is
+            # appended to the response in flight; the connection is reset so
+            # the client cannot take a cut-off body for a complete one.
             if in_flight:
                 self._abort_client()
         finally:
-            if reader is not None:
-                with suppress(OSError):
-                    reader.close()
             connection.close()
 
 

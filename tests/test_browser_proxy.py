@@ -1363,6 +1363,224 @@ def test_response_header_lines_are_rebuilt_not_copied(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# Slow origins and clients that went away: no thread or socket is left behind
+# ---------------------------------------------------------------------------
+
+
+def _wait_until(condition, timeout: float = 2.0) -> bool:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if condition():
+            return True
+        time.sleep(0.01)
+    return condition()
+
+
+@pytest.fixture
+def handlers(monkeypatch):
+    """The guard's request handlers that are running right now."""
+    running: list = []
+    real = browser_proxy._ProxyHandler.handle
+
+    def handle(self):
+        running.append(self)
+        try:
+            real(self)
+        finally:
+            running.remove(self)
+
+    monkeypatch.setattr(browser_proxy._ProxyHandler, "handle", handle)
+    return running
+
+
+def _drip(conn, first: bytes, piece: bytes, pause: float, released: threading.Event) -> None:
+    """Send ``first``, then ``piece`` again and again until the guard hangs up."""
+    try:
+        conn.sendall(first)
+        for _ in range(100):
+            time.sleep(pause)
+            conn.sendall(piece)
+    except OSError:
+        released.set()
+
+
+@pytest.mark.parametrize(
+    "first,piece,pause",
+    [
+        # One header line at a time, each well inside the idle timeout.
+        (b"HTTP/1.1 200 OK\r\n", b"X-Slow: 1\r\n", 0.05),
+        # One byte at a time.
+        (b"HTTP/1.1 200 OK\r\nX-Slow: ", b"a", 0.05),
+        # Informational responses share the deadline of the final one.
+        (b"HTTP/1.1 103 Early Hints\r\n\r\n", b"HTTP/1.1 103 Early Hints\r\n\r\n", 0.15),
+    ],
+)
+def test_a_slow_response_head_ends_at_one_deadline(monkeypatch, handlers, first, piece, pause):
+    monkeypatch.setattr(browser_proxy, "_RESPONSE_HEAD_TIMEOUT", 0.4)
+    released = threading.Event()
+    server = _RawOrigin(lambda conn: _drip(conn, first, piece, pause, released))
+    try:
+        _map_public_host(monkeypatch, server.port)
+        request = f"GET http://{PUBLIC_HOST}:{server.port}/ HTTP/1.1\r\nHost: x\r\n\r\n"
+        with browser_proxy.guarded_proxy() as proxy:
+            started = time.monotonic()
+            answer, _reset = _exchange_until_end(proxy, request.encode())
+            elapsed = time.monotonic() - started
+            # A failed load, as for an unreachable origin: no made-up page.
+            assert answer == b""
+            assert 0.3 < elapsed < 1.5
+            assert released.wait(2), "the origin connection was left open"
+            assert _wait_until(lambda: not handlers)
+    finally:
+        server.close()
+
+
+@pytest.mark.parametrize(
+    "sent",
+    [
+        b"",
+        b"HTTP/1.1 200 OK\r\nX-Slow: 1\r\n",
+        b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<html>partial",
+    ],
+    ids=["before-the-head", "inside-the-head", "inside-the-body"],
+)
+def test_a_client_that_went_away_frees_the_origin_at_once(monkeypatch, handlers, sent):
+    """Timeouts stay at their 30 second defaults: only noticing the client
+    can end the request in time."""
+    released = threading.Event()
+
+    def script(conn):
+        conn.sendall(sent)
+        # Silent from here on. The guard closing its end reads as b"".
+        if conn.recv(1) == b"":
+            released.set()
+
+    server = _RawOrigin(script)
+    try:
+        _map_public_host(monkeypatch, server.port)
+        request = f"GET http://{PUBLIC_HOST}:{server.port}/ HTTP/1.1\r\nHost: x\r\n\r\n"
+        with browser_proxy.guarded_proxy() as proxy:
+            port = int(proxy.rsplit(":", 1)[1])
+            client = socket.create_connection(("127.0.0.1", port), timeout=5)
+            client.sendall(request.encode())
+            assert _wait_until(lambda: bool(server.heads))
+            if b"\r\n\r\n" in sent:
+                assert client.recv(4096).startswith(b"HTTP/1.1 200 OK\r\n")
+            else:
+                time.sleep(0.1)
+            assert handlers and not released.is_set()
+            client.close()
+            assert released.wait(2), "the origin connection was left open"
+            assert _wait_until(lambda: not handlers)
+    finally:
+        server.close()
+
+
+def test_many_abandoned_requests_leave_no_handler_behind(monkeypatch, handlers):
+    released = []
+
+    def script(conn):
+        conn.sendall(b"HTTP/1.1 200 OK\r\n")
+        if conn.recv(1) == b"":
+            released.append(conn)
+
+    server = _RawOrigin(script)
+    try:
+        _map_public_host(monkeypatch, server.port)
+        request = f"GET http://{PUBLIC_HOST}:{server.port}/ HTTP/1.1\r\nHost: x\r\n\r\n"
+        with browser_proxy.guarded_proxy() as proxy:
+            port = int(proxy.rsplit(":", 1)[1])
+            clients = []
+            for _ in range(30):
+                client = socket.create_connection(("127.0.0.1", port), timeout=5)
+                client.sendall(request.encode())
+                clients.append(client)
+            assert _wait_until(lambda: len(server.heads) == 30 and len(handlers) == 30)
+            for client in clients:
+                client.close()
+            assert _wait_until(lambda: len(released) == 30 and not handlers)
+    finally:
+        server.close()
+
+
+def test_a_slowly_streamed_body_outlives_the_head_deadline(monkeypatch):
+    """The deadline covers the head only. A body that keeps coming, each
+    piece inside the idle timeout, is relayed for as long as it takes."""
+    monkeypatch.setattr(browser_proxy, "_RESPONSE_HEAD_TIMEOUT", 0.3)
+    monkeypatch.setattr(browser_proxy, "_HTTP_IO_TIMEOUT", 0.4)
+
+    def script(conn):
+        for byte in b"HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\n":
+            conn.sendall(bytes([byte]))
+        for piece in (b"abc", b"def", b"ghi", b"jkl"):
+            time.sleep(0.2)
+            conn.sendall(piece)
+
+    started = time.monotonic()
+    answer, reset = _via_raw_origin(monkeypatch, script)
+    head, _, body = answer.partition(b"\r\n\r\n")
+    assert head.startswith(b"HTTP/1.1 200 OK\r\n")
+    assert body == b"abcdefghijkl" and not reset
+    assert time.monotonic() - started > 0.6
+
+
+def test_bytes_a_client_sends_after_its_request_do_not_end_it(monkeypatch):
+    def script(conn):
+        time.sleep(0.3)
+        conn.sendall(_FINAL)
+
+    server = _RawOrigin(script)
+    try:
+        _map_public_host(monkeypatch, server.port)
+        request = f"GET http://{PUBLIC_HOST}:{server.port}/ HTTP/1.1\r\nHost: x\r\n\r\n"
+        with browser_proxy.guarded_proxy() as proxy:
+            port = int(proxy.rsplit(":", 1)[1])
+            with socket.create_connection(("127.0.0.1", port), timeout=5) as client:
+                client.sendall(request.encode())
+                assert _wait_until(lambda: bool(server.heads))
+                client.sendall(b"GET http://127.0.0.1/ HTTP/1.1\r\n\r\n")
+                answer = b""
+                while chunk := client.recv(65536):
+                    answer += chunk
+        assert answer.endswith(b"\r\n\r\nREAL PAGE")
+        # The stray bytes were dropped, not forwarded or served.
+        assert len(server.heads) == 1 and b"127.0.0.1/" not in server.heads[0]
+    finally:
+        server.close()
+
+
+def test_a_closed_client_ends_its_connect_tunnel_at_once(monkeypatch, handlers):
+    released = threading.Event()
+    listener = socket.create_server(("127.0.0.1", 0))
+
+    def serve():
+        conn, _ = listener.accept()
+        with conn:
+            conn.settimeout(5)
+            try:
+                if conn.recv(4096) == b"ping" and conn.recv(1) == b"":
+                    released.set()
+            except OSError:
+                pass
+
+    threading.Thread(target=serve, daemon=True).start()
+    try:
+        port = listener.getsockname()[1]
+        _map_public_host(monkeypatch, port)
+        with browser_proxy.guarded_proxy() as proxy:
+            client, head = _open_tunnel(proxy, f"{PUBLIC_HOST}:{port}")
+            assert head.startswith(b"HTTP/1.0 200 ")
+            client.sendall(b"ping")
+            time.sleep(0.1)
+            assert handlers and not released.is_set()
+            client.close()
+            assert released.wait(2), "the tunnel's origin connection was left open"
+            assert _wait_until(lambda: not handlers)
+    finally:
+        listener.close()
+
+
+# ---------------------------------------------------------------------------
 # The per-run proxy credential
 # ---------------------------------------------------------------------------
 
