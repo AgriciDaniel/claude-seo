@@ -8,8 +8,19 @@ set comes from sitemap.xml instead of link following. When `.shopify-env`
 its three headers are attached to every request, Shopify identifies the
 crawler as one the merchant authorized, and no page cap applies by default.
 The signature is sent to that one https origin only, never over plain http.
-An unsigned crawl stops at UNSIGNED_MAX_PAGES unless --max-pages says
-otherwise.
+A block that fails shopify_env's validation or is expired is never sent: the
+crawl then runs unsigned. An unsigned crawl stops at UNSIGNED_MAX_PAGES with
+concurrency 2 and a 1 s delay; `.shopify-env` can only make an unsigned crawl
+gentler, lifting those limits takes an explicit command-line flag.
+
+robots.txt is respected by default (disallowed URLs are dropped, a larger
+Crawl-delay is honoured, and a robots.txt that answers with a server error
+stops the crawl). Only the --ignore-robots command-line flag turns that off.
+
+Sustained rate limiting stops the crawl early: after RATE_LIMIT_ABORT_STREAK
+consecutive 429, 430 or 503 responses with no other response in between
+(each one already followed by a growing backoff), no further request is
+sent, the partial artifacts are written and the exit code is 5.
 
 Every request goes through url_safety: the root is validated with
 validate_url_strict, DNS is pinned for the crawl, only URLs on the root's
@@ -27,7 +38,9 @@ Usage:
     python shopify_crawl.py https://shop.example --max-pages 2000 --concurrency 4
     python shopify_crawl.py https://shop.example --resume --json
 
-Exit codes: 0 ok, 1 nothing crawled, 5 rate limited on a signed request.
+Exit codes: 0 ok, 1 nothing crawled, 2 bad arguments or filters that match
+no URL, 5 rate limited on a signed request or stopped early for sustained
+rate limiting (summary.json then has "aborted": "rate_limited").
 """
 
 from __future__ import annotations
@@ -45,7 +58,7 @@ from collections import Counter, defaultdict
 from html import unescape
 from pathlib import Path
 from typing import Callable
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 
 try:
@@ -70,6 +83,13 @@ BASE_HEADERS = {
 }
 RATE_LIMIT_STATUSES = (429, 430, 503)
 
+# The early-stop rule: this many rate-limit responses in a row, across all
+# workers and with no other response in between, end the crawl. Every one of
+# them has already been answered with a doubled delay and a backoff sleep.
+RATE_LIMIT_ABORT_STREAK = 8
+# One sitemap is fetched at most 1 + this many times when it is rate limited.
+SITEMAP_RATE_LIMIT_RETRIES = 3
+
 # Bounds on what one crawl will read. Shopify's own sitemap index nests two
 # levels deep; the depth cap leaves room for a store that puts a proxy in
 # front of it without letting a hostile chain run forever.
@@ -79,6 +99,10 @@ MAX_DISCOVERED_URLS = 250_000
 MAX_ROBOTS_BYTES = 1024 * 1024
 MAX_SITEMAP_BYTES = 50 * 1024 * 1024
 MAX_PAGE_BYTES = 10 * 1024 * 1024
+# Per-record caps, so a hostile page cannot grow pages.jsonl or the in-memory
+# record list through one enormous title, header or JSON-LD block.
+MAX_FIELD_CHARS = 2048
+MAX_LIST_ITEMS = 100
 
 # Shopify storefront URL shapes, in match order. Everything else is "page".
 TEMPLATE_PATTERNS = [
@@ -94,6 +118,8 @@ TEMPLATE_PATTERNS = [
 
 # An unsigned crawl gets the same page budget as seo-audit's link crawl.
 UNSIGNED_MAX_PAGES = 500
+UNSIGNED_CONCURRENCY = 2
+UNSIGNED_DELAY = 1.0
 
 BUILTIN_DEFAULTS = {
     "max_pages": 0,
@@ -102,34 +128,54 @@ BUILTIN_DEFAULTS = {
     "include": None,
     "exclude": None,
     "save_html": False,
-    "ignore_robots": False,
 }
 
 
 class RateLimitGovernor:
     """Grow the per-request delay when the storefront pushes back and shrink
-    it again after successes. Concurrency stays fixed for the run."""
+    it again after successes. Concurrency stays fixed for the run.
+
+    Also holds the early-stop rule: RATE_LIMIT_ABORT_STREAK rate-limit
+    responses in a row set `aborted`, after which no request is started."""
 
     def __init__(self, delay: float):
         self.lock = threading.Lock()
         self.base_delay = delay
         self.delay = delay
         self.hits = 0
+        self.streak = 0
+        self.aborted = False
 
     def penalize(self) -> float:
         with self.lock:
             self.hits += 1
+            self.streak += 1
+            if self.streak >= RATE_LIMIT_ABORT_STREAK:
+                self.aborted = True
             self.delay = min(self.delay * 2 if self.delay else 1.0, 30.0)
             return self.delay * (1 + random.random())
 
     def reward(self) -> None:
         with self.lock:
+            self.streak = 0
             if self.delay > self.base_delay:
                 self.delay = max(self.base_delay, self.delay / 1.5)
 
+    def raise_base_delay(self, delay: float) -> None:
+        with self.lock:
+            self.base_delay = max(self.base_delay, delay)
+            self.delay = max(self.delay, self.base_delay)
+
     def wait(self) -> None:
-        if self.delay:
+        if self.delay and not self.aborted:
             time.sleep(self.delay)
+
+    def backoff(self) -> None:
+        """Count one rate-limit response and sleep it off, unless that
+        response was the one that ended the crawl."""
+        seconds = self.penalize()
+        if not self.aborted:
+            time.sleep(seconds)
 
 
 class Origin:
@@ -162,6 +208,40 @@ def headers_for(url: str, origin: Origin, sig_headers: dict | None) -> dict:
     if sig_headers and origin.scheme == "https" and origin.owns(url):
         headers.update(sig_headers)
     return headers
+
+
+def scrub(text: str, sig_headers: dict | None) -> str:
+    """Remove the signature values from text bound for a log or an artifact.
+
+    Nothing here writes them on purpose; this covers an HTTP client error
+    that quotes a request header and a server that echoes request headers
+    into its response."""
+    if sig_headers and text:
+        for name in ("Signature", "Signature-Input"):
+            value = sig_headers.get(name)
+            if value:
+                text = text.replace(value, "[signature removed]")
+    return text
+
+
+def describe_redirect(origin: Origin, location: str | None) -> str:
+    """One safe sentence about where a redirect points. The Location header
+    is untrusted, so only a well-formed host or path is repeated."""
+    try:
+        target = urlparse(urljoin(f"{origin.root}/", location or ""))
+    except ValueError:
+        return "redirects to a target that could not be read"
+    host = target.netloc.lower()
+    if target.scheme not in ("http", "https") or not re.fullmatch(r"[a-z0-9.-]{1,253}(:\d{1,5})?", host):
+        return "redirects to a target that could not be read"
+    if host != origin.authority:
+        return (f"redirects to the host {host}. Redirects are not followed and a signature is "
+                f"bound to one host, so audit https://{host} instead")
+    path = re.sub(r"[^A-Za-z0-9/._~-]", "", target.path)[:80] or "/"
+    if target.scheme != origin.scheme:
+        return f"redirects to {target.scheme}://{host}{path}; audit that scheme instead"
+    return (f"redirects to {path} on the same host. A redirect to /password means the store "
+            f"is password-protected")
 
 
 def read_bounded(response, max_bytes: int) -> tuple[bytes, bool]:
@@ -231,13 +311,17 @@ def fetch_sitemap_urls(session, origin: Origin, governor: RateLimitGovernor,
     seen_maps: set[str] = set()
     queue: list[tuple[str, int]] = []
     urls: list[str] = []
-    stats = {"sitemaps_fetched": 0, "skipped_foreign": 0, "discovery_capped": None}
+    stats = {"sitemaps_fetched": 0, "skipped_foreign": 0, "discovery_capped": None,
+             "rate_limited": 0, "redirects": []}
+    retries: Counter = Counter()
 
     if robots_text:
         queue += [(loc, 1) for loc in re.findall(r"(?im)^\s*sitemap:\s*(\S+)", robots_text)]
     queue.append((f"{origin.root}/sitemap.xml", 1))
 
     while queue:
+        if governor.aborted:
+            break
         if target and len(urls) >= target:
             log(f"  stopping sitemap walk at {len(urls)} URLs ({len(queue)} sitemaps not opened)")
             break
@@ -261,14 +345,25 @@ def fetch_sitemap_urls(session, origin: Origin, governor: RateLimitGovernor,
             response = session.get(current, timeout=30, allow_redirects=False, stream=True,
                                    headers=headers_for(current, origin, sig_headers))
         except requests.RequestException as exc:
-            log(f"  sitemap failed {current}: {exc}")
+            log(f"  sitemap failed {current}: {scrub(str(exc), sig_headers)[:300]}")
             continue
         stats["sitemaps_fetched"] += 1
         if response.status_code in RATE_LIMIT_STATUSES:
             response.close()
-            queue.append((current, depth))
-            seen_maps.discard(current)
-            time.sleep(governor.penalize())
+            stats["rate_limited"] += 1
+            retries[current] += 1
+            if retries[current] <= SITEMAP_RATE_LIMIT_RETRIES:
+                queue.append((current, depth))
+                seen_maps.discard(current)
+            else:
+                log(f"  sitemap given up after {retries[current]} rate-limit responses: {current}")
+            governor.backoff()
+            continue
+        governor.reward()
+        if 300 <= response.status_code < 400:
+            if len(stats["redirects"]) < 20:
+                stats["redirects"].append((current, response.headers.get("Location")))
+            response.close()
             continue
         if response.status_code != 200:
             response.close()
@@ -295,9 +390,14 @@ def fetch_sitemap_urls(session, origin: Origin, governor: RateLimitGovernor,
 
     if stats["skipped_foreign"]:
         log(f"  skipped {stats['skipped_foreign']} sitemap entries outside {origin.root}")
+    unique = list(dict.fromkeys(urls))
+    if len(unique) > MAX_DISCOVERED_URLS:
+        # One large sitemap can overshoot the cap that is checked between sitemaps.
+        unique = unique[:MAX_DISCOVERED_URLS]
+        stats["discovery_capped"] = f"more than {MAX_DISCOVERED_URLS} URLs"
     if stats["discovery_capped"]:
         log(f"  discovery stopped: {stats['discovery_capped']}")
-    return list(dict.fromkeys(urls)), stats
+    return unique, stats
 
 
 TAG_RE = re.compile(r"<(script|style|noscript|template)[^>]*>.*?</\1>", re.S | re.I)
@@ -336,17 +436,24 @@ def analyze_html(html: str) -> dict:
     without_alt = [img for img in images if not re.search(r"\balt\s*=", img, re.I)]
     words = len(STRIP_RE.sub(" ", visible).split())
 
+    def cap(value: str | None) -> str | None:
+        return value[:MAX_FIELD_CHARS] if value else value
+
+    def cap_list(values: list[str]) -> list[str]:
+        return sorted({value[:100] for value in values})[:MAX_LIST_ITEMS]
+
+    # Lengths are the real ones; the stored strings are capped.
     return {
-        "title": title,
+        "title": cap(title),
         "title_length": len(title) if title else 0,
-        "meta_description": description,
+        "meta_description": cap(description),
         "meta_description_length": len(description) if description else 0,
-        "canonical": canonical,
-        "robots_meta": robots_meta,
+        "canonical": cap(canonical),
+        "robots_meta": cap(robots_meta),
         "h1_count": len(h1s),
         "h1_first": collapse(STRIP_RE.sub("", h1s[0]))[:200] if h1s else None,
-        "hreflang": sorted(set(hreflang)),
-        "schema_types": sorted(set(schema_types)),
+        "hreflang": cap_list(hreflang),
+        "schema_types": cap_list(schema_types),
         "image_count": len(images),
         "images_without_alt": len(without_alt),
         "word_count": words,
@@ -361,29 +468,34 @@ def crawl_one(session_for: Callable[[], requests.Session], url: str, origin: Ori
     record: dict = {"url": url, "template": classify(url), "signed": bool(sig_headers)}
     for attempt in range(4):
         governor.wait()
+        if governor.aborted:
+            # The crawl was stopped for sustained rate limiting. A URL that
+            # never got a request is not written, so --resume picks it up.
+            record["aborted"] = True
+            break
         started = time.time()
         try:
             response = session.get(url, headers=headers, timeout=timeout,
                                    allow_redirects=False, stream=True)
         except requests.RequestException as exc:
-            record["error"] = str(exc)
+            record["error"] = scrub(str(exc), sig_headers)[:300]
             time.sleep(1 + attempt)
             continue
 
         record["status"] = response.status_code
         record["elapsed_ms"] = int((time.time() - started) * 1000)
         if 300 <= response.status_code < 400:
-            record["redirect_to"] = response.headers.get("Location")
+            record["redirect_to"] = (response.headers.get("Location") or "")[:MAX_FIELD_CHARS]
 
         if response.status_code in RATE_LIMIT_STATUSES:
             response.close()
             record["rate_limited"] = True
-            time.sleep(governor.penalize())
+            governor.backoff()
             continue
 
         governor.reward()
         record.pop("error", None)
-        content_type = response.headers.get("Content-Type", "").split(";")[0].strip()
+        content_type = response.headers.get("Content-Type", "").split(";")[0].strip()[:100]
         record["content_type"] = content_type
         record["html"] = response.status_code == 200 and "html" in content_type
         if record["html"]:
@@ -392,7 +504,7 @@ def crawl_one(session_for: Callable[[], requests.Session], url: str, origin: Ori
                 record["html"] = False
                 record["too_large"] = True
                 return record
-            text = decode_body(content, response)
+            text = scrub(decode_body(content, response), sig_headers)
             record.update(analyze_html(text))
             if save_html_dir:
                 name = re.sub(r"[^A-Za-z0-9]+", "_", urlparse(url).path)[:120] or "index"
@@ -470,30 +582,54 @@ def stratified_sample(records: list[dict], per_template: int) -> list[dict]:
     return sample
 
 
-def resolve_settings(args: argparse.Namespace, env: dict, entry: dict | None, signed: bool) -> None:
+def _harder_than_unsigned(field: str, value) -> bool:
+    """True when an env-file value would push an unsigned crawl past its limits."""
+    if field == "max_pages":
+        return value == 0 or value > UNSIGNED_MAX_PAGES
+    if field == "concurrency":
+        return value > UNSIGNED_CONCURRENCY
+    if field == "delay":
+        return value < UNSIGNED_DELAY
+    return False
+
+
+def resolve_settings(args: argparse.Namespace, env: dict, entry: dict | None, signed: bool) -> list[str]:
     """CLI flag beats the domain block, which beats the global keys, which beat
     the built-in defaults. Unset attributes on `args` are filled in place.
 
-    Concurrency and delay end up inside shopify_env.CRAWL_BOUNDS whatever
+    The numeric settings end up inside shopify_env.CRAWL_BOUNDS whatever
     their source; the env parser already drops out-of-range values, this
-    also clamps the command line."""
+    also clamps the command line.
+
+    For an unsigned crawl the env file may only make the crawl gentler: a
+    value that would lift the page cap, raise concurrency or shorten the
+    delay is ignored, because the file is not proof of the merchant's
+    consent. Returns one note per ignored value."""
+    notes: list[str] = []
     builtin = dict(BUILTIN_DEFAULTS)
     builtin["max_pages"] = 0 if signed else UNSIGNED_MAX_PAGES
-    builtin["concurrency"] = 6 if signed else 2
-    builtin["delay"] = 0.2 if signed else 1.0
+    builtin["concurrency"] = 6 if signed else UNSIGNED_CONCURRENCY
+    builtin["delay"] = 0.2 if signed else UNSIGNED_DELAY
     layers = [builtin, env.get("crawl", {}), (entry or {}).get("crawl", {})]
     for field, fallback in builtin.items():
         if getattr(args, field, None) is None:
             value = fallback
             for layer in layers:
-                if layer.get(field) is not None and not shopify_env.out_of_bounds(field, layer[field]):
-                    value = layer[field]
+                if layer.get(field) is None or shopify_env.out_of_bounds(field, layer[field]):
+                    continue
+                if not signed and layer is not builtin and _harder_than_unsigned(field, layer[field]):
+                    notes.append(f"{field.replace('_', '-')} = {layer[field]} from "
+                                 f"{shopify_env.ENV_FILENAME} is ignored for an unsigned crawl; "
+                                 f"pass it on the command line to override the unsigned limit")
+                    continue
+                value = layer[field]
             setattr(args, field, value)
     for field, (low, high) in shopify_env.CRAWL_BOUNDS.items():
         value = getattr(args, field)
         if value != value:  # NaN from the command line
             value = builtin[field]
         setattr(args, field, min(max(value, low), high))
+    return notes
 
 
 class ThreadSessions:
@@ -541,11 +677,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--exclude", help="regex; skip matching URLs")
     parser.add_argument("--save-html", action="store_true", default=None)
     parser.add_argument("--resume", action="store_true", help="skip URLs already in pages.jsonl")
-    parser.add_argument("--ignore-robots", action="store_true", default=None)
+    parser.add_argument("--ignore-robots", action="store_true",
+                        help="also crawl URLs that robots.txt disallows and skip its Crawl-delay. "
+                             "Off by default: robots.txt is respected. Command line only; "
+                             ".shopify-env cannot set it")
     parser.add_argument("--no-signature", action="store_true",
                         help="crawl unsigned even when a signature exists")
     parser.add_argument("--json", action="store_true", help="print the full summary as JSON")
     args = parser.parse_args(argv)
+    if args.max_pages is not None and args.max_pages < 0:
+        parser.error("--max-pages must be 0 (no cap) or a positive number")
 
     raw = args.url if "://" in args.url else f"https://{args.url}"
     try:
@@ -566,25 +707,48 @@ def main(argv: list[str] | None = None) -> int:
         for problem in env["problems"]:
             _log(f"  {problem}")
 
+    # Only a block that passes shopify_env.signing_state is sent and gets the
+    # signed limits. Every other case crawls unsigned, with the reason logged.
     entry = env["authorities"].get(authority)
     sig_headers = None
+    unsigned_reason = None
+    unsigned_limits = (f"{UNSIGNED_MAX_PAGES} pages, concurrency {UNSIGNED_CONCURRENCY}, "
+                       f"{UNSIGNED_DELAY:g} s delay")
     if args.no_signature:
+        unsigned_reason = "no_signature_flag"
         entry = None
     elif entry and origin.scheme != "https":
         _log(f"WARNING: {origin.root} is not https; the signature for {authority} is never sent "
              f"over plain http. Crawling unsigned; use https://{authority} for a signed crawl.")
+        unsigned_reason = "insecure_scheme"
         entry = None
-    elif entry and shopify_env.days_left(entry.get("expires")) > 0:
-        sig_headers = shopify_env.signature_headers(entry)
-        _log(f"Crawler Access signature active for {authority} "
-             f"({shopify_env.days_left(entry['expires']):.0f} days left)")
     elif entry:
-        _log(f"WARNING: signature for {authority} is expired; crawling unsigned at normal rate limits.")
-        entry = None
+        state, detail = shopify_env.signing_state(entry)
+        if state == "valid":
+            sig_headers = shopify_env.signature_headers(entry)
+            _log(f"Crawler Access signature active for {authority} ({detail})")
+        else:
+            if state == "invalid":
+                _log(f"WARNING: the signature block for {authority} is not usable ({detail}). "
+                     f"It is not sent; crawling unsigned at the unsigned limits ({unsigned_limits}).")
+            else:
+                _log(f"WARNING: signature for {authority} is expired. It is not sent; crawling "
+                     f"unsigned at the unsigned limits ({unsigned_limits}).")
+            unsigned_reason = f"signature_{state}"
+            entry = None
     else:
+        unsigned_reason = "no_signature"
         _log(f"No signature for {authority}; crawling unsigned.")
 
-    resolve_settings(args, env, entry, bool(sig_headers))
+    for note in resolve_settings(args, env, entry, bool(sig_headers)):
+        _log(f"  {note}")
+
+    try:
+        include = re.compile(args.include) if args.include else None
+        exclude = re.compile(args.exclude) if args.exclude else None
+    except re.error as exc:
+        _log(f"Error: the include or exclude pattern is not a valid regular expression: {exc}")
+        return 2
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -596,101 +760,166 @@ def main(argv: list[str] | None = None) -> int:
 
     governor = RateLimitGovernor(args.delay)
     sessions = ThreadSessions()
+    records: list[dict] = []
+    previous: dict[str, dict] = {}
     with safe_requests_session(origin.root) as session:
         session.headers.update(BASE_HEADERS)
 
+        # robots.txt: 200 gives the rules (an oversized file is used up to the
+        # byte limit), another 3xx/4xx answer means there are none, and a
+        # server error or no answer means the rules are unknown.
+        robots_url = f"{origin.root}/robots.txt"
         robots_text = None
+        robots_unknown = None
+        robots_throttled = False
         try:
-            robots_url = f"{origin.root}/robots.txt"
             robots_response = session.get(robots_url, timeout=15, allow_redirects=False, stream=True,
                                           headers=headers_for(robots_url, origin, sig_headers))
             if robots_response.status_code == 200:
-                content, too_large = read_bounded(robots_response, MAX_ROBOTS_BYTES)
-                if not too_large:
-                    robots_text = content.decode("utf-8", errors="replace")
+                content, _ = read_bounded(robots_response, MAX_ROBOTS_BYTES)
+                robots_text = content.decode("utf-8", errors="replace")
             else:
                 robots_response.close()
+                if robots_response.status_code in RATE_LIMIT_STATUSES or robots_response.status_code >= 500:
+                    robots_unknown = f"answered {robots_response.status_code}"
+                    robots_throttled = robots_response.status_code in RATE_LIMIT_STATUSES
         except requests.RequestException:
-            pass
+            robots_unknown = "could not be fetched"
+
+        robots = None
+        if args.ignore_robots:
+            _log("WARNING: --ignore-robots is set. URLs that robots.txt disallows are crawled "
+                 "and its Crawl-delay is not applied.")
+        elif robots_unknown:
+            _log(f"Error: {robots_url} {robots_unknown}, so its rules are unknown and nothing "
+                 f"was crawled. Try again later."
+                 + (" Shopify treats a rate-limit answer to a signed request as an invalid "
+                    "signature." if sig_headers and robots_throttled else ""))
+            return 1
+        elif robots_text:
+            robots = RobotFileParser()
+            robots.parse(robots_text.splitlines())
+            try:
+                crawl_delay = float(robots.crawl_delay(USER_AGENT) or 0)
+            except (TypeError, ValueError):
+                crawl_delay = 0.0
+            if crawl_delay > args.delay:
+                args.delay = min(crawl_delay, shopify_env.CRAWL_BOUNDS["delay"][1])
+                governor.raise_base_delay(args.delay)
+                _log(f"robots.txt asks for a Crawl-delay; using {args.delay:g} s between requests")
 
         _log(f"Discovering URLs from sitemaps of {origin.root} ...")
         urls, discovery = fetch_sitemap_urls(session, origin, governor, sig_headers=sig_headers,
                                              target=args.max_pages, robots_text=robots_text, log=_log)
-        if not urls:
-            _log("Error: no sitemap URLs found. Shopify storefronts always expose /sitemap.xml; "
-                 "check the host, or whether the store is password-protected.")
+        if governor.aborted:
+            urls = []
+        elif not urls:
+            root_sitemap = f"{origin.root}/sitemap.xml"
+            redirects = dict(reversed(discovery["redirects"]))
+            if redirects:
+                source = root_sitemap if root_sitemap in redirects else next(iter(redirects))
+                _log(f"Error: no sitemap URLs found. {source} "
+                     f"{describe_redirect(origin, redirects[source])}.")
+            elif discovery["rate_limited"]:
+                _log("Error: no sitemap URLs found; the sitemap requests were rate limited. "
+                     "Try again later.")
+            else:
+                _log("Error: no sitemap URLs found. Shopify storefronts always expose /sitemap.xml; "
+                     "check the host, or whether the store is password-protected.")
             return 1
 
-        if args.include:
-            pattern = re.compile(args.include)
-            urls = [u for u in urls if pattern.search(u)]
-        if args.exclude:
-            pattern = re.compile(args.exclude)
-            urls = [u for u in urls if not pattern.search(u)]
+        found = len(urls)
+        if include:
+            urls = [u for u in urls if include.search(u)]
+        if exclude:
+            urls = [u for u in urls if not exclude.search(u)]
+        if found and not urls:
+            _log(f"Error: the include and exclude patterns left none of the {found} discovered "
+                 f"URLs; nothing was crawled. Check the patterns"
+                 + (f" (discovery stops at --max-pages {args.max_pages} URLs before they apply)."
+                    if args.max_pages else "."))
+            return 2
 
-        if not args.ignore_robots and robots_text:
-            robots = RobotFileParser()
-            robots.parse(robots_text.splitlines())
-            urls = [u for u in urls if robots.can_fetch(USER_AGENT, u)]
+        if robots:
+            allowed = [u for u in urls if robots.can_fetch(USER_AGENT, u)]
+            if len(allowed) < len(urls):
+                _log(f"  robots.txt disallows {len(urls) - len(allowed)} of {len(urls)} URLs; skipped")
+            if urls and not allowed:
+                _log("Error: robots.txt disallows every discovered URL for this crawler; "
+                     "nothing was crawled.")
+                return 1
+            urls = allowed
 
-        done: set[str] = set()
         if args.resume and pages_file.exists():
-            for line in pages_file.read_text(encoding="utf-8").splitlines():
-                try:
-                    done.add(json.loads(line)["url"])
-                except (json.JSONDecodeError, KeyError):
-                    continue
-            urls = [u for u in urls if u not in done]
-            _log(f"Resuming: {len(done)} already crawled, {len(urls)} left")
+            # A URL counts as done once it has a record that is not a failure;
+            # failed and rate-limited URLs are fetched again.
+            with pages_file.open(encoding="utf-8") as earlier:
+                for line in earlier:
+                    try:
+                        record = json.loads(line)
+                        if record.get("failed"):
+                            previous.pop(record["url"], None)
+                        else:
+                            previous[record["url"]] = record
+                    except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
+                        continue
+            urls = [u for u in urls if u not in previous]
+            _log(f"Resuming: {len(previous)} already crawled, {len(urls)} left")
 
-        discovered = len(urls) + len(done)
+        discovered = len(urls) + len(previous)
         if args.max_pages and len(urls) > args.max_pages:
             _log(f"Capping at --max-pages {args.max_pages} of {len(urls)} discovered URLs; "
                  f"report this truncation in the audit.")
             urls = urls[:args.max_pages]
 
-        _log(f"Crawling {len(urls)} URLs, concurrency {args.concurrency}, delay {args.delay}s"
-             + ("" if args.max_pages else " (no page cap)"))
-        progress_every = max(25, min(500, len(urls) // 50 or 25))
-        started_at = time.time()
-        records: list[dict] = []
-        write_lock = threading.Lock()
-        mode = "a" if (args.resume and pages_file.exists()) else "w"
+        if urls and not governor.aborted:
+            _log(f"Crawling {len(urls)} URLs, concurrency {args.concurrency}, delay {args.delay}s"
+                 + ("" if args.max_pages else " (no page cap)"))
+            progress_every = max(25, min(500, len(urls) // 50 or 25))
+            started_at = time.time()
+            mode = "a" if (args.resume and pages_file.exists()) else "w"
+            cancelled = False
+            index = 0
 
-        try:
-            with pages_file.open(mode, encoding="utf-8") as sink:
-                with futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
-                    pending = {pool.submit(crawl_one, sessions.get, url, origin, sig_headers,
-                                           governor, args.timeout, html_dir): url for url in urls}
-                    for index, future in enumerate(futures.as_completed(pending), 1):
-                        record = future.result()
-                        with write_lock:
+            try:
+                with pages_file.open(mode, encoding="utf-8") as sink:
+                    with futures.ThreadPoolExecutor(max_workers=args.concurrency) as pool:
+                        pending = {pool.submit(crawl_one, sessions.get, url, origin, sig_headers,
+                                               governor, args.timeout, html_dir): url for url in urls}
+                        for future in futures.as_completed(pending):
+                            if governor.aborted and not cancelled:
+                                cancelled = True
+                                for waiting in pending:
+                                    waiting.cancel()
+                                _log(f"  stopping: {RATE_LIMIT_ABORT_STREAK} rate-limit responses in a row")
+                            if future.cancelled():
+                                continue
+                            record = future.result()
+                            if record.pop("aborted", False) and "status" not in record and "error" not in record:
+                                continue
+                            index += 1
                             sink.write(json.dumps(record, ensure_ascii=False) + "\n")
                             sink.flush()
-                        records.append(record)
-                        if index % progress_every == 0 or index == len(urls):
-                            elapsed = time.time() - started_at
-                            eta = elapsed / (index / len(urls)) - elapsed
-                            _log(f"  {index}/{len(urls)} ({index / len(urls):.0%}) ETA {eta / 60:.0f} min, "
-                                 f"delay {governor.delay:.2f}s, {governor.hits} rate-limit hits")
-        finally:
-            sessions.close()
+                            records.append(record)
+                            if index % progress_every == 0 or index == len(urls):
+                                elapsed = time.time() - started_at
+                                eta = elapsed / (index / len(urls)) - elapsed
+                                _log(f"  {index}/{len(urls)} ({index / len(urls):.0%}) ETA {eta / 60:.0f} min, "
+                                     f"delay {governor.delay:.2f}s, {governor.hits} rate-limit hits")
+            finally:
+                sessions.close()
 
-    if args.resume and done:
-        for line in pages_file.read_text(encoding="utf-8").splitlines():
-            try:
-                record = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if record.get("url") in done:
-                records.append(record)
+    records += previous.values()
 
     summary = summarize(records)
     summary["authority"] = authority
     summary["signed"] = bool(sig_headers)
+    summary["unsigned_reason"] = unsigned_reason
     summary["urls_discovered"] = discovered
     summary["discovery_capped"] = discovery["discovery_capped"]
-    summary["truncated"] = bool(discovery["discovery_capped"]) or (
+    summary["rate_limit_hits"] = governor.hits
+    summary["aborted"] = "rate_limited" if governor.aborted else None
+    summary["truncated"] = governor.aborted or bool(discovery["discovery_capped"]) or (
         bool(args.max_pages) and discovered > summary["pages_crawled"])
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     (out_dir / "sample.json").write_text(
@@ -700,9 +929,16 @@ def main(argv: list[str] | None = None) -> int:
     _log(f"Done. {summary['pages_crawled']} pages -> {out_dir}")
     print(json.dumps(summary if args.json else summary["issues"], indent=2, ensure_ascii=False))
 
+    signature_hint = ("Shopify treats a rate-limit answer to a signed request as an invalid "
+                      "signature; check its expiry and that the host matches the one it was "
+                      "issued for.")
+    if governor.aborted:
+        _log(f"WARNING: crawl stopped early after {RATE_LIMIT_ABORT_STREAK} rate-limit responses "
+             f"in a row. The artifacts are partial ({summary['pages_crawled']} pages); run again "
+             f"later with --resume." + (f" {signature_hint}" if sig_headers else ""))
+        return 5
     if governor.hits and sig_headers:
-        _log("WARNING: rate limited despite a signature. Shopify treats that as an invalid "
-             "signature; check its expiry and that the host matches the one it was issued for.")
+        _log(f"WARNING: rate limited despite a signature. {signature_hint}")
         return 5
     return 0
 

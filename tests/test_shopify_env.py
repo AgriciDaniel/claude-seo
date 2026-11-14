@@ -72,7 +72,10 @@ def test_incomplete_blocks_are_skipped_with_a_problem(tmp_path: Path) -> None:
     """)
     env = shopify_env.parse_env_file(path)
     assert "shop.example" not in env["authorities"]
-    assert "other.example" in env["authorities"]
+    # A block that fails validation is kept so precheck can name the reason,
+    # but it is marked and never used for signing.
+    assert env["authorities"]["other.example"]["invalid"]
+    assert shopify_env.signing_state(env["authorities"]["other.example"])[0] == "invalid"
     joined = "\n".join(env["problems"])
     assert "before any Domain=" in joined
     assert "shop.example: missing signature" in joined
@@ -198,3 +201,85 @@ def test_out_of_range_concurrency_and_delay_are_ignored(tmp_path: Path) -> None:
     assert env["crawl"] == {}
     assert env["authorities"]["shop.example"]["crawl"] == {"concurrency": 4}
     assert len([p for p in env["problems"] if "must be between" in p]) == 3
+
+
+def _block(signature_input: str, signature: str = "sig1=:ok:", extra: str = "") -> str:
+    return (f"Domain = shop.example\nSignature-Input = {signature_input}\n"
+            f"Signature = {signature}\n{extra}")
+
+
+@pytest.mark.parametrize("signature_input, signature, expected", [
+    (_signature_input(FUTURE, tag="other"), "sig1=:ok:", "tag is 'other'"),
+    (f'sig1=("signature-agent");keyid="k";tag="web-bot-auth";expires={FUTURE}', "sig1=:ok:",
+     'do not include "@authority"'),
+    (f'sig1=("@authority");tag="web-bot-auth";expires={FUTURE}', "sig1=:ok:", "no keyid"),
+    ('sig1=("@authority");keyid="k";tag="web-bot-auth";created=1700000000', "sig1=:ok:", "no expires"),
+    (f'sig1=("@authority");keyid="k";tag="web-bot-auth";created={FUTURE + 5};expires={FUTURE}',
+     "sig1=:ok:", "expires is not after created"),
+    (_signature_input(FUTURE), "sig2=:ok:", "label does not match"),
+    (_signature_input(FUTURE), "not-a-signature", "not in the form label=:base64:"),
+    (_signature_input(FUTURE), "sig1=:o\tk:", "not a plain header value"),
+    (_signature_input(FUTURE) + ';x="\u00e9"', "sig1=:ok:", "not a plain header value"),
+])
+def test_block_that_fails_validation_is_not_usable_for_signing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+    signature_input: str, signature: str, expected: str,
+) -> None:
+    monkeypatch.delenv(shopify_env.ENV_PATH_VAR, raising=False)
+    monkeypatch.chdir(tmp_path)
+    path = _write_env(tmp_path, _block(signature_input, signature))
+    env = shopify_env.parse_env_file(path)
+    entry = env["authorities"]["shop.example"]
+    assert any(expected in problem for problem in env["problems"]), env["problems"]
+    assert all("signature not used" in problem for problem in env["problems"])
+    assert shopify_env.signing_state(entry)[0] == "invalid"
+    with pytest.raises(ValueError):
+        shopify_env.signature_headers(entry)
+
+    result = shopify_env.precheck("https://shop.example", tmp_path)
+    assert (result["mode"], result["reason"]) == ("fallback", "signature_invalid")
+    assert expected in result["detail"]
+
+    assert shopify_env.main(["check", "https://shop.example", "--json"]) == 4
+    checked = json.loads(capsys.readouterr().out)
+    assert checked["signed"] is False and checked["state"] == "invalid"
+    assert shopify_env.main(["check", "https://shop.example"]) == 4
+    assert "not usable" in capsys.readouterr().out
+    assert shopify_env.main(["list", "--json"]) == 0
+    listed = json.loads(capsys.readouterr().out)
+    assert listed["authorities"]["shop.example"]["state"] == "invalid"
+
+
+def test_expired_block_has_no_headers(tmp_path: Path) -> None:
+    path = _write_env(tmp_path, _block(_signature_input(PAST)))
+    entry = shopify_env.parse_env_file(path)["authorities"]["shop.example"]
+    assert shopify_env.signing_state(entry)[0] == "expired"
+    with pytest.raises(ValueError):
+        shopify_env.signature_headers(entry)
+
+
+def test_env_file_cannot_switch_robots_handling_off(tmp_path: Path) -> None:
+    path = _write_env(tmp_path, "Ignore-Robots = yes\n" + _block(
+        _signature_input(FUTURE), extra="ignore_robots = true\n"))
+    env = shopify_env.parse_env_file(path)
+    assert "ignore_robots" not in env["crawl"]
+    assert "crawl" not in env["authorities"]["shop.example"]
+    refused = [p for p in env["problems"] if "ignore-robots is not accepted here" in p]
+    assert len(refused) == 2
+    assert "ignore-robots" not in shopify_env.CRAWL_KEYS
+
+
+def test_unrecognised_lines_are_not_echoed(tmp_path: Path) -> None:
+    path = _write_env(tmp_path, "c2VjcmV0LXRva2Vu/PASTED+SECRET==\nTypo-Key = 1\n")
+    problems = "\n".join(shopify_env.parse_env_file(path)["problems"])
+    assert "PASTED" not in problems and "c2VjcmV0" not in problems
+    assert "line 1: not a recognised setting" in problems
+    assert "unknown key 'typo-key'" in problems
+
+
+def test_out_of_range_numeric_settings_are_ignored(tmp_path: Path) -> None:
+    path = _write_env(tmp_path, "Max-Pages = -5\nTimeout = 0\nSample-Per-Template = 0\n"
+                                "Timeout = 100000\nMax-Pages = 200\n")
+    env = shopify_env.parse_env_file(path)
+    assert env["crawl"] == {"max_pages": 200}
+    assert len([p for p in env["problems"] if "must be between" in p]) == 4

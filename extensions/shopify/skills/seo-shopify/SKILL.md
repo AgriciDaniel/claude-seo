@@ -2,6 +2,7 @@
 name: seo-shopify
 description: "Uncapped, sitemap-complete crawl of a Shopify storefront using the merchant's Crawler Access signature from a project-local .shopify-env, feeding the standard seo-audit pipeline. Use when the user says 'Shopify audit', 'crawl the whole store', 'Crawler access', 'signature-agent', 'web-bot-auth', 'rate limited while crawling', or audits a host listed in .shopify-env."
 metadata:
+  original_author: Nordalux
   version: "2.6.0"
 compatibility: "Requires a Shopify store the user administers (the signature is minted in the store's admin) and a .shopify-env file in the folder the audit runs from. Without it, seo-audit runs unchanged."
 ---
@@ -53,10 +54,15 @@ Always exits 0 and always prints JSON. Read `mode`:
   link-following crawl included. Tell the user in one sentence why (the `detail`
   field says it) and get on with the audit. A capped audit is a normal result.
 
-Fallback reasons: `no_env_file`, `no_signature`, `signature_expired`,
-`env_unreadable`. Before accepting `no_signature`, remember the signature is bound
-to one host: if the store serves on the other of apex/www, re-run the precheck
-against that host.
+Fallback reasons: `no_env_file`, `no_signature`, `signature_invalid`,
+`signature_expired`, `insecure_scheme`, `env_unreadable`. Before accepting
+`no_signature`, remember the signature is bound to one host: if the store serves on
+the other of apex/www, re-run the precheck against that host.
+
+`signature_invalid` means the block is in the file but cannot be used: its
+`Signature-Input` lacks the `web-bot-auth` tag, `@authority`, a key id or an
+expiry, or a header value is malformed. The block is never sent and gives no
+higher limits. Tell the user to copy the three values again from the Shopify admin.
 
 ## Step 2: crawl
 
@@ -72,23 +78,44 @@ pages), and the summary then carries
 Exit codes:
 
 - `0`: crawl complete, continue.
-- `5`: crawl complete and artifacts usable, but the storefront rate limited a
-  signed request. Shopify treats that as an invalid signature. Continue the audit
-  on the artifacts and flag in the report that the signature should be reissued.
+- `5`: the storefront rate limited the crawl. Read `summary.json`:
+  - `"aborted": null`: the crawl finished, but a signed request was rate limited.
+    Shopify treats that as an invalid signature. Continue the audit on the
+    artifacts and flag in the report that the signature should be reissued.
+  - `"aborted": "rate_limited"`: the crawl stopped early after 8 rate-limit
+    responses in a row (`429`, `430` or `503`, each already followed by a longer
+    backoff). The artifacts are partial. Do not retry in a loop: tell the user,
+    resume later with `--resume`, or audit the partial crawl and say it is partial.
+- `2`: bad arguments, or `--include`/`--exclude` matched no discovered URL. Fix the
+  pattern; this is not a reason to fall back.
 - `1`: nothing crawled (no sitemap reachable, password-protected store, wrong
-  host, or the URL failed `url_safety`). Fall back to plain `seo-audit` and say why.
+  host, robots.txt unreadable or disallowing everything, or the URL failed
+  `url_safety`). Fall back to plain `seo-audit` and say why. When the message says
+  the sitemap redirects to another host (a store that sends apex to `www`), that
+  host is the one to audit: redirects are not followed and the signature is bound
+  to one host, so re-run the precheck against the host named in the message.
 
 Large stores: the crawl is resumable (`--resume`). If it was interrupted, resume it
-instead of auditing a partial crawl.
+instead of auditing a partial crawl. Failed and rate-limited URLs are fetched again.
 
 Defaults: no page limit, concurrency 6 and a 0.2 s delay when signed; 500 pages,
 concurrency 2 and 1 s unsigned (concurrency is bounded to 1-16, delay to 0-60 s);
-never signed over plain `http://`; robots.txt respected; redirects recorded, not followed; bodies read up to
-10 MiB per page and the sitemap walk bounded at 5 levels, 500 sitemaps and 250,000
+never signed over plain `http://`; redirects recorded, not followed; bodies read up
+to 10 MiB per page and the sitemap walk bounded at 5 levels, 500 sitemaps and 250,000
 URLs (`discovery_capped` in `summary.json` names the cap that was hit). Precedence is
-command line > domain block > global keys > these defaults. Useful flags:
-`--include`/`--exclude` (regex), `--save-html`, `--sample-per-template N`,
-`--no-signature` to measure the unsigned baseline.
+command line > domain block > global keys > these defaults, with one exception: for
+an unsigned crawl `.shopify-env` can only lower the page cap or concurrency or
+lengthen the delay. Lifting the unsigned limits takes an explicit command-line flag.
+Useful flags: `--include`/`--exclude` (regex), `--save-html`,
+`--sample-per-template N`, `--no-signature` to measure the unsigned baseline.
+
+robots.txt is respected by default, signed or not: disallowed URLs are skipped, a
+longer `Crawl-delay` is applied, and a robots.txt that answers with a server error
+stops the crawl. A Crawler Access signature authorizes the crawler; it does not
+override robots.txt. The only way to change that is the `--ignore-robots`
+command-line flag, which crawls disallowed URLs too and skips `Crawl-delay`.
+`.shopify-env` cannot set it. Never add `--ignore-robots` on your own: use it only
+when the user, who administers the store, asks for it, and say so in the report.
 
 ## Step 3: audit on the crawl artifacts
 
@@ -140,6 +167,12 @@ See `extensions/shopify/docs/SHOPIFY-SETUP.md` for issuing the signature and the
 - The signature goes only to the https origin it was issued for, never over plain
   `http://` and never to another host. Do not work around that by rewriting URLs,
   following redirects by hand, or copying the headers into another tool.
+- A block that fails validation or is expired is never sent and never lifts the
+  unsigned limits. The check is on the block's form; the crawler cannot verify the
+  signature itself, so sustained rate limiting stops the crawl (exit code 5).
+- `.shopify-env` is a file in the project folder, so it is not proof of anyone's
+  consent: it cannot switch robots.txt handling off and cannot raise the limits of
+  an unsigned crawl.
 - Every request runs through `url_safety` (validated root, pinned DNS, same origin
   only, redirects recorded and not followed). The sitemap walk and every response
   body are bounded, and `Concurrency` and `Delay` are clamped, so a hostile sitemap

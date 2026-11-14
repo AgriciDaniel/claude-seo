@@ -25,6 +25,13 @@ Lookup order: the file named by $SHOPIFY_ENV (any path), then `.shopify-env`
 in the current directory and up to five parents. The file holds client
 credentials; keep it out of git. No command prints the signature values.
 
+A block is only used for signing when its Signature-Input carries the
+"web-bot-auth" tag, covers "@authority", has a keyid and a future expiry, and
+all three header values are well-formed. Anything else is reported as a
+problem and the host is crawled unsigned, at the unsigned limits. The file
+cannot switch robots.txt handling off; only the crawler's `--ignore-robots`
+command-line flag does that.
+
 Usage:
     python shopify_env.py list [--json]
     python shopify_env.py check <url> [--json]
@@ -67,15 +74,31 @@ CRAWL_KEYS = {
     "include": ("include", str),
     "exclude": ("exclude", str),
     "save-html": ("save_html", _flag),
-    "ignore-robots": ("ignore_robots", _flag),
 }
 
-# Inclusive ranges for the crawl keys that set request pressure on the store.
-# A value outside its range is ignored with a problem, so the default applies.
+# Keys the file must not be able to set. robots.txt handling is one: a file
+# sitting in the project folder cannot turn it off.
+REFUSED_KEYS = {
+    "ignore-robots": "robots.txt handling cannot be changed from this file; "
+                     "use the --ignore-robots command-line flag",
+}
+
+# Inclusive ranges for the numeric crawl keys. A value outside its range is
+# ignored with a problem, so the default applies.
 CRAWL_BOUNDS = {
+    "max_pages": (0, 250_000),
     "concurrency": (1, 16),
     "delay": (0.0, 60.0),
+    "timeout": (1, 120),
+    "sample_per_template": (1, 50),
 }
+
+# What a replayed header value may look like. Printable ASCII only: anything
+# else is refused by the HTTP client with an error that quotes the value.
+MAX_HEADER_VALUE_LENGTH = 4096
+_HEADER_VALUE_RE = re.compile(r"[\x20-\x7e]+")
+_SIGNATURE_RE = re.compile(r"([A-Za-z0-9_-]+)=:[A-Za-z0-9+/_=-]+:")
+_PLAIN_KEY_RE = re.compile(r"[a-z][a-z0-9-]{0,39}")
 
 
 def out_of_bounds(field: str, value) -> bool:
@@ -132,14 +155,47 @@ def parse_signature_input(raw: str) -> dict:
 def validate_signature_input(meta: dict) -> list[str]:
     problems = []
     if meta["tag"] != REQUIRED_TAG:
-        problems.append(f'tag is {meta["tag"]!r}, expected "{REQUIRED_TAG}"')
+        shown = meta["tag"] if meta["tag"] is None else meta["tag"][:40]
+        problems.append(f'tag is {shown!r}, expected "{REQUIRED_TAG}"')
     if "@authority" not in meta["covered"]:
         problems.append('covered components do not include "@authority"')
     if not meta["keyid"]:
         problems.append("no keyid in Signature-Input")
     if not meta["expires"]:
         problems.append("no expires in Signature-Input")
+    elif meta["created"] and meta["expires"] <= meta["created"]:
+        problems.append("expires is not after created in Signature-Input")
     return problems
+
+
+def validate_entry(entry: dict, meta: dict) -> list[str]:
+    """Every reason a block must not be used for signing. Messages never
+    quote the header values."""
+    problems = validate_signature_input(meta)
+    for field in ("signature_input", "signature", "signature_agent"):
+        value = entry.get(field) or ""
+        if len(value) > MAX_HEADER_VALUE_LENGTH or not _HEADER_VALUE_RE.fullmatch(value):
+            problems.append(f"{field.replace('_', '-')} is not a plain header value "
+                            f"(printable ASCII, at most {MAX_HEADER_VALUE_LENGTH} characters)")
+    signature = _SIGNATURE_RE.fullmatch(entry.get("signature") or "")
+    if not signature:
+        problems.append("signature is not in the form label=:base64:")
+    elif signature.group(1) != meta["label"]:
+        problems.append("signature label does not match the Signature-Input label")
+    return problems
+
+
+def signing_state(entry: dict) -> tuple[str, str]:
+    """Return (state, detail) for a block: "valid", "invalid" or "expired".
+
+    The one gate for signing: only a "valid" block has its headers sent and
+    gets the signed crawl limits."""
+    if entry.get("invalid"):
+        return "invalid", "; ".join(entry["invalid"])
+    left = days_left(entry.get("expires"))
+    if not left == left or left <= 0:  # NaN or expired
+        return "expired", "expired or no expiry"
+    return "valid", f"{left:.0f} days left"
 
 
 def days_left(expires) -> float:
@@ -217,7 +273,14 @@ def parse_env_file(path: Path) -> dict:
             target[field] = cast
             continue
 
-        result["problems"].append(f"line {lineno}: unknown key {key!r} (ignored)")
+        if key in REFUSED_KEYS:
+            result["problems"].append(f"line {lineno}: {key} is not accepted here; "
+                                      f"{REFUSED_KEYS[key]} (ignored)")
+        elif _PLAIN_KEY_RE.fullmatch(key):
+            result["problems"].append(f"line {lineno}: unknown key {key!r} (ignored)")
+        else:
+            # Not echoed: a stray line can be a pasted secret that contains "=".
+            result["problems"].append(f"line {lineno}: not a recognised setting (ignored)")
 
     for authority, entry in list(result["authorities"].items()):
         missing = [k for k in ("signature_input", "signature") if not entry.get(k)]
@@ -228,8 +291,12 @@ def parse_env_file(path: Path) -> dict:
             continue
         meta = parse_signature_input(entry["signature_input"])
         entry.update({"keyid": meta["keyid"], "created": meta["created"], "expires": meta["expires"]})
-        for problem in validate_signature_input(meta):
-            result["problems"].append(f"{authority}: {problem}")
+        invalid = validate_entry(entry, meta)
+        if invalid:
+            # Kept so precheck can name the reason, but never used for signing.
+            entry["invalid"] = invalid
+        for problem in invalid:
+            result["problems"].append(f"{authority}: {problem} (signature not used)")
 
     return result
 
@@ -249,6 +316,9 @@ def lookup(url_or_host: str, start: Path | None = None) -> tuple[str, dict | Non
 
 
 def signature_headers(entry: dict) -> dict:
+    state, _ = signing_state(entry)
+    if state != "valid":
+        raise ValueError(f"signature block is {state}; its headers are not sent")
     return {
         "Signature-Agent": entry.get("signature_agent", DEFAULT_SIGNATURE_AGENT),
         "Signature-Input": entry["signature_input"],
@@ -307,8 +377,16 @@ def precheck(url: str, start: Path | None = None) -> dict:
         result["detail"] = (f"{url} is not https. The signature is never sent over plain "
                             f"http; audit https://{authority} instead.")
         return result
+    state, state_detail = signing_state(entry)
+    if state == "invalid":
+        result["reason"] = "signature_invalid"
+        result["detail"] = (f"The signature block for {authority} in {env['path']} is not usable "
+                            f"({state_detail}). It is not sent; the audit runs unsigned at the "
+                            f"normal limits. Copy the three header values again from the Shopify "
+                            f"admin under Online Store > Preferences > Crawler access.")
+        return result
     left = days_left(entry.get("expires"))
-    if not left == left or left <= 0:  # NaN or expired
+    if state == "expired":
         result["reason"] = "signature_expired"
         result["detail"] = (f"The signature for {authority} is expired or has no expiry. Issue "
                             f"a new one in the Shopify admin under Online Store > Preferences "
@@ -324,8 +402,9 @@ def precheck(url: str, start: Path | None = None) -> dict:
 
 def _describe(authority: str, entry: dict) -> str:
     left = days_left(entry.get("expires"))
-    state = "expired" if not left == left or left <= 0 else (
-        "expiring" if left < EXPIRY_WARN_DAYS else "ok")
+    state = signing_state(entry)[0]
+    if state == "valid":
+        state = "expiring" if left < EXPIRY_WARN_DAYS else "ok"
     days = f"{left:6.0f}d" if left == left else "     ?"
     return f"{authority:38s} {state:8s} {days}  {entry.get('source', '')}"
 
@@ -338,7 +417,8 @@ def cmd_list(args) -> int:
             "crawl": env["crawl"],
             "problems": env["problems"],
             "authorities": {
-                a: {"keyid": e.get("keyid"), "expires": e.get("expires"),
+                a: {"keyid": e.get("keyid"), "state": signing_state(e)[0],
+                    "expires": e.get("expires"),
                     "days_left": round(days_left(e.get("expires")))
                     if e.get("expires") else None, "crawl": e.get("crawl", {}),
                     "source": e.get("source")}
@@ -372,13 +452,18 @@ def cmd_check(args) -> int:
             print(f"No signature for {authority}")
         return 3
     left = days_left(entry.get("expires"))
-    valid = left == left and left > 0
+    state, state_detail = signing_state(entry)
+    valid = state == "valid"
     if args.json:
-        print(json.dumps({"authority": authority, "signed": valid,
+        print(json.dumps({"authority": authority, "signed": valid, "state": state,
+                          "problems": entry.get("invalid", []),
                           "days_left": round(left) if left == left else None,
                           "keyid": entry.get("keyid"), "env_file": env["path"]}))
     elif valid:
         print(f"{authority}: valid, {left:.0f} days left ({entry.get('source')})")
+    elif state == "invalid":
+        print(f"{authority}: not usable ({state_detail}). Copy the three header values again "
+              f"from the Shopify admin (Online Store > Preferences > Crawler access).")
     else:
         print(f"{authority}: expired. Issue a new signature in the Shopify admin "
               f"(Online Store > Preferences > Crawler access).")

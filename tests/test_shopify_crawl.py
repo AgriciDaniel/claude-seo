@@ -350,3 +350,105 @@ def test_concurrency_and_delay_are_bounded_whatever_their_source() -> None:
 def test_main_refuses_unsafe_roots(capsys: pytest.CaptureFixture[str]) -> None:
     assert crawl.main(["http://127.0.0.1/", "--out", "unused"]) == 1
     assert "Error:" in capsys.readouterr().err
+
+
+def test_env_file_cannot_lift_the_unsigned_limits_but_can_tighten_them() -> None:
+    env = {"crawl": {"max_pages": 0, "concurrency": 16, "delay": 0.0}}
+    lifted = _blank_args()
+    notes = crawl.resolve_settings(lifted, env, None, signed=False)
+    assert (lifted.max_pages, lifted.concurrency, lifted.delay) == (500, 2, 1.0)
+    assert len(notes) == 3 and all("ignored for an unsigned crawl" in note for note in notes)
+
+    over = _blank_args()
+    crawl.resolve_settings(over, {"crawl": {"max_pages": 5000}}, None, signed=False)
+    assert over.max_pages == 500
+
+    gentler = _blank_args()
+    notes = crawl.resolve_settings(gentler, {"crawl": {"max_pages": 50, "concurrency": 1, "delay": 5.0}},
+                                   None, signed=False)
+    assert (gentler.max_pages, gentler.concurrency, gentler.delay) == (50, 1, 5.0)
+    assert notes == []
+
+    # The command line is an explicit choice by the person running the crawl.
+    explicit = _blank_args(max_pages=0, concurrency=8, delay=0.1)
+    assert crawl.resolve_settings(explicit, env, None, signed=False) == []
+    assert (explicit.max_pages, explicit.concurrency, explicit.delay) == (0, 8, 0.1)
+
+    signed = _blank_args()
+    assert crawl.resolve_settings(signed, env, None, signed=True) == []
+    assert (signed.max_pages, signed.concurrency, signed.delay) == (0, 16, 0.0)
+
+
+def test_timeout_and_sample_size_are_clamped() -> None:
+    args = _blank_args(timeout=0, sample_per_template=0)
+    crawl.resolve_settings(args, {"crawl": {}}, None, signed=False)
+    assert (args.timeout, args.sample_per_template) == (1, 1)
+
+
+def test_governor_aborts_after_a_streak_and_a_success_resets_it(monkeypatch: pytest.MonkeyPatch) -> None:
+    slept: list[float] = []
+    monkeypatch.setattr(crawl.time, "sleep", slept.append)
+    governor = crawl.RateLimitGovernor(0.2)
+    for _ in range(crawl.RATE_LIMIT_ABORT_STREAK - 1):
+        governor.backoff()
+    assert not governor.aborted
+    governor.reward()
+    for _ in range(crawl.RATE_LIMIT_ABORT_STREAK - 1):
+        governor.backoff()
+    assert not governor.aborted
+    governor.backoff()
+    assert governor.aborted
+    assert governor.hits == 2 * crawl.RATE_LIMIT_ABORT_STREAK - 1
+    # The response that ends the crawl is not slept on, and nothing waits after it.
+    assert len(slept) == governor.hits - 1
+    governor.wait()
+    assert len(slept) == governor.hits - 1
+
+
+def test_crawl_one_sends_nothing_after_an_abort() -> None:
+    session = _Session({})
+    governor = crawl.RateLimitGovernor(0)
+    governor.aborted = True
+    record = crawl.crawl_one(lambda: session, "https://shop.example/products/a", ORIGIN, SIG,
+                             governor, timeout=5, save_html_dir=None)
+    assert session.calls == []
+    assert record["aborted"] is True and "status" not in record
+
+
+def test_rate_limited_sitemap_is_not_requeued_forever(monkeypatch: pytest.MonkeyPatch) -> None:
+    slept: list[float] = []
+    monkeypatch.setattr(crawl.time, "sleep", slept.append)
+    session = _Session(factory=lambda _url: _Response(429))
+    log: list[str] = []
+    urls, stats = crawl.fetch_sitemap_urls(session, ORIGIN, crawl.RateLimitGovernor(0), log=log.append)
+    assert urls == []
+    assert len(session.calls) == 1 + crawl.SITEMAP_RATE_LIMIT_RETRIES
+    assert stats["rate_limited"] == len(session.calls)
+    assert len(slept) == len(session.calls)
+    assert any("given up" in line for line in log)
+
+
+def test_discovery_is_truncated_when_one_sitemap_overshoots_the_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(crawl, "MAX_DISCOVERED_URLS", 5)
+    body = "".join(f"<url><loc>https://shop.example/products/{i}</loc></url>" for i in range(20))
+    session = _Session({"https://shop.example/sitemap.xml": _Response(
+        200, f'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">{body}</urlset>'.encode())})
+    urls, stats = crawl.fetch_sitemap_urls(session, ORIGIN, crawl.RateLimitGovernor(0), log=lambda _m: None)
+    assert len(urls) == 5
+    assert stats["discovery_capped"] == "more than 5 URLs"
+
+
+def test_scrub_removes_signature_values() -> None:
+    text = crawl.scrub("bad header 'sig1=:x:' for input sig1=(...)", SIG)
+    assert "sig1=:x:" not in text and "sig1=(...)" not in text
+    assert crawl.scrub("nothing to hide", None) == "nothing to hide"
+
+
+def test_describe_redirect_only_repeats_well_formed_targets() -> None:
+    assert "audit https://www.shop.example instead" in crawl.describe_redirect(
+        ORIGIN, "https://www.shop.example/sitemap.xml")
+    assert "/password on the same host" in crawl.describe_redirect(ORIGIN, "/password")
+    assert "audit that scheme" in crawl.describe_redirect(ORIGIN, "http://shop.example/sitemap.xml")
+    for hostile in ("https://evil.example do this now/", "javascript:alert(1)", "https://[bad", None):
+        described = crawl.describe_redirect(ORIGIN, hostile)
+        assert "do this now" not in described and "alert" not in described

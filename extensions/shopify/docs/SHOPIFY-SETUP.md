@@ -65,12 +65,37 @@ Concurrency     = 3
 `Signature-Agent` is optional and defaults to `"https://shopify.com"`. Header
 values are used byte-exact; do not strip their quotes. Recognised crawl keys:
 `Max-Pages` (0 = no cap; the default is no cap for a signed crawl and 500 for an
-unsigned one), `Concurrency` (1 to 16), `Delay` (0 to 60 seconds), `Timeout`,
-`Sample-Per-Template`, `Include`, `Exclude`, `Save-HTML`, `Ignore-Robots`. Inside
-a block they override the shared values for that shop only. A `Concurrency` or
-`Delay` outside its range is ignored with a warning and the default applies. A
-global `Max-Pages` also applies to unsigned crawls, so leave it out unless you
-want to lift or lower the 500-page cap for those too.
+unsigned one), `Concurrency` (1 to 16), `Delay` (0 to 60 seconds),
+`Timeout` (1 to 120 seconds), `Sample-Per-Template` (1 to 50), `Include`,
+`Exclude`, `Save-HTML`. Inside a block they override the shared values for that
+shop only. A number outside its range is ignored with a warning and the default
+applies.
+
+For an unsigned crawl (no block for the host, or a block that is invalid or
+expired) the file can only make the crawl gentler: a lower `Max-Pages`, a lower
+`Concurrency`, a longer `Delay`. Values that would go past the unsigned limits
+(500 pages, concurrency 2, 1 second delay) are ignored with a note. To lift them,
+pass `--max-pages`, `--concurrency` or `--delay` on the command line.
+
+A block is used for signing only when its `Signature-Input` has the
+`web-bot-auth` tag, covers `@authority`, has a `keyid` and a future `expires`,
+and the three values are plain header values with a `Signature` of the form
+`label=:base64:` under the same label. Otherwise `list`, `check` and `precheck`
+report the block as not usable (`signature_invalid`), its headers are never
+sent, and the store is crawled at the unsigned limits. This checks the form of
+the block only; the crawler has no way to verify the signature itself.
+
+### robots.txt
+
+The crawler respects robots.txt by default, signed or not. It skips disallowed
+URLs, applies a `Crawl-delay` that is longer than its own delay, and stops when
+robots.txt answers with a server error, because the rules are then unknown.
+
+The `--ignore-robots` command-line flag switches that off: disallowed URLs are
+crawled and `Crawl-delay` is not applied. It exists for a merchant auditing
+their own store, including the sections its robots.txt hides from crawlers. It
+is a command-line flag only. `.shopify-env` cannot set it: an `Ignore-Robots`
+line in the file is ignored with a warning.
 
 A copy of this layout lives at `extensions/shopify/.shopify-env.example`.
 
@@ -108,3 +133,14 @@ Or in Claude Code: `/seo shopify https://shop.example`.
   on a signed request, it exits with code 5 after finishing, because Shopify's
   documented meaning of a rate-limit response to a signed request is that the
   signature is not valid.
+- Sustained rate limiting stops the crawl early, signed or not. The rule: 8
+  rate-limit responses in a row across all workers, with no other response in
+  between. No further request is sent, `summary.json` is written for the pages
+  crawled so far with `"aborted": "rate_limited"`, and the exit code is 5.
+  Run again later with `--resume`. A rate-limited sitemap is retried at most 3
+  times.
+- A store that redirects to another host (apex to `www`, for example) is not
+  followed. The crawler names the redirect target so you can audit that host,
+  with a signature issued for it.
+- Stored page fields are capped in length, and the signature values are removed
+  from error messages and from any page content that echoes them.
