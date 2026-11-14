@@ -82,9 +82,9 @@ def _weasyprint():
 def _name_can_be_created(directory: Path, domain: str) -> bool:
     """True when the file system accepts the report file name for ``domain``.
 
-    The report name keeps most characters of the domain. Windows refuses
-    names containing ``< > " | ? *``, so a hostile domain that is a legal
-    file name on Linux and macOS cannot be written there.
+    ``_safe_filename_part`` replaces every character Windows refuses, so this
+    is expected to be true everywhere. The probe stays as a guard for file
+    systems with rules of their own.
     """
     probe = directory / f"probe-{google_report._safe_filename_part(domain)}.tmp"
     try:

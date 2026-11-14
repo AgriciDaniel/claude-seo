@@ -2147,9 +2147,72 @@ GOOGLE_LOGO_PATH = Path(__file__).parent.parent / "charts" / "google_logo.png"
 _REPORT_RESOURCE_TYPES = {".png": "image/png"}
 
 
+# Characters no file name may hold on Windows, plus lone surrogates, which
+# cannot be encoded for any file system.
+_UNSAFE_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f\ud800-\udfff]')
+# Windows device names, reserved with or without an extension.
+_WINDOWS_DEVICE_NAME = re.compile(r"(?i)(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?\Z")
+_MAX_FILENAME_PART = 100
+
+
 def _safe_filename_part(value) -> str:
-    """Make a domain safe to use inside an output file name."""
-    return str(value).replace(":", "_").replace("/", "_").replace("\\", "_")
+    """Make a domain safe to use inside an output file name on every platform."""
+    name = _UNSAFE_FILENAME_CHARS.sub("_", str(value))
+    name = name[:_MAX_FILENAME_PART].rstrip(". ")
+    if not name or _WINDOWS_DEVICE_NAME.match(name):
+        name = "_" + name
+    return name
+
+
+def _is_unc_or_device_path(path, pathmod=os.path) -> bool:
+    """True for a Windows UNC or device path, judged from the string alone.
+
+    Covers ``\\\\host\\share``, ``//host/share``, ``\\\\?\\`` and ``\\\\.\\``. Opening or
+    resolving such a path can connect to a host named in the path. POSIX has
+    no such paths, so the answer there is always False.
+    """
+    if pathmod.sep != "\\":
+        return False
+    for text in (path, pathmod.splitdrive(path)[0]):
+        if len(text) >= 2 and text[0] in "\\/" and text[1] in "\\/":
+            return True
+    return False
+
+
+def _report_resource_candidate(url, allowed_files, pathmod=os.path, to_path=url2pathname):
+    """Return the local path a URL names if it may be a report asset, else None.
+
+    This step only inspects strings. It never resolves, stats or opens
+    anything, so a refused URL cannot reach the file system or the network.
+    The URL must use the ``file:`` scheme with no remote host, must not be a
+    UNC or device path, must end in an allowed suffix, and its normalised
+    absolute path must equal that of a file in ``allowed_files``.
+    ``pathmod`` and ``to_path`` exist so the Windows rules can be tested on
+    any platform.
+    """
+    from urllib.parse import unquote
+
+    parts = urlsplit(str(url))
+    if parts.scheme.lower() != "file" or parts.netloc not in ("", "localhost"):
+        return None
+    seps = "\\/" if pathmod.sep == "\\" else "/"
+    decoded = unquote(parts.path)
+    if len(decoded) >= 2 and decoded[0] in seps and decoded[1] in seps:
+        return None
+    requested = to_path(parts.path)
+    if not requested or "\x00" in requested:
+        return None
+    if pathmod.splitext(requested)[1].lower() not in _REPORT_RESOURCE_TYPES:
+        return None
+    if _is_unc_or_device_path(requested, pathmod):
+        return None
+    wanted = pathmod.normcase(pathmod.abspath(requested))
+    if _is_unc_or_device_path(wanted, pathmod):
+        return None
+    for allowed_file, _allowed_dir in allowed_files:
+        if wanted == pathmod.normcase(pathmod.abspath(str(allowed_file))):
+            return requested
+    return None
 
 
 def _resolve_report_resource(url, allowed_files):
@@ -2162,13 +2225,14 @@ def _resolve_report_resource(url, allowed_files):
     inside the resolved directory it belongs to. Everything else is refused:
     http(s), data and other schemes, remote file hosts, other local paths,
     ``..`` traversal, and symlinks that point out of the allowed directory.
+    Windows UNC and device paths are refused too, so charts are left out of
+    the PDF when the output directory is given as a UNC share.
     """
     try:
-        parts = urlsplit(str(url))
-        if parts.scheme.lower() != "file" or parts.netloc not in ("", "localhost"):
-            return None
-        requested = url2pathname(parts.path)
-        if not requested or "\x00" in requested:
+        # String checks first: nothing below runs for a URL that could never
+        # be allowed, so a hostile URL never reaches the file system.
+        requested = _report_resource_candidate(url, allowed_files)
+        if requested is None:
             return None
         real = os.path.realpath(requested)
         if Path(real).suffix.lower() not in _REPORT_RESOURCE_TYPES:
@@ -2549,16 +2613,20 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
 
     if output_format in ("html", "both", "all"):
         html_path = output_dir / f"{base_name}.html"
-        with open(html_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-        result["files"].append(str(html_path))
+        try:
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            result["files"].append(str(html_path))
+        except (OSError, ValueError) as e:
+            result["error"] = f"HTML report could not be written: {e}"
 
     if output_format in ("pdf", "both", "all"):
         if HTML is None:
-            result["error"] = (
+            pdf_error = (
                 "weasyprint is required for PDF generation. "
                 "Install the report dependencies from requirements.txt."
             )
+            result["error"] = f'{result["error"]}; {pdf_error}' if result["error"] else pdf_error
             return result
         pdf_path = output_dir / f"{base_name}.pdf"
         try:
@@ -2574,7 +2642,8 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
             if review:
                 result["review"] = review
         except Exception as e:
-            result["error"] = f"PDF generation failed: {e}"
+            pdf_error = f"PDF generation failed: {e}"
+            result["error"] = f'{result["error"]}; {pdf_error}' if result["error"] else pdf_error
 
     if output_format in ("xlsx", "all"):
         try:

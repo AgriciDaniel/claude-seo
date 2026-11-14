@@ -38,7 +38,7 @@ def tree(tmp_path):
 
 def _manifest(tmp_path, files: dict) -> Path:
     path = tmp_path / "release-manifest.json"
-    path.write_text(json.dumps({"version": "0", "files": files}))
+    path.write_text(json.dumps({"version": "0", "files": files}), encoding="utf-8")
     return path
 
 
@@ -131,5 +131,7 @@ def test_cli_fails_and_names_the_entry_without_its_hash(tree, tmp_path, monkeypa
     assert verify_release.main() == 1
     out = capsys.readouterr().out
     assert "Verification: FAIL" in out
-    assert "Outside the checkout" in out and str(outside) in out
+    # The CLI prints entries with !r, which doubles the backslashes of a
+    # Windows path.
+    assert "Outside the checkout" in out and repr(str(outside)) in out
     assert SECRET_SHA not in out
