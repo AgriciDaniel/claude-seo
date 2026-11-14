@@ -61,6 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Grade the effective CSP script element and event-handler directives in
   transport audits, while keeping eval diagnostics tied to `script-src`.
+### Fixed
+
+- Flag duplicate HSTS directives as an invalid header in transport audits instead
+  of reporting that the ignored policy meets preload requirements.
 
 ## [2.6.0] - 2026-11-10
 
