@@ -32,6 +32,17 @@ if _SCRIPTS not in sys.path:
 
 pytest.importorskip("requests")
 import render_page  # noqa: E402
+import url_safety  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _browser_launch_environment(monkeypatch):
+    """The fake browser launches the same for any user, proxy or opt-out."""
+    import browser_proxy
+
+    monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 1000, raising=False)
+    monkeypatch.setattr(url_safety.requests.utils, "getproxies", lambda: {})
+    monkeypatch.delenv(browser_proxy.NO_SANDBOX_ENV, raising=False)
 
 # ---------------------------------------------------------------------------
 # _is_spa: SPA shell detector
@@ -761,3 +772,64 @@ def test_json_and_output_are_composable(tmp_path, monkeypatch, capsys) -> None:
     assert payload["content"] == "<html><b"
     assert payload["truncation"]["fields"]["content"]["truncated"] is True
     assert output.read_text(encoding="utf-8") == result["content"]
+
+
+# ---------------------------------------------------------------------------
+# What a finished navigation may be reported as (browser egress guard)
+# ---------------------------------------------------------------------------
+
+
+def _render_checking_the_page(page, monkeypatch):
+    """Like _render_with_fake_browser, with the real require_public_page."""
+    import browser_proxy
+    import url_safety
+
+    monkeypatch.setattr(url_safety.requests.utils, "getproxies", lambda: {})
+    monkeypatch.delenv(browser_proxy.NO_SANDBOX_ENV, raising=False)
+    spa_html = '<html><body><div id="root"></div></body></html>'
+    with patch.object(render_page, "validate_url_strict", side_effect=_mock_validate_strict), \
+         patch.object(render_page, "safe_requests_get", return_value=_fake_response(spa_html)), \
+         patch.object(render_page, "sync_playwright", lambda: _FakePlaywrightManager(page)):
+        return render_page.render_page("https://app.example/", mode="auto", timeout_ms=1000)
+
+
+@pytest.mark.parametrize("url", ["about:blank", "chrome-error://chromewebdata/"])
+def test_render_that_never_loaded_is_an_error_with_the_raw_fetch_kept(monkeypatch, url) -> None:
+    """A blank or error page is not the site's DOM. Before, it was reported
+    as a successful render (or as "Invalid URL scheme: 'about'")."""
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)], navigation_timeout=True)
+    page.url = url
+    result = _render_checking_the_page(page, monkeypatch)
+    assert result["error"].startswith("render failed: ")
+    assert "Invalid URL scheme" not in result["error"]
+    assert result["content"] is None
+    assert result["raw_fallback_available"] is True
+    assert result["status_code"] == 200 and result["raw_content"]
+    assert any("DOMContentLoaded timed out" in item for item in result["render_diagnostics"])
+    assert result["render_ms"] is not None
+
+
+@pytest.mark.parametrize(
+    "url", ["http://127.0.0.1:9000/", "http://169.254.169.254/latest/", "data:text/html,x"]
+)
+def test_render_that_ended_on_a_non_public_page_is_refused(monkeypatch, url) -> None:
+    """After a refused redirect the browser shows the guard's error page at
+    the refused URL. That page is never returned as rendered content."""
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    page.url = url
+    result = _render_checking_the_page(page, monkeypatch)
+    assert result["error"].startswith("url_safety: ")
+    assert result["content"] is None
+    assert result["url"] == "https://x.example/"  # the raw fetch's URL, not the refused one
+    assert result["raw_fallback_available"] is True
+
+
+def test_render_reports_a_sandbox_failure_with_the_opt_out(monkeypatch) -> None:
+    import browser_proxy
+
+    monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 0, raising=False)
+    page = _FakeBrowserPage([(200, 20), (200, 20), (200, 20)])
+    result = _render_checking_the_page(page, monkeypatch)
+    assert "CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1" in result["error"]
+    assert result["raw_fallback_available"] is True
+    assert page.goto_options is None  # the browser never started

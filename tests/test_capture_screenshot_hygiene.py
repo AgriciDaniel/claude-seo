@@ -29,6 +29,16 @@ import url_safety  # noqa: E402
 URL = "https://site.example/"
 
 
+@pytest.fixture(autouse=True)
+def _browser_launch_environment(monkeypatch):
+    """The fake browser launches the same for any user, proxy or opt-out."""
+    import browser_proxy
+
+    monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 1000, raising=False)
+    monkeypatch.setattr(url_safety.requests.utils, "getproxies", lambda: {})
+    monkeypatch.delenv(browser_proxy.NO_SANDBOX_ENV, raising=False)
+
+
 class FakeRoot:
     """The locator the page-side steps run through; every call carries a timeout."""
 
@@ -761,3 +771,75 @@ def test_cli_json_says_when_the_scroll_timed_out(tmp_path, monkeypatch, capsys) 
     assert capture["success"] is True  # the picture was still taken
     assert "scroll-through timed out" in captured.err
     assert page.names()[-1] == "screenshot"
+
+
+# ---------------------------------------------------------------------------
+# What a finished navigation may be photographed as (browser egress guard)
+# ---------------------------------------------------------------------------
+
+
+def _capture_checking_the_page(monkeypatch, page, **kwargs):
+    """Like _capture, with the real require_public_page."""
+    import browser_proxy
+
+    monkeypatch.setattr(url_safety.requests.utils, "getproxies", lambda: {})
+    monkeypatch.delenv(browser_proxy.NO_SANDBOX_ENV, raising=False)
+    monkeypatch.setattr(cs, "validate_url_strict", lambda url: (url, "93.184.216.34"))
+    monkeypatch.setattr(cs, "sync_playwright", lambda: FakeManager(page))
+    return cs.capture_screenshot(URL, "/out/shot.png", **kwargs)
+
+
+@pytest.mark.parametrize("url", ["about:blank", "chrome-error://chromewebdata/"])
+def test_a_page_that_never_loaded_is_an_error_not_a_picture(monkeypatch, url) -> None:
+    page = FakePage()
+    page.url = url
+    result = _capture_checking_the_page(monkeypatch, page)
+    assert result["success"] is False
+    assert result["error"].startswith("Page did not load: ")
+    assert "Invalid URL scheme" not in result["error"]
+    assert "screenshot" not in page.names()
+
+
+@pytest.mark.parametrize("url", ["http://127.0.0.1:9000/", "http://10.0.0.5/", "file:///etc/passwd"])
+def test_a_page_on_a_non_public_address_is_never_photographed(monkeypatch, url) -> None:
+    page = FakePage()
+    page.url = url
+    result = _capture_checking_the_page(monkeypatch, page)
+    assert result["success"] is False
+    assert result["error"].startswith("url_safety: ")
+    assert "screenshot" not in page.names()
+
+
+def test_a_page_that_navigates_away_after_load_is_not_photographed(monkeypatch) -> None:
+    """Page scripts can navigate after the load. The guard refuses the new
+    destination, and the picture must not be of that refusal."""
+    import browser_proxy
+
+    monkeypatch.setattr(
+        browser_proxy, "_destination", lambda url: ("93.184.216.34", "site.example", 443)
+        if url == URL else (_ for _ in ()).throw(url_safety.URLSafetyError("refused")),
+    )
+
+    class Wanderer(FakePage):
+        url = URL
+
+        def wait_for_timeout(self, ms):
+            super().wait_for_timeout(ms)
+            self.url = "http://127.0.0.1:9000/"
+
+    page = Wanderer()
+    result = _capture_checking_the_page(monkeypatch, page)
+    assert result["success"] is False
+    assert result["error"].startswith("url_safety: ")
+    assert page.names() == ["goto", "wait"]
+
+
+def test_capture_reports_a_sandbox_failure_with_the_opt_out(monkeypatch) -> None:
+    import browser_proxy
+
+    monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 0, raising=False)
+    page = FakePage()
+    result = _capture_checking_the_page(monkeypatch, page)
+    assert result["success"] is False
+    assert "CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1" in result["error"]
+    assert page.calls == []

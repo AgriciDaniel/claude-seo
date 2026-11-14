@@ -2,6 +2,11 @@
 """
 Analyze visual aspects of a web page using Playwright.
 
+Chromium is launched through browser_proxy.guarded_chromium: sandboxed, with
+every connection forced through a local proxy that refuses non-public
+destinations, redirect hops included. Set CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1
+only where the Chromium sandbox cannot start (root, some containers).
+
 Usage:
     python analyze_visual.py https://example.com
 """
@@ -22,7 +27,11 @@ except ImportError:
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
-from browser_proxy import guarded_chromium, require_public_page  # noqa: E402
+from browser_proxy import (  # noqa: E402
+    PageNotLoadedError,
+    guarded_chromium,
+    require_public_page,
+)
 from url_safety import (  # noqa: E402  (sys.path massage above is intentional)
     URLSafetyError,
     make_safe_playwright_route_handler,
@@ -97,7 +106,7 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
     route_handler = make_safe_playwright_route_handler()
 
     try:
-        with sync_playwright() as p, guarded_chromium(p.chromium) as browser:
+        with sync_playwright() as p, guarded_chromium(p.chromium, url) as browser:
 
             # Desktop analysis
             desktop = new_guarded_context(browser, route_handler, viewport={"width": 1920, "height": 1080})
@@ -183,10 +192,14 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             result["fonts"]["readable"] = base_font_size >= 16
 
             mobile.close()
-            browser.close()
 
     except PlaywrightTimeout:
         result["error"] = f"Page load timed out after {timeout}ms"
+    except URLSafetyError as e:
+        # The browser ended on a non-public document (a refused redirect).
+        result["error"] = f"url_safety: {e}"
+    except PageNotLoadedError as e:
+        result["error"] = f"Page did not load: {e}"
     except Exception as e:
         result["error"] = str(e)
 
