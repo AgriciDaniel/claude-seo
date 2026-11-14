@@ -131,7 +131,6 @@ _SANDBOX_FAILURE_MARKERS = (
     "no usable sandbox",
     "running as root without --no-sandbox is not supported",
     "failed to move to new namespace",
-    "zygote_host_impl_linux.cc",
     "the suid sandbox helper binary was found, but is not configured correctly",
     "the setuid sandbox is not running as root",
     "the setuid sandbox provides api version",

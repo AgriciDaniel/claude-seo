@@ -1992,3 +1992,9 @@ def test_bytes_sent_with_the_connect_head_reach_the_tunnel(monkeypatch):
                 assert client.recv(4096) == b" LATER"
     finally:
         echo.close()
+
+
+def test_a_zygote_log_line_alone_is_not_a_sandbox_failure() -> None:
+    """A non-fatal line from the zygote source file must not cause a fallback."""
+    text = "Timeout 30000ms exceeded.\n[pid] zygote_host_impl_linux.cc(273)] Failed to adjust OOM score of renderer"
+    assert not browser_proxy._reports_sandbox_failure(RuntimeError(text))
