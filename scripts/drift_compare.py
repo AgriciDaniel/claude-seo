@@ -159,9 +159,9 @@ def rule_01_schema_removed(baseline: dict, current: dict) -> dict:
 
 def rule_02_canonical_changed(baseline: dict, current: dict) -> dict:
     """CRITICAL: Canonical URL changed."""
-    old = baseline.get("canonical")
-    new = current.get("canonical")
-    triggered = old is not None and new is not None and old != new
+    old = (baseline.get("canonical") or "").strip()
+    new = (current.get("canonical") or "").strip()
+    triggered = bool(old) and bool(new) and old != new
     return _make_finding(
         "canonical_changed", "CRITICAL", triggered,
         old, new,
@@ -172,9 +172,9 @@ def rule_02_canonical_changed(baseline: dict, current: dict) -> dict:
 
 def rule_03_canonical_removed(baseline: dict, current: dict) -> dict:
     """CRITICAL: Canonical URL removed."""
-    old = baseline.get("canonical")
-    new = current.get("canonical")
-    triggered = old is not None and (new is None or new == "")
+    old = (baseline.get("canonical") or "").strip()
+    new = (current.get("canonical") or "").strip()
+    triggered = bool(old) and not new
     return _make_finding(
         "canonical_removed", "CRITICAL", triggered,
         old, None,
@@ -281,13 +281,16 @@ def rule_10_meta_description_changed(baseline: dict, current: dict) -> dict:
     """WARNING: Meta description changed."""
     old = (baseline.get("meta_description") or "").strip()
     new = (current.get("meta_description") or "").strip()
-    triggered = old != "" and new != "" and old != new
+    triggered = bool(old) and old != new
+    message = (
+        "Meta description has changed. Verify it includes target keywords and CTA."
+        if new else "Meta description has been removed. Restore it if the removal was unintentional."
+    )
     return _make_finding(
         "meta_description_changed", "WARNING", triggered,
         old[:120] + ("..." if len(old) > 120 else ""),
         new[:120] + ("..." if len(new) > 120 else ""),
-        "Meta description has changed. Verify it includes target keywords and CTA."
-        if triggered else "Meta description unchanged.",
+        message if triggered else "Meta description unchanged.",
     )
 
 
