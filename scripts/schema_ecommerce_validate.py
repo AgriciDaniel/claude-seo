@@ -171,7 +171,9 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
         elif isinstance(offers, list):
             offers_list = offers
         else:
-            offers_list = []
+            # Keep invalid scalar values so the same shape check used for
+            # list entries reports them instead of silently passing.
+            offers_list = [offers]
 
         for offer in offers_list:
             if not isinstance(offer, dict):

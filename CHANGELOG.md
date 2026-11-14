@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Agent UX input checks recognize ARIA and implicit labels and detect unnamed controls without IDs.
+### Fixed
+
+- Merchant schema validation reports scalar `offers` values instead of silently passing them.
 
 ## [2.6.0] - 2026-11-10
 
