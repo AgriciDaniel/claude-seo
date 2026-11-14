@@ -144,6 +144,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Export native Search Console and URL Inspection script results to XLSX,
   retaining normalized field names, query labels, CTR percentages and inspection
   failures in both standalone and combined reports.
+### Fixed
+
+- Read PageSpeed mobile results consistently across report charts, summaries,
+  recommendations and workbook exports, including the Best Practices score.
 
 ## [2.6.0] - 2026-11-10
 

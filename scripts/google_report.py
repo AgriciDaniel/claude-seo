@@ -64,6 +64,20 @@ BRAND = {
 }
 
 
+def _mobile_pagespeed(data):
+    """Accept a strategy result, native PSI output, or a combined-report input."""
+    for _ in range(2):
+        if not isinstance(data, dict):
+            return {}
+        if "psi" not in data:
+            break
+        data = data["psi"]
+    if not isinstance(data, dict):
+        return {}
+    mobile = data.get("mobile", data)
+    return mobile if isinstance(mobile, dict) else {}
+
+
 def _score_color(score):
     """Return brand color based on Lighthouse-style score thresholds."""
     if score >= 90:
@@ -1259,8 +1273,7 @@ def _build_executive_summary(domain, timestamp, data, report_type):
         cards.append(("health", f"{health_score}/100", "SEO Health Score", _score_color(float(health_score))))
 
     # PSI performance score
-    psi = data.get("psi", {})
-    mobile = psi.get("psi", {}).get("mobile", psi) if isinstance(psi, dict) else {}
+    mobile = _mobile_pagespeed(data)
     perf_score = mobile.get("lighthouse_scores", {}).get("performance")
     if perf_score is not None:
         color = _score_color(perf_score)
@@ -1384,8 +1397,7 @@ def _build_cwv_section(psi_data, crux_data, chart_paths, history_data=None, sect
     lines.append(f'    <h2>{section_num}. Core Web Vitals &amp; Performance</h2>')
 
     # Section score from Lighthouse performance
-    psi = psi_data if isinstance(psi_data, dict) else {}
-    mobile = psi.get("psi", {}).get("mobile", psi)
+    mobile = _mobile_pagespeed(psi_data)
     scores = mobile.get("lighthouse_scores", {})
     perf = scores.get("performance")
     if perf is not None:
@@ -1880,8 +1892,7 @@ def _build_recommendations(data, section_num=5):
 
     # Collect critical items
     critical_items = []
-    psi = data.get("psi", {})
-    mobile = psi.get("psi", {}).get("mobile", psi) if isinstance(psi, dict) else {}
+    mobile = _mobile_pagespeed(data)
 
     perf = mobile.get("lighthouse_scores", {}).get("performance")
     if perf is not None and perf < 50:
@@ -2220,8 +2231,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
 
     try:
         if report_type in ("cwv-audit", "full"):
-            psi = data.get("psi", data)
-            mobile = psi.get("psi", {}).get("mobile", psi) if isinstance(psi, dict) else {}
+            mobile = _mobile_pagespeed(data)
             path = chart_lighthouse_gauges(mobile, charts_dir)
             if path:
                 chart_paths["gauges_path"] = path
@@ -2259,9 +2269,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
 
     # ── CWV-AUDIT report ─────────────────────────────────────────────────────
     if report_type == "cwv-audit":
-        mobile = data.get("psi", data)
-        if isinstance(mobile, dict):
-            mobile = mobile.get("psi", {}).get("mobile", mobile)
+        mobile = _mobile_pagespeed(data)
         perf_score = mobile.get("lighthouse_scores", {}).get("performance") if isinstance(mobile, dict) else None
 
         sections.append(_build_title_page(
@@ -2377,8 +2385,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
 
     # ── FULL report ──────────────────────────────────────────────────────────
     elif report_type == "full":
-        psi = data.get("psi", {})
-        mobile = psi.get("psi", {}).get("mobile", psi) if isinstance(psi, dict) else {}
+        mobile = _mobile_pagespeed(data)
         perf_score = mobile.get("lighthouse_scores", {}).get("performance") if isinstance(mobile, dict) else None
         summary = data.get("summary", {}) if isinstance(data.get("summary"), dict) else {}
         health_score = summary.get("health_score")
@@ -2711,18 +2718,17 @@ def generate_xlsx(data, domain, report_type, output_dir):
 
     # Add scores if available
     if report_type in ("cwv-audit", "full"):
-        psi = data.get("psi", data)
-        mobile = psi.get("psi", {}).get("mobile", psi) if isinstance(psi, dict) else {}
+        mobile = _mobile_pagespeed(data)
         scores = mobile.get("lighthouse_scores", {}) if isinstance(mobile, dict) else {}
         if scores:
             ws.append(["Lighthouse Scores", ""])
             ws.append(["Category", "Score"])
             _style_header(ws, ws.max_row)
-            for cat in ["performance", "accessibility", "best_practices", "seo"]:
-                val = scores.get(cat)
+            for cat in ["performance", "accessibility", "best-practices", "seo"]:
+                val = scores.get(cat, scores.get(cat.replace("-", "_")))
                 if val is not None:
                     row_num = ws.max_row + 1
-                    _xlsx_append_row(ws, [cat.replace("_", " ").title(), int(val * 100) if val <= 1 else val])
+                    _xlsx_append_row(ws, [cat.replace("-", " ").title(), int(val * 100) if val <= 1 else val])
                     ws.cell(row=row_num, column=2).fill = _severity_fill(
                         "pass" if (val * 100 if val <= 1 else val) >= 90
                         else "warning" if (val * 100 if val <= 1 else val) >= 50
