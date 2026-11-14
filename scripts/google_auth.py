@@ -12,7 +12,8 @@ Usage:
     python google_auth.py --check --json            # JSON output
     python google_auth.py --setup                   # Show setup instructions
     python google_auth.py --tier                    # Show detected credential tier
-    python google_auth.py --auth --creds /path/to/client_secret.json  # OAuth browser flow
+    python google_auth.py --auth --creds /path/to/client_secret.json  # OAuth browser flow (read-only)
+    python google_auth.py --auth --indexing --creds /path/to/client_secret.json  # also grant the Indexing API
 """
 
 import argparse
@@ -33,7 +34,6 @@ TOKEN_PATH = os.path.expanduser("~/.config/claude-seo/oauth-token.json")
 # Service-to-scope mapping
 SCOPES = {
     "gsc_readonly": "https://www.googleapis.com/auth/webmasters.readonly",
-    "gsc_write": "https://www.googleapis.com/auth/webmasters",
     "indexing": "https://www.googleapis.com/auth/indexing",
     "ga4": "https://www.googleapis.com/auth/analytics.readonly",
 }
@@ -48,10 +48,13 @@ SERVICE_AUTH = {
     "ga4": "oauth_or_sa",
 }
 
-OAUTH_SCOPES = (
-    "https://www.googleapis.com/auth/indexing "
-    "https://www.googleapis.com/auth/webmasters "
-    "https://www.googleapis.com/auth/analytics.readonly"
+# Least privilege: the default sign-in can only read. No script calls a
+# Search Console write method, and only indexing_notify.py publishes, so the
+# Indexing scope is granted on request with `--auth --indexing`.
+OAUTH_SCOPES = f"{SCOPES['gsc_readonly']} {SCOPES['ga4']}"
+INDEXING_SCOPE = SCOPES["indexing"]
+INDEXING_AUTH_COMMAND = (
+    "python scripts/google_auth.py --auth --indexing --creds /path/to/client_secret.json"
 )
 OAUTH_REDIRECT_URI = "http://localhost:8085"
 # How long --auth waits for the browser redirect, and how long the pending
@@ -528,7 +531,51 @@ def get_oauth_credentials(scopes: list):
     return get_service_account_credentials(scopes) or get_gcloud_credentials(scopes)
 
 
-def run_oauth_flow(creds_path: str):
+def oauth_scopes(include_indexing: bool = False) -> str:
+    """The space-separated scopes --auth asks for: read-only unless
+    ``include_indexing`` adds the Indexing API (`--auth --indexing`)."""
+    if include_indexing:
+        return f"{OAUTH_SCOPES} {INDEXING_SCOPE}"
+    return OAUTH_SCOPES
+
+
+def _token_has_scope(token_data: Optional[dict], scope: str) -> Optional[bool]:
+    """Whether a saved OAuth token was granted ``scope``.
+
+    None when the token does not record its scopes, so the caller can let
+    the API decide instead of refusing a token that may well be valid.
+    """
+    granted = (token_data or {}).get("scope")
+    if isinstance(granted, (list, tuple)):
+        granted = " ".join(str(item) for item in granted)
+    if not isinstance(granted, str) or not granted.strip():
+        return None
+    return scope in granted.split()
+
+
+def indexing_scope_error() -> Optional[str]:
+    """A message with the command to run when the saved sign-in cannot use
+    the Indexing API, or None when it can or when that cannot be told here.
+
+    Mirrors the order in get_oauth_credentials: a chosen gcloud sign-in and a
+    service account are not judged (their scopes are not recorded in a file
+    this module reads); a saved OAuth token is, because it is used first.
+    """
+    if _prefers_gcloud() and _load_gcloud_adc() is not None:
+        return None
+    token_data = _load_oauth_token()
+    if not token_data or not token_data.get("access_token"):
+        return None
+    if _token_has_scope(token_data, INDEXING_SCOPE) is not False:
+        return None
+    return (
+        "The saved Google sign-in is read-only and was not granted the Indexing "
+        f"API scope ({INDEXING_SCOPE}). To grant it, sign in again with:\n"
+        f"  {INDEXING_AUTH_COMMAND}"
+    )
+
+
+def run_oauth_flow(creds_path: str, include_indexing: bool = False):
     """
     Run OAuth browser-based authentication flow.
 
@@ -537,6 +584,8 @@ def run_oauth_flow(creds_path: str):
 
     Args:
         creds_path: Path to the OAuth client_secret JSON file.
+        include_indexing: Also ask for the Indexing API scope. Off by
+            default, so a plain sign-in is read-only.
     """
     import http.server
     import urllib.parse
@@ -562,7 +611,7 @@ def run_oauth_flow(creds_path: str):
             "client_id": client["client_id"],
             "redirect_uri": OAUTH_REDIRECT_URI,
             "response_type": "code",
-            "scope": OAUTH_SCOPES,
+            "scope": oauth_scopes(include_indexing),
             "access_type": "offline",
             "prompt": "consent",
             "state": state,
@@ -833,6 +882,11 @@ def check_credentials(service: str) -> dict:
             elif expired:
                 result["available"] = False
                 result["error"] = "OAuth token expired and no refresh_token. Re-run --auth."
+            if service == "indexing" and result["available"]:
+                scope_error = indexing_scope_error()
+                if scope_error:
+                    result["available"] = False
+                    result["error"] = scope_error
         else:
             # Fall back to service account
             sa_path = config.get("service_account_path")
@@ -926,6 +980,9 @@ def detect_tier() -> dict:
     if has_authenticated and (config.get("ga4_property_id") or has_site_ga4):
         has_ga4 = True
 
+    # A read-only sign-in (the default --auth) cannot use the Indexing API.
+    indexing = [] if has_authenticated and indexing_scope_error() else ["Indexing API"]
+
     if has_ga4:
         return {
             "tier": 2,
@@ -933,7 +990,7 @@ def detect_tier() -> dict:
             "capabilities": [
                 "PageSpeed Insights", "CrUX", "CrUX History",
                 "Search Console", "URL Inspection", "Sitemaps",
-                "Indexing API", "GA4 Organic Traffic",
+                *indexing, "GA4 Organic Traffic",
             ],
             "missing": None,
         }
@@ -944,7 +1001,7 @@ def detect_tier() -> dict:
             "capabilities": [
                 "PageSpeed Insights", "CrUX", "CrUX History",
                 "Search Console", "URL Inspection", "Sitemaps",
-                "Indexing API",
+                *indexing,
             ],
             "missing": "Add 'ga4_property_id' to unlock GA4 organic traffic reports",
         }
@@ -1062,6 +1119,14 @@ def main():
         help="Run OAuth browser-based authentication flow",
     )
     parser.add_argument(
+        "--indexing",
+        action="store_true",
+        help=(
+            "With --auth: also grant the Indexing API scope (needed only by "
+            "indexing_notify.py). Without it the sign-in is read-only"
+        ),
+    )
+    parser.add_argument(
         "--exchange",
         action="store_true",
         help="Manually exchange an auth code for tokens",
@@ -1077,11 +1142,15 @@ def main():
 
     args = parser.parse_args()
 
+    if args.indexing and not args.auth:
+        print("Error: --indexing only applies together with --auth", file=sys.stderr)
+        sys.exit(1)
+
     if args.auth:
         if not args.creds:
             print("Error: --creds is required with --auth", file=sys.stderr)
             sys.exit(1)
-        run_oauth_flow(args.creds)
+        run_oauth_flow(args.creds, include_indexing=args.indexing)
         return
 
     if args.exchange:

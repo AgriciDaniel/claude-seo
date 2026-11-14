@@ -78,7 +78,7 @@ def _get(url: str, timeout: float = 5) -> int:
         return e.code
 
 
-def _run_flow_with_browser(isolated, monkeypatch, browser):
+def _run_flow_with_browser(isolated, monkeypatch, browser, **flow_kwargs):
     """Run run_oauth_flow with ``browser(auth_url)`` standing in for the person."""
     exchanged = {}
     monkeypatch.setattr(
@@ -100,7 +100,7 @@ def _run_flow_with_browser(isolated, monkeypatch, browser):
     # process can take it in between. Retry on a fresh port when that happens.
     for attempt in range(5):
         try:
-            google_auth.run_oauth_flow(str(isolated))
+            google_auth.run_oauth_flow(str(isolated), **flow_kwargs)
             break
         except OSError as e:
             if e.errno not in (errno.EADDRINUSE, getattr(errno, "WSAEADDRINUSE", None)) or attempt == 4:
@@ -134,6 +134,30 @@ def test_auth_url_carries_state_and_s256_challenge(isolated, monkeypatch):
     assert q["code_challenge"] == [expected]
     assert 43 <= len(verifier) <= 128
     assert exchanged["code"] == "the-code"
+
+
+def _requested_scopes(isolated, monkeypatch, **flow_kwargs) -> set:
+    def browser(url):
+        state = urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["state"][0]
+        _get(_redirect({"state": state, "code": "the-code"}))
+
+    url, _exchanged = _run_flow_with_browser(isolated, monkeypatch, browser, **flow_kwargs)
+    return set(urllib.parse.parse_qs(urllib.parse.urlparse(url).query)["scope"][0].split())
+
+
+def test_default_sign_in_asks_for_read_only_scopes(isolated, monkeypatch):
+    assert _requested_scopes(isolated, monkeypatch) == {
+        "https://www.googleapis.com/auth/webmasters.readonly",
+        "https://www.googleapis.com/auth/analytics.readonly",
+    }
+
+
+def test_indexing_scope_is_requested_only_on_opt_in(isolated, monkeypatch):
+    assert _requested_scopes(isolated, monkeypatch, include_indexing=True) == {
+        "https://www.googleapis.com/auth/webmasters.readonly",
+        "https://www.googleapis.com/auth/analytics.readonly",
+        "https://www.googleapis.com/auth/indexing",
+    }
 
 
 def test_stray_and_forged_requests_do_not_end_the_wait(isolated, monkeypatch):

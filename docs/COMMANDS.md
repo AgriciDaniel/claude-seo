@@ -558,6 +558,7 @@ Use Indexing API commands only for pages with JobPosting or BroadcastEvent embed
 **Tiers:**
 - Tier 0 (API key only): PSI, CrUX, CrUX History
 - Tier 1 (+ OAuth or Service Account): GSC, URL Inspection, Indexing API
+  (an OAuth sign-in is read-only by default; add `--indexing` to `google_auth.py --auth` for the Indexing API)
 - Tier 2 (+ GA4 property config): GA4 organic traffic
 - Tier 3 (+ Google Ads developer token): Keyword Planner
 

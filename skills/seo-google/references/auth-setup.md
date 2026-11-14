@@ -161,12 +161,30 @@ Instead of (or in addition to) the config file:
 
 ## OAuth Scopes Used
 
-| Scope | APIs |
-|-------|------|
-| `https://www.googleapis.com/auth/webmasters.readonly` | GSC (read) |
-| `https://www.googleapis.com/auth/webmasters` | GSC (read/write, needed for sitemap submission) |
-| `https://www.googleapis.com/auth/indexing` | Indexing API |
-| `https://www.googleapis.com/auth/analytics.readonly` | GA4 (read) |
+The OAuth sign-in is read-only by default. The Indexing API scope is granted
+only when you ask for it.
+
+| Scope | APIs | Requested by |
+|-------|------|--------------|
+| `https://www.googleapis.com/auth/webmasters.readonly` | GSC (read) | `--auth` (default) |
+| `https://www.googleapis.com/auth/analytics.readonly` | GA4 (read) | `--auth` (default) |
+| `https://www.googleapis.com/auth/indexing` | Indexing API | `--auth --indexing` only |
+
+The full `https://www.googleapis.com/auth/webmasters` (read/write) scope is
+not requested: no script calls a Search Console write method.
+
+```bash
+# Read-only sign-in (Search Console and GA4 reports)
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_auth.py --auth --creds /path/to/client_secret.json
+
+# Read-only plus the Indexing API (needed only by indexing_notify.py)
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run google_auth.py --auth --indexing --creds /path/to/client_secret.json
+```
+
+A token saved by an earlier version keeps the scopes it was granted and keeps
+working; sign in again without `--indexing` to narrow it. If `indexing_notify.py`
+reports that the Indexing scope is missing, run the second command. A service
+account asks only for the scope of the API being called.
 
 ## Troubleshooting
 
@@ -176,5 +194,6 @@ Instead of (or in addition to) the config file:
 | `403 Forbidden` on GA4 | Service account email not added to GA4 property as Viewer |
 | `404 Not Found` on GSC | Wrong property URL format. Use `sc-domain:` or include trailing slash for URL-prefix |
 | `404 Not Found` on CrUX | Site has insufficient Chrome traffic. Not a credentials issue. |
+| Indexing scope missing | The sign-in is read-only. Run `google_auth.py --auth --indexing --creds /path/to/client_secret.json` |
 | `429 Rate Limit` | Wait and retry. See rate-limits-quotas.md for per-API limits |
 | `API not enabled` | Enable the specific API in GCP Console > APIs & Services > Library |

@@ -78,6 +78,8 @@ Content-Type: application/json
 - **Scope:** `https://www.googleapis.com/auth/indexing`
 - **Auth type:** Service account (OAuth 2.0)
 - The service account must be **Owner** in Google Search Console for the target domain
+- With the OAuth sign-in, the scope is opt-in: the default `google_auth.py --auth` is
+  read-only, so sign in with `google_auth.py --auth --indexing --creds /path/to/client_secret.json`
 
 ## Quotas
 
