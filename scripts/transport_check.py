@@ -604,17 +604,24 @@ def _csp_issues(directives: dict[str, list[str]]) -> list[str]:
     issues = []
     script_name = next((n for n in ("script-src", "default-src") if n in directives), None)
     if script_name is None:
-        issues.append("No script-src or default-src, so scripts are unrestricted.")
-    else:
-        sources = directives[script_name]
+        issues.append("No script-src or default-src, so script uses without a specific override are unrestricted.")
+    elif "'unsafe-eval'" in directives[script_name]:
+        # Element and attribute directives do not govern eval().
+        issues.append(f"'unsafe-eval' in {script_name}.")
+
+    element_name = "script-src-elem" if "script-src-elem" in directives else script_name
+    attribute_name = "script-src-attr" if "script-src-attr" in directives else script_name
+    for name in dict.fromkeys((element_name, attribute_name)):
+        if name is None:
+            continue
+        sources = directives[name]
         strict = any(s.startswith(("'nonce-", "'sha256-", "'sha384-", "'sha512-")) for s in sources)
         if "'unsafe-inline'" in sources and not strict:
-            issues.append(f"'unsafe-inline' in {script_name}.")
-        if "'unsafe-eval'" in sources:
-            issues.append(f"'unsafe-eval' in {script_name}.")
-        for loose in ("*", "https:", "http:", "data:"):
-            if loose in sources:
-                issues.append(f"{loose} in {script_name} allows scripts from almost anywhere.")
+            issues.append(f"'unsafe-inline' in {name}.")
+        if name == element_name:
+            for loose in ("*", "https:", "http:", "data:"):
+                if loose in sources:
+                    issues.append(f"{loose} in {name} allows scripts from almost anywhere.")
     if "object-src" not in directives and directives.get("default-src") != ["'none'"]:
         issues.append("No object-src restriction.")
     if "base-uri" not in directives:

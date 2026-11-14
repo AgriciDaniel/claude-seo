@@ -57,6 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Report removed meta descriptions in drift checks, treat empty canonicals as
   absent, and avoid duplicate changed/removed findings for one canonical removal.
+### Fixed
+
+- Grade the effective CSP script element and event-handler directives in
+  transport audits, while keeping eval diagnostics tied to `script-src`.
 
 ## [2.6.0] - 2026-11-10
 
