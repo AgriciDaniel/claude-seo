@@ -38,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Merchant schema checks validate every object in repeated return-policy and shipping-detail properties.
+### Fixed
+
+- Drift URL normalization preserves semicolon path parameters so distinct parameterized pages do not share a baseline key.
 
 ## [2.6.0] - 2026-11-10
 

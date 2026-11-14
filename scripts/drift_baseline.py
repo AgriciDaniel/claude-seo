@@ -75,7 +75,7 @@ def normalize_url(url: str) -> str:
     # Strip trailing slash (but keep "/" for bare domain)
     path = parsed.path.rstrip("/") or "/"
 
-    return urlunparse((scheme, netloc, path, "", query, ""))
+    return urlunparse((scheme, netloc, path, parsed.params, query, ""))
 
 
 def url_hash(url: str) -> str:
