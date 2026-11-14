@@ -1492,6 +1492,68 @@ def test_validate_public_url_strict_ignores_the_allowlist(monkeypatch) -> None:
                 url_safety.validate_public_url_strict(url)
 
 
+def _public_records(*addresses: str) -> list:
+    return [
+        (
+            socket.AF_INET6 if ":" in ip else socket.AF_INET,
+            socket.SOCK_STREAM,
+            socket.IPPROTO_TCP,
+            "",
+            (ip, 443),
+        )
+        for ip in addresses
+    ]
+
+
+def test_validate_public_url_addresses_returns_every_address_pin_first() -> None:
+    records = _public_records("2606:2800:220:1::1", "93.184.216.35", "93.184.216.34")
+    with patch.object(url_safety.socket, "getaddrinfo", return_value=records) as lookup:
+        url, addresses = url_safety.validate_public_url_addresses("https://example.com/x")
+        assert lookup.call_count == 1
+        pinned = url_safety.validate_public_url_strict("https://example.com/x")[1]
+    assert url == "https://example.com/x"
+    assert addresses == ("93.184.216.34", "93.184.216.35", "2606:2800:220:1::1")
+    assert addresses[0] == pinned
+    assert all(url_safety.is_safe_ip(ip) for ip in addresses)
+
+
+@pytest.mark.parametrize(
+    "records",
+    [
+        ("93.184.216.34", "10.0.0.7"),
+        ("93.184.216.34", "fd00::1"),
+        ("93.184.216.34", "::1"),
+        ("2606:2800:220:1::1", "64:ff9b::a00:1"),
+        ("169.254.169.254",),
+    ],
+)
+def test_validate_public_url_addresses_refuses_a_host_with_any_bad_record(
+    monkeypatch, records
+) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "example.com,10.0.0.7")
+    with patch.object(url_safety.socket, "getaddrinfo", return_value=_public_records(*records)):
+        with pytest.raises(url_safety.URLSafetyError):
+            url_safety.validate_public_url_addresses("https://example.com/")
+
+
+def test_validate_public_url_addresses_leaves_out_a_dns64_record() -> None:
+    """The synthesized AAAA beside an A record is passed over by the
+    validator, not checked as public, so it must never be offered for
+    dialling."""
+    records = _public_records("93.184.216.34", "64:ff9b::5db8:d822")
+    with patch.object(url_safety.socket, "getaddrinfo", return_value=records):
+        _, addresses = url_safety.validate_public_url_addresses("https://example.com/")
+    assert addresses == ("93.184.216.34",)
+
+
+def test_validate_public_url_addresses_ip_literal() -> None:
+    assert url_safety.validate_public_url_addresses("https://93.184.216.34/")[1] == (
+        "93.184.216.34",
+    )
+    with pytest.raises(url_safety.URLSafetyError):
+        url_safety.validate_public_url_addresses("https://127.0.0.1/")
+
+
 def test_validate_public_url_strict_accepts_public_hosts() -> None:
     resolver = _fake_resolver({"example.com": "93.184.216.34"})
     with patch.object(url_safety.socket, "getaddrinfo", side_effect=resolver):

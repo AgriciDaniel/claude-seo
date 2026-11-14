@@ -47,6 +47,10 @@ validate_public_url_strict(url) -> tuple[str, str]
     target: redirect hops sent through an HTTP proxy and every connection
     the browser egress guard (``browser_proxy.py``) opens.
 
+validate_public_url_addresses(url) -> tuple[str, tuple[str, ...]]
+    The same check, returning every address that passed instead of the pin
+    alone, so the egress guard can fall back to another validated address.
+
 is_safe_ip(ip_str) -> bool
     True iff the address parses as IPv4/IPv6 and is none of:
     private, loopback, reserved, link-local, multicast, unspecified,
@@ -136,6 +140,7 @@ __all__ = [
     "validate_url",
     "validate_url_strict",
     "validate_public_url_strict",
+    "validate_public_url_addresses",
     "safe_requests_get",
     "safe_requests_head",
     "safe_requests_session",
@@ -582,8 +587,30 @@ def validate_public_url_strict(url: str) -> tuple[str, str]:
     return _validate_url_strict(url, local_targets=False)
 
 
+def validate_public_url_addresses(url: str) -> tuple[str, tuple[str, ...]]:
+    """
+    :func:`validate_public_url_strict`, returning every address that passed.
+
+    The host is refused exactly as there: one non-public record refuses the
+    whole host. On success the tuple holds each resolved address that was
+    itself checked as public, IPv4 first, so its first entry is the address
+    :func:`validate_public_url_strict` pins. A DNS64 record that was passed
+    over is not in it. The browser egress guard uses the rest as fallbacks
+    when the first address is unreachable, without resolving again.
+    """
+    return _validate_url_addresses(url, local_targets=False)
+
+
 def _validate_url_strict(url: str, *, local_targets: bool) -> tuple[str, str]:
     """Shared body of the two strict validators; see their docstrings."""
+    url, addresses = _validate_url_addresses(url, local_targets=local_targets)
+    return url, addresses[0]
+
+
+def _validate_url_addresses(
+    url: str, *, local_targets: bool
+) -> tuple[str, tuple[str, ...]]:
+    """Validate ``url``; return it with every address that passed, pin first."""
     parsed = urlparse(url)
     _reject_authority_confusion(url, parsed)
     if parsed.scheme not in ("http", "https"):
@@ -614,7 +641,7 @@ def _validate_url_strict(url: str, *, local_targets: bool) -> tuple[str, str]:
             allowlisted and _is_allowlistable_ip(hostname)
         ):
             raise URLSafetyError(f"Blocked IP literal: {hostname}")
-        return url, str(literal)
+        return url, (str(literal),)
 
     try:
         addrinfo = socket.getaddrinfo(
@@ -643,20 +670,23 @@ def _validate_url_strict(url: str, *, local_targets: bool) -> tuple[str, str]:
     # host with no A record gets no such pass.
     has_a_record = ":" not in resolved_ips[0]
 
+    accepted = []
     for ip_str in resolved_ips:
         if is_safe_ip(ip_str):
+            accepted.append(ip_str)
             continue
         if allowlisted and _is_allowlistable_ip(ip_str):
-            continue  # Named in CLAUDE_SEO_LOCAL_TARGETS; see that block.
-        if has_a_record and _is_dns64_synthesized(ip_str):
+            accepted.append(ip_str)  # Named in CLAUDE_SEO_LOCAL_TARGETS.
             continue
+        if has_a_record and _is_dns64_synthesized(ip_str):
+            continue  # Passed over, never dialled: not an accepted address.
         raise URLSafetyError(
             f"DNS rebinding refused: {hostname} resolves to "
             f"non-public IP {ip_str}"
         )
 
-    pinned = resolved_ips[0]
-    return url, pinned
+    # The pin is the first entry: the lowest IPv4 address when there is one.
+    return url, tuple(accepted)
 
 
 def _proxy_hosts(url: str, proxies: Optional[dict] = None) -> frozenset:
