@@ -108,6 +108,7 @@ def test_audit_page_counts_pattern_hits() -> None:
         ("matomo", "seo-matomo"),
         ("posthog", "seo-posthog"),
         ("unlighthouse", "seo-unlighthouse"),
+        ("shopify", "seo-shopify"),
     ],
 )
 def test_extension_has_install_skill_and_docs(name: str, skill_dir: str) -> None:
@@ -134,7 +135,7 @@ _POSIX_ONLY = pytest.mark.skipif(
 @_POSIX_ONLY
 @pytest.mark.parametrize(
     "name", ["ahrefs", "seranking", "profound", "bing-webmaster", "matomo",
-            "posthog", "unlighthouse"],
+            "posthog", "unlighthouse", "shopify"],
 )
 def test_extension_install_script_is_executable(name: str) -> None:
     install = _REPO_ROOT / "extensions" / name / "install.sh"
@@ -171,6 +172,7 @@ def test_every_extension_install_and_uninstall_is_executable() -> None:
         ("matomo", "seo-matomo"),
         ("posthog", "seo-posthog"),
         ("unlighthouse", "seo-unlighthouse"),
+        ("shopify", "seo-shopify"),
     ],
 )
 def test_extension_skillmd_has_required_frontmatter(

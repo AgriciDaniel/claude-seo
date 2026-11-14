@@ -351,6 +351,8 @@ Optional add-ons that bring in more data. Claude SEO works fully without them.
 - **Profound:** tracks when AI models cite your site
 - **Bing Webmaster:** Bing data plus instant IndexNow submission
 - **Unlighthouse:** Lighthouse scores for every page of your site
+- **Shopify Crawler Access:** a complete, sitemap-driven crawl of a Shopify store you
+  administer, signed with the store's own Crawler Access signature
 
 Setup guides live in [`extensions/`](extensions/).
 
