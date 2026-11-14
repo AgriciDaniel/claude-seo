@@ -32,19 +32,34 @@ Output (JSON when ``--json`` is set)::
       "matches": {"filler": [...], "ai_patterns": [...]},
       "tokens":                 int,
       "unique_tokens":          int,
-      "coverage":               present only for CJK-dominant or other
-                                 non-Latin-alphabetic-dominant text (Greek,
-                                 Cyrillic, ...), e.g.
-                                 {"script": "cjk"|"non_latin_alphabetic",
+      "coverage":               present only when a signal was not fully
+                                 computed for the dominant script, e.g.
+                                 {"script": "cjk"|"non_latin_alphabetic"
+                                            |"unsegmented",
                                   "entity_density": "not_computed",
                                   "phrase_lists": "english_only"}: the
                                  filler/AI-pattern phrase lists and the
                                  capitalisation-based entity heuristic are
                                  English-only, so a score in one of those
                                  scripts is not directly comparable to a
-                                 Latin-script one. Tokenisation itself is
-                                 correct for all of these scripts.
+                                 Latin-script one. "unsegmented" (Thai, Lao,
+                                 Khmer, Myanmar) also carries
+                                 "tokenisation": "low_confidence": see below.
     }
+
+Tokenisation coverage
+=====================
+Supported (a token is a word): Latin including accented letters in NFC or
+NFD form, and the other scripts that put spaces between words: Greek,
+Cyrillic, Armenian, Georgian, Hebrew, Arabic, Devanagari and the other
+space-delimited Indic scripts. Combining marks stay with their word.
+Supported (a token is a unit of the script): Korean (a run of Hangul
+syllables), Chinese and Japanese (one ideograph or kana each).
+Low confidence: Thai, Lao, Khmer and Myanmar are written without spaces and
+need a dictionary to segment, which this script does not have. A run between
+spaces or punctuation counts as one token, so ``tokens``, ``unique_tokens``,
+``repetition_score`` and the thin-content flag are rough for them.
+Not supported: every other script written without word spaces.
 
 Attribution
 ===========
@@ -62,6 +77,7 @@ import argparse
 import json
 import re
 import sys
+import unicodedata
 from collections import Counter
 from pathlib import Path
 from typing import Iterable
@@ -152,22 +168,90 @@ _AI_PATTERNS: tuple[str, ...] = (
 )
 
 
-# Latin words, Hangul eojeol, CJK/kana characters, and any other
-# space-delimited alphabetic script (Greek, Cyrillic, Armenian, Georgian,
-# Arabic, Hebrew, Devanagari, Thai, ...). Korean is space delimited so a run
-# of syllables is one token; Chinese and Japanese are unspaced, so one
-# ideograph or kana counts as one token. The CJK/Hangul/kana alternatives
-# are tried first, so they still claim their own characters one at a time;
-# the final alternative is a generic Unicode "letter run" (any word
-# character that is not a digit or underscore), which only ever matches
-# characters the earlier, more specific alternatives did not.
+# East Asian blocks the generic word rule must never claim: Hangul, kana,
+# CJK ideographs and their compatibility and extension blocks. The dedicated
+# alternatives in _TOKEN_RE own the parts of them that are tokenised.
+_EAST_ASIAN_RANGES: tuple[tuple[int, int], ...] = (
+    (0x1100, 0x11FF),    # Hangul Jamo
+    (0x2E80, 0x33FF),    # CJK radicals and symbols, kana, Bopomofo, compatibility
+    (0x3400, 0x4DBF),    # CJK Extension A
+    (0x4E00, 0x9FFF),    # CJK Unified Ideographs
+    (0xA960, 0xA97F),    # Hangul Jamo Extended-A
+    (0xAC00, 0xD7FF),    # Hangul syllables, Jamo Extended-B
+    (0xF900, 0xFAFF),    # CJK Compatibility Ideographs
+    (0xFF66, 0xFFDC),    # Halfwidth katakana and Hangul
+    (0x16FE0, 0x18D8F),  # Ideographic symbols, Tangut, Khitan
+    (0x1AFF0, 0x1B2FF),  # Kana extensions, Nushu
+)
+# Every letter from U+20000 up is a CJK ideograph, and the only marks there
+# are ideographic variation selectors, so the scan stops below it.
+_CLASS_SCAN_LIMIT = 0x20000
+
+
+def _is_east_asian(codepoint: int) -> bool:
+    return any(low <= codepoint <= high for low, high in _EAST_ASIAN_RANGES)
+
+
+def _char_class(wanted) -> str:
+    """Build the body of a regex character class from a code point test.
+
+    The ``re`` module has no Unicode property classes, so the letter and
+    combining-mark classes come from ``unicodedata`` once at import.
+    """
+    parts: list[str] = []
+    start = None
+    for codepoint in range(_CLASS_SCAN_LIMIT + 1):
+        inside = codepoint < _CLASS_SCAN_LIMIT and wanted(codepoint)
+        if inside and start is None:
+            start = codepoint
+        elif not inside and start is not None:
+            end = codepoint - 1
+            parts.append(f"\\U{start:08x}" if start == end else f"\\U{start:08x}-\\U{end:08x}")
+            start = None
+    return "".join(parts)
+
+
+# Letters (Unicode categories L*) outside the East Asian blocks. For ASCII
+# input this is exactly [A-Za-z].
+_LETTER_CLASS = _char_class(
+    lambda cp: unicodedata.category(chr(cp))[0] == "L" and not _is_east_asian(cp)
+)
+# Combining marks (Mn, Mc): accents on decomposed Latin, Arabic and Hebrew
+# points, Indic vowel signs and viramas. They are not ``\w`` letters, so a
+# plain letter run breaks "हिन्दी" into single consonants.
+_MARK_CLASS = _char_class(
+    lambda cp: unicodedata.category(chr(cp)) in ("Mn", "Mc") and not _is_east_asian(cp)
+)
+
+# A word in any script that puts spaces between words, then Hangul eojeol,
+# then kana and CJK ideographs. The word rule is a letter followed by letters,
+# combining marks, apostrophes, hyphens and the zero-width joiners that Indic
+# and Persian text uses inside a word; on ASCII text it is the same rule as
+# the original [A-Za-z][A-Za-z'\-]*. Korean is space delimited so a run of
+# syllables is one token; Chinese and Japanese are unspaced, so one ideograph
+# or kana counts as one token. The four alternatives match disjoint
+# characters, so a word never runs on into Hangul, kana or CJK.
+# Thai, Lao, Khmer and Myanmar are unspaced too, and segmenting them needs a
+# dictionary. They fall under the word rule as a low-confidence fallback (a
+# run between spaces or punctuation is one token), which analyse() reports
+# in "coverage". See "Tokenisation coverage" in the module docstring.
 _TOKEN_RE = re.compile(
-    r"[A-Za-z][A-Za-z'\-]*"
+    rf"[{_LETTER_CLASS}][{_LETTER_CLASS}{_MARK_CLASS}'\-\u200c\u200d]*"
     r"|[\uac00-\ud7a3]+"
     r"|[\u3041-\u3096\u30a1-\u30fa\u30fc]"
     r"|[\u3400-\u4dbf\u4e00-\u9fff]"
-    r"|[^\W\d_][^\W\d_'\-]*"
 )
+
+
+def _tokenise(text: str) -> list[str]:
+    """Split text into tokens (see "Tokenisation coverage" in the docstring).
+
+    The text is composed to NFC first, so "café" typed with a combining
+    accent is the same token as the precomposed spelling.
+    """
+    return _TOKEN_RE.findall(unicodedata.normalize("NFC", text))
+
+
 _NUMBER_RE = re.compile(r"\b\d+(?:[.,]\d+)?(?:%|st|nd|rd|th)?\b")
 # Capitalised multi-word names: rough proper-noun heuristic. Two or more
 # capitalised tokens in a row count as one entity. Latin-cased only: Greek,
@@ -185,24 +269,35 @@ _ENTITY_RE = re.compile(r"\b(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b")
 _CJK_CHAR_RE = re.compile(
     r"[가-힣ぁ-ゖァ-ヺー㐀-䶿一-鿿]"
 )
-_LATIN_CHAR_RE = re.compile(r"[A-Za-z]")
+# ASCII letters plus the accented Latin blocks (Latin-1, Extended-A and B,
+# Extended Additional), so French or Vietnamese text counts as Latin.
+_LATIN_CHAR_RE = re.compile(
+    r"[A-Za-z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u024f\u1e00-\u1eff]"
+)
 # Any Unicode "letter" character (word character that is not a digit or
 # underscore). Used only to size up how much of the text is alphabetic in
-# a script that is neither ASCII Latin nor CJK/Hangul/kana -- Greek, Cyrillic,
+# a script that is neither Latin nor CJK/Hangul/kana: Greek, Cyrillic,
 # Arabic, Hebrew, Armenian, Georgian, Thai, Devanagari, etc. Not a language
 # detector: it cannot say *which* script, only that it is "other".
 _ALPHA_CHAR_RE = re.compile(r"[^\W\d_]")
+# Letters of the scripts written without spaces between words that
+# _TOKEN_RE cannot segment: Thai, Lao, Myanmar (with extensions) and Khmer.
+_UNSEGMENTED_CHAR_RE = re.compile(
+    r"(?=[\u0e00-\u0eff\u1000-\u109f\u1780-\u17ff\ua9e0-\ua9ff\uaa60-\uaa7f])[^\W\d_]"
+)
 
 
 def _detect_script(text: str) -> str | None:
-    """Return "cjk", "non_latin_alphabetic", or None for the dominant script.
+    """Return the dominant script when a signal is not fully computed for it.
 
-    "cjk" when CJK/Hangul/kana characters dominate. "non_latin_alphabetic"
-    when some other non-ASCII-Latin alphabetic script (Greek, Cyrillic,
-    Arabic, Hebrew, ...) dominates instead -- tokenisation (``_TOKEN_RE``)
-    handles these scripts correctly, but the filler/AI-pattern phrase lists
-    and the capitalisation-based ``_ENTITY_RE`` heuristic are English/Latin
-    text only, so those signals are not meaningful for them either.
+    "cjk" when CJK/Hangul/kana characters dominate. "unsegmented" when Thai,
+    Lao, Khmer or Myanmar dominates: those are tokenised only as a
+    low-confidence fallback. "non_latin_alphabetic" when another non-Latin
+    alphabetic script (Greek, Cyrillic, Arabic, Hebrew, Devanagari, ...)
+    dominates: ``_TOKEN_RE`` splits those into words, but the filler and
+    AI-pattern phrase lists and the capitalisation-based ``_ENTITY_RE``
+    heuristic are English/Latin only, so those signals are not meaningful
+    for any of the three.
 
     ``None`` covers Latin-script and any other text; the coverage note is
     only added when the score's known-unreliable signals apply.
@@ -213,6 +308,9 @@ def _detect_script(text: str) -> str | None:
         return "cjk"
     other_alpha_chars = len(_ALPHA_CHAR_RE.findall(text)) - cjk_chars - latin_chars
     if other_alpha_chars > 0 and other_alpha_chars >= latin_chars:
+        unsegmented_chars = len(_UNSEGMENTED_CHAR_RE.findall(text))
+        if unsegmented_chars * 2 >= other_alpha_chars:
+            return "unsegmented"
         return "non_latin_alphabetic"
     return None
 
@@ -258,7 +356,7 @@ def analyse(text: str) -> dict:
             "unique_tokens": 0,
         }
 
-    tokens = [t.lower() for t in _TOKEN_RE.findall(text)]
+    tokens = [t.lower() for t in _tokenise(text)]
     n_tokens = len(tokens)
     unique = len(set(tokens))
 
@@ -319,18 +417,22 @@ def analyse(text: str) -> dict:
 
     # The filler/AI-pattern phrase lists and the capitalisation-based entity
     # heuristic are English-only; they are silently near-zero for CJK and for
-    # other non-Latin alphabetic scripts (Greek, Cyrillic, ...) rather than
+    # other non-Latin scripts (Greek, Cyrillic, Thai, ...) rather than
     # reporting "no filler found". Flag that explicitly so a score in one of
     # those scripts is never read as comparable to a Latin-script one.
     # Latin/other output is unchanged: no "coverage" key is added when every
     # signal was actually computed.
     script = _detect_script(text)
-    if script in ("cjk", "non_latin_alphabetic"):
+    if script in ("cjk", "non_latin_alphabetic", "unsegmented"):
         result["coverage"] = {
             "script": script,
             "entity_density": "not_computed",
             "phrase_lists": "english_only",
         }
+        if script == "unsegmented":
+            # Thai, Lao, Khmer and Myanmar are not segmented into words, so
+            # every token-based number above is a rough fallback.
+            result["coverage"]["tokenisation"] = "low_confidence"
 
     return result
 
@@ -399,6 +501,7 @@ def main() -> int:
             script_label = {
                 "cjk": "CJK",
                 "non_latin_alphabetic": "non-Latin-script",
+                "unsegmented": "unsegmented-script (Thai, Lao, Khmer or Myanmar)",
             }.get(result["coverage"]["script"], result["coverage"]["script"])
             print(
                 f"  Note: {script_label} text detected, entity-density and "
@@ -406,6 +509,12 @@ def main() -> int:
                 "this score is not directly comparable to a Latin-script "
                 "page."
             )
+            if result["coverage"].get("tokenisation") == "low_confidence":
+                print(
+                    "  Note: this script is written without spaces between "
+                    "words and is not segmented here, so the token counts "
+                    "and repetition score are low confidence."
+                )
 
     return 0 if result["overall_quality"] >= args.threshold else 1
 

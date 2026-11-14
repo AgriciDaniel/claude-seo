@@ -161,7 +161,11 @@ def extract_claims(text: str) -> list[dict]:
 # rather than imported: each script in this repo is independently
 # invocable, with no cross-script imports.
 _CJK_CHAR_RE = re.compile(r"[가-힣ぁ-ゖァ-ヺー㐀-䶿一-鿿]")
-_LATIN_CHAR_RE = re.compile(r"[A-Za-z]")
+# ASCII letters plus the accented Latin blocks, so French or Vietnamese text
+# counts as Latin (same class as content_quality.py).
+_LATIN_CHAR_RE = re.compile(
+    r"[A-Za-z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u024f\u1e00-\u1eff]"
+)
 _ALPHA_CHAR_RE = re.compile(r"[^\W\d_]")
 
 
