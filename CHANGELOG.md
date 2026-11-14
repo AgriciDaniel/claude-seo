@@ -148,6 +148,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Read PageSpeed mobile results consistently across report charts, summaries,
   recommendations and workbook exports, including the Best Practices score.
+### Fixed
+
+- Continue the XLSX export for `google_report.py --format all` when the PDF
+  renderer is unavailable, retaining the PDF error and generated HTML output.
 
 ## [2.6.0] - 2026-11-10
 

@@ -2533,22 +2533,22 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
                 "weasyprint is required for PDF generation. "
                 "Install the report dependencies from requirements.txt."
             )
-            return result
-        pdf_path = output_dir / f"{base_name}.pdf"
-        try:
-            allowed_files = [(p, charts_dir) for p in chart_paths.values()]
-            allowed_files.append((GOOGLE_LOGO_PATH, GOOGLE_LOGO_PATH.parent))
-            HTML(
-                string=html_content,
-                url_fetcher=_make_report_url_fetcher(allowed_files),
-            ).write_pdf(str(pdf_path))
-            result["files"].append(str(pdf_path))
-            # Post-generation review
-            review = _review_pdf(str(pdf_path), html_content)
-            if review:
-                result["review"] = review
-        except Exception as e:
-            result["error"] = f"PDF generation failed: {e}"
+        else:
+            pdf_path = output_dir / f"{base_name}.pdf"
+            try:
+                allowed_files = [(p, charts_dir) for p in chart_paths.values()]
+                allowed_files.append((GOOGLE_LOGO_PATH, GOOGLE_LOGO_PATH.parent))
+                HTML(
+                    string=html_content,
+                    url_fetcher=_make_report_url_fetcher(allowed_files),
+                ).write_pdf(str(pdf_path))
+                result["files"].append(str(pdf_path))
+                # Post-generation review
+                review = _review_pdf(str(pdf_path), html_content)
+                if review:
+                    result["review"] = review
+            except Exception as e:
+                result["error"] = f"PDF generation failed: {e}"
 
     if output_format == "all":
         xlsx_path = generate_xlsx(data, domain, report_type, output_dir)
