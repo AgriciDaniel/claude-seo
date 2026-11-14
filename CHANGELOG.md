@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Hardening that ships with the opt-in. An entry with a scheme, credentials, a
+  path, a CIDR suffix, a wildcard or port 0 is dropped instead of being read
+  as something else. A trusted proxy is reachable on its own port only: a
+  redirect that `NO_PROXY` would send straight to the proxy's address, on any
+  port, is refused. A proxy URL without a port is matched on the port it
+  really uses (80 for `http://`).
+
 ### Added
 
 - `CLAUDE_SEO_TRUSTED_PROXIES` names a configured HTTP proxy on loopback or a
@@ -29,56 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is passed to the proxy, SOCKS and `https://` proxies stay refused for the
   browser, and the guard's per-run credential and the Chromium sandbox policy
   are unchanged. The refused-proxy error names the variable.
-
-### Security
-
-- Hardening that ships with the opt-in. An entry with a scheme, credentials, a
-  path, a CIDR suffix, a wildcard or port 0 is dropped instead of being read
-  as something else. A trusted proxy is reachable on its own port only: a
-  redirect that `NO_PROXY` would send straight to the proxy's address, on any
-  port, is refused. A proxy URL without a port is matched on the port it
-  really uses (80 for `http://`).
-
-## [2.6.1] - 2026-11-14
-
-### Security
-
-- The headless browser now sends every connection through a local guard that checks each
-  destination, including every redirect, so an audited site can no longer redirect Chromium to
-  loopback, private network or cloud metadata addresses. Unlighthouse runs behind the same
-  guard. Reported by namaserajesh and by Tobi (Nordalux), who also wrote the initial fix
-  (GHSA-8wrm-4mmq-6fx3, GHSA-9pc7-p6cr-942h).
-- Chromium now runs with its sandbox wherever the system can start it. Where it cannot
-  (Ubuntu 23.10 and later, most containers, root), the page is rendered without it, a warning
-  on stderr says why, and the JSON result carries `sandbox: false`. Set
-  `CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1` to fail instead; `CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1`
-  skips the sandbox. Reported by stephaneRR and shayanabbas
-  (GHSA-4fm4-49gc-r4pf, GHSA-mh4v-hwxp-8fg3).
-- Report values from Search Console, PageSpeed, CrUX, URL Inspection and audit JSON are
-  HTML-escaped everywhere in the PDF and HTML report, and PDF rendering can load only the
-  chart images generated for that report and the bundled logo. Other local files and all
-  network URLs are refused. Reported by samnguyen80 and namaserajesh
-  (GHSA-f8h8-fv8r-g2wh, GHSA-x43m-h8x6-rr52).
-- On Windows the PDF renderer no longer contacts a network share when report markup contains
-  a `file:` URL that points at a UNC or device path. Such URLs are refused before any file
-  access.
-- The XLSX export stores every text value as plain text, so values starting with `=`, `+`,
-  `-` or `@` can no longer run as formulas. Reported by 0xGenesi (GHSA-gc25-jx72-jj4q).
-- `parse_html.py --url` reads the page under the 10 MB cap instead of loading the whole
-  response into memory, and behind an HTTP proxy every redirect is validated before it is
-  followed. Reported by samnguyen80 (GHSA-f8h8-fv8r-g2wh).
-- `youtube_search.py` removes the Google API key from every error it prints or returns.
-  Reported by georgekhananaev (GHSA-xgff-93hv-6369).
-- `verify_release.py` refuses manifest entries that are absolute or point outside the
-  checkout, including through `..` or a symlink. Reported by tangzheng202202
-  (GHSA-hxhx-mm7f-q4qm).
-- The Google sign-in is read-only by default (`webmasters.readonly` and
-  `analytics.readonly`). The Indexing API scope is granted only with
-  `google_auth.py --auth --indexing`, and the unused Search Console write scope is no longer
-  requested. Existing sign-ins keep working. Reported by namaserajesh (GHSA-xhpf-w7hf-f6ph).
-
-### Added
-
 - **Shopify extension** (`/seo shopify`): a sitemap-complete crawl of a Shopify store you
   administer, signed with the store's Crawler Access signature from a project-local
   `.shopify-env`, then handed to the audit. A signed crawl has no page cap. Without a usable
@@ -112,6 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `sync_flow.py` exits with code 75 and a clear message when GitHub rate limits the sync, so a
   rate limit can be told apart from a real failure.
 
+- `seo-shopify` and `seo-posthog` load as plugin skills, and the `seo-posthog` agent ships in
+  `agents/`. Like `seo-bing` (#458), both skills are mirrored into `skills/` and kept identical
+  to the extension copies by a test. A plugin-only install had neither before. The plugin now
+  ships 29 sub-skills and 20 sub-agents.
+
 ### Changed
 
 - **IndexNow requires an exact host match.** A URL on a subdomain of the declared host is no
@@ -131,16 +95,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   audited.** That case used to pass as low risk. (#431)
 - **Drift baselines for URLs with path parameters need re-capturing.** A URL such as
   `/page;v=2` now has its own baseline key, so its old baseline is no longer found. (#432)
-- A render, screenshot or visual analysis that ends on a blank page, a browser error page or
-  a blocked address is reported as an error instead of being returned as the page.
-  `render_page.py` keeps the raw fetch in that case.
-- The browser guard tries every validated address of a host under one 10 second connect
-  budget, and requires a random per-run credential from Chromium so other local programs
-  cannot use it. The Unlighthouse guard stays unauthenticated (see SECURITY.md).
-- Browser commands behind a proxy support `http://` proxies on public addresses. A SOCKS
-  proxy, an `https://` proxy URL or a proxy on a local address gives a clear error.
-- `indexing_notify.py` and `google_auth.py --check indexing` say when the saved sign-in lacks
-  the Indexing scope and print the command to grant it.
 
 ### Fixed
 
@@ -243,6 +197,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Report:** the Excel export accepts text with invalid Unicode characters and numbers that are not finite
   or are too large. If the workbook cannot be written, the PDF and HTML are still delivered.
 - **Report:** reports no longer fail when audit scores, quick-win positions or Search Console totals are
+  null.
+
+- The Shopify and PostHog installers no longer stop with "claude-seo base not installed" on a
+  plugin install. They detect the plugin the way the Bing installer does and copy nothing
+  there: PostHog offers to register the MCP server, and Shopify offers to create
+  `.shopify-env` from the template, owner-only and never over an existing file. Manual
+  installs still get the files copied, now with the launcher path rewritten.
+
+## [2.6.1] - 2026-11-14
+
+### Security
+
+- The headless browser now sends every connection through a local guard that checks each
+  destination, including every redirect, so an audited site can no longer redirect Chromium to
+  loopback, private network or cloud metadata addresses. Unlighthouse runs behind the same
+  guard. Reported by namaserajesh and by Tobi (Nordalux), who also wrote the initial fix
+  (GHSA-8wrm-4mmq-6fx3, GHSA-9pc7-p6cr-942h).
+- Chromium now runs with its sandbox wherever the system can start it. Where it cannot
+  (Ubuntu 23.10 and later, most containers, root), the page is rendered without it, a warning
+  on stderr says why, and the JSON result carries `sandbox: false`. Set
+  `CLAUDE_SEO_CHROMIUM_REQUIRE_SANDBOX=1` to fail instead; `CLAUDE_SEO_CHROMIUM_NO_SANDBOX=1`
+  skips the sandbox. Reported by stephaneRR and shayanabbas
+  (GHSA-4fm4-49gc-r4pf, GHSA-mh4v-hwxp-8fg3).
+- Report values from Search Console, PageSpeed, CrUX, URL Inspection and audit JSON are
+  HTML-escaped everywhere in the PDF and HTML report, and PDF rendering can load only the
+  chart images generated for that report and the bundled logo. Other local files and all
+  network URLs are refused. Reported by samnguyen80 and namaserajesh
+  (GHSA-f8h8-fv8r-g2wh, GHSA-x43m-h8x6-rr52).
+- On Windows the PDF renderer no longer contacts a network share when report markup contains
+  a `file:` URL that points at a UNC or device path. Such URLs are refused before any file
+  access.
+- The XLSX export stores every text value as plain text, so values starting with `=`, `+`,
+  `-` or `@` can no longer run as formulas. Reported by 0xGenesi (GHSA-gc25-jx72-jj4q).
+- `parse_html.py --url` reads the page under the 10 MB cap instead of loading the whole
+  response into memory, and behind an HTTP proxy every redirect is validated before it is
+  followed. Reported by samnguyen80 (GHSA-f8h8-fv8r-g2wh).
+- `youtube_search.py` removes the Google API key from every error it prints or returns.
+  Reported by georgekhananaev (GHSA-xgff-93hv-6369).
+- `verify_release.py` refuses manifest entries that are absolute or point outside the
+  checkout, including through `..` or a symlink. Reported by tangzheng202202
+  (GHSA-hxhx-mm7f-q4qm).
+- The Google sign-in is read-only by default (`webmasters.readonly` and
+  `analytics.readonly`). The Indexing API scope is granted only with
+  `google_auth.py --auth --indexing`, and the unused Search Console write scope is no longer
+  requested. Existing sign-ins keep working. Reported by namaserajesh (GHSA-xhpf-w7hf-f6ph).
+
+### Changed
+
+- A render, screenshot or visual analysis that ends on a blank page, a browser error page or
+  a blocked address is reported as an error instead of being returned as the page.
+  `render_page.py` keeps the raw fetch in that case.
+- The browser guard tries every validated address of a host under one 10 second connect
+  budget, and requires a random per-run credential from Chromium so other local programs
+  cannot use it. The Unlighthouse guard stays unauthenticated (see SECURITY.md).
+- Browser commands behind a proxy support `http://` proxies on public addresses. A SOCKS
+  proxy, an `https://` proxy URL or a proxy on a local address gives a clear error.
+- `indexing_notify.py` and `google_auth.py --check indexing` say when the saved sign-in lacks
+  the Indexing scope and print the command to grant it.
+
+### Fixed
+
+- Charts were missing from the PDF report when the output directory was a relative path.
+- The XLSX report file name is sanitised like the PDF name.
+- Reports no longer fail when a search query or other chart label contains a dollar sign (for
+  example "ca$$h app"). Chart labels are also shortened to a sensible length, and if one chart
+  cannot be drawn the report is still produced without it.
+- The Excel export accepts text with invalid Unicode characters and numbers that are not finite
+  or are too large. If the workbook cannot be written, the PDF and HTML are still delivered.
+- Reports no longer fail when audit scores, quick-win positions or Search Console totals are
   null.
 - `verify_release.py` fails cleanly on a malformed manifest, fails when the manifest lists no
   files, and prints manifest values in quoted form so a manifest cannot forge output lines.
