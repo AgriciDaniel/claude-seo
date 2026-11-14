@@ -27,11 +27,11 @@ except ImportError:
     sys.exit(1)
 
 try:
-    from google_auth import get_api_key
+    from google_auth import get_api_key, redact_google_api_key
 except ImportError:
     import os
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from google_auth import get_api_key
+    from google_auth import get_api_key, redact_google_api_key
 
 # YouTube Data API v3 quota costs:
 # search.list = 100 units, videos.list = 1 unit, channels.list = 1 unit
@@ -45,10 +45,15 @@ def _build_youtube_service(api_key: Optional[str] = None):
     key = api_key or get_api_key()
     if not key:
         return None
+    # developerKey travels as ?key= in every request URI, and googleapiclient
+    # puts that URI into the text of the errors it raises.
     try:
         return build(YOUTUBE_API_SERVICE, YOUTUBE_API_VERSION, developerKey=key)
     except Exception as e:
-        print(f"Error building YouTube service: {e}", file=sys.stderr)
+        print(
+            f"Error building YouTube service: {redact_google_api_key(e)}",
+            file=sys.stderr,
+        )
         return None
 
 
@@ -141,7 +146,7 @@ def search_videos(
         elif "429" in error_str:
             result["error"] = "YouTube API quota exceeded (10,000 units/day). Search costs 100 units."
         else:
-            result["error"] = f"YouTube API error: {e}"
+            result["error"] = f"YouTube API error: {redact_google_api_key(e)}"
 
     return result
 
@@ -226,7 +231,7 @@ def get_video_details(
             pass  # Comments may be disabled
 
     except Exception as e:
-        result["error"] = f"YouTube API error: {e}"
+        result["error"] = f"YouTube API error: {redact_google_api_key(e)}"
 
     return result
 
@@ -280,7 +285,7 @@ def get_channel_info(
         }
 
     except Exception as e:
-        result["error"] = f"YouTube API error: {e}"
+        result["error"] = f"YouTube API error: {redact_google_api_key(e)}"
 
     return result
 
