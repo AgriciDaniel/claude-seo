@@ -91,6 +91,14 @@ request that is about to be sent through a proxy, redirect hops included,
 is therefore validated first (see ``_ProxyGuardSession``). A request that
 goes direct is covered by the pin, as before.
 
+The proxy itself must be public. ``CLAUDE_SEO_TRUSTED_PROXIES`` is the
+opt-in for a sandbox or local proxy: a comma-separated list of ``host`` or
+``host:port`` entries naming a proxy that may sit on loopback, RFC 1918 or
+RFC 6598. It trusts that proxy endpoint and nothing else: no audit target,
+no other port on the proxy's address, never link-local or a metadata
+address. The raw HTTP path and the browser guard share the one check
+(``_resolve_proxy_endpoint``).
+
 Browser fetches
 ===============
 Playwright/Chromium-based fetches (``render_page.py``,
@@ -429,6 +437,107 @@ def _is_allowlisted_local_target(hostname: str, port: Optional[int]) -> bool:
     return False
 
 
+# Operator opt-in for a configured proxy on loopback or a private address
+# (``CLAUDE_SEO_TRUSTED_PROXIES``). Some sandboxes send every outbound request
+# through a CONNECT proxy on the sandbox itself, and nothing leaves any other
+# way: Anthropic-hosted Claude Code cloud sessions set ``HTTPS_PROXY`` to a
+# proxy on 127.0.0.1. There every safe_requests_* call is refused (#280), and
+# so is every browser command, whose egress guard chains to the same proxy.
+# The opt-in is narrow by construction:
+#
+#   * It names a proxy, never an audit target. ``CLAUDE_SEO_LOCAL_TARGETS``
+#     and this list never read each other. A listed address is still refused
+#     as a destination: as the first URL, as a redirect hop and as anything
+#     the browser asks for.
+#   * A host must be named. ``host:port`` matches that port only. There is no
+#     range, wildcard, scheme or credential: an entry that carries one is
+#     dropped, so a typo trusts nothing.
+#   * The ranges are those of ``CLAUDE_SEO_LOCAL_TARGETS``: loopback, RFC 1918
+#     and RFC 6598. Link-local and the cloud metadata endpoints are refused
+#     even when listed, when the entry is checked and again when a listed
+#     name resolves inside the pinned scope.
+#   * It is read from the process environment only. Nothing a page, a
+#     redirect or a response can say reaches it.
+#   * Unset, the policy is unchanged: a non-public proxy is refused.
+#
+# One parser (``_parse_trusted_proxy``) and one policy function
+# (``_resolve_proxy_endpoint``) serve the raw HTTP path and the browser guard.
+_TRUSTED_PROXIES_ENV = "CLAUDE_SEO_TRUSTED_PROXIES"
+
+# ``host``, ``host:port``, ``[v6]`` or ``[v6]:port``; a bare IPv6 literal is
+# matched separately. Anything else (a scheme, userinfo, a path, a CIDR
+# suffix, a wildcard, a zone identifier, inner whitespace) is not an entry.
+_TRUSTED_PROXY_ENTRY_RE = re.compile(
+    r"^(?:\[[0-9A-Fa-f:.]+\]|[A-Za-z0-9](?:[A-Za-z0-9._\-]*[A-Za-z0-9.])?)(?::[0-9]{1,5})?$"
+)
+_BARE_IPV6_RE = re.compile(r"^[0-9A-Fa-f:.]+$")
+
+
+def _parse_trusted_proxy(entry: str) -> Optional[tuple[str, Optional[int]]]:
+    """Parse one ``CLAUDE_SEO_TRUSTED_PROXIES`` entry into ``(host, port|None)``.
+
+    Stricter than :func:`_parse_local_target`, which it then delegates to:
+    only a hostname or an IP literal with an optional port is an entry.
+    ``http://127.0.0.1:3128``, ``user:pw@host``, ``10.0.0.0/8``, ``*`` and
+    ``*.corp`` return ``None``, as do port 0 and ports over 65535, so a
+    malformed entry trusts nothing rather than something else. An IPv6
+    address needs brackets to carry a port; without them the whole entry is
+    read as the address.
+    """
+    entry = entry.strip()
+    if not entry:
+        return None
+    bare_ipv6 = entry.count(":") > 1 and "[" not in entry
+    if bare_ipv6:
+        if not _BARE_IPV6_RE.match(entry) or not _looks_like_ip(entry):
+            return None
+    elif not _TRUSTED_PROXY_ENTRY_RE.match(entry):
+        return None
+    parsed = _parse_local_target(entry)
+    if parsed is None or parsed[1] == 0:
+        return None
+    return parsed
+
+
+def _trusted_proxies() -> tuple[tuple[str, Optional[int]], ...]:
+    """The parsed contents of ``CLAUDE_SEO_TRUSTED_PROXIES``, read on every call."""
+    raw = os.environ.get(_TRUSTED_PROXIES_ENV, "")
+    if not raw.strip():
+        return ()
+    parsed = (_parse_trusted_proxy(part) for part in raw.split(","))
+    return tuple(entry for entry in parsed if entry is not None)
+
+
+def _is_trusted_proxy(hostname: str, port: Optional[int]) -> bool:
+    """True when ``hostname``/``port`` is named in ``CLAUDE_SEO_TRUSTED_PROXIES``.
+
+    ``hostname`` must already be normalized. Metadata endpoints, and literals
+    outside the ranges an operator may opt into, are refused before the list
+    is even read.
+    """
+    if hostname in _NEVER_ALLOWLISTABLE_HOSTNAMES:
+        return False
+    if _looks_like_ip(hostname) and not _is_allowlistable_ip(hostname):
+        return False
+    for entry_host, entry_port in _trusted_proxies():
+        if entry_host != hostname:
+            continue
+        if entry_port is None or entry_port == port:
+            return True
+    return False
+
+
+def _is_trusted_proxy_host(hostname: Optional[str]) -> bool:
+    """True when ``hostname`` is the host of any trusted-proxy entry.
+
+    Used to keep a listed proxy from being reached as a destination: see
+    :class:`_ProxyGuardSession`.
+    """
+    if not hostname:
+        return False
+    return any(entry_host == hostname for entry_host, _ in _trusted_proxies())
+
+
 def _looks_like_ip(hostname: str) -> bool:
     try:
         ipaddress.ip_address(hostname)
@@ -697,14 +806,42 @@ def _proxy_hosts(url: str, proxies: Optional[dict] = None) -> frozenset:
     overridden by an explicit ``proxies`` mapping. Returns the empty set when
     the request goes direct.
     """
+    return frozenset(host for host, _ in _proxy_endpoints(url, proxies))
+
+
+def _proxy_endpoints(url: str, proxies: Optional[dict] = None) -> frozenset:
+    """``(hostname, port)`` pairs for the proxy :func:`_proxy_hosts` selects.
+
+    The port is the one the connection will use: the proxy URL's own, or the
+    default for its scheme when it names none. It is ``None`` when the URL
+    names a bad one, which no ``host:port`` entry matches.
+    """
     merged = dict(requests.utils.get_environ_proxies(url))
     if proxies:
         merged.update(proxies)
     proxy = requests.utils.select_proxy(url, merged)
     if not proxy:
         return frozenset()
-    host = urlparse(requests.utils.prepend_scheme_if_needed(proxy, "http")).hostname
-    return frozenset({host.lower()}) if host else frozenset()
+    parsed = urlparse(requests.utils.prepend_scheme_if_needed(proxy, "http"))
+    if not parsed.hostname:
+        return frozenset()
+    return frozenset({(parsed.hostname.lower(), _proxy_port(parsed))})
+
+
+_PROXY_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def _proxy_port(parsed) -> Optional[int]:
+    """The port a parsed proxy URL connects to, or ``None`` for a bad one."""
+    try:
+        explicit = parsed.port
+    except ValueError:
+        return None
+    if explicit:
+        return explicit
+    if parsed.scheme.startswith("socks"):
+        return 1080
+    return _PROXY_DEFAULT_PORTS.get(parsed.scheme)
 
 
 def _assert_proxy_host_is_public(host: str) -> str:
@@ -740,7 +877,16 @@ def _resolve_public_proxy_host(host: str) -> tuple[str, tuple[str, ...]]:
         "Point the proxy environment variable at a publicly routable "
         "address, or unset it."
     )
+    # Named only where it can help: no entry unblocks link-local or metadata.
+    opt_in = (
+        f"{hint} If this is your own sandbox or local proxy, name it in "
+        f"{_TRUSTED_PROXIES_ENV} (host:port)."
+    )
     if normalized in _BLOCKED_HOSTNAMES:
+        if normalized not in _NEVER_ALLOWLISTABLE_HOSTNAMES and (
+            not _looks_like_ip(normalized) or _is_allowlistable_ip(normalized)
+        ):
+            hint = opt_in
         raise URLSafetyError(
             f"Refusing configured HTTP proxy {host!r}: blocked hostname "
             f"{normalized}. {hint}"
@@ -753,6 +899,8 @@ def _resolve_public_proxy_host(host: str) -> tuple[str, tuple[str, ...]]:
 
     if literal is not None:
         if not is_safe_ip(normalized):
+            if _is_allowlistable_ip(normalized):
+                hint = opt_in
             raise URLSafetyError(
                 f"Refusing configured HTTP proxy {host!r}: non-public "
                 f"address {normalized}. {hint}"
@@ -782,6 +930,8 @@ def _resolve_public_proxy_host(host: str) -> tuple[str, tuple[str, ...]]:
         )
     for ip_str in resolved_ips:
         if not is_safe_ip(ip_str):
+            if _is_allowlistable_ip(ip_str):
+                hint = opt_in
             raise URLSafetyError(
                 f"Refusing configured HTTP proxy {host!r}: it resolves to "
                 f"non-public IP {ip_str}. {hint}"
@@ -789,17 +939,100 @@ def _resolve_public_proxy_host(host: str) -> tuple[str, tuple[str, ...]]:
     return normalized, tuple(resolved_ips)
 
 
+class _ExemptProxies(frozenset):
+    """The proxy hostnames exempt from the pinned scope.
+
+    A plain set of hostnames, as :func:`_pin_dns` has always taken, plus
+    ``trusted``: the ``(hostname, port)`` endpoints that were admitted through
+    ``CLAUDE_SEO_TRUSTED_PROXIES``. Inside the pin an exempt host may resolve
+    to a non-public address only for one of those endpoints, so the exemption
+    reaches the proxy's own port and nothing else on that address.
+    """
+
+    trusted: frozenset = frozenset()
+
+
 def _validated_proxy_hosts(url: str, proxies: Optional[dict] = None) -> frozenset:
     """The proxy hosts to exempt from the pinned scope, each policy-checked.
 
-    Thin wrapper over :func:`_proxy_hosts` and
-    :func:`_assert_proxy_host_is_public`. Must be called *before* entering
+    Thin wrapper over :func:`_proxy_endpoints` and
+    :func:`_resolve_proxy_endpoint`. Must be called *before* entering
     :func:`_pin_dns`, so the resolution it performs goes through the real
     resolver rather than the patched one.
     """
-    return frozenset(
-        _assert_proxy_host_is_public(host) for host in _proxy_hosts(url, proxies)
+    hosts = set()
+    trusted = set()
+    for host, port in _proxy_endpoints(url, proxies):
+        normalized, _addresses, is_trusted = _resolve_proxy_endpoint(host, port)
+        hosts.add(normalized)
+        if is_trusted and port is not None:
+            trusted.add((normalized, port))
+    exempt = _ExemptProxies(hosts)
+    exempt.trusted = frozenset(trusted)
+    return exempt
+
+
+def _validate_proxy_endpoint(host: str, port: Optional[int]) -> str:
+    """Policy-check one configured proxy and return its normalized hostname.
+
+    See :func:`_resolve_proxy_endpoint`, which this wraps.
+    """
+    return _resolve_proxy_endpoint(host, port)[0]
+
+
+def _resolve_proxy_endpoint(
+    host: str, port: Optional[int]
+) -> tuple[str, tuple[str, ...], bool]:
+    """The one policy for a configured proxy, on every path.
+
+    Returns ``(normalized_hostname, addresses, trusted)``. ``addresses`` are
+    the ones this check saw, IPv4 first, so a caller that opens the connection
+    itself (the browser guard) dials one of them instead of resolving again.
+
+    A proxy named in ``CLAUDE_SEO_TRUSTED_PROXIES`` (``trusted`` is then
+    true) may sit on loopback, RFC 1918 or RFC 6598, and a listed name must
+    resolve only into addresses an entry can reach: one link-local or
+    metadata record refuses the whole name. Every other proxy goes through
+    :func:`_resolve_public_proxy_host` and must be public.
+    """
+    normalized = normalize_hostname(host)
+    if not _is_trusted_proxy(normalized, port):
+        public_host, addresses = _resolve_public_proxy_host(host)
+        return public_host, addresses, False
+    try:
+        literal = ipaddress.ip_address(normalized)
+    except ValueError:
+        literal = None
+    if literal is not None:
+        # _is_trusted_proxy has already held the literal to the opt-in ranges.
+        return normalized, (str(literal),), True
+    hint = f"Fix the entry in {_TRUSTED_PROXIES_ENV} or unset it."
+    try:
+        addrinfo = socket.getaddrinfo(
+            normalized,
+            None,
+            family=socket.AF_UNSPEC,
+            type=socket.SOCK_STREAM,
+        )
+    except (socket.gaierror, UnicodeError) as exc:
+        raise URLSafetyError(
+            f"Refusing trusted HTTP proxy {host!r}: DNS resolution failed "
+            f"({exc}). {hint}"
+        ) from exc
+    resolved_ips = sorted(
+        {info[4][0] for info in addrinfo if info[4]}, key=lambda ip: (":" in ip, ip)
     )
+    if not resolved_ips:
+        raise URLSafetyError(
+            f"Refusing trusted HTTP proxy {host!r}: no address records. {hint}"
+        )
+    for ip_str in resolved_ips:
+        if not _is_allowlistable_ip(ip_str):
+            raise URLSafetyError(
+                f"Refusing trusted HTTP proxy {host!r}: it resolves to {ip_str}, "
+                f"which no allowlist entry can reach. {hint}"
+            )
+    return normalized, tuple(resolved_ips), True
 
 
 def upstream_http_proxy(url: str) -> Optional[tuple[str, int, Optional[str]]]:
@@ -815,7 +1048,13 @@ def upstream_http_proxy(url: str) -> Optional[tuple[str, int, Optional[str]]]:
     Used by the browser egress guard to chain to the operator's proxy.
     Only ``http://`` proxies are supported there; any other scheme raises
     ``URLSafetyError`` so the caller reports a clear error instead of
-    connecting direct.
+    connecting direct, whether or not the proxy is listed in
+    ``CLAUDE_SEO_TRUSTED_PROXIES``.
+
+    The proxy goes through :func:`_resolve_proxy_endpoint`, the policy the
+    raw HTTP path uses: public, or listed in ``CLAUDE_SEO_TRUSTED_PROXIES``
+    with its port and inside the opt-in ranges. The returned address is one
+    that check saw, so the caller never resolves the proxy name again.
     """
     proxy = requests.utils.select_proxy(url, requests.utils.get_environ_proxies(url))
     if not proxy:
@@ -827,11 +1066,10 @@ def upstream_http_proxy(url: str) -> Optional[tuple[str, int, Optional[str]]]:
             f"{parsed.scheme!r}. Only http:// proxies are supported; point "
             "the proxy environment variable at one, or unset it."
         )
-    try:
-        port = parsed.port or 80
-    except ValueError as exc:
-        raise URLSafetyError("Configured HTTP proxy has an invalid port") from exc
-    _normalized, addresses = _resolve_public_proxy_host(parsed.hostname)
+    port = _proxy_port(parsed)
+    if port is None:
+        raise URLSafetyError("Configured HTTP proxy has an invalid port")
+    _normalized, addresses, _trusted = _resolve_proxy_endpoint(parsed.hostname, port)
     authorization = None
     if parsed.username is not None:
         credentials = f"{unquote(parsed.username)}:{unquote(parsed.password or '')}"
@@ -899,13 +1137,15 @@ def _pin_dns(
     machine without IPv6 fails closed on an IPv6-only host instead of being
     handed an address it cannot connect to.
 
-    ``exempt_hosts`` are resolved by the real resolver without the
-    fall-through check. It carries the configured HTTP proxy, if any: the
-    proxy is the process's own egress, and requests must resolve it to open
-    the tunnel, which the fall-through check otherwise refused. Callers pass
-    :func:`_validated_proxy_hosts`, which has already put that host through
-    the hostname blocklist and :func:`is_safe_ip`, so a proxy on loopback or
-    at a metadata address never reaches this set. Behind a proxy the target
+    ``exempt_hosts`` carries the configured HTTP proxy, if any: the proxy is
+    the process's own egress, and requests must resolve it to open the
+    tunnel. Callers pass :func:`_validated_proxy_hosts`, which has already
+    put that host through :func:`_resolve_proxy_endpoint`. Its answers are
+    checked again here on every lookup: public addresses pass, and a
+    non-public one passes only for a ``(host, port)`` endpoint that
+    ``CLAUDE_SEO_TRUSTED_PROXIES`` admitted (``exempt_hosts.trusted``, see
+    :class:`_ExemptProxies`). A plain set of hostnames therefore exempts
+    public proxies only. Behind a proxy the target
     is resolved by the proxy and never reaches this function, so the guard
     there is validation before each request is sent: the pre-flight check for
     the first URL and :class:`_ProxyGuardSession` for every later hop.
@@ -931,6 +1171,7 @@ def _pin_dns(
     # Such a pin must not answer for the host's other ports, or a redirect
     # from the allowed dev server reaches every service on that address.
     port_bound = not is_safe_ip(pinned_ip)
+    trusted_endpoints = getattr(exempt_hosts, "trusted", frozenset())
     pinned_family = socket.AF_INET6 if ":" in pinned_ip else socket.AF_INET
 
     def patched(host, requested_port, *args, **kwargs):
@@ -964,21 +1205,29 @@ def _pin_dns(
 
         if host and host.lower() in exempt_hosts:
             result = original_getaddrinfo(host, requested_port, *args, **kwargs)
-            # An exempt entry that is an IP literal cannot change between the
-            # pre-flight validation and this lookup. A DNS name can (rebinding),
-            # so its answer is re-checked here; an exempt proxy that now resolves
-            # to a non-public address is refused rather than trusted.
+            # Every answer is checked, on every lookup. A public address
+            # passes, as it always has. A non-public one passes only for an
+            # endpoint admitted through CLAUDE_SEO_TRUSTED_PROXIES: that host
+            # on that port, still listed, and inside the opt-in ranges. So a
+            # proxy name that now resolves elsewhere (rebinding) is refused,
+            # and so is any other port on a trusted proxy's address, which is
+            # what a redirect sent direct (NO_PROXY) would otherwise reach.
             try:
-                ipaddress.ip_address(host.strip("[]"))
-            except ValueError:
-                for info in result:
-                    sockaddr = info[4]
-                    if sockaddr and not is_safe_ip(sockaddr[0]):
-                        raise socket.gaierror(
-                            socket.EAI_FAIL,
-                            f"url_safety: exempt proxy host {host} resolved to "
-                            f"non-public IP {sockaddr[0]} after validation",
-                        )
+                endpoint = (normalize_hostname(host.strip("[]")), int(requested_port))
+                trusted = endpoint in trusted_endpoints and _is_trusted_proxy(*endpoint)
+            except (URLSafetyError, TypeError, ValueError):
+                trusted = False
+            for info in result:
+                sockaddr = info[4]
+                if not sockaddr or is_safe_ip(sockaddr[0]):
+                    continue
+                if trusted and _is_allowlistable_ip(sockaddr[0]):
+                    continue
+                raise socket.gaierror(
+                    socket.EAI_FAIL,
+                    f"url_safety: exempt proxy host {host} resolved to "
+                    f"non-public IP {sockaddr[0]} after validation",
+                )
             return result
 
         # Branch 2: every OTHER hostname (redirect target, embedded
@@ -1328,9 +1577,13 @@ class _ProxyGuardSession(requests.Session):
     leaves, whatever hooks or arguments the caller passed. The redirect
     limit and the redirect body cap are untouched.
 
-    A request that goes direct is left to the pin. The first, pre-validated
-    host keeps the operator's allowlist, as it does under the pin; any other
-    host must be public.
+    A request that goes direct is left to the pin, with one exception: a hop
+    whose host is named in ``CLAUDE_SEO_TRUSTED_PROXIES`` is validated here
+    too. The pin lets that host resolve to its non-public address on the
+    proxy's port, which is meant for the tunnel, not for a redirect that
+    ``NO_PROXY`` sends straight to the proxy's own address. The first,
+    pre-validated host keeps the operator's allowlist, as it does under the
+    pin; any other host must be public.
     """
 
     def __init__(self, validated_url: str) -> None:
@@ -1345,9 +1598,13 @@ class _ProxyGuardSession(requests.Session):
                 request, self.proxies, self.trust_env
             )
         url = request.url or ""
-        if url != self._validated_url and requests.utils.select_proxy(url, proxies):
+        hop_host = _hostname_or_none(url)
+        if url != self._validated_url and (
+            requests.utils.select_proxy(url, proxies)
+            or _is_trusted_proxy_host(hop_host)
+        ):
             try:
-                if _hostname_or_none(url) == self._validated_host:
+                if hop_host == self._validated_host:
                     validate_url_strict(url)
                 else:
                     validate_public_url_strict(url)

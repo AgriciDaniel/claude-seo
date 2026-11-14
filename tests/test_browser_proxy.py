@@ -181,6 +181,7 @@ def _hermetic_environment(monkeypatch):
     """No test inherits the developer's proxy, allowlist or sandbox opt-out."""
     monkeypatch.setattr(url_safety.requests.utils, "getproxies", lambda: {})
     monkeypatch.delenv("CLAUDE_SEO_LOCAL_TARGETS", raising=False)
+    monkeypatch.delenv("CLAUDE_SEO_TRUSTED_PROXIES", raising=False)
     monkeypatch.setattr(browser_proxy.os, "geteuid", lambda: 1000, raising=False)
     monkeypatch.delenv(browser_proxy.NO_SANDBOX_ENV, raising=False)
     monkeypatch.delenv(browser_proxy.REQUIRE_SANDBOX_ENV, raising=False)
@@ -1998,3 +1999,403 @@ def test_a_zygote_log_line_alone_is_not_a_sandbox_failure() -> None:
     """A non-fatal line from the zygote source file must not cause a fallback."""
     text = "Timeout 30000ms exceeded.\n[pid] zygote_host_impl_linux.cc(273)] Failed to adjust OOM score of renderer"
     assert not browser_proxy._reports_sandbox_failure(RuntimeError(text))
+
+
+# ---------------------------------------------------------------------------
+# CLAUDE_SEO_TRUSTED_PROXIES: a local upstream proxy the operator named
+# ---------------------------------------------------------------------------
+#
+# These tests use the real ``url_safety.upstream_http_proxy`` and the real
+# ``_destination``: only DNS and the proxy environment are faked. The upstream
+# is a loopback server that records what it is asked to reach.
+
+_TRUSTED_ENV = "CLAUDE_SEO_TRUSTED_PROXIES"
+_PUBLIC_IP = "93.184.216.34"
+
+
+def _fake_dns(monkeypatch, mapping: dict) -> list:
+    """Resolve only the named hosts; IP literals pass through. Returns the log.
+
+    A value is one address, a list of addresses, or a list of lists: one
+    answer per lookup, the last one repeating (DNS rebinding).
+    """
+    real = socket.getaddrinfo
+    lookups: list = []
+    state = {name: 0 for name in mapping}
+
+    def fake(host, port, *args, **kwargs):
+        if host not in mapping:
+            try:
+                socket.inet_pton(socket.AF_INET6 if ":" in str(host) else socket.AF_INET, host)
+            except (OSError, TypeError):
+                raise socket.gaierror(socket.EAI_NONAME, f"unmocked host {host!r}") from None
+            return real(host, port, *args, **kwargs)
+        lookups.append(host)
+        answer = mapping[host]
+        if isinstance(answer, str):
+            answer = [answer]
+        if isinstance(answer[0], list):
+            index = min(state[host], len(answer) - 1)
+            state[host] += 1
+            answer = answer[index]
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, port or 0)) for ip in answer]
+
+    monkeypatch.setattr(url_safety.socket, "getaddrinfo", fake)
+    return lookups
+
+
+def _behind_local_upstream(monkeypatch, upstream_port: int, *, trusted=True, host="127.0.0.1"):
+    """HTTP(S)_PROXY points at a proxy on loopback; optionally trust it."""
+    proxy_url = f"http://{host}:{upstream_port}"
+    monkeypatch.setattr(
+        url_safety.requests.utils, "getproxies", lambda: {"http": proxy_url, "https": proxy_url}
+    )
+    monkeypatch.delenv("NO_PROXY", raising=False)
+    monkeypatch.delenv("no_proxy", raising=False)
+    if trusted is True:
+        monkeypatch.setenv(_TRUSTED_ENV, f"{host}:{upstream_port}")
+    elif trusted:
+        monkeypatch.setenv(_TRUSTED_ENV, trusted)
+    return proxy_url
+
+
+def _ask(proxy: str, line: str) -> bytes:
+    return _exchange(proxy, f"{line} HTTP/1.1\r\nHost: x\r\n\r\n".encode())
+
+
+def test_trusted_local_upstream_carries_plain_http_and_connect(monkeypatch):
+    upstream = _Origin()
+    try:
+        _behind_local_upstream(monkeypatch, upstream.port)
+        _fake_dns(monkeypatch, {PUBLIC_HOST: _PUBLIC_IP})
+        with browser_proxy.guarded_proxy() as proxy:
+            assert _ask(proxy, f"GET http://{PUBLIC_HOST}/p?q=1").endswith(b"origin body")
+            client, head = _open_tunnel(proxy, f"{PUBLIC_HOST}:443")
+            client.close()
+            assert head.startswith(b"HTTP/1.0 200 ")
+    finally:
+        upstream.close()
+    # The upstream is asked for the name, which it resolves itself.
+    assert [line for line, _h, _b in upstream.requests] == [
+        f"GET http://{PUBLIC_HOST}/p?q=1 HTTP/1.1",
+        f"CONNECT {PUBLIC_HOST}:443 HTTP/1.1",
+    ]
+
+
+@pytest.mark.parametrize(
+    "trusted",
+    [
+        False,  # unset: the v2.6.1 behaviour
+        "127.0.0.1:1",  # another port
+        "127.0.0.2",  # another host
+        "*",
+        "127.0.0.0/8",
+        "http://127.0.0.1",
+        "localhost",  # a different spelling of the same address
+    ],
+)
+def test_a_local_upstream_that_is_not_listed_is_never_contacted(monkeypatch, trusted):
+    upstream = _Origin()
+    try:
+        _behind_local_upstream(monkeypatch, upstream.port, trusted=trusted)
+        _fake_dns(monkeypatch, {PUBLIC_HOST: _PUBLIC_IP, "localhost": "127.0.0.1"})
+        with browser_proxy.guarded_proxy() as proxy:
+            assert _ask(proxy, f"GET http://{PUBLIC_HOST}/").startswith(b"HTTP/1.0 403 ")
+            assert _ask(proxy, f"CONNECT {PUBLIC_HOST}:443").startswith(b"HTTP/1.0 403 ")
+    finally:
+        upstream.close()
+    assert upstream.requests == []
+
+
+def test_trusted_upstream_never_makes_a_local_destination_reachable(monkeypatch):
+    """Every destination is still validated as public, before the upstream is
+    contacted: loopback, private space, metadata, the proxy's own address,
+    and names that resolve to any of them."""
+    upstream = _Origin()
+    internal = _Origin()
+    try:
+        _behind_local_upstream(monkeypatch, upstream.port)
+        _fake_dns(
+            monkeypatch,
+            {
+                "internal.example": "10.0.0.5",
+                "proxy-alias.example": "127.0.0.1",
+                "mixed.example": [_PUBLIC_IP, "127.0.0.1"],
+                "linklocal.example": [_PUBLIC_IP, "169.254.169.254"],
+                "localhost": "127.0.0.1",
+            },
+        )
+        lines = [
+            f"GET http://127.0.0.1:{internal.port}/",
+            f"CONNECT 127.0.0.1:{internal.port}",
+            # The trusted proxy's own address and port, as a destination.
+            f"GET http://127.0.0.1:{upstream.port}/",
+            f"CONNECT 127.0.0.1:{upstream.port}",
+            f"GET http://localhost:{upstream.port}/",
+            f"GET http://proxy-alias.example:{upstream.port}/",
+            f"CONNECT proxy-alias.example:{upstream.port}",
+            f"GET http://2130706433:{upstream.port}/",
+            "GET http://169.254.169.254/latest/meta-data/",
+            "CONNECT 169.254.169.254:80",
+            "GET http://10.0.0.5/",
+            "CONNECT 10.0.0.5:443",
+            "CONNECT [::1]:443",
+            "GET http://internal.example/",
+            "CONNECT internal.example:443",
+            "GET http://mixed.example/",
+            "CONNECT mixed.example:443",
+            "GET http://linklocal.example/",
+            "GET http://unresolvable.example/",
+        ]
+        with browser_proxy.guarded_proxy() as proxy:
+            for line in lines:
+                assert _ask(proxy, line).startswith(b"HTTP/1.0 403 "), line
+    finally:
+        upstream.close()
+        internal.close()
+    assert upstream.requests == []
+    assert internal.requests == []
+
+
+def test_local_targets_stay_unread_behind_a_trusted_upstream(monkeypatch):
+    upstream = _Origin()
+    internal = _Origin()
+    try:
+        _behind_local_upstream(monkeypatch, upstream.port)
+        monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", f"127.0.0.1:{internal.port},127.0.0.1")
+        with browser_proxy.guarded_proxy() as proxy:
+            assert _ask(proxy, f"GET http://127.0.0.1:{internal.port}/").startswith(b"HTTP/1.0 403 ")
+    finally:
+        upstream.close()
+        internal.close()
+    assert upstream.requests == [] and internal.requests == []
+
+
+def test_no_proxy_behind_a_trusted_upstream_goes_direct_to_validated_addresses_only(monkeypatch):
+    """NO_PROXY takes a destination off the upstream. It then gets the direct
+    path, which dials validated public addresses: a loopback destination named
+    in NO_PROXY is refused all the same."""
+    upstream = _Origin()
+    internal = _Origin()
+    try:
+        _behind_local_upstream(monkeypatch, upstream.port)
+        monkeypatch.setenv("NO_PROXY", f"127.0.0.1,localhost,{PUBLIC_HOST}")
+        _fake_dns(monkeypatch, {PUBLIC_HOST: _PUBLIC_IP, "localhost": "127.0.0.1"})
+        dialled = []
+
+        def connect(addresses, port):
+            dialled.append((tuple(addresses), port))
+            raise OSError("no network in this test")
+
+        monkeypatch.setattr(browser_proxy, "_connect", connect)
+        with browser_proxy.guarded_proxy() as proxy:
+            assert _ask(proxy, f"GET http://127.0.0.1:{internal.port}/").startswith(b"HTTP/1.0 403 ")
+            assert _ask(proxy, f"CONNECT localhost:{internal.port}").startswith(b"HTTP/1.0 403 ")
+            assert _ask(proxy, f"CONNECT {PUBLIC_HOST}:443").startswith(b"HTTP/1.0 502 ")
+    finally:
+        upstream.close()
+        internal.close()
+    assert dialled == [((_PUBLIC_IP,), 443)]
+    assert upstream.requests == [] and internal.requests == []
+
+
+def test_trusted_upstream_name_is_dialled_at_the_checked_address(monkeypatch):
+    """DNS rebinding of the proxy name: each request resolves it once and
+    dials an address from that answer. When the answer turns into a metadata
+    address the request is refused; nothing is ever sent there."""
+    upstream = _Origin()
+    try:
+        _behind_local_upstream(monkeypatch, upstream.port, host="proxy.sandbox")
+        lookups = _fake_dns(
+            monkeypatch,
+            {
+                PUBLIC_HOST: _PUBLIC_IP,
+                "proxy.sandbox": [["127.0.0.1"], ["169.254.169.254"]],
+            },
+        )
+        dialled = []
+        real_connect = browser_proxy._connect
+
+        def connect(addresses, port):
+            dialled.append((tuple(addresses), port))
+            return real_connect(addresses, port)
+
+        monkeypatch.setattr(browser_proxy, "_connect", connect)
+        with browser_proxy.guarded_proxy() as proxy:
+            assert _ask(proxy, f"GET http://{PUBLIC_HOST}/first").endswith(b"origin body")
+            assert _ask(proxy, f"GET http://{PUBLIC_HOST}/second").startswith(b"HTTP/1.0 403 ")
+            assert _ask(proxy, f"CONNECT {PUBLIC_HOST}:443").startswith(b"HTTP/1.0 403 ")
+    finally:
+        upstream.close()
+    assert dialled == [(("127.0.0.1",), upstream.port)]
+    assert lookups.count("proxy.sandbox") == 3  # once per request, never twice
+    assert [line for line, _h, _b in upstream.requests] == [
+        f"GET http://{PUBLIC_HOST}/first HTTP/1.1"
+    ]
+
+
+@pytest.mark.parametrize(
+    "proxy_url,entry,message",
+    [
+        ("http://169.254.169.254:3128", "169.254.169.254:3128", "Refusing configured HTTP proxy"),
+        ("http://169.254.10.10:3128", "169.254.10.10", "Refusing configured HTTP proxy"),
+        ("http://100.100.100.200:3128", "100.100.100.200:3128", "Refusing configured HTTP proxy"),
+        ("http://[fe80::1]:3128", "[fe80::1]:3128", "Refusing configured HTTP proxy"),
+        ("http://metadata.google.internal:3128", "metadata.google.internal", "Refusing"),
+        ("socks5://127.0.0.1:1080", "127.0.0.1:1080", "Only http:// proxies"),
+        ("socks5h://127.0.0.1:1080", "127.0.0.1", "Only http:// proxies"),
+        ("https://127.0.0.1:3129", "127.0.0.1:3129", "Only http:// proxies"),
+        ("http://127.0.0.1:3128", "127.0.0.1:3129", "CLAUDE_SEO_TRUSTED_PROXIES"),
+        ("http://127.0.0.1:3128", "", "CLAUDE_SEO_TRUSTED_PROXIES"),
+    ],
+)
+def test_upstreams_the_guard_cannot_use_fail_before_launch_even_when_listed(
+    monkeypatch, regular_user, proxy_url, entry, message
+):
+    monkeypatch.setattr(
+        url_safety.requests.utils, "getproxies", lambda: {"http": proxy_url, "https": proxy_url}
+    )
+    monkeypatch.delenv("NO_PROXY", raising=False)
+    monkeypatch.delenv("no_proxy", raising=False)
+    monkeypatch.setenv(_TRUSTED_ENV, entry)
+    browser_type = _FakeBrowserType()
+    with pytest.raises(url_safety.URLSafetyError, match=message):
+        with browser_proxy.guarded_chromium(browser_type, "https://example.com/"):
+            pass
+    assert browser_type.calls == []
+
+
+def test_a_trusted_upstream_changes_nothing_about_the_launch(monkeypatch, regular_user):
+    """Same sandbox request, same arguments, a fresh credential, and Chromium
+    is pointed at the guard, never at the upstream."""
+    plain = _FakeBrowserType()
+    with browser_proxy.guarded_chromium(plain, "https://example.com/"):
+        pass
+    _behind_local_upstream(monkeypatch, 3128)
+    trusted = _FakeBrowserType()
+    with browser_proxy.guarded_chromium(trusted, "https://example.com/") as browser:
+        assert browser_proxy.chromium_sandboxed(browser) is True
+    (before,), (after,) = plain.calls, trusted.calls
+    assert after["chromium_sandbox"] is True
+    assert after["args"] == before["args"]
+    assert after["proxy"]["bypass"] == "" and after["proxy"]["username"] == "claude-seo"
+    assert len(after["proxy"]["password"]) >= 32
+    assert after["proxy"]["password"] != before["proxy"]["password"]
+    assert re.fullmatch(r"http://127\.0\.0\.1:\d+", after["proxy"]["server"])
+    assert not after["proxy"]["server"].endswith(":3128")
+    assert {k for k in after} == {k for k in before}
+
+
+def test_the_guard_credential_is_still_required_behind_a_trusted_upstream(monkeypatch, regular_user):
+    upstream = _Origin()
+    try:
+        _behind_local_upstream(monkeypatch, upstream.port)
+        _fake_dns(monkeypatch, {PUBLIC_HOST: _PUBLIC_IP})
+        browser_type = _FakeBrowserType()
+        with browser_proxy.guarded_chromium(browser_type, f"http://{PUBLIC_HOST}/"):
+            proxy = browser_type.calls[0]["proxy"]
+            request = f"GET http://{PUBLIC_HOST}/ HTTP/1.1\r\nHost: x\r\n".encode()
+            assert _exchange(proxy["server"], request + b"\r\n").startswith(b"HTTP/1.0 407 ")
+            answer = _exchange(
+                proxy["server"], request + _basic(proxy["username"], proxy["password"]) + b"\r\n"
+            )
+            assert answer.endswith(b"origin body")
+    finally:
+        upstream.close()
+    (_line, headers, _body), = upstream.requests
+    # The guard's own credential is not passed on to the upstream.
+    assert "proxy-authorization" not in headers
+
+
+def test_real_chromium_behind_a_trusted_local_upstream(monkeypatch):
+    """Real Chromium, the real guard, and a simulated sandbox proxy on
+    loopback that records every request it is asked to make. The page it
+    serves tries to pull in a loopback service, the proxy's own address and a
+    private name, and redirects to them: none of it reaches the upstream or
+    the internal server."""
+    with sync_playwright() as pw:
+        if not Path(pw.chromium.executable_path).exists():
+            pytest.skip("Playwright Chromium is not installed")
+
+        marker = "INTERNAL-TRUSTED-PROXY-MARKER"
+
+        def internal_page(handler):
+            body = marker.encode()
+            handler.send_response_only(200, "OK")
+            handler.send_header("Content-Length", str(len(body)))
+            handler.end_headers()
+            handler.wfile.write(body)
+
+        internal = _Origin(internal_page)
+        site = f"http://{PUBLIC_HOST}:8080"
+        ports = {}
+
+        def sandbox_proxy(handler):
+            """Answers for the site itself, as a proxy that fetched it would."""
+            path = handler.path
+            if path == f"{site}/redirect-internal":
+                location = f"http://127.0.0.1:{internal.port}/secret"
+            elif path == f"{site}/redirect-proxy":
+                location = f"http://127.0.0.1:{ports['upstream']}/own"
+            elif path == f"{site}/redirect-private-name":
+                location = "http://internal.example/secret"
+            else:
+                location = None
+            if location:
+                handler.send_response_only(302, "Found")
+                handler.send_header("Location", location)
+                handler.send_header("Content-Length", "0")
+                handler.end_headers()
+                return
+            if path.startswith(site + "/"):
+                body = (
+                    "<html><body><h1>PUBLIC PAGE VIA SANDBOX PROXY</h1>"
+                    f'<img src="http://127.0.0.1:{internal.port}/img">'
+                    f'<img src="http://127.0.0.1:{ports["upstream"]}/own">'
+                    f'<img src="http://localhost:{internal.port}/img">'
+                    '<img src="http://internal.example/img">'
+                    '<img src="http://169.254.169.254/latest/meta-data/">'
+                    f'<img src="{site}/pixel.png">'
+                    "</body></html>"
+                ).encode()
+            else:
+                body = marker.encode()  # anything else it was wrongly asked for
+            handler.send_response_only(200, "OK")
+            handler.send_header("Content-Type", "text/html")
+            handler.send_header("Content-Length", str(len(body)))
+            handler.end_headers()
+            handler.wfile.write(body)
+
+        upstream = _Origin(sandbox_proxy)
+        ports["upstream"] = upstream.port
+        try:
+            _behind_local_upstream(monkeypatch, upstream.port)
+            _fake_dns(
+                monkeypatch,
+                {PUBLIC_HOST: _PUBLIC_IP, "internal.example": "10.0.0.5", "localhost": "127.0.0.1"},
+            )
+            with browser_proxy.guarded_chromium(pw.chromium, f"{site}/") as browser:
+                page = browser.new_page()
+                response = page.goto(f"{site}/", timeout=20000, wait_until="load")
+                assert response.status == 200
+                assert "PUBLIC PAGE VIA SANDBOX PROXY" in page.content()
+                browser_proxy.require_public_page(page)
+                for name in ("redirect-internal", "redirect-proxy", "redirect-private-name"):
+                    try:
+                        refused = page.goto(f"{site}/{name}", timeout=20000)
+                    except Exception:
+                        refused = None  # a failed load is as good as a refusal
+                    assert refused is None or refused.status == 403, name
+                    assert marker not in page.content()
+                    with pytest.raises((url_safety.URLSafetyError, browser_proxy.PageNotLoadedError)):
+                        browser_proxy.require_public_page(page)
+        finally:
+            upstream.close()
+            internal.close()
+
+    asked = [line.split(" ")[1] for line, _h, _b in upstream.requests]
+    assert f"{site}/" in asked and f"{site}/pixel.png" in asked
+    assert f"{site}/redirect-internal" in asked
+    # Everything the upstream was asked to reach is the public site.
+    assert all(url.startswith(site + "/") for url in asked), asked
+    assert internal.requests == []

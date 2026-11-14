@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `CLAUDE_SEO_TRUSTED_PROXIES` names a configured HTTP proxy on loopback or a
+  private address that the operator trusts (#398 by @eduardopicazzo, issue
+  #280). Some sandboxes send every request through a CONNECT proxy on the
+  sandbox itself, and nothing leaves any other way: Anthropic-hosted Claude
+  Code cloud sessions set `HTTPS_PROXY` to a proxy on 127.0.0.1. Since v2.3.0
+  that proxy is refused, so every live fetch failed there. The variable is a
+  comma-separated list of `host` or `host:port` entries with the ranges of
+  `CLAUDE_SEO_LOCAL_TARGETS` (loopback, RFC 1918, RFC 6598); link-local and
+  the cloud metadata endpoints are refused even when listed, and a listed name
+  is re-checked when it resolves. It names proxies only: it never allows an
+  audit target, and `CLAUDE_SEO_LOCAL_TARGETS` never trusts a proxy. Unset,
+  the policy is unchanged.
+- The same variable now covers the headless browser. Since v2.6.1 the browser
+  egress guard refused a proxy on loopback or a private address, so
+  screenshots, rendering and Unlighthouse failed behind a sandbox proxy,
+  cntlm or px. A listed proxy is now accepted as the guard's upstream. Every
+  destination is still resolved and checked as public by the guard before it
+  is passed to the proxy, SOCKS and `https://` proxies stay refused for the
+  browser, and the guard's per-run credential and the Chromium sandbox policy
+  are unchanged. The refused-proxy error names the variable.
+
+### Security
+
+- Hardening that ships with the opt-in. An entry with a scheme, credentials, a
+  path, a CIDR suffix, a wildcard or port 0 is dropped instead of being read
+  as something else. A trusted proxy is reachable on its own port only: a
+  redirect that `NO_PROXY` would send straight to the proxy's address, on any
+  port, is refused. A proxy URL without a port is matched on the port it
+  really uses (80 for `http://`).
+
 ## [2.6.1] - 2026-11-14
 
 ### Security

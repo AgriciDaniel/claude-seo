@@ -18,6 +18,16 @@ What it enforces
   guard chains to it after validating the destination. That proxy must pass
   the same policy as in ``url_safety`` and it resolves the destination
   itself, so the pin degrades to the validation, as on the raw HTTP path.
+* That policy (``url_safety.upstream_http_proxy``) wants a public
+  ``http://`` proxy, or one the operator named in
+  ``CLAUDE_SEO_TRUSTED_PROXIES``, which may then sit on loopback, RFC 1918
+  or RFC 6598 (never link-local or a metadata address). Trusting a proxy
+  changes where the guard may send a request, never which destinations it
+  accepts: every request and CONNECT is still resolved here and refused
+  unless every address is public, the proxy's own address included. The
+  guard dials the proxy at an address that check returned. What it cannot
+  do behind any proxy, public or trusted, is pin the destination: the proxy
+  looks the name up again and connects where its own resolver says.
 * ``guarded_chromium`` gives its guard a random per-run credential and hands
   it to Chromium, so another local process cannot use the listener. A guard
   started with plain ``guarded_proxy()`` (Unlighthouse, whose Chrome takes
@@ -926,7 +936,8 @@ def guarded_chromium(browser_type, url: Optional[str] = None):  # type: ignore[n
 
     This is the only place claude-seo launches a browser. ``url`` is the page
     about to be loaded: when given, an HTTP proxy configured for it that the
-    guard cannot use (non-public, or not ``http://``) raises
+    guard cannot use (non-public and not named in
+    ``CLAUDE_SEO_TRUSTED_PROXIES``, or not ``http://``) raises
     ``URLSafetyError`` here, before the browser starts, instead of failing
     every request later.
 

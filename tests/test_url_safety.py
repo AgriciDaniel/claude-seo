@@ -782,10 +782,12 @@ def test_proxy_hosts_is_empty_without_a_proxy(monkeypatch) -> None:
     assert url_safety._proxy_hosts("https://example.com/") == frozenset()
 
 
-def test_pin_dns_lets_the_exempt_proxy_host_resolve_to_loopback() -> None:
-    """The primitive honours whatever exempt set it is handed. Callers reach it
-    through _validated_proxy_hosts, which refuses a loopback proxy before it can
-    ever land in that set; this test pins the low-level contract only."""
+def test_pin_dns_lets_the_exempt_proxy_host_resolve_to_loopback(monkeypatch) -> None:
+    """The primitive lets an exempt proxy resolve to loopback only for an
+    endpoint admitted through CLAUDE_SEO_TRUSTED_PROXIES: that host on that
+    port. A plain set of hostnames exempts public proxies only, so nothing
+    but _validated_proxy_hosts can put a loopback proxy past the pin."""
+    monkeypatch.setenv("CLAUDE_SEO_TRUSTED_PROXIES", "127.0.0.1:3128")
     original_getaddrinfo = socket.getaddrinfo
 
     def fake_getaddrinfo(host, port, *args, **kwargs):
@@ -798,10 +800,18 @@ def test_pin_dns_lets_the_exempt_proxy_host_resolve_to_loopback() -> None:
         with url_safety._pin_dns("pinned.example", "8.8.8.8", 443):
             with pytest.raises(socket.gaierror, match="non-public IP"):
                 socket.getaddrinfo("127.0.0.1", 3128)
+        # A bare hostname set carries no trusted endpoint: still refused.
         with url_safety._pin_dns(
             "pinned.example", "8.8.8.8", 443, exempt_hosts=frozenset({"127.0.0.1"})
         ):
+            with pytest.raises(socket.gaierror, match="non-public IP"):
+                socket.getaddrinfo("127.0.0.1", 3128)
+        exempt = _trusted_exempt(("127.0.0.1", 3128))
+        with url_safety._pin_dns("pinned.example", "8.8.8.8", 443, exempt_hosts=exempt):
             assert socket.getaddrinfo("127.0.0.1", 3128)[0][4][0] == "127.0.0.1"
+            # The proxy's port only, not the rest of that address.
+            with pytest.raises(socket.gaierror, match="non-public IP"):
+                socket.getaddrinfo("127.0.0.1", 8080)
 
 
 def test_pin_dns_exemption_does_not_leak_to_other_hosts() -> None:
@@ -819,6 +829,13 @@ def test_pin_dns_exemption_does_not_leak_to_other_hosts() -> None:
         ):
             with pytest.raises(socket.gaierror, match="non-public IP"):
                 socket.getaddrinfo("redirected.example", 80)
+
+
+def _trusted_exempt(*endpoints: tuple) -> frozenset:
+    """The exempt set _validated_proxy_hosts builds for trusted proxies."""
+    exempt = url_safety._ExemptProxies(host for host, _port in endpoints)
+    exempt.trusted = frozenset(endpoints)
+    return exempt
 
 
 def _fake_resolver(mapping: dict):
@@ -959,8 +976,9 @@ def test_safe_requests_session_refuses_a_non_public_proxy(monkeypatch) -> None:
 
 @pytest.fixture(autouse=True)
 def _clear_local_targets(monkeypatch):
-    """No test in this module inherits the developer's own allowlist."""
+    """No test in this module inherits the developer's own allowlists."""
     monkeypatch.delenv("CLAUDE_SEO_LOCAL_TARGETS", raising=False)
+    monkeypatch.delenv("CLAUDE_SEO_TRUSTED_PROXIES", raising=False)
 
 
 @pytest.fixture(autouse=True)
@@ -1612,3 +1630,85 @@ def test_upstream_http_proxy_refuses_unusable_proxies(monkeypatch, proxy_url, me
     with patch.object(url_safety.socket, "getaddrinfo", side_effect=resolver):
         with pytest.raises(url_safety.URLSafetyError, match=message):
             url_safety.upstream_http_proxy("https://example.com/")
+
+
+# ---------------------------------------------------------------------------
+# CLAUDE_SEO_TRUSTED_PROXIES: the operator names its own sandbox proxy (#280)
+# ---------------------------------------------------------------------------
+
+
+def test_trusted_proxies_unset_keeps_refusing_a_loopback_proxy(monkeypatch) -> None:
+    monkeypatch.delenv("CLAUDE_SEO_TRUSTED_PROXIES", raising=False)
+    with pytest.raises(url_safety.URLSafetyError, match="Refusing configured HTTP proxy"):
+        url_safety._validate_proxy_endpoint("127.0.0.1", 3128)
+
+
+@pytest.mark.parametrize("value", ["127.0.0.1", "127.0.0.1:3128", " 10.0.0.9 , 127.0.0.1:3128 "])
+def test_trusted_proxies_exempts_a_listed_loopback_proxy(monkeypatch, value) -> None:
+    """Anthropic-hosted Claude Code cloud sessions send all egress through a
+    CONNECT proxy on 127.0.0.1; listing it lets safe fetches leave the sandbox."""
+    monkeypatch.setenv("CLAUDE_SEO_TRUSTED_PROXIES", value)
+    captured = _run_safe_get_with_proxy(
+        monkeypatch, "http://127.0.0.1:3128", {"example.com": "93.184.216.34"}
+    )
+    assert captured["exempt"] == frozenset({"127.0.0.1"})
+    assert captured["response"].status_code == 200
+
+
+def test_trusted_proxies_port_must_match(monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_TRUSTED_PROXIES", "127.0.0.1:3128")
+    with pytest.raises(url_safety.URLSafetyError, match="Refusing configured HTTP proxy"):
+        url_safety._validate_proxy_endpoint("127.0.0.1", 8080)
+
+
+@pytest.mark.parametrize(
+    "host",
+    ["169.254.169.254", "100.100.100.200", "metadata.google.internal", "0.0.0.0", "fe80::1"],
+)
+def test_trusted_proxies_never_unblock_metadata_or_link_local(monkeypatch, host) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_TRUSTED_PROXIES", f"{host},[{host}]:3128,{host}:3128")
+    with pytest.raises(url_safety.URLSafetyError):
+        url_safety._validate_proxy_endpoint(host, 3128)
+
+
+def test_trusted_proxy_name_must_resolve_into_the_opt_in_ranges(monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_TRUSTED_PROXIES", "sneaky.proxy:3128")
+    resolver = _fake_resolver({"sneaky.proxy": "169.254.169.254"})
+    with patch.object(url_safety.socket, "getaddrinfo", side_effect=resolver):
+        with pytest.raises(url_safety.URLSafetyError, match="Refusing trusted HTTP proxy"):
+            url_safety._validate_proxy_endpoint("sneaky.proxy", 3128)
+
+
+def test_trusted_proxy_name_on_loopback_is_exempted(monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_TRUSTED_PROXIES", "proxy.sandbox:3128")
+    resolver = _fake_resolver({"proxy.sandbox": "127.0.0.1"})
+    with patch.object(url_safety.socket, "getaddrinfo", side_effect=resolver):
+        assert url_safety._validate_proxy_endpoint("Proxy.Sandbox", 3128) == "proxy.sandbox"
+
+
+def test_local_targets_do_not_trust_a_proxy(monkeypatch) -> None:
+    """The two lists never read each other: naming 127.0.0.1:3128 as an audit
+    target must not turn the proxy on that address into a trusted one."""
+    monkeypatch.delenv("CLAUDE_SEO_TRUSTED_PROXIES", raising=False)
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "127.0.0.1:3128")
+    with pytest.raises(url_safety.URLSafetyError, match="Refusing configured HTTP proxy"):
+        url_safety._validate_proxy_endpoint("127.0.0.1", 3128)
+
+
+def test_trusted_proxies_do_not_allow_an_audit_target(monkeypatch) -> None:
+    monkeypatch.delenv("CLAUDE_SEO_LOCAL_TARGETS", raising=False)
+    monkeypatch.setenv("CLAUDE_SEO_TRUSTED_PROXIES", "127.0.0.1:3128")
+    assert url_safety.validate_url("http://127.0.0.1:3128/") is False
+
+
+def test_pin_dns_rechecks_a_trusted_proxy_name_with_the_opt_in_policy(monkeypatch) -> None:
+    monkeypatch.setenv("CLAUDE_SEO_TRUSTED_PROXIES", "proxy.sandbox:3128,evil.sandbox:3128")
+    resolver = _fake_resolver(
+        {"proxy.sandbox": "127.0.0.1", "evil.sandbox": "169.254.169.254"}
+    )
+    with patch.object(url_safety.socket, "getaddrinfo", side_effect=resolver):
+        exempt = _trusted_exempt(("proxy.sandbox", 3128), ("evil.sandbox", 3128))
+        with url_safety._pin_dns("pinned.example", "8.8.8.8", 443, exempt_hosts=exempt):
+            assert socket.getaddrinfo("proxy.sandbox", 3128)[0][4][0] == "127.0.0.1"
+            with pytest.raises(socket.gaierror, match="non-public IP 169.254.169.254"):
+                socket.getaddrinfo("evil.sandbox", 3128)

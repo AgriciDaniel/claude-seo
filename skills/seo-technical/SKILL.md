@@ -279,6 +279,12 @@ What it does and does not cover:
 
 `host:port` matches that port only; a bare `host` matches any port. With the variable unset the policy is unchanged. Never suggest setting it for a host the user does not control. See SECURITY.md.
 
+### Behind a Sandbox Proxy
+
+Some sandboxes reach the internet only through their own proxy, for example Anthropic-hosted Claude Code cloud sessions, which set `HTTPS_PROXY` to a proxy on `127.0.0.1`; cntlm and px work the same way. `url_safety` refuses a proxy on loopback or a private address, so every live fetch and every browser command (`--render`, screenshots, Unlighthouse) fails there with "Refusing configured HTTP proxy". The operator names that proxy in `CLAUDE_SEO_TRUSTED_PROXIES` (`host` or `host:port`, comma-separated, no scheme), for example `127.0.0.1:3128`.
+
+It trusts the proxy only. Audit targets, redirect hops and everything a rendered page requests must still be public, the proxy's own address included, and link-local and cloud metadata addresses stay refused even when listed. The browser accepts `http://` proxies only. Prefer `host:port`, never suggest it for a proxy the user does not control, and see SECURITY.md for what the proxy is then trusted with.
+
 ## Error Handling
 
 | Scenario | Action |

@@ -167,6 +167,31 @@ warning. For the conflict, unset one of the two variables.
 
 ---
 
+### Refusing Configured HTTP Proxy
+
+**Symptom:** every live fetch, or every browser command (`--render`, screenshots, Unlighthouse), fails with one of:
+
+```text
+Refusing configured HTTP proxy '127.0.0.1': non-public address 127.0.0.1. ... name it in CLAUDE_SEO_TRUSTED_PROXIES (host:port).
+Unsupported proxy for browser rendering: scheme 'socks5'. Only http:// proxies are supported
+```
+
+**Cause:** `HTTPS_PROXY`, `HTTP_PROXY` or `ALL_PROXY` points at a proxy on loopback or a private address. That is refused by default, because anything that can set an environment variable could otherwise route every audit through a local service. Claude Code cloud and sandbox sessions, cntlm and px all work this way.
+
+**Solution:** if the proxy is yours or your platform's, name it, with its port:
+
+```bash
+export CLAUDE_SEO_TRUSTED_PROXIES=127.0.0.1:3128
+```
+
+- The value is a comma-separated list of `host` or `host:port`. No scheme, no credentials, no wildcard, no CIDR range: such an entry is ignored. Use the host exactly as the proxy variable spells it (`localhost:3128` for `http://localhost:3128`), and brackets for IPv6 with a port (`[::1]:3128`).
+- It trusts the proxy only. The site you audit, every redirect and everything a rendered page loads must still be public. To audit a local or staging host over raw HTTP, see `CLAUDE_SEO_LOCAL_TARGETS` in SECURITY.md.
+- A proxy on a link-local address or a cloud metadata address (`169.254.169.254` and similar) is refused even when listed. The message then does not mention the variable.
+- The browser needs an `http://` proxy. A SOCKS or `https://` proxy URL is refused for browser commands even when listed; plain fetches are not affected by that limit.
+- claude-seo still resolves each destination itself before it hands the request to the proxy, so "DNS resolution failed" behind a proxy means this machine cannot resolve public names, and listing the proxy will not change that.
+
+See "Trusting a local proxy" in SECURITY.md for what the proxy is trusted with.
+
 ### Permission Denied Errors
 
 **Symptom:** `Permission denied` when running scripts
