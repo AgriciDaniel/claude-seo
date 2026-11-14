@@ -79,6 +79,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Grade the effective framing policy in `transport_check.py`: broad
   `frame-ancestors` sources no longer pass by presence or an overridden
   `X-Frame-Options` value, while restrictive additional CSP policies count.
+### Fixed
+
+- HTML link inventories exclude mail, telephone, script and other non-HTTP(S) targets from page-link counts.
 
 ## [2.6.0] - 2026-11-10
 
