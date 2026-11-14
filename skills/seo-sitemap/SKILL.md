@@ -9,7 +9,7 @@ argument-hint: "[url or generate]"
 license: MIT
 metadata:
   author: AgriciDaniel
-  version: "2.6.0"
+  version: "2.6.1"
   category: seo
 ---
 
