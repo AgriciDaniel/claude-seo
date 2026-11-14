@@ -1140,7 +1140,58 @@ def _from_url(url: str, timeout: int) -> dict:
         out["facts"]["redirects"] = len(page.get("redirect_chain") or [])
     if page.get("too_large"):
         out["facts"]["body_truncated"] = True
+    if out["facts"].get("canonical_status") == "other":
+        _probe_canonical(out, page.get("url") or url, fetch_page, timeout)
     return out
+
+
+def _probe_canonical(out: dict, page_url: str, fetch, timeout: int) -> None:
+    """Fetch a canonical that names another URL and record where it lands.
+
+    URL mode only (``--file`` makes no request). One extra request through the
+    same SSRF-safe fetcher. When the canonical redirects back to this page,
+    search engines get two contradicting signals (the page says "index the
+    canonical", the canonical says "go to the page"), so the existing
+    canonical-points-elsewhere finding says so instead of "confirm this is
+    intended".
+    """
+    canonical = out["facts"].get("canonical")
+    if not canonical or canonical.endswith("..."):
+        return  # absent, or cut short by _trim and so not the real URL
+    try:
+        target = fetch(canonical, timeout=timeout)
+    except Exception as exc:  # a failed probe never fails the page check
+        out["facts"]["canonical_probe"] = {"error": _trim(str(exc), 200)}
+        return
+    if target.get("error"):
+        out["facts"]["canonical_probe"] = {"error": _trim(str(target["error"]), 200)}
+        return
+    final_url = target.get("url") or canonical
+    redirects = len(target.get("redirect_chain") or [])
+    loops_back = redirects > 0 and url_match_key(final_url) == url_match_key(page_url)
+    out["facts"]["canonical_probe"] = {
+        "status_code": target.get("status_code"),
+        "final_url": _trim(final_url),
+        "redirects": redirects,
+        "redirects_back_to_page": loops_back,
+    }
+    note = None
+    if loops_back:
+        note = (f"canonical loop: {_trim(canonical, 60)} redirects back to this page, so the page "
+                "and its canonical point at each other. Make the canonical name the URL that is "
+                "actually served.")
+    elif redirects:
+        note = f"the canonical redirects to {_trim(final_url, 60)}; a canonical should name the final URL"
+    elif isinstance(target.get("status_code"), int) and target["status_code"] >= 400:
+        note = f"the canonical returns HTTP {target['status_code']}"
+    if not note:
+        return
+    for finding in out.get("findings", []):
+        if finding.get("id") == "canonical-points-elsewhere":
+            finding["evidence"] = _trim(f"{note} ({finding.get('evidence', '')})")
+            if loops_back:
+                finding["message"] = ("The canonical names a URL that redirects back to this page. "
+                                      "Search engines get contradicting signals about which URL to index.")
 
 
 def main(argv: Optional[list[str]] = None) -> int:

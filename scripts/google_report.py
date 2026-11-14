@@ -432,7 +432,7 @@ def chart_index_status(data: dict, output_dir: Path) -> str:
 
 # ─── CSS Template ────────────────────────────────────────────────────────────
 
-def _build_css(domain: str) -> str:
+def _build_css(domain: str, report_label: str = "Google SEO Report") -> str:
     """
     Professional A4 report CSS adapted from generate_pdf.py.
 
@@ -458,7 +458,7 @@ def _build_css(domain: str) -> str:
       font-family: 'DejaVu Serif', 'Times New Roman', Georgia, serif;
     }}
     @bottom-right {{
-      content: "{_css_string(domain)} Google SEO Report";
+      content: "{_css_string(domain)} {_css_string(report_label)}";
       font-size: 8pt;
       color: #cbd5e1;
       font-family: 'DejaVu Serif', 'Times New Roman', Georgia, serif;
@@ -2193,6 +2193,14 @@ def _make_report_url_fetcher(allowed_files):
 
 # ─── Report Assemblers ───────────────────────────────────────────────────────
 
+def _has_audit_schema(data) -> bool:
+    """True when data follows the seo-audit envelope (summary/categories/action_plan)."""
+    if not isinstance(data, dict):
+        return False
+    summary = data.get("summary") if isinstance(data.get("summary"), dict) else {}
+    return bool(summary or data.get("categories") or data.get("action_plan"))
+
+
 def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
     """
     Generate a complete professional PDF, HTML, or XLSX report.
@@ -2390,7 +2398,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
         summary = data.get("summary", {}) if isinstance(data.get("summary"), dict) else {}
         health_score = summary.get("health_score")
         display_score = health_score if health_score is not None else perf_score
-        has_audit_schema = bool(summary or data.get("categories") or data.get("action_plan"))
+        has_audit_schema = _has_audit_schema(data)
 
         sections.append(_build_title_page(
             domain, "Full SEO Audit Report" if has_audit_schema else "Google SEO Intelligence Report",
@@ -2499,7 +2507,8 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
 
     # ── Assemble Final HTML ──────────────────────────────────────────────────
 
-    css = _build_css(domain)
+    is_audit = report_type == "full" and _has_audit_schema(data)
+    css = _build_css(domain, "SEO Audit Report" if is_audit else "Google SEO Report")
     body = "\n".join(sections)
     html_content = (
         f'<!DOCTYPE html>\n'
@@ -2519,7 +2528,10 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
     # ── Write Output Files ───────────────────────────────────────────────────
 
     safe_domain = _safe_filename_part(domain)
-    base_name = f"Google-SEO-Report-{safe_domain}-{report_type}"
+    # A full audit built from the audit envelope may contain no Google API data
+    # at all, so it is not branded as a Google report.
+    prefix = "SEO-Audit-Report" if is_audit else "Google-SEO-Report"
+    base_name = f"{prefix}-{safe_domain}-{report_type}"
 
     if output_format in ("html", "both", "all"):
         html_path = output_dir / f"{base_name}.html"
@@ -2529,10 +2541,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
 
     if output_format in ("pdf", "both", "all"):
         if HTML is None:
-            result["error"] = (
-                "weasyprint is required for PDF generation. "
-                "Install the report dependencies from requirements.txt."
-            )
+            result["error"] = _pdf_dependency_error()
         else:
             pdf_path = output_dir / f"{base_name}.pdf"
             try:
@@ -2558,12 +2567,36 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
     return result
 
 
+def _pdf_dependency_error() -> str:
+    """Explain why WeasyPrint is unavailable and how to fix it on this OS.
+
+    WeasyPrint can be pip-installed yet still fail to import because the
+    Pango/GObject system libraries are missing (an OSError), so the message
+    names the cause instead of only pointing at requirements.txt.
+    """
+    message = "weasyprint is required for PDF generation."
+    if isinstance(_PDF_IMPORT_ERROR, OSError):
+        if sys.platform == "darwin":
+            hint = "Install them with `brew install pango`."
+        elif sys.platform == "win32":
+            hint = "Install GTK/Pango with MSYS2: `pacman -S mingw-w64-ucrt-x86_64-pango`."
+        else:
+            hint = "Install them with `sudo apt install libpango-1.0-0 libpangoft2-1.0-0` (or your distro's pango package)."
+        message += (
+            " WeasyPrint is installed but could not load its system libraries "
+            f"(Pango, GObject). {hint} Details: {_PDF_IMPORT_ERROR}"
+        )
+    else:
+        message += " Install the report dependencies from requirements.txt."
+    return message
+
+
 def _review_pdf(pdf_path: str, html_content: str) -> dict:
     """
     RULE: Always review the PDF before presenting to the user.
     Check for common rendering issues.
     """
-    review = {"issues": [], "page_count": None, "file_size_kb": None}
+    review = {"issues": [], "notes": [], "page_count": None, "file_size_kb": None}
 
     # File size
     try:
@@ -2578,7 +2611,9 @@ def _review_pdf(pdf_path: str, html_content: str) -> dict:
         reader = PdfReader(pdf_path)
         review["page_count"] = len(reader.pages)
     except ImportError:
-        review["issues"].append("pypdf missing, page-count check skipped")
+        # pypdf is optional (not in requirements.txt). Its absence says
+        # nothing about the PDF, so it must not stop the review passing.
+        review["notes"].append("pypdf not installed, page-count check skipped")
 
     # HTML-level checks
     import re

@@ -107,6 +107,35 @@ def test_child_environment_forces_utf8_and_persistent_browser_path(tmp_path: Pat
     assert env["PLAYWRIGHT_BROWSERS_PATH"] == str(tmp_path / "ms-playwright")
 
 
+def test_macos_child_environment_finds_homebrew_libraries(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(runtime.sys, "platform", "darwin")
+    monkeypatch.setattr(runtime, "_HOMEBREW_LIB_DIRS", (str(tmp_path),))
+    monkeypatch.delenv("DYLD_FALLBACK_LIBRARY_PATH", raising=False)
+    parts = runtime._safe_env({"data_dir": tmp_path})["DYLD_FALLBACK_LIBRARY_PATH"].split(":")
+    assert parts[0] == str(tmp_path)
+    # Setting the variable replaces dyld's default list, so the defaults stay.
+    assert "/usr/lib" in parts and "/usr/local/lib" in parts
+
+    monkeypatch.setenv("DYLD_FALLBACK_LIBRARY_PATH", "/custom/lib")
+    env = runtime._safe_env({"data_dir": tmp_path})
+    assert env["DYLD_FALLBACK_LIBRARY_PATH"] == f"{tmp_path}:/custom/lib"
+
+    monkeypatch.setenv("DYLD_FALLBACK_LIBRARY_PATH", f"/custom/lib:{tmp_path}")
+    env = runtime._safe_env({"data_dir": tmp_path})
+    assert env["DYLD_FALLBACK_LIBRARY_PATH"] == f"/custom/lib:{tmp_path}"
+
+
+def test_child_environment_leaves_library_path_alone_off_macos(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(runtime.sys, "platform", "linux")
+    monkeypatch.setattr(runtime, "_HOMEBREW_LIB_DIRS", (str(tmp_path),))
+    monkeypatch.delenv("DYLD_FALLBACK_LIBRARY_PATH", raising=False)
+    assert "DYLD_FALLBACK_LIBRARY_PATH" not in runtime._safe_env({"data_dir": tmp_path})
+
+
 def test_configured_data_dir_rejects_filesystem_root_and_user_home(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
