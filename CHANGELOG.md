@@ -89,6 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Keep product titles, review text and headers containing pipes, backslashes or
   line breaks inside their intended DataForSEO Markdown table cells.
+### Fixed
+
+- Retain structured Merchant API current prices, currencies and rating vote
+  counts during normalization, including explicit zero prices and ratings.
 
 ## [2.6.0] - 2026-11-10
 
