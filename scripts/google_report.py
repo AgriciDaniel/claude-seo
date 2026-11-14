@@ -2199,6 +2199,10 @@ def _report_resource_candidate(url, allowed_files, pathmod=os.path, to_path=url2
     decoded = unquote(parts.path)
     if len(decoded) >= 2 and decoded[0] in seps and decoded[1] in seps:
         return None
+    # A trailing separator names a directory. Refuse it here, because path
+    # conversion drops it on some Python versions and keeps it on others.
+    if decoded and decoded[-1] in seps:
+        return None
     requested = to_path(parts.path)
     if not requested or "\x00" in requested:
         return None
