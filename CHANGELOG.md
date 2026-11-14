@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Merchant schema validation reports scalar `offers` values instead of silently passing them.
+### Fixed
+
+- Drift compares CWV percentiles only within a shared URL or origin scope, avoiding false regressions when coverage changes.
 
 ## [2.6.0] - 2026-11-10
 
