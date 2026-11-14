@@ -37,6 +37,64 @@ def _png_bytes() -> bytes:
     )
 
 
+def _file_url(path: Path, host: str = "") -> str:
+    """Return a file URL for ``path`` that is built the same way everywhere.
+
+    ``Path.as_uri()`` gives ``file:///tmp/x`` on POSIX and ``file:///C:/x`` on
+    Windows. A host belongs between the second and the third slash, so the
+    path part keeps its leading slash and, on Windows, its drive letter.
+    Gluing ``str(path)`` to ``file://host`` only works where paths start
+    with a slash.
+    """
+    uri = Path(path).as_uri()
+    assert uri.startswith("file:///"), uri
+    return "file://" + host + uri[len("file://"):]
+
+
+def _try_symlink(link: Path, target: Path, **kwargs) -> str | None:
+    """Create ``link``; return None on success or the reason it was refused.
+
+    Windows refuses symlinks without Developer Mode or the right privilege,
+    and some file systems have none at all.
+    """
+    try:
+        link.symlink_to(target, **kwargs)
+    except (OSError, NotImplementedError) as exc:
+        return f"this platform refused to create a symlink ({type(exc).__name__}: {exc})"
+    return None
+
+
+def _weasyprint():
+    """Return the weasyprint module, or skip when it cannot render here.
+
+    ``pytest.importorskip`` is not enough: with the package installed but its
+    native libraries (Pango, GObject) missing, as on stock Windows and macOS
+    runners, the import raises OSError, not ImportError. google_report
+    handles both and leaves ``HTML`` as None.
+    """
+    if google_report.HTML is None:
+        pytest.skip(f"weasyprint cannot be used here: {google_report._PDF_IMPORT_ERROR!r}")
+    import weasyprint
+
+    return weasyprint
+
+
+def _name_can_be_created(directory: Path, domain: str) -> bool:
+    """True when the file system accepts the report file name for ``domain``.
+
+    The report name keeps most characters of the domain. Windows refuses
+    names containing ``< > " | ? *``, so a hostile domain that is a legal
+    file name on Linux and macOS cannot be written there.
+    """
+    probe = directory / f"probe-{google_report._safe_filename_part(domain)}.tmp"
+    try:
+        probe.write_bytes(b"")
+    except OSError:
+        return False
+    probe.unlink()
+    return True
+
+
 def _hostile(tag: str) -> str:
     return f'<b id={tag}>"x\'&'
 
@@ -182,6 +240,8 @@ def test_inspection_fields_are_escaped_in_the_indexation_report(tmp_path: Path) 
 
 def test_hostile_domain_cannot_leave_the_heading_or_the_style_block(tmp_path: Path) -> None:
     domain = 'x"; } </style><b id=dom><img src="file:///etc/passwd">'
+    if not _name_can_be_created(tmp_path, domain):
+        pytest.skip("this file system refuses the report file name built from the hostile domain")
     html = _full_html(tmp_path, domain=domain, data={"summary": {"health_score": 80}})
 
     assert "<b id=dom>" not in html
@@ -198,6 +258,7 @@ def test_css_string_keeps_plain_domains_readable() -> None:
 
 
 def test_chart_and_metric_helpers_escape_their_arguments(tmp_path: Path) -> None:
+    # Only the URL is built; the file is never created (Windows could not).
     chart = tmp_path / 'a"b <c>.png'
     html = google_report._chart_html(str(chart), "<i>cap</i>", 1, '"><script>')
     assert "<script>" not in html and "<i>" not in html
@@ -226,13 +287,30 @@ def assets(tmp_path: Path) -> dict:
     secret.write_bytes(_png_bytes())
     secret_txt = tmp_path / "secret.txt"
     secret_txt.write_text("TOP-SECRET-MARKER", encoding="utf-8")
+    # The symlink is optional so that a platform without symlinks still runs
+    # every other check. Tests that need it go through _link_or_skip().
     link = charts / "link.png"
-    link.symlink_to(secret)
+    no_link = _try_symlink(link, secret)
+    allowed = [(chart, charts), (logo, bundled)]
+    if no_link is None:
+        allowed.insert(1, (link, charts))
     return {
         "charts": charts, "chart": chart, "stale": stale, "logo": logo,
-        "secret": secret, "secret_txt": secret_txt, "link": link,
-        "allowed": [(chart, charts), (link, charts), (logo, bundled)],
+        "secret": secret, "secret_txt": secret_txt,
+        "link": link if no_link is None else None, "no_link": no_link,
+        "allowed": allowed,
     }
+
+
+def _link_or_skip(assets: dict) -> Path:
+    if assets["link"] is None:
+        pytest.skip(assets["no_link"])
+    return assets["link"]
+
+
+def _traversal_url(assets: dict, name: str, dots: str = "..") -> str:
+    """A file URL that climbs from the charts directory to ``tmp_path/name``."""
+    return f"{assets['charts'].as_uri()}/{dots}/{dots}/{name}"
 
 
 def test_resolver_allows_only_the_reports_own_chart_and_logo(assets: dict) -> None:
@@ -241,7 +319,9 @@ def test_resolver_allows_only_the_reports_own_chart_and_logo(assets: dict) -> No
 
     assert resolve(assets["chart"].as_uri(), allowed) == os.path.realpath(assets["chart"])
     assert resolve(assets["logo"].as_uri(), allowed) == os.path.realpath(assets["logo"])
-    assert resolve("file://localhost" + str(assets["chart"]), allowed) == os.path.realpath(assets["chart"])
+    via_localhost = _file_url(assets["chart"], host="localhost")
+    assert via_localhost.startswith("file://localhost/")
+    assert resolve(via_localhost, allowed) == os.path.realpath(assets["chart"])
 
 
 @pytest.mark.parametrize("url", [
@@ -253,13 +333,16 @@ def test_resolver_allows_only_the_reports_own_chart_and_logo(assets: dict) -> No
     "data:image/png;base64,iVBORw0KGgo=",
     "//example.com/x.png",
     "/etc/passwd",
+    "file:///C:/Windows/win.ini",
+    "file://localhost/C:/Windows/win.ini",
+    "C:\\Windows\\win.ini",
     "",
 ])
 def test_resolver_refuses_foreign_urls(assets: dict, url: str) -> None:
     assert google_report._resolve_report_resource(url, assets["allowed"]) is None
 
 
-def test_resolver_refuses_other_files_traversal_symlinks_and_remote_hosts(assets: dict) -> None:
+def test_resolver_refuses_other_files_traversal_and_remote_hosts(assets: dict) -> None:
     resolve = google_report._resolve_report_resource
     allowed = assets["allowed"]
     charts = assets["charts"]
@@ -270,21 +353,47 @@ def test_resolver_refuses_other_files_traversal_symlinks_and_remote_hosts(assets
     # A file inside the charts directory that this run did not generate.
     assert resolve(assets["stale"].as_uri(), allowed) is None
     # Path traversal out of the charts directory, plain and percent-encoded.
-    assert resolve(f"file://{charts}/../../secret.png", allowed) is None
-    assert resolve(f"file://{charts}/%2e%2e/%2e%2e/secret.png", allowed) is None
-    assert resolve(f"file://{charts}/../../secret.txt", allowed) is None
-    # A listed chart name that is a symlink pointing out of the directory.
-    assert assets["link"].exists()
-    assert resolve(assets["link"].as_uri(), allowed) is None
+    # The traversal URLs name a real file, so only the resolver refuses them.
+    assert (charts / ".." / ".." / "secret.png").is_file()
+    assert resolve(_traversal_url(assets, "secret.png"), allowed) is None
+    assert resolve(_traversal_url(assets, "secret.png", dots="%2e%2e"), allowed) is None
+    assert resolve(_traversal_url(assets, "secret.txt"), allowed) is None
     # A file URL naming a remote host.
-    assert resolve("file://evil.example" + str(assets["chart"]), allowed) is None
+    remote = _file_url(assets["chart"], host="evil.example")
+    assert remote.startswith("file://evil.example/")
+    assert resolve(remote, allowed) is None
     # The directory itself.
     assert resolve(charts.as_uri(), allowed) is None
 
 
+def test_resolver_refuses_a_listed_symlink_that_leaves_the_directory(assets: dict) -> None:
+    link = _link_or_skip(assets)
+
+    assert link.exists()
+    assert (link, assets["charts"]) in assets["allowed"]
+    assert google_report._resolve_report_resource(link.as_uri(), assets["allowed"]) is None
+
+
+def test_resolver_never_maps_a_case_variant_to_another_file(assets: dict) -> None:
+    """Windows and macOS file systems usually ignore case, Linux does not.
+
+    A differently cased URL either names the allowed chart itself (Windows
+    resolves the stored case) or is refused. It never reaches another file.
+    """
+    resolve = google_report._resolve_report_resource
+    allowed = assets["allowed"]
+    chart = assets["chart"]
+
+    shouted = chart.with_name(chart.name.upper())
+    assert resolve(shouted.as_uri(), allowed) in (None, os.path.realpath(chart))
+    assert resolve(assets["secret"].with_name("SECRET.PNG").as_uri(), allowed) is None
+
+
 def test_resolver_follows_a_symlinked_output_directory(assets: dict, tmp_path: Path) -> None:
     alias = tmp_path / "alias"
-    alias.symlink_to(assets["charts"], target_is_directory=True)
+    refused = _try_symlink(alias, assets["charts"], target_is_directory=True)
+    if refused is not None:
+        pytest.skip(refused)
     via_alias = alias / "top_queries.png"
 
     resolved = google_report._resolve_report_resource(via_alias.as_uri(), [(via_alias, alias)])
@@ -292,7 +401,7 @@ def test_resolver_follows_a_symlinked_output_directory(assets: dict, tmp_path: P
 
 
 def test_fetcher_serves_allowed_images_and_raises_for_the_rest(assets: dict) -> None:
-    pytest.importorskip("weasyprint")
+    _weasyprint()
     fetcher = google_report._make_report_url_fetcher(assets["allowed"])
 
     response = fetcher(assets["chart"].as_uri())
@@ -300,8 +409,11 @@ def test_fetcher_serves_allowed_images_and_raises_for_the_rest(assets: dict) -> 
     assert response.content_type == "image/png"
     response.close()
 
-    for url in ("file:///etc/passwd", "http://127.0.0.1/x.png", assets["secret"].as_uri(),
-                assets["link"].as_uri(), f"file://{assets['charts']}/../../secret.png"):
+    refused = ["file:///etc/passwd", "http://127.0.0.1/x.png", assets["secret"].as_uri(),
+               _traversal_url(assets, "secret.png")]
+    if assets["link"] is not None:
+        refused.append(assets["link"].as_uri())
+    for url in refused:
         with pytest.raises(ValueError):
             fetcher(url)
         with pytest.raises(ValueError):
@@ -333,14 +445,16 @@ HOSTILE_MARKUP = (
 
 
 def _hostile_markup(assets: dict) -> str:
+    # Without symlinks the slot holds another image the fetcher must refuse.
+    link = assets["link"] if assets["link"] is not None else assets["stale"]
     return HOSTILE_MARKUP.format(
         secret=assets["secret_txt"].as_uri(), secret_png=assets["secret"].as_uri(),
-        chart=assets["chart"].as_uri(), logo=assets["logo"].as_uri(), link=assets["link"].as_uri(),
+        chart=assets["chart"].as_uri(), logo=assets["logo"].as_uri(), link=link.as_uri(),
     )
 
 
 def test_real_pdf_render_omits_refused_resources_without_crashing(assets: dict, tmp_path: Path) -> None:
-    weasyprint = pytest.importorskip("weasyprint")
+    weasyprint = _weasyprint()
     markup = _hostile_markup(assets)
 
     served = []
@@ -372,7 +486,7 @@ def test_generate_report_passes_a_restrictive_fetcher_to_weasyprint(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     pytest.importorskip("matplotlib")
-    pytest.importorskip("weasyprint")
+    _weasyprint()
     bundled = tmp_path / "bundled" / "charts"
     bundled.mkdir(parents=True)
     logo = bundled / "google_logo.png"
@@ -411,7 +525,7 @@ def test_generate_report_passes_a_restrictive_fetcher_to_weasyprint(
 
 def test_relative_output_dir_still_embeds_charts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("matplotlib")
-    pytest.importorskip("weasyprint")
+    _weasyprint()
     monkeypatch.chdir(tmp_path)
     result = google_report.generate_report(
         "gsc-performance", _hostile_report_data()["gsc"], "example.com", "rel", output_format="pdf",
@@ -473,7 +587,11 @@ def _load(path: str):
 
 def test_xlsx_dangerous_strings_are_text_after_save_and_reload(tmp_path: Path) -> None:
     pytest.importorskip("openpyxl")
-    path = google_report.generate_xlsx(_xlsx_data(), "=cmd|' /C calc'!A0", "full", tmp_path)
+    # The domain is part of the workbook file name and Windows refuses "|".
+    domain = "=cmd|' /C calc'!A0"
+    if not _name_can_be_created(tmp_path, domain):
+        domain = "=cmd' /C calc'!A0"
+    path = google_report.generate_xlsx(_xlsx_data(), domain, "full", tmp_path)
     wb = _load(path)
 
     seen = {value: 0 for value in DANGEROUS}
@@ -494,7 +612,7 @@ def test_xlsx_dangerous_strings_are_text_after_save_and_reload(tmp_path: Path) -
         assert count == (11 if value == "=1+1" else 10), f"{value!r} stored {count} times"
 
     summary = wb["Summary"]
-    assert summary["B2"].value == "=cmd|' /C calc'!A0"
+    assert summary["B2"].value == domain
     assert summary["B2"].data_type == "s"
 
     queries = wb["Queries"]

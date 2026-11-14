@@ -259,6 +259,14 @@ It forwards arguments without a shell, preserves child exit codes, forces UTF-8
 child streams, and uses the same persistent Playwright browser directory created
 by setup.
 
+Scripts that open a headless browser (`render_page.py`, `capture_screenshot.py`,
+`analyze_visual.py`) launch Chromium only through `scripts/browser_proxy.py`, the
+local egress guard that validates and pins every Chromium connection. It is a
+helper module like `url_safety.py`, not a command. The Unlighthouse wrapper
+`scripts/unlighthouse_run.py` runs its crawl behind the same guard and preloads
+`scripts/unlighthouse_http_proxy.cjs`, the one Node file in `scripts/`, so the
+Unlighthouse CLI's own requests go through the guard as well.
+
 Extensions are opt-in add-ons that integrate external data sources via MCP servers. They live in `extensions/<name>/` and ship their own install / uninstall scripts.
 
 ```

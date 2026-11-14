@@ -126,6 +126,70 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: pytest tests/ -v
 
+  browser-guard:
+    # The only job that installs a browser. Everywhere else the tests that
+    # drive real Chromium through the egress guard skip themselves.
+    name: Browser guard (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      # GitHub's Ubuntu runners block unprivileged user namespaces, so
+      # Chromium's sandbox cannot start there. Linux leg only, and only for
+      # now: an automatic fallback in browser_proxy.py may replace this.
+      # The test files clear the variable in their autouse fixtures, so it
+      # reaches only code that runs outside those fixtures.
+      CLAUDE_SEO_CHROMIUM_NO_SANDBOX: ${{ matrix.os == 'ubuntu-latest' && '1' || '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install runtime + test deps
+        run: pip install -r requirements.txt pytest
+
+      - name: Install Chromium (Linux, with system libraries)
+        if: runner.os == 'Linux'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Install Chromium
+        if: runner.os != 'Linux'
+        run: python -m playwright install chromium
+
+      - name: Real-browser tests must run, not skip
+        # Both tests skip themselves when Chromium is missing, which would
+        # leave this job green without testing anything. Require two passes
+        # and no skip; a renamed test fails here too (pytest finds nothing).
+        shell: bash
+        run: |
+          status=0
+          out=$(pytest \
+            "tests/test_browser_proxy.py::test_real_chromium_authenticates_to_the_guard" \
+            "tests/test_browser_proxy.py::test_redirect_cannot_reach_internal_server" \
+            -v -rs 2>&1) || status=$?
+          printf '%s\n' "$out"
+          if [ "$status" -ne 0 ]; then
+            echo "::error::The real-browser tests failed (pytest exit $status)."
+            exit 1
+          fi
+          if grep -Eq 'SKIPPED|[0-9]+ skipped' <<<"$out" \
+            || ! grep -Eq '(^|[^0-9])2 passed' <<<"$out"; then
+            echo "::error::The real-browser tests were skipped or did not both run."
+            exit 1
+          fi
+
+      - name: Run browser guard tests
+        run: pytest tests/test_browser_proxy.py tests/test_render_page.py tests/test_capture_screenshot_hygiene.py -v
+
   dep-audit:
     # Bounded ranges resolve to different releases per Python (numpy and
     # contourpy differ between 3.11 and 3.14), so audit both ends of the range.
