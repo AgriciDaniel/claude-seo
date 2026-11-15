@@ -2926,7 +2926,7 @@ def generate_xlsx(data, domain, report_type, output_dir):
             for metric_name, metric_data in metrics.items():
                 if isinstance(metric_data, dict):
                     p75 = metric_data.get("percentile_p75", metric_data.get("p75", ""))
-                    rating = metric_data.get("category", "")
+                    rating = metric_data.get("rating", metric_data.get("category", ""))
                     _xlsx_append_row(ws, [metric_name, p75, rating])
             ws.append([])
 
