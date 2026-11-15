@@ -908,12 +908,16 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
     mixed: list[str] = []
     if is_https:
         for el in soup.find_all(list(_MIXED_CONTENT_TAGS)):
-            if _attr(el, "src").lower().startswith("http://"):
-                mixed.append(_attr(el, "src"))
+            src = _attr(el, "src")
+            resolved = _join(base_url, src) if src else ""
+            if resolved.lower().startswith("http://"):
+                mixed.append(resolved)
         for link in soup.find_all("link", href=True):
             rels = _rels(link)
-            if ("stylesheet" in rels or "preload" in rels) and _attr(link, "href").lower().startswith("http://"):
-                mixed.append(_attr(link, "href"))
+            href = _attr(link, "href")
+            resolved = _join(base_url, href) if href else ""
+            if ("stylesheet" in rels or "preload" in rels) and resolved.lower().startswith("http://"):
+                mixed.append(resolved)
     if mixed:
         add("mixed-content", f"{len(mixed)} resource(s): {_sample(mixed)}", len(mixed))
 
