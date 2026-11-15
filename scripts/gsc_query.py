@@ -342,7 +342,7 @@ def query_search_analytics(
     # Quick wins: position 4-10 with high impressions
     if "query" in dimensions:
         sorted_by_impressions = sorted(all_rows, key=lambda r: r.get("impressions", 0), reverse=True)
-        for row in sorted_by_impressions[:200]:
+        for row in sorted_by_impressions:
             pos = row.get("position", 0)
             if 4 <= pos <= 10 and row.get("impressions", 0) > 50:
                 result["quick_wins"].append({
@@ -353,8 +353,9 @@ def query_search_analytics(
                     "ctr": round(row.get("ctr", 0) * 100, 2),
                     "opportunity": "Position 4-10 with high impressions -- small ranking improvement yields significant traffic gain",
                 })
-
-        result["quick_wins"] = result["quick_wins"][:20]
+                # Limit eligible opportunities, not the rows searched for them.
+                if len(result["quick_wins"]) == 20:
+                    break
 
     return result
 

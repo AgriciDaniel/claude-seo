@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- GSC quick wins consider all returned query rows before applying the 20-opportunity
+  limit. Eligible queries no longer disappear when the 200 highest-impression rows
+  rank outside positions 4-10.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
