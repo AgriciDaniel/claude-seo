@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Resolve local JSON-LD node references when checking merchant offers, return
+  policies, shipping details, and loyalty price specifications. Valid linked
+  graph nodes no longer produce false missing-type or missing-field findings;
+  unresolved or ambiguous references remain reportable, and graph scopes stay
+  separate without fetching external definitions or expanding cycles.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
