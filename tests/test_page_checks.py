@@ -837,6 +837,7 @@ def test_a_same_origin_canonical_keeps_the_operators_allowlist():
 def test_fetch_page_public_only_ignores_the_local_allowlist(monkeypatch):
     """With CLAUDE_SEO_LOCAL_TARGETS naming a local server, public_only still refuses it."""
     import socket as _socket
+
     import fetch_page
 
     monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "127.0.0.1:8765")
