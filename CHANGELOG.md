@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Excel reports retain the PageSpeed script's already-normalized Lighthouse
+  scores. A native score of 1/100 stays 1 and uses the failing color instead
+  of becoming a green 100. Unmarked legacy fractional-score input keeps its
+  existing interpretation.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
