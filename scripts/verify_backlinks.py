@@ -111,10 +111,13 @@ def _head_check(url: str, timeout: int = 15) -> dict:
 
 
 def _normalize_url(url: str) -> str:
-    """Normalize a URL for comparison (lowercase, strip trailing slash, strip fragment)."""
-    parsed = urlparse(url.lower())
+    """Ignore host case, trailing slashes and fragments, preserving page identity."""
+    parsed = urlparse(url)
     path = parsed.path.rstrip("/") or "/"
-    return f"{parsed.scheme}://{parsed.netloc}{path}"
+    normalized = parsed._replace(
+        scheme=parsed.scheme.lower(), netloc=parsed.netloc.lower(), path=path, fragment=""
+    ).geturl()
+    return re.sub(r"%[0-9a-fA-F]{2}", lambda match: match[0].upper(), normalized)
 
 
 # Directives whose value follows a colon, so "max-snippet: 10" is not a
