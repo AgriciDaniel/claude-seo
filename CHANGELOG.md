@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Backlink verification preserves path case, query strings and path parameters when
+  matching the exact target, so a different page cannot hide its anchor text or link attributes.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
