@@ -203,9 +203,9 @@ def run_pagespeed(
                     p75 = metric_data.get("percentile")
                     category = metric_data.get("category", "NONE")
                     if p75 is not None:
-                        # CLS from PSI is already numeric
+                        # PSI encodes field CLS in hundredths, including 0 and 1.
                         if crux_name == "cumulative_layout_shift":
-                            p75_val = p75 / 100 if p75 > 1 else p75
+                            p75_val = p75 / 100
                         else:
                             p75_val = p75
                         result["field_metrics"][f"{field_source}_{crux_name}"] = {
