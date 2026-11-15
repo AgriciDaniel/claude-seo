@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- HTML parsing combines all generic robots meta tags. Later permissive or
+  empty tags no longer hide an earlier noindex restriction from drift checks
+  or page-level nofollow from backlink verification.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
