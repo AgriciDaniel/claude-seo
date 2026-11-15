@@ -87,6 +87,10 @@ def test_hostile_referral_is_never_dialled(monkeypatch, hostile):
 
 def test_legitimate_referral_is_still_followed(monkeypatch):
     """The guard must not break the normal path."""
+    # Keep the real referral validation, but do not depend on external DNS.
+    monkeypatch.setattr(dh.socket, "getaddrinfo", lambda host, port, *args, **kwargs: [
+        (dh.socket.AF_INET, dh.socket.SOCK_STREAM, 6, "", ("93.184.216.34", port)),
+    ])
     attempts = _stub_chain(
         monkeypatch,
         b"refer: whois.verisign-grs.com\n",
@@ -95,6 +99,7 @@ def test_legitimate_referral_is_still_followed(monkeypatch):
     result = dh._socket_whois("example.com")
 
     assert len(attempts) == 2, "referral hop did not happen"
+    assert attempts[1] == ("93.184.216.34", 43)
     assert "Creation Date" in (result or "")
 
 
