@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Normalize internationalized WHOIS domain inputs to IDNA 2008 A-labels before
+  either backend, avoiding Unicode encoding failures in the socket fallback
+  and inconsistent system-client queries. Reject malformed domain arguments
+  before querying and report CLI input errors without a traceback.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
