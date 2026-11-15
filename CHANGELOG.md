@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Claim verification scans retained spans once per pattern, avoiding quadratic
+  overlap checks on drafts with many statistics while preserving claim priority,
+  positions, and citation results.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
