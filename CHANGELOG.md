@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Shopify resumed crawls reuse records only for the current store's discovered,
+  eligible URLs. Cached pages from another store, a removed sitemap entry, or a
+  newly excluded/robots-disallowed path no longer contaminate the summary and sample.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
