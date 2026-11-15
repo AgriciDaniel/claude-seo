@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **PageSpeed:** a field CLS percentile of 1 is reported as 0.01 for both URL and origin
+  data. PSI encodes field CLS in hundredths; Lighthouse and direct CrUX scores keep their
+  existing units.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
