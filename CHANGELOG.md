@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Bing backlink discovery keeps a requested later page marked partial,
+  including the last page. Unread preceding pages no longer disappear behind
+  a successful complete-inventory result; returned link details are retained.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
