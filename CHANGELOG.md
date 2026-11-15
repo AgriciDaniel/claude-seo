@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- GA4 device and country reports display their returned breakdown rows in text mode,
+  instead of an unrelated organic summary with zero sessions, users, and pageviews.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security

@@ -503,6 +503,20 @@ def main():
             for i, page in enumerate(result.get("pages", [])[:20], 1):
                 print(f"  {i:2d}. {page['landing_page']}")
                 print(f"      Sessions: {page['sessions']:,} | Users: {page['users']:,} | Bounce: {page['bounce_rate']}%")
+        elif args.report in {"device", "country"}:
+            is_device = args.report == "device"
+            print(f"=== Organic Traffic by {'Device' if is_device else 'Country'} ===")
+            print(f"Property: {prop}")
+            dr = result.get("date_range", {})
+            print(f"Period: {dr.get('start')} to {dr.get('end')}")
+            rows = result.get("devices" if is_device else "countries", [])
+            if not rows:
+                print("\nNo organic traffic data for this period.")
+            for row in rows:
+                label = row["category" if is_device else "country"]
+                print(f"\n  {label}: {row['sessions']:,} sessions | {row['users']:,} users")
+                if is_device:
+                    print(f"    Bounce: {row['bounce_rate']}% | Engagement: {row['engagement_rate']}%")
         else:
             totals = result.get("totals", {})
             print("=== GA4 Organic Traffic Report ===")
