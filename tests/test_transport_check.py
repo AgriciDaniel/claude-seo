@@ -352,8 +352,13 @@ class _FakeCertifi:
 @pytest.fixture
 def loaded_roots(monkeypatch) -> list:
     loaded: list = []
+    real = ssl.SSLContext.load_verify_locations
 
     def load_verify_locations(self, cafile=None, capath=None, cadata=None):
+        if cafile is None and capath is None:
+            # Windows loads its system store through this call with cadata
+            # inside create_default_context; that is not a certifi load.
+            return real(self, cafile, capath, cadata)
         loaded.append(cafile)
 
     monkeypatch.setattr(ssl.SSLContext, "load_verify_locations", load_verify_locations)
@@ -397,7 +402,11 @@ def test_missing_certifi_is_not_an_error(net, public, monkeypatch, loaded_roots)
 
 
 def test_unreadable_certifi_bundle_is_not_an_error(net, public, monkeypatch) -> None:
+    real = ssl.SSLContext.load_verify_locations
+
     def unreadable(self, cafile=None, capath=None, cadata=None):
+        if cafile is None and capath is None:
+            return real(self, cafile, capath, cadata)  # the Windows system store
         raise FileNotFoundError(cafile)
 
     monkeypatch.setattr(ssl.SSLContext, "load_verify_locations", unreadable)
