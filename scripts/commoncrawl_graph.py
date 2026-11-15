@@ -17,6 +17,8 @@ Usage:
 """
 
 import argparse
+import gzip
+import io
 import json
 import os
 import re
@@ -66,6 +68,7 @@ KNOWN_RELEASES = [
 VERTICES_SUFFIX = "-domain-vertices.txt.gz"
 EDGES_SUFFIX = "-domain-edges.txt.gz"
 RANKINGS_SUFFIX = "-domain-ranks.txt.gz"
+MAX_COMPRESSED_BYTES = 500 * 1024 * 1024  # 500 MiB safety cap
 
 
 def _graph_file_url(release: str, suffix: str) -> str:
@@ -181,7 +184,8 @@ def _is_cached(domain: str, release: str) -> Optional[dict]:
                 cached = json.load(f)
             # Check cache age (90 days max)
             cached_time = cached.get("metadata", {}).get("cached_at", 0)
-            if time.time() - cached_time < 90 * 86400:
+            if (cached.get("metadata", {}).get("lookup_complete") is True
+                    and time.time() - cached_time < 90 * 86400):
                 return cached
         except (json.JSONDecodeError, IOError):
             pass
@@ -197,68 +201,74 @@ def _save_cache(domain: str, release: str, data: dict) -> None:
 
 
 def _stream_gz_chunked(url: str, target_domain: str, timeout: int = 120,
-                        max_lines: int = 0) -> list:
+                        max_lines: int = 0, domain_column: int = 4,
+                        required_fields: int = 6) -> list:
     """
     Stream a gzipped file and filter for lines matching the target domain.
 
-    Uses incremental zlib decompression to process large gzipped files
-    without loading everything into memory. Stops early when enough matches
-    are found.
+    Reads and decompresses large files incrementally. Matches exact domain
+    fields and stops once enough records are found. An incomplete scan raises
+    instead of returning an empty list that could be mistaken for absence.
 
     Args:
         url: URL of the gzipped file.
         target_domain: Domain to filter for (may be reversed, e.g., com.google).
         timeout: Request timeout in seconds.
         max_lines: Maximum matching lines to return (0 = unlimited).
+        domain_column: Column containing the exact reversed domain.
+        required_fields: Minimum number of fields in each data row.
 
     Returns:
         List of matching lines (tab-separated field lists).
     """
-    import zlib
-
     matches = []
-    max_compressed_bytes = 500 * 1024 * 1024  # 500 MiB safety cap
     total_downloaded = 0
+    response = requests.get(
+        url, stream=True, timeout=timeout, headers={"Accept-Encoding": "identity"},
+    )
+
+    class BoundedReader:
+        def read(self, size=-1):
+            nonlocal total_downloaded
+            remaining = MAX_COMPRESSED_BYTES - total_downloaded
+            requested = min(size, remaining + 1) if size >= 0 else remaining + 1
+            chunk = response.raw.read(requested)
+            total_downloaded += len(chunk)
+            if total_downloaded > MAX_COMPRESSED_BYTES:
+                raise ValueError("Common Crawl scan exceeded the 500 MiB download limit")
+            return chunk
 
     try:
-        resp = requests.get(url, stream=True, timeout=timeout)
-        resp.raise_for_status()
-
-        # Incremental gzip decompression (wbits=16+MAX for gzip format)
-        decompressor = zlib.decompressobj(zlib.MAX_WBITS | 16)
-        leftover = ""
-
-        for chunk in resp.iter_content(chunk_size=256 * 1024):  # 256 KiB chunks
-            total_downloaded += len(chunk)
-            if total_downloaded > max_compressed_bytes:
-                break
-
-            try:
-                text = decompressor.decompress(chunk).decode("utf-8", errors="replace")
-            except zlib.error:
-                break
-
-            text = leftover + text
-            lines = text.split("\n")
-            leftover = lines[-1]  # Incomplete last line carries over
-
-            for line in lines[:-1]:
-                line = line.strip()
-                if not line or line.startswith("#"):
-                    continue
-                fields = line.split("\t")
-                for field in fields:
-                    if field == target_domain or field.endswith(f".{target_domain}"):
+        response.raise_for_status()
+        # GzipFile checks stream completion and handles concatenated members;
+        # TextIOWrapper preserves UTF-8 sequences and a final unterminated row.
+        # A failed or capped scan raises instead of establishing absence.
+        with gzip.GzipFile(fileobj=BoundedReader()) as compressed:
+            prefix = compressed.peek(2)
+            if total_downloaded == 0:
+                raise ValueError("Common Crawl returned an empty HTTP response")
+            # A .gz representation may also have an HTTP gzip encoding. Some
+            # servers label the single file layer as Content-Encoding: gzip,
+            # so unwrap a second layer only when it is actually present.
+            if (response.headers.get("Content-Encoding", "").lower() in {"gzip", "x-gzip"}
+                    and prefix.startswith(b"\x1f\x8b")):
+                text_stream = gzip.GzipFile(fileobj=compressed, mode="rb")
+            else:
+                text_stream = compressed
+            with io.TextIOWrapper(text_stream, encoding="utf-8") as text:
+                for line in text:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    fields = line.split("\t")
+                    if len(fields) < required_fields:
+                        raise ValueError("Common Crawl returned a malformed graph row")
+                    if fields[domain_column] == target_domain:
                         matches.append(fields)
-                        break
-                if max_lines and len(matches) >= max_lines:
-                    resp.close()
-                    return matches
-
-    except requests.exceptions.Timeout:
-        pass  # Return whatever we found so far
-    except MemoryError:
-        pass
+                        if max_lines and len(matches) >= max_lines:
+                            return matches
+    finally:
+        response.close()
 
     return matches
 
@@ -326,7 +336,7 @@ def get_domain_metrics(domain: str, release: Optional[str] = None,
 
     try:
         ranking_matches = _stream_gz_chunked(rankings_url, reversed_domain,
-                                              timeout=timeout, max_lines=5)
+                                              timeout=timeout, max_lines=1)
         for fields in ranking_matches:
             if len(fields) >= 6:
                 # fields[4] is the reversed hostname (e.g., com.google)
@@ -340,20 +350,29 @@ def get_domain_metrics(domain: str, release: Optional[str] = None,
                     }
                     break
     except Exception as e:
-        rankings_data = {"error": str(e)}
+        return {
+            "status": "error", "data": None,
+            "error": f"Common Crawl ranking lookup was incomplete: {e}",
+            "metadata": {"source": "commoncrawl", "release": release},
+        }
 
-    # If not found in rankings, check vertices file to confirm domain was crawled at all
-    in_rankings = bool(rankings_data.get("pagerank"))
+    # A matching row establishes presence even when its PageRank is zero.
+    in_rankings = bool(rankings_data)
     in_crawl = in_rankings  # If in rankings, definitely in crawl
 
     if not in_rankings:
         vertices_url = _graph_file_url(release, VERTICES_SUFFIX)
         try:
             vertex_matches = _stream_gz_chunked(vertices_url, reversed_domain,
-                                                 timeout=min(timeout, 60), max_lines=1)
+                                                 timeout=min(timeout, 60), max_lines=1,
+                                                 domain_column=1, required_fields=2)
             in_crawl = len(vertex_matches) > 0
-        except Exception:
-            pass  # Vertices file may be very large; timeout is acceptable
+        except Exception as e:
+            return {
+                "status": "error", "data": None,
+                "error": f"Common Crawl vertex lookup was incomplete: {e}",
+                "metadata": {"source": "commoncrawl", "release": release},
+            }
 
     # Build appropriate note based on what we found
     if in_rankings:
@@ -381,6 +400,7 @@ def get_domain_metrics(domain: str, release: Optional[str] = None,
             "source": "commoncrawl",
             "release": release,
             "from_cache": False,
+            "lookup_complete": True,
             "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         },
     }
@@ -518,7 +538,8 @@ def main():
             print(f"  Number of hosts:           {data.get('n_hosts', 'N/A')}")
         elif result.get("error"):
             print(f"Error: {result['error']}", file=sys.stderr)
+    return 1 if result.get("status") == "error" else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
