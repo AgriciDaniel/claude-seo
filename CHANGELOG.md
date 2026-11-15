@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Common Crawl lookups report interrupted, capped, and invalid gzip scans as
+  errors instead of caching a false "not found" result. Exact records, zero
+  PageRank values, final rows, and concatenated gzip members remain usable;
+  streamed responses are closed on every path. Legacy caches without lookup
+  completion evidence are refreshed.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
