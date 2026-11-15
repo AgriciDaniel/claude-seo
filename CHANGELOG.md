@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- GSC query and URL Inspection errors use the actual HTTP response status.
+  Numbers such as `403` in a property URL or error message no longer turn rate
+  limits, backend failures, or timeouts into false permission errors.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
