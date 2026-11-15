@@ -807,3 +807,40 @@ def test_cli_url_mode_notes_a_canonical_that_redirects_elsewhere_or_fails(capsys
 def test_cli_url_mode_skips_the_probe_for_a_self_canonical(capsys, monkeypatch):
     out, calls = _canonical_cli(capsys, monkeypatch, {}, canonical=URL)
     assert calls == [URL] and "canonical_probe" not in out["facts"]
+
+
+def test_a_foreign_canonical_is_probed_public_only(capsys, monkeypatch):
+    """A canonical comes from the page, so the allowlist must not apply to it."""
+    import fetch_page
+
+    seen = {}
+    page = {"url": URL, "status_code": 200, "content": build(canonical=APEX), "too_large": False,
+            "error": None, "headers": {"Content-Type": "text/html; charset=utf-8"}, "redirect_chain": []}
+
+    def fake(url, timeout=30, public_only=False, **_k):
+        seen[url] = public_only
+        return page if url == URL else {"url": url, "status_code": 200, "error": None, "redirect_chain": []}
+
+    monkeypatch.setattr(fetch_page, "fetch_page", fake)
+    code, _ = cli(capsys, "--url", URL)
+    assert code == 0 and seen[URL] is False and seen[APEX] is True
+
+
+def test_a_same_origin_canonical_keeps_the_operators_allowlist():
+    import page_checks
+
+    assert page_checks._origin_key("http://127.0.0.1:8080/a") == page_checks._origin_key("HTTP://127.0.0.1:8080/b")
+    assert page_checks._origin_key("http://127.0.0.1:8080/a") != page_checks._origin_key("http://127.0.0.1:9090/a")
+    assert page_checks._origin_key("https://example.com/") == page_checks._origin_key("https://example.com:443/x")
+
+
+def test_fetch_page_public_only_ignores_the_local_allowlist(monkeypatch):
+    """With CLAUDE_SEO_LOCAL_TARGETS naming a local server, public_only still refuses it."""
+    import socket as _socket
+    import fetch_page
+
+    monkeypatch.setenv("CLAUDE_SEO_LOCAL_TARGETS", "127.0.0.1:8765")
+    connects = []
+    monkeypatch.setattr(_socket.socket, "connect", lambda self, addr: connects.append(addr))
+    out = fetch_page.fetch_page("http://127.0.0.1:8765/admin/delete?id=1", timeout=2, public_only=True)
+    assert out["error"] and "url_safety" in out["error"] and connects == []

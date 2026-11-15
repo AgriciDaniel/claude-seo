@@ -1615,10 +1615,11 @@ class _ProxyGuardSession(requests.Session):
     pin; any other host must be public.
     """
 
-    def __init__(self, validated_url: str) -> None:
+    def __init__(self, validated_url: str, *, public_only: bool = False) -> None:
         super().__init__()
         self._validated_url = validated_url
         self._validated_host = _hostname_or_none(validated_url)
+        self._public_only = public_only
 
     def send(self, request, **kwargs):  # type: ignore[no-untyped-def]
         proxies = kwargs.get("proxies")
@@ -1633,7 +1634,7 @@ class _ProxyGuardSession(requests.Session):
             or _is_trusted_proxy_host(hop_host)
         ):
             try:
-                if hop_host == self._validated_host:
+                if hop_host == self._validated_host and not self._public_only:
                     validate_url_strict(url)
                 else:
                     validate_public_url_strict(url)
@@ -1721,17 +1722,22 @@ def safe_requests_head(
 
 
 @contextmanager
-def safe_requests_session(url: str) -> Iterator[requests.Session]:
+def safe_requests_session(url: str, *, public_only: bool = False) -> Iterator[requests.Session]:
     """
     Yield a ``requests.Session`` whose connections to ``url``'s hostname
     are DNS-pinned. Callers may make multiple requests to that host
     within the ``with`` block without re-resolving.
+
+    ``public_only`` is for a URL the operator did not choose (one taken from
+    a page, such as its canonical): ``CLAUDE_SEO_LOCAL_TARGETS`` is never
+    read, so every address must be public.
     """
-    norm_url, pinned_ip = validate_url_strict(url)
+    validate = validate_public_url_strict if public_only else validate_url_strict
+    norm_url, pinned_ip = validate(url)
     parsed = urlparse(norm_url)
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     assert parsed.hostname is not None
-    session = _ProxyGuardSession(norm_url)
+    session = _ProxyGuardSession(norm_url, public_only=public_only)
     # Session hooks apply to every request made on it, including each
     # redirect hop, unless a request passes its own response hooks.
     session.hooks["response"].append(_bound_redirect_body)

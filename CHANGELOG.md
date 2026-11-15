@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   redirect that `NO_PROXY` would send straight to the proxy's address, on any
   port, is refused. A proxy URL without a port is matched on the port it
   really uses (80 for `http://`).
+- The GCP (`fd20:ce::254`) and Oracle Cloud (`192.0.0.192`) metadata addresses, and any
+  address wrapped in 6to4 form, can never be allowlisted: not as a trusted proxy and not in
+  `CLAUDE_SEO_LOCAL_TARGETS`.
+- A malformed proxy URL (an out-of-range port, for one) is refused with a fixed message
+  instead of an error that repeated the URL, including any password in it.
 
 ### Added
 
@@ -72,7 +77,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   update". The skills that look up Google updates now ask for the full list. (issue #459)
 - `sync_flow.py` exits with code 75 and a clear message when GitHub rate limits the sync, so a
   rate limit can be told apart from a real failure.
-
 - `seo-shopify` and `seo-posthog` load as plugin skills, and the `seo-posthog` agent ships in
   `agents/`. Like `seo-bing` (#458), both skills are mirrored into `skills/` and kept identical
   to the extension copies by a test. A plugin-only install had neither before. The plugin now
@@ -103,7 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Report:** the PDF report works on macOS with Pango installed through Homebrew. When
   WeasyPrint cannot load its system libraries, or PageSpeed rate limits a request made without
   an API key, the error names the cause and the fix. `page_checks.py` also follows a canonical
-  that names another URL and says when it redirects back to the page.
+  that names another URL and says when it redirects back to the page. The canonical comes
+  from the page, so unless it is on the audited page's own origin it is fetched from public
+  addresses only and `CLAUDE_SEO_LOCAL_TARGETS` never applies to it.
   (#457, Vivek-Chaudhari30)
 - **Report:** a URL Inspection result without an index status no longer crashes the
   indexation report; the failed inspection is shown. (#433, Afloat16)

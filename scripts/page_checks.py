@@ -1145,6 +1145,16 @@ def _from_url(url: str, timeout: int) -> dict:
     return out
 
 
+def _origin_key(url: str) -> tuple:
+    """(scheme, host, port) of a URL, for the same-origin test of the canonical probe."""
+    try:
+        parts = urlparse(url)
+        port = parts.port or {"http": 80, "https": 443}.get(parts.scheme.lower())
+    except ValueError:
+        return ("", "", None)
+    return (parts.scheme.lower(), (parts.hostname or "").lower().rstrip("."), port)
+
+
 def _probe_canonical(out: dict, page_url: str, fetch, timeout: int) -> None:
     """Fetch a canonical that names another URL and record where it lands.
 
@@ -1158,8 +1168,13 @@ def _probe_canonical(out: dict, page_url: str, fetch, timeout: int) -> None:
     canonical = out["facts"].get("canonical")
     if not canonical or canonical.endswith("..."):
         return  # absent, or cut short by _trim and so not the real URL
+    # The canonical comes from the page, so it is not the operator's target:
+    # fetched public-only, it can never steer a request to an address
+    # CLAUDE_SEO_LOCAL_TARGETS allows. Only the audited page's own host and
+    # port keep the operator's allowlist.
+    same_origin = _origin_key(canonical) == _origin_key(page_url)
     try:
-        target = fetch(canonical, timeout=timeout)
+        target = fetch(canonical, timeout=timeout, public_only=not same_origin)
     except Exception as exc:  # a failed probe never fails the page check
         out["facts"]["canonical_probe"] = {"error": _trim(str(exc), 200)}
         return

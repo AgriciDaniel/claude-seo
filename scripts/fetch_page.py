@@ -54,6 +54,7 @@ from url_safety import (  # noqa: E402
     decode_response_text,
     read_bounded_until,
     safe_requests_session,
+    validate_public_url_strict,
     validate_url_strict,
 )
 from url_safety import DEFAULT_USER_AGENT as DEFAULT_USER_AGENT  # noqa: E402,F401
@@ -114,6 +115,7 @@ def fetch_page(
     user_agent: Optional[str] = None,
     max_bytes: int = MAX_PAGE_BYTES,
     max_time: Optional[float] = None,
+    public_only: bool = False,
 ) -> dict:
     """
     Fetch a web page and return response details.
@@ -139,6 +141,9 @@ def fetch_page(
             ``error`` says so and ``content`` holds the part read. A stall
             inside a connect, a header read or a redirect's own body is
             still limited by ``timeout`` per socket read, not by this.
+        public_only: For a URL taken from a page rather than chosen by the
+            operator: ``CLAUDE_SEO_LOCAL_TARGETS`` is ignored, so only public
+            addresses are fetched.
 
     Returns:
         Dictionary with url, status_code, content, headers, redirect_chain,
@@ -189,7 +194,7 @@ def fetch_page(
         url = f"https://{url}"
 
     try:
-        norm_url, _pinned_ip = validate_url_strict(url)
+        norm_url, _pinned_ip = (validate_public_url_strict if public_only else validate_url_strict)(url)
     except URLSafetyError as exc:
         result["error"] = f"url_safety: {exc}"
         return finish()
@@ -201,7 +206,8 @@ def fetch_page(
         headers["User-Agent"] = user_agent
 
     try:
-        with safe_requests_session(norm_url) as session:
+        session_options = {"public_only": True} if public_only else {}
+        with safe_requests_session(norm_url, **session_options) as session:
             session.max_redirects = max_redirects
             response = session.get(
                 norm_url,
