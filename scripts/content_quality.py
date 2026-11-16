@@ -475,7 +475,15 @@ def main() -> int:
     if args.source == "-":
         text = sys.stdin.read()
     else:
-        text = Path(args.source).read_text(encoding="utf-8", errors="replace")
+        path = Path(args.source)
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if path.suffix.lower() in {".html", ".htm", ".xhtml"}:
+            from bs4 import BeautifulSoup
+
+            soup = BeautifulSoup(text, "html.parser")
+            for tag in soup(["head", "script", "style", "noscript", "template"]):
+                tag.decompose()
+            text = (soup.body or soup).get_text(" ", strip=True)
 
     result = analyse(text)
 
