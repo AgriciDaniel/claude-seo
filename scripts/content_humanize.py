@@ -251,9 +251,11 @@ def humanize(text: str) -> dict:
         cleaned = pattern.sub(_repl, cleaned)
 
     # Collapse double spaces introduced by deleted phrases, but leave
-    # newlines and intentional spacing alone.
-    cleaned = re.sub(r"  +", " ", cleaned)
-    cleaned = re.sub(r" ([,.;:!?])", r"\1", cleaned)
+    # newlines and intentional spacing alone: only runs between two
+    # non-space characters are touched, so Markdown indentation (code
+    # blocks, nested lists) and trailing hard line breaks survive.
+    cleaned = re.sub(r"(?<=\S)  +(?=\S)", " ", cleaned)
+    cleaned = re.sub(r"(?<=\S) ([,.;:!?])", r"\1", cleaned)
 
     return {
         "cleaned": cleaned,
