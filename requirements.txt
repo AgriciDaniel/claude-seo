@@ -18,7 +18,7 @@ courlan>=1.4.0,<2.0.0             # trafilatura URL helper; explicit pin avoids 
 
 # Report generation (for seo-google PDF/Excel reports)
 matplotlib>=3.9.0,<4.0.0              # No known CVEs
-numpy>=2.2.6,<3.0.0                   # Direct import in google_report.py; matplotlib>=3.9 is the first numpy 2 release line
+numpy>=2.4.6,<3.0.0                   # Direct import in google_report.py; matplotlib>=3.9 is the first numpy 2 release line
 weasyprint>=70.0,<71.0                # PYSEC-2026-3940 fixed in 70.0
 openpyxl>=3.1.5,<4.0.0                # No known CVEs (Excel export)
 pillow>=13.0.0,<14.0.0                # Transitive via matplotlib and weasyprint; GHSA-22hg-r758-rrw9 and 27 more fixed in 13.0.0
