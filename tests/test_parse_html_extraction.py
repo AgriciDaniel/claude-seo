@@ -34,6 +34,25 @@ PAGE = "https://example.com/blog/post"
 GIF_1X1 = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
 
 
+@pytest.mark.parametrize("parser", ["html.parser", "lxml"])
+@pytest.mark.parametrize(
+    "html, expected",
+    [
+        ('<html><head></head><body><svg><title>Chart label</title></svg></body></html>', None),
+        ('<svg><g><title>Nested icon label</title></g></svg>', None),
+        ('<svg><title>Icon label</title></svg><title>Page title</title>', "Page title"),
+        ('<title>Page &amp; guide</title><svg><title>Icon label</title></svg>', "Page & guide"),
+        ('<title> </title><svg><title>Icon label</title></svg>', ""),
+    ],
+)
+def test_document_title_does_not_use_svg_accessible_names(monkeypatch, parser, html, expected):
+    if parser == "lxml":
+        pytest.importorskip("lxml")
+    monkeypatch.setattr(parse_html_module, "_HTML_PARSER", parser)
+
+    assert parse_html(html, PAGE)["title"] == expected
+
+
 def _image(html: str, base_url: str = PAGE) -> dict:
     return parse_html(html, base_url)["images"][0]
 

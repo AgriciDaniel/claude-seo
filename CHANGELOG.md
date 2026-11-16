@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The HTML parser excludes SVG accessibility titles from the document title, so an icon or chart label no longer hides a missing page title.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security

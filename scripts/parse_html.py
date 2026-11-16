@@ -692,7 +692,9 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     }
 
     # Title
-    title_tag = soup.find("title")
+    title_tag = next(
+        (tag for tag in soup.find_all("title") if tag.find_parent("svg") is None), None
+    )
     if title_tag:
         result["title"] = _element_text(title_tag)
 
