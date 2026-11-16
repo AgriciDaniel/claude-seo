@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep robots.txt user-agent groups intact across Sitemap and other non-rule records, so crawler access findings and Content-Signal drafts follow the same RFC 9309 groups.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
