@@ -77,3 +77,31 @@ def test_cloudsdk_config_expands_a_leading_tilde(tmp_path, monkeypatch):
     monkeypatch.setenv("CLOUDSDK_CONFIG", "~/gcloud-xyz")
     expected = os.path.join(str(tmp_path), "gcloud-xyz", "application_default_credentials.json")
     assert os.path.normpath(google_auth._gcloud_adc_path()) == os.path.normpath(expected)
+
+
+def _config(**fields) -> None:
+    Path(google_auth.CONFIG_PATH).write_text(json.dumps({"api_key": "k", **fields}))
+
+
+@pytest.mark.parametrize("choice", ["", "adc"])
+def test_a_gcloud_sign_in_counts_toward_the_credential_tier(isolated, monkeypatch, choice):
+    # The agent picks its workflow from this tier, so a gcloud-only person
+    # rated tier 0 would never get Search Console or GA4 data.
+    if choice:
+        monkeypatch.setenv("CLAUDE_SEO_GOOGLE_AUTH", choice)
+    _adc(isolated)
+    _config()
+    assert google_auth.detect_tier()["tier"] == 1
+    _config(ga4_property_id="123456789")
+    assert google_auth.detect_tier()["tier"] == 2
+
+
+def test_without_a_gcloud_sign_in_an_api_key_stays_tier_0(isolated):
+    _config(ga4_property_id="123456789")
+    assert google_auth.detect_tier()["tier"] == 0
+
+
+def test_a_service_account_in_the_gcloud_file_does_not_raise_the_tier(isolated):
+    _adc(isolated, kind="service_account")
+    _config()
+    assert google_auth.detect_tier()["tier"] == 0
