@@ -51,6 +51,7 @@ from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta, timezone
 from urllib.parse import unquote, urljoin, urlparse, urlunparse
 
+import idna
 import requests
 from lxml import etree
 
@@ -357,11 +358,17 @@ def _url_path(url: str) -> str:
 
 
 def _host(url: str) -> str:
-    """Lower-case host of a URL; empty when the text does not parse."""
+    """Comparable ASCII host; preserve invalid IDN spellings without raising."""
     try:
-        return (urlparse(url).hostname or "").lower().rstrip(".")
+        host = (urlparse(url).hostname or "").lower().rstrip(".")
     except ValueError:
         return ""
+    if not host or host.isascii():
+        return host
+    try:
+        return idna.encode(host, uts46=True).decode("ascii").rstrip(".")
+    except idna.IDNAError:
+        return host
 
 
 def _sample_url(loc: str) -> tuple[str, bool]:
@@ -465,7 +472,7 @@ def _normalize_url(url: str) -> str | None:
     scheme = parsed.scheme.lower()
     if scheme not in {"http", "https"} or not parsed.hostname:
         return None
-    host = parsed.hostname.lower().rstrip(".")
+    host = _host(url)
     if ":" in host:
         host = f"[{host}]"
     netloc = f"{host}:{port}" if port and port != (443 if scheme == "https" else 80) else host
@@ -803,7 +810,7 @@ def discover_sitemaps(
             deduped.append(candidate)
 
     expansion = _Expansion(sample_size) if expand else None
-    target_host = urlparse(origin).hostname
+    target_host = _host(origin)
     # Several paths can redirect to one sitemap (/sitemap.xml to
     # /sitemap_index.xml): list each file once, by its final URL.
     listed = set()
@@ -823,7 +830,7 @@ def discover_sitemaps(
             entry["error"] = _MALFORMED
             result["checked"].append(entry)
             continue
-        if urlparse(candidate).hostname != target_host and candidate in declared_raw:
+        if _host(candidate) != target_host and candidate in declared_raw:
             entry["cross_host"] = True
 
         fetched, body, entry["error"] = _fetch_sitemap(candidate)

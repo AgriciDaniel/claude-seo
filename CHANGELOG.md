@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Sitemap discovery now compares Unicode and Punycode host spellings by their IDNA identity, preventing false cross-host warnings and duplicate URL inflation for internationalized domains.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
