@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- UCP profile validation accepts empty required registries and omitted capabilities, while checking that payment_handlers is present as an object. Valid minimal discovery profiles no longer receive spurious missing-service/capability errors.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
