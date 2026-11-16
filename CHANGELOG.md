@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Keep supported Course and Course list markup out of the merchant validator's retired-type failures; Course Info retirement does not retire the Course type.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
