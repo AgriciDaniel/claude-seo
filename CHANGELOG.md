@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Page checks recognize the complete JSON-LD media type, preventing scripts with lookalike types or parameters from creating false invalid-JSON-LD findings.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
