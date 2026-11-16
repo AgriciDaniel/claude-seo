@@ -9,7 +9,6 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import matomo_report as report  # noqa: E402
 
-
 DAILY = {
     "2026-11-12": {
         "nb_visits": 80, "nb_uniq_visitors": 60, "nb_actions": 150,
