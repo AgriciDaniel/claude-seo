@@ -9,7 +9,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import agentic_check as checker  # noqa: E402
 import agentic_fix as drafter  # noqa: E402
 
-
 OTHER_RECORDS = [
     "Sitemap: https://example.com/sitemap.xml",
     "Agentmap: /catalog.json",
