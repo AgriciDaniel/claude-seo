@@ -86,7 +86,7 @@ _TRACKING_KEYS = frozenset({"fbclid", "gclid", "mc_cid", "mc_eid", "_ga", "ref"}
 # W3C Datetime: YYYY, YYYY-MM, YYYY-MM-DD, or a date with a time and a zone.
 _W3C_DATETIME = re.compile(
     r"(\d{4})(?:-(\d{2})(?:-(\d{2})"
-    r"(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?(Z|[+-]\d{2}:\d{2}))?)?)?",
+    r"(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|[+-]\d{2}:\d{2}))?)?)?",
     re.ASCII,
 )
 # Query parameters whose value is a credential, not part of the page address.
@@ -427,12 +427,12 @@ def _xml_entries(kind: str, root) -> Iterator[tuple[str | None, str | None]]:
         yield loc or None, lastmod or None
 
 
-def _parse_w3c_datetime(value: str) -> datetime | None:
-    """Return a comparable UTC time for a W3C Datetime value, or None."""
+def _parse_w3c_datetime(value: str) -> tuple[datetime, int] | None:
+    """Return UTC whole seconds and nanoseconds for exact timestamp ordering."""
     match = _W3C_DATETIME.fullmatch(value)
     if not match:
         return None
-    year, month, day, hour, minute, second, zone = match.groups()
+    year, month, day, hour, minute, second, fraction, zone = match.groups()
     try:
         moment = datetime(
             int(year), int(month or 1), int(day or 1),
@@ -447,7 +447,9 @@ def _parse_w3c_datetime(value: str) -> datetime | None:
             moment = moment - offset if zone[0] == "+" else moment + offset
     except (ValueError, OverflowError):
         return None
-    return moment
+    # datetime stores only microseconds; retain all nine accepted fraction
+    # digits separately so distinct timestamps never collapse to one second.
+    return moment, int((fraction or "").ljust(9, "0"))
 
 
 def _normalize_url(url: str) -> str | None:
@@ -650,8 +652,8 @@ class _Expansion:
         file_number = len(self.files)
         host = _host(final_url)
         count = invalid = with_lastmod = bad_lastmod = cross_host = repeats = cross_file = secret = 0
-        oldest: tuple[datetime, str] | None = None
-        newest: tuple[datetime, str] | None = None
+        oldest: tuple[tuple[datetime, int], str] | None = None
+        newest: tuple[tuple[datetime, int], str] | None = None
         lastmods: Counter[str] = Counter()
         examples: list[str] = report["cross_host_url_examples"]
         secret_examples: list[str] = report["redacted_url_examples"]
