@@ -323,7 +323,9 @@ def _count_phrase_hits(text: str, patterns: Iterable[str]) -> list[str]:
     Counting that prefix made one sentence two filler hits, which moved
     ``filler_score`` from 25 to 50 and raised the filler flag.
     """
-    lowered = text.lower()
+    # Wrapping, nonbreaking spaces, and a typeset apostrophe do not change
+    # the existing phrase signal. Keep the canonical pattern names below.
+    lowered = " ".join(text.lower().replace("\u2019", "'").split())
     hits = []
     for pattern in patterns:
         if re.search(rf"(?<!\w){re.escape(pattern)}(?!\w)", lowered):

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Content quality phrase matching now recognizes line wrapping, repeated or nonbreaking whitespace, and typographic apostrophes without changing the existing phrase lists or whole-word matching.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
