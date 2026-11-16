@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Transport header grading now rejects HSTS includeSubDomains directives with values, preventing ineffective headers from passing HSTS and preload checks.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
