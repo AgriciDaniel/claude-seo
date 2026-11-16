@@ -971,6 +971,11 @@ def detect_tier() -> dict:
     if token_data and token_data.get("access_token"):
         has_authenticated = True
 
+    # The person's own gcloud sign-in counts too: get_oauth_credentials and
+    # check_credentials both fall back to it.
+    if not has_authenticated and _load_gcloud_adc() is not None:
+        has_authenticated = True
+
     # Check service account
     if not has_authenticated:
         sa_path = config.get("service_account_path")
