@@ -140,7 +140,7 @@ def parse_profile(payload: str) -> dict:
         report["supported_versions"] = dict(sorted(profiles.items()))
 
     services = ucp.get("services")
-    if not isinstance(services, dict) or not services:
+    if not isinstance(services, dict):
         report["issues"].append("missing-services")
     else:
         for name, variants in services.items():
@@ -167,9 +167,15 @@ def parse_profile(payload: str) -> dict:
                     entry["issues"].append("missing-endpoint")
                 report["services"].append(entry)
 
-    caps = ucp.get("capabilities")
-    if not isinstance(caps, dict) or not caps:
-        report["issues"].append("missing-capabilities")
+    # Required registries may be empty, while capabilities may be omitted.
+    if "payment_handlers" not in ucp:
+        report["issues"].append("missing-payment-handlers")
+    elif not isinstance(ucp["payment_handlers"], dict):
+        report["issues"].append("payment-handlers-not-an-object")
+
+    caps = ucp.get("capabilities", {})
+    if not isinstance(caps, dict):
+        report["issues"].append("capabilities-not-an-object")
     else:
         for name, variants in caps.items():
             if name not in KNOWN_CAPABILITIES:
