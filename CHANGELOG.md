@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Content-quality HTML file input now extracts body text before scoring, excluding head metadata, scripts, styles, noscript and template content while decoding character references.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
