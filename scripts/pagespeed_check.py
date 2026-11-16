@@ -167,6 +167,13 @@ def run_pagespeed(
     # Record which Lighthouse build PSI ran, so reports can cite it instead of
     # assuming the latest stable release.
     result["lighthouse_version"] = lr.get("lighthouseVersion")
+    runtime_error = lr.get("runtimeError") or {}
+    if runtime_error and runtime_error.get("code") != "NO_ERROR":
+        code = runtime_error.get("code") or "UNKNOWN_ERROR"
+        message = runtime_error.get("message") or "Lighthouse could not complete the audit."
+        result["error"] = redact_google_api_key(f"Lighthouse runtime error {code}: {message}")
+    # A failed Lighthouse run can still carry useful scored categories and
+    # independent CrUX field data. Keep those while surfacing the failure.
     for cat_key, cat_data in lr.get("categories", {}).items():
         # Lighthouse emits score: null for categories it could not evaluate
         # (scoreDisplayMode "error"/"notApplicable"). Skip them rather than

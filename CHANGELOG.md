@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Surface Lighthouse runtime failures returned inside successful PageSpeed HTTP responses, while preserving available categories and field data for partial reports.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
