@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Unknown-path checks no longer report authentication, rate-limit, or server errors as a working missing-page response. Only 404/410 pass; unavailable probes retain their error and are explicitly inconclusive.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
