@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fetch Matomo page views alongside visit metrics through API.get instead of counting downloads and outlinks as page views; keep absent page-view values unknown.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
