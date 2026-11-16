@@ -599,6 +599,11 @@ def _grade_hsts(raw: Optional[str], https: bool) -> dict:
             hsts["issues"].append(message)
             hsts["preload_gaps"].append(message)
             return hsts
+        if key == "includesubdomains" and _sep:
+            message = "includeSubDomains must be valueless, so browsers ignore this invalid HSTS header."
+            hsts["issues"].append(message)
+            hsts["preload_gaps"].append(message)
+            return hsts
         if key:
             directives[key] = value.strip().strip('"')
     max_age = directives.get("max-age", "")
