@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Expanded sitemap page-URL totals now exclude invalid child-sitemap locations from invalid_locs, keeping the page count identity consistent while retaining each index's invalid-location diagnostics.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security

@@ -584,7 +584,11 @@ class _Expansion:
                 item["duplicate_count"] or 0 for item in valid if item["kind"] != "sitemapindex"
             ),
             "duplicates_across_files": sum(item["_cross_file_duplicates"] for item in valid),
-            "invalid_locs": sum(item["invalid_loc_count"] for item in valid),
+            # This total accounts for page URLs, like total_urls and duplicates.
+            # Invalid index locations remain in each index's file report.
+            "invalid_locs": sum(
+                item["invalid_loc_count"] for item in valid if item["kind"] != "sitemapindex"
+            ),
         }
         if not self.tracking_complete:
             totals["unique_urls"] = None
