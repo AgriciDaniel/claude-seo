@@ -294,6 +294,11 @@ _UNSPACED_LANGS = ("zh", "ja", "th", "lo", "km", "my")
 # ---------------------------------------------------------------------------
 
 
+def _reject_json_constant(value: str) -> None:
+    """Reject JavaScript numeric constants that are outside JSON syntax."""
+    raise ValueError(f"Invalid JSON constant: {value}")
+
+
 def _trim(value: object, limit: int = EVIDENCE_MAX_CHARS) -> str:
     """One line of untrusted text: control characters removed, cut to ``limit``."""
     text = re.sub(r"\s+", " ", _CONTROL_RE.sub(" ", str(value))).strip()
@@ -962,7 +967,7 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
             continue
         jsonld_blocks += 1
         try:
-            json.loads(raw)
+            json.loads(raw, parse_constant=_reject_json_constant)
         except RecursionError:
             jsonld_errors.append(f"block {jsonld_blocks}: nested too deeply to parse")
         except ValueError as exc:
