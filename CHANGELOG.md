@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `content_humanize.py` no longer strips Markdown indentation or hard line
+  breaks. Its double-space cleanup ran over the whole draft, so indented code
+  blocks and nested list items lost their leading spaces and two-space line
+  breaks became one, even when no phrase was replaced. Only spacing between
+  two words is tidied now.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
