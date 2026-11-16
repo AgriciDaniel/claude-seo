@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Drift comparison ignores reordering independent JSON-LD blocks, preventing false schema-change warnings after template or plugin ordering changes. Existing snapshots work without migration; ordered values inside blocks and actual data changes remain significant.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
