@@ -17,7 +17,7 @@ What counts as a claim
 What counts as a citation marker
 ================================
 - A nearby (`<= 200 chars`) markdown/HTML link: `[Source](https://…)`
-- A footnote-style reference: `[^1]` or `[1]`
+- A footnote-style reference: `[^source]`, `[^1]`, or `[1]`
 - An inline attribution to a named source: "Forrester said", "per Gartner"
 - A schema.org Citation block (rough detection of nearby `@type`:
   `"Citation"` JSON)
@@ -103,7 +103,7 @@ _CLAIM_PATTERNS: tuple[tuple[re.Pattern, str], ...] = (
 _CITATION_PATTERNS: tuple[re.Pattern, ...] = (
     re.compile(r"\[[^\]]+\]\(https?://[^)]+\)"),  # markdown link
     re.compile(r"<a\s+[^>]*href=[\"']https?://[^\"']+[\"']"),  # HTML link
-    re.compile(r"\[\^?\d+\]"),  # footnote-style [1] or [^1]
+    re.compile(r"\[(?:\^[^\[\]\s]+|\d+)\]"),  # named/numeric footnotes or [1]
     re.compile(r"@type\s*:\s*[\"']Citation[\"']"),  # schema.org Citation
     re.compile(
         # "Source:", "Via:", "See also:", "Cited in", "Cited by" or

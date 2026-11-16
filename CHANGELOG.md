@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Named Markdown footnotes now count as citation markers, preventing false uncited-claim warnings for references such as [^source]. Numeric references, ordinary bracketed text, and the existing proximity window keep their behavior.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
