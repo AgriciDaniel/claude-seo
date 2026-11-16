@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Preload scoring no longer awards the inline speculation bonus to malformed JSON, non-object payloads, empty action arrays, or arrays without rule objects; observed blocks remain counted.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
