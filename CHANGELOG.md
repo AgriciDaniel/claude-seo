@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Markdown delivery checks require a nonempty Markdown/text response instead of passing JSON, XHTML, images, PDFs, or empty HTTP 200 responses as a usable alternate. Content negotiation now compares the exact media type while retaining charset parameters and Vary checks.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security

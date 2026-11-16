@@ -1027,11 +1027,19 @@ def _vary_covers_accept(vary: str) -> bool:
     return "accept" in tokens or "*" in tokens
 
 
+def _markdown_response(rec: dict, *, negotiated: bool = False) -> bool:
+    """Require a nonempty Markdown/text representation, not merely non-HTML."""
+    media_type = _ctype(rec).split(";", 1)[0].strip()
+    allowed = {"text/markdown"} if negotiated else {"text/markdown", "text/plain", "text/x-markdown"}
+    return (rec["status"] == 200 and media_type in allowed
+            and bool((rec.get("text") or "").strip()))
+
+
 def audit_markdown(url: str, page: dict) -> tuple[list, dict]:
     neg = fetch(url, headers={"Accept": "text/markdown"})
     neg_ct = _ctype(neg)
     vary_accept = _vary_covers_accept((neg.get("headers") or {}).get("vary", ""))
-    negotiated = neg["status"] == 200 and "text/markdown" in neg_ct
+    negotiated = _markdown_response(neg, negotiated=True)
     data = {"negotiation": {"status": neg["status"], "content_type": neg_ct,
                             "vary_accept": vary_accept,
                             "x_markdown_tokens": (neg.get("headers") or {}).get("x-markdown-tokens"),
@@ -1040,14 +1048,14 @@ def audit_markdown(url: str, page: dict) -> tuple[list, dict]:
     for alt in (page.get("soup_links") or {}).get("markdown_alternates", [])[:3]:
         rec = fetch(alt)
         alternates.append({"url": alt, "status": rec["status"], "content_type": _ctype(rec),
-                           "ok": rec["status"] == 200 and not _ctype(rec).startswith("text/html")})
+                           "ok": _markdown_response(rec)})
     data["alternates"] = alternates
     parsed = urlparse(url)
     sibling = (f"{parsed.scheme}://{parsed.netloc}"
                + (parsed.path.rstrip("/") + ".md" if parsed.path.strip("/") else "/index.md"))
     sib = fetch(sibling)
     data["md_sibling"] = {"url": sibling, "status": sib["status"], "content_type": _ctype(sib),
-                          "ok": sib["status"] == 200 and not _ctype(sib).startswith("text/html")}
+                          "ok": _markdown_response(sib)}
     ok = negotiated or any(a["ok"] for a in alternates) or data["md_sibling"]["ok"]
     issues = []
     if negotiated and not vary_accept:
