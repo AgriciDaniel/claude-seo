@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- HTML extraction and page checks reject `NaN`, `Infinity`, and `-Infinity` in
+  JSON-LD, reporting the invalid block while keeping valid neighboring blocks.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
