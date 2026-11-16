@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Sitemap expansion preserves fractional seconds when selecting the oldest and
+  newest `lastmod` values, including timezone offsets and all nine accepted digits.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
