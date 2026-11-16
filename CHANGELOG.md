@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Transport CSP grading now honors strict-dynamic when checking script sources, avoiding weak-policy findings for compatibility sources ignored by CSP3 while preserving unsafe-eval and explicit-override diagnostics.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
