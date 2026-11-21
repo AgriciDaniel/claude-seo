@@ -118,7 +118,7 @@ POSITIVE: dict[str, dict] = {
     "uses-frames": {"html": FRAMESET},
     "deprecated-html-tags": {"body": main_content("<center>Old</center><font>markup</font>")},
     "placeholder-text": {"body": main_content("<p>Lorem ipsum dolor sit amet.</p>")},
-    "images-missing-alt": {"body": main_content('<img src="/chart.png" width="4" height="4">')},
+    "images-missing-alt": {"body": main_content('<img src="/chart.png" width="400" height="300">')},
     "images-missing-dimensions": {"body": main_content('<img src="/chart.png" alt="Roast curve chart">')},
     "first-image-lazy-loaded": {"body": main_content().replace("<img ", '<img loading="lazy" ', 1)},
     "links-without-text": {"body": main_content('<a href="/empty"></a>')},
@@ -302,7 +302,14 @@ def test_empty_alt_is_a_fact_not_a_finding():
     result = run(body=main_content('<img src="/rule.png" alt="" width="4" height="4">'))
     assert "images-missing-alt" not in ids(result)
     assert result["facts"]["images"] == {
-        "total": 2, "missing_alt": 0, "empty_alt": 1, "missing_dimensions": 0, "first_image_lazy": False,
+        "total": 2,
+        "content_total": 1,
+        "decorative_total": 1,
+        "missing_alt": 0,
+        "decorative_missing_alt": 0,
+        "empty_alt": 1,
+        "missing_dimensions": 0,
+        "first_image_lazy": False,
     }
 
 
@@ -310,8 +317,40 @@ def test_counted_findings_carry_a_count():
     body = main_content('<img src="/a.png"><img src="/b.png"><a href="/x">here</a><a href="/y">More &raquo;</a>')
     result = run(body=body)
     assert finding(result, "images-missing-alt")["count"] == 2
-    assert finding(result, "images-missing-alt")["evidence"].startswith("2 of 3 images")
+    assert finding(result, "images-missing-alt")["evidence"].startswith("2 of 3 content images")
     assert finding(result, "generic-anchor-text")["count"] == 2
+
+
+def test_unmarked_icons_and_tracking_pixels_do_not_trigger_missing_alt():
+    catalog = main_content(
+        '<img src="/products/mug.webp" alt="Ceramic coffee mug" width="600" height="600">'
+        '<img src="/assets/icons/shipping.svg" width="24" height="24">'
+        '<img src="/static/badges/verified.png" width="32" height="32">'
+        '<button type="button"><img src="/ui/close.svg" width="16" height="16"></button>'
+        '<img src="https://www.facebook.com/tr?id=123&ev=PageView" width="1" height="1">'
+    )
+    result = run(body=catalog)
+    assert "images-missing-alt" not in ids(result)
+    assert result["facts"]["images"]["content_total"] == 2
+    assert result["facts"]["images"]["missing_alt"] == 0
+    assert result["facts"]["images"]["decorative_total"] == 4
+    assert result["facts"]["images"]["decorative_missing_alt"] == 4
+
+
+def test_missing_alt_ratio_counts_only_content_images():
+    catalog = main_content(
+        '<img src="/products/mug.webp" alt="Ceramic coffee mug" width="600" height="600">'
+        '<img src="/products/grinder.webp" width="600" height="600">'
+        '<img src="/assets/icons/shipping.svg" width="24" height="24">'
+        '<div role="tooltip"><img src="/assets/hint.png" width="24" height="24"></div>'
+        '<img src="https://www.facebook.com/tr?id=123&ev=PageView" width="1" height="1">'
+    )
+    result = run(body=catalog)
+    item = finding(result, "images-missing-alt")
+    assert item["count"] == 1
+    assert item["evidence"].startswith("1 of 3 content images")
+    assert result["facts"]["images"]["missing_alt"] == 1
+    assert result["facts"]["images"]["decorative_missing_alt"] == 3
 
 
 def test_invalid_jsonld_blocks_are_counted():

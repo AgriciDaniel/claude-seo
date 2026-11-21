@@ -19,11 +19,20 @@ Output keys (JSON):
                                                placeholder, else null
                             srcset_candidates  [{url, descriptor}], up to 10
                             decorative         true when alt is empty and the
-                                               image or an ancestor is
-                                               aria-hidden or has role
-                                               presentation / none
+                                               image is decorative/UI (explicit
+                                               ARIA/role markup, tracking pixel,
+                                               small <=48px graphic, UI icon/
+                                               badge/sprite pattern, or inside
+                                               a button/tooltip)
+                            image_class        "content" or "decorative"
+                            classification_reason
+                                               null for content, else the signal
+                                               that classified it as decorative
                           and, with --probe-images, served_format,
                           served_bytes, negotiated, probe_error, probed_src
+    images_summary        {total, content: {total, with_alt, empty_alt,
+                          missing_alt}, decorative: {total, with_alt,
+                          empty_alt, missing_alt}}
     links                 {internal, external}. Hosts that differ only by a
                           leading "www." (any letter case) are the same site;
                           every other subdomain is external
@@ -477,23 +486,257 @@ def _image_sources(img, base_url: Optional[str], src: str) -> tuple:
     return resolved, candidates
 
 
-def _is_decorative_image(img) -> bool:
-    """True when the image has no alt text and is marked as decoration.
+# Heuristic thresholds and patterns for classifying content vs decorative/UI images.
+DECORATIVE_MAX_DIMENSION = 48
 
-    The mark is ``aria-hidden="true"`` or ``role="presentation"`` /
-    ``role="none"`` on the image or on any ancestor. Such an image is skipped
-    by assistive technology, so a missing alt on it is not a finding.
-    """
-    if _attr_text(img, "alt").strip():
-        return False
+_ATTR_PX_RE = re.compile(r"^\s*(\d+(?:\.\d+)?)\s*(?:px)?\s*$", re.IGNORECASE)
+_STYLE_WIDTH_PX_RE = re.compile(r"(?:^|;)\s*width\s*:\s*(\d+(?:\.\d+)?)px\b", re.IGNORECASE)
+_STYLE_HEIGHT_PX_RE = re.compile(r"(?:^|;)\s*height\s*:\s*(\d+(?:\.\d+)?)px\b", re.IGNORECASE)
+
+_TRACKING_PIXEL_HOSTS = frozenset({
+    "connect.facebook.net",
+    "google-analytics.com",
+    "doubleclick.net",
+    "bat.bing.com",
+    "ct.pinterest.com",
+    "px.ads.linkedin.com",
+    "analytics.twitter.com",
+    "pixel.quantserve.com",
+    "sb.scorecardresearch.com",
+    "tr.snapchat.com",
+    "analytics.tiktok.com",
+    "pixel.wp.com",
+})
+
+_TRACKING_PIXEL_HOST_PATHS: tuple[tuple[str, str], ...] = (
+    ("facebook.com", "/tr"),
+    ("googleadservices.com", "/pagead/conversion"),
+    ("googleadservices.com", "/pagead/viewthroughconversion"),
+    ("t.co", "/i/adsct"),
+    ("mc.yandex.ru", "/watch"),
+)
+
+_TRACKING_PIXEL_BASENAME_RE = re.compile(
+    r"^(?:1x1|spacer|blank|pixel|clear|trans|transparent|beacon|track|tracking)\.(?:gif|png|webp|svg)$",
+    re.IGNORECASE,
+)
+
+_DATA_URI_1X1_GIF_PREFIX = "data:image/gif;base64,r0lgodlhaqab"
+
+_CONTENT_PATH_SEGMENTS = frozenset({
+    "product", "products", "catalog", "catalogue", "item", "items",
+    "article", "articles", "blog", "post", "posts", "news",
+    "photo", "photos", "gallery", "uploads", "editorial", "hero",
+    "banner", "banners",
+})
+
+_UI_PATH_SEGMENTS = frozenset({
+    "icon", "icons", "sprite", "sprites", "badge", "badges",
+    "ui", "glyph", "glyphs", "emoji", "emojis", "flags",
+    "arrows", "bullets", "stars", "ratings", "tooltip", "tooltips",
+})
+
+_UI_FILENAME_TOKENS = frozenset({
+    "icon", "icons", "ico", "sprite", "sprites", "badge", "badges",
+    "chevron", "arrow", "caret", "spinner", "loader", "checkmark",
+    "tooltip", "bullet", "divider", "spacer", "star", "rating",
+})
+
+_UI_CLASS_TOKENS = frozenset({
+    "icon", "icons", "ico", "sprite", "badge", "tooltip", "glyph",
+    "emoji", "chevron", "caret", "spinner", "loader", "pixel",
+    "tracker", "tracking", "decorative", "ornament", "divider", "spacer",
+})
+
+_UI_CONTAINER_ROLES = frozenset({
+    "button", "tooltip", "menuitem", "tab", "switch", "checkbox", "radio",
+})
+
+_UI_CONTAINER_CLASS_TOKENS = frozenset({
+    "tooltip", "tooltips", "popover", "badge", "badges",
+})
+
+_UI_CONTAINER_ATTRS = ("data-tooltip", "data-tip", "data-tippy-content")
+
+_TOKEN_SPLIT_RE = re.compile(r"[\s_\-.]+")
+
+
+def _parse_px_value(raw: str) -> Optional[int]:
+    """Parse a non-negative integer pixel value from an HTML dimension attribute."""
+    if not raw:
+        return None
+    match = _ATTR_PX_RE.match(raw)
+    if not match:
+        return None
+    try:
+        return int(round(float(match.group(1))))
+    except ValueError:
+        return None
+
+
+def _parse_img_dimensions(img) -> tuple[Optional[int], Optional[int]]:
+    """Return explicit ``(width, height)`` in pixels from HTML attributes or inline style."""
+    width = _parse_px_value(_attr_text(img, "width"))
+    height = _parse_px_value(_attr_text(img, "height"))
+    style = _attr_text(img, "style")
+    if style:
+        if width is None:
+            match = _STYLE_WIDTH_PX_RE.search(style)
+            if match:
+                width = int(round(float(match.group(1))))
+        if height is None:
+            match = _STYLE_HEIGHT_PX_RE.search(style)
+            if match:
+                height = int(round(float(match.group(1))))
+    return width, height
+
+
+def _explicit_decorative_reason(img) -> Optional[str]:
+    """Return ``"aria-hidden"`` or ``"role-presentation"`` when markup marks the image decorative."""
     node = img
     while node is not None and getattr(node, "attrs", None) is not None:
         if _attr_text(node, "aria-hidden").strip().lower() == "true":
-            return True
+            return "aria-hidden"
         if {"presentation", "none"} & set(_attr_text(node, "role").lower().split()):
+            return "role-presentation"
+        node = node.parent
+    return None
+
+
+def _is_tracking_pixel_url(effective_src: str) -> bool:
+    """True when ``effective_src`` points to a known analytics/tracking pixel or 1x1 spacer."""
+    if not effective_src:
+        return False
+    lowered = effective_src.strip().lower()
+    if lowered.startswith(_DATA_URI_1X1_GIF_PREFIX):
+        return True
+    try:
+        parsed = urlparse(effective_src)
+    except ValueError:
+        return False
+    host = (parsed.hostname or "").lower()
+    path = (parsed.path or "").lower()
+    if host:
+        for tracker_host in _TRACKING_PIXEL_HOSTS:
+            if host == tracker_host or host.endswith("." + tracker_host):
+                return True
+        for tracker_host, prefix in _TRACKING_PIXEL_HOST_PATHS:
+            if (host == tracker_host or host.endswith("." + tracker_host)) and path.startswith(prefix):
+                return True
+    basename = path.rsplit("/", 1)[-1]
+    if basename and _TRACKING_PIXEL_BASENAME_RE.match(basename):
+        return True
+    return False
+
+
+def _in_ui_container(img) -> bool:
+    """True when ``img`` sits inside a button, tooltip, or similar UI control container."""
+    node = img.parent
+    while node is not None and getattr(node, "attrs", None) is not None:
+        tag_name = (getattr(node, "name", None) or "").lower()
+        if tag_name == "button":
+            return True
+        roles = set(_attr_text(node, "role").lower().split())
+        if _UI_CONTAINER_ROLES & roles:
+            return True
+        if any(node.has_attr(attr) for attr in _UI_CONTAINER_ATTRS):
+            return True
+        class_tokens = set(_TOKEN_SPLIT_RE.split(_attr_text(node, "class").lower()))
+        if _UI_CONTAINER_CLASS_TOKENS & class_tokens:
             return True
         node = node.parent
     return False
+
+
+def classify_image(img, effective_src: str = "") -> tuple[str, Optional[str]]:
+    """Classify an ``<img>`` as ``("content", None)`` or ``("decorative", reason)``.
+
+    Explicit ARIA / presentation markup is checked first (when alt text is
+    absent/empty), followed by structural and URL heuristics for unmarked
+    tracking pixels, small UI graphics (<= 48px), icon/badge/sprite assets,
+    and images inside buttons or tooltips. Large images (> 48px) and images
+    from content/product paths are kept as ``"content"`` unless explicitly
+    marked decorative or matching a tracking pixel.
+    """
+    has_alt = bool(_attr_text(img, "alt").strip())
+    explicit_reason = _explicit_decorative_reason(img)
+    if explicit_reason and not has_alt:
+        return "decorative", explicit_reason
+
+    width, height = _parse_img_dimensions(img)
+
+    # 1. Tracking pixels (1x1 / 0x0 dimensions or known tracker/spacer URLs)
+    if (width is not None and width == 0) or (height is not None and height == 0):
+        return "decorative", "tracking-pixel"
+    if width is not None and height is not None and width <= 1 and height <= 1:
+        return "decorative", "tracking-pixel"
+    if _is_tracking_pixel_url(effective_src):
+        return "decorative", "tracking-pixel"
+
+    # Extract URL path signals once.
+    path_segments: set[str] = set()
+    filename_tokens: set[str] = set()
+    if effective_src and not effective_src.strip().lower().startswith("data:"):
+        try:
+            path = (urlparse(effective_src).path or "").lower()
+        except ValueError:
+            path = ""
+        parts = [p for p in path.split("/") if p]
+        if parts:
+            path_segments = set(parts[:-1])
+            stem = parts[-1].rsplit(".", 1)[0]
+            filename_tokens = {tok for tok in _TOKEN_SPLIT_RE.split(stem) if tok}
+
+    has_content_path = bool(_CONTENT_PATH_SEGMENTS & path_segments)
+    is_large = (width is not None and width > DECORATIVE_MAX_DIMENSION) or (
+        height is not None and height > DECORATIVE_MAX_DIMENSION
+    )
+
+    # 2. Small dimensions (<= 48px): icons, badges, UI glyphs
+    if width is not None and height is not None:
+        if width <= DECORATIVE_MAX_DIMENSION and height <= DECORATIVE_MAX_DIMENSION:
+            return "decorative", "small-dimensions"
+    elif (width is not None and width <= DECORATIVE_MAX_DIMENSION) or (
+        height is not None and height <= DECORATIVE_MAX_DIMENSION
+    ):
+        if not has_content_path:
+            return "decorative", "small-dimensions"
+
+    # 3. UI / decorative URL path, filename, or class/id tokens (never overrides large images)
+    if not is_large:
+        if _UI_PATH_SEGMENTS & path_segments:
+            return "decorative", "ui-pattern"
+        if not has_content_path and (_UI_FILENAME_TOKENS & filename_tokens):
+            return "decorative", "ui-pattern"
+        own_tokens = {
+            tok
+            for tok in _TOKEN_SPLIT_RE.split(
+                f"{_attr_text(img, 'class')} {_attr_text(img, 'id')}".lower()
+            )
+            if tok
+        }
+        if _UI_CLASS_TOKENS & own_tokens:
+            return "decorative", "ui-pattern"
+
+        # 4. Inside a UI control or tooltip container (never overrides large or content-path images)
+        if not has_content_path and _in_ui_container(img):
+            return "decorative", "ui-container"
+
+    return "content", None
+
+
+def _is_decorative_image(img, effective_src: str = "") -> bool:
+    """True when the image has no alt text and is classified as decorative/UI.
+
+    Covers explicit markup (``aria-hidden="true"``, ``role="presentation"`` /
+    ``role="none"`` on the image or an ancestor) as well as unmarked tracking
+    pixels, small UI icons (<= 48px), icon/badge/sprite assets, and images
+    inside buttons or tooltips.
+    """
+    if _attr_text(img, "alt").strip():
+        return False
+    image_class, _reason = classify_image(img, effective_src)
+    return image_class == "decorative"
 
 
 def _site_host(netloc: str) -> str:
@@ -678,6 +921,11 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         "h3": [],
         "heading_outline": [],
         "images": [],
+        "images_summary": {
+            "total": 0,
+            "content": {"total": 0, "with_alt": 0, "empty_alt": 0, "missing_alt": 0},
+            "decorative": {"total": 0, "with_alt": 0, "empty_alt": 0, "missing_alt": 0},
+        },
         "links": {
             "internal": [],
             "external": [],
@@ -774,18 +1022,35 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
                 result.setdefault("malformed_urls", []).append({"tag": "img", "value": src})
 
         resolved_src, srcset_candidates = _image_sources(img, resource_base_url, src)
+        effective_src = resolved_src or src
+        image_class, classification_reason = classify_image(img, effective_src)
+        alt_attr = img.get("alt")
+        has_alt_text = bool(_attr_text(img, "alt").strip())
+        is_decorative = image_class == "decorative" and not has_alt_text
 
         result["images"].append({
             "src": src,
-            "alt": img.get("alt"),
+            "alt": alt_attr,
             "width": img.get("width"),
             "height": img.get("height"),
             "loading": img.get("loading"),
             "lazy_method": _detect_lazy_method(img),
             "resolved_src": resolved_src,
             "srcset_candidates": srcset_candidates,
-            "decorative": _is_decorative_image(img),
+            "decorative": is_decorative,
+            "image_class": image_class,
+            "classification_reason": classification_reason,
         })
+
+        result["images_summary"]["total"] += 1
+        bucket = result["images_summary"][image_class]
+        bucket["total"] += 1
+        if alt_attr is None:
+            bucket["missing_alt"] += 1
+        elif has_alt_text:
+            bucket["with_alt"] += 1
+        else:
+            bucket["empty_alt"] += 1
 
     # Links
     if base_url:
