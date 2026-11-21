@@ -41,7 +41,7 @@ After each API call, log the cost:
 
 ## Analysis Priorities
 
-1. **Schema completeness** -- missing Product fields = missing rich results
+1. **Schema completeness** -- missing Product fields = missing rich results (on hosted e-commerce platforms or when markup is vendor-stated bot-only, verify with Search Console URL Inspection / Rich Results Test or equivalent before reporting missing or scoring 0; user-agent spoofing is not a substitute; until verified, report "not visible to non-crawler fetches; unverified for crawlers")
 2. **Image optimization** -- product images need alt text, WebP, >= 800px
 3. **Pricing competitiveness** -- compare against marketplace medians
 4. **Content uniqueness** -- flag manufacturer copy-paste descriptions
