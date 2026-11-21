@@ -50,6 +50,8 @@ Concurrent requests: 5
 Delay between requests: 1 second
 ```
 
+When anti-bot or WAF markers appear (challenge headers, interstitial/challenge pages, or sudden 403/503 responses after earlier 200s), drop to 1 concurrent request with a 5+ second delay between requests and do not run other probes, speed tests, or parallel fetches against the same host from the same IP.
+
 ## Output Files
 
 - `{domain}-audit/FULL-AUDIT-REPORT.md`: Comprehensive findings
@@ -200,6 +202,7 @@ drawing conclusions. A date overlap is a hypothesis, never proof of cause.
 | URL unreachable (DNS failure, connection refused) | Report the error clearly. Do not guess site content. Suggest the user verify the URL and try again. |
 | robots.txt blocks crawling | Report which paths are blocked. Analyze only accessible pages and note the limitation in the report. |
 | Rate limiting (429 responses) | Back off and reduce concurrent requests. Report partial results with a note on which sections could not be completed. |
+| Sudden 403/503 or challenge redirect after earlier 200s | Stop the crawl, cool down, and re-probe a few URLs one at a time from a fresh session. Report as a site defect only if it reproduces; otherwise report "crawler was blocked by site protection; results partial". Discard any on-page metric (H1, images, word count, metadata, schema) taken from a non-200 or challenge response. |
 | Timeout on large sites (500+ pages) | Cap the crawl at the timeout limit. Report findings for pages crawled and estimate total site scope. |
 | Subagent hits its `maxTurns` budget on a large site | Findings are not lost: every audit subagent writes a partial `output_dir/findings/*.md` after its first analysis pass and overwrites it with the complete findings before finishing. Read whatever findings file exists and merge it into the report, noting it may be partial. |
 

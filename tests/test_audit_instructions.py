@@ -85,3 +85,48 @@ def test_hub_invocation_keeps_the_command_word() -> None:
     assert "$1" not in invocation
     assert "$2" not in invocation
     assert invocation.startswith("**Invocation:** `/seo $ARGUMENTS`")
+
+
+def _section(text: str, heading: str, next_heading: str | None = None) -> str:
+    start = text.index(heading)
+    if next_heading is None:
+        return text[start:]
+    return text[start:text.index(next_heading, start)]
+
+
+def test_seo_audit_crawl_config_throttles_on_anti_bot_markers() -> None:
+    text = (REPO_ROOT / "skills" / "seo-audit" / "SKILL.md").read_text(encoding="utf-8")
+    crawl_cfg = _section(text, "## Crawl Configuration", "## Output Files").lower()
+    assert "anti-bot" in crawl_cfg
+    assert "1 concurrent request" in crawl_cfg
+    assert "5+" in crawl_cfg
+    assert "same ip" in crawl_cfg
+    assert "parallel" in crawl_cfg
+
+
+def test_seo_audit_error_handling_guards_against_self_triggered_403() -> None:
+    text = (REPO_ROOT / "skills" / "seo-audit" / "SKILL.md").read_text(encoding="utf-8")
+    errors = _section(text, "## Error Handling", "## Security").lower()
+    assert "403/503" in errors
+    assert "challenge" in errors
+    assert "cool down" in errors
+    assert "fresh session" in errors
+    assert "site protection" in errors
+    assert "non-200" in errors
+    assert "discard" in errors
+
+
+def test_seo_technical_guards_against_self_triggered_403() -> None:
+    skill = (REPO_ROOT / "skills" / "seo-technical" / "SKILL.md").read_text(encoding="utf-8")
+    crawlability = _section(skill, "### 1. Crawlability", "#### AI Crawler Management").lower()
+    errors = _section(skill, "## Error Handling", "## Security").lower()
+    agent = (REPO_ROOT / "agents" / "seo-technical.md").read_text(encoding="utf-8").lower()
+
+    for block in (crawlability, errors, agent):
+        assert "403/503" in block
+        assert "challenge" in block
+        assert "cool down" in block
+        assert "fresh session" in block
+        assert "site protection" in block
+        assert "non-200" in block
+        assert "discard" in block
