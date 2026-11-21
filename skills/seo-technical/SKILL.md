@@ -34,6 +34,13 @@ metadata:
   users directly to publisher-hosted AMP URLs, so do not recommend AMP Cache,
   AMP Viewer, or signed exchange maintenance. Audit AMP against the same content,
   action-parity, and quality requirements as other pages.
+- **Anti-bot blocks and non-200 status codes**: if pages return sudden 403/503
+  responses or redirect to a challenge page after earlier 200s during the audit,
+  stop parallel probes from the same IP, cool down, and re-probe a few URLs one
+  at a time from a fresh session. Report a site defect only if it reproduces;
+  otherwise report "crawler was blocked by site protection; results partial".
+  Discard any on-page metric (H1, images, word count, metadata) taken from a
+  non-200 or challenge response.
 
 #### AI Crawler Management
 
@@ -290,6 +297,7 @@ It trusts the proxy only. Audit targets, redirect hops and everything a rendered
 | Scenario | Action |
 |----------|--------|
 | URL unreachable | Report connection error with status code. Suggest verifying URL, checking DNS resolution, and confirming the site is publicly accessible. |
+| Sudden 403/503 or challenge redirect after earlier 200s | Stop parallel probes from the same IP, cool down, and re-probe a few URLs one at a time from a fresh session. Report as a site defect only if it reproduces; otherwise report "crawler was blocked by site protection; results partial". Discard any on-page metric taken from a non-200 or challenge response. |
 | robots.txt not found | Note that no robots.txt was detected at the root domain. Recommend creating one with appropriate directives. Continue audit on remaining categories. |
 | HTTPS not configured | Flag as a critical issue. Report whether HTTP is served without redirect, mixed content exists, or SSL certificate is missing/expired. |
 | Core Web Vitals data unavailable | Note that CrUX data is not available (common for low-traffic sites). Suggest using Lighthouse lab data as a proxy and recommend increasing traffic before re-testing. |
