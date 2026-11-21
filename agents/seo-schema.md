@@ -35,6 +35,9 @@ When analyzing pages:
 - Absolute URLs (not relative)
 - ISO 8601 date format
 
+### Crawler-Gated Markup:
+- Some hosted e-commerce platforms serve `Product` / `Offer` markup only to verified search-engine crawlers (IP / reverse-DNS checked). Before reporting markup as absent on a hosted e-commerce platform, or when the vendor says markup is bot-only, verify with a fetcher operated by the search engine (Search Console URL Inspection, Rich Results Test, or another search engine's equivalent). Until verified, report "not visible to non-crawler fetches; unverified for crawlers". User-agent spoofing and third-party validators are not substitutes.
+
 ## Validation Checklist
 
 For any schema block, verify:

@@ -87,7 +87,7 @@ Fetch and parse any product page for on-page SEO quality.
 
 | Category | Weight | Criteria |
 |----------|--------|----------|
-| Schema completeness | 25% | Required + recommended Product fields |
+| Schema completeness | 25% | Required + recommended Product fields (unverified if crawler-gated; see Schema Scoring) |
 | Title & meta | 15% | Keyword placement, length, format |
 | Image optimization | 20% | Alt text, format, sizing, count |
 | Content quality | 20% | Unique description, specs, reviews |
@@ -289,6 +289,8 @@ Confirmed required fields are `name`, `image`, and `offers`; use `Offer`, not `A
 | + merchantReturnPolicy | 90/100 |
 | + reviews (3+) | 100/100 |
 
+> **Crawler-gated markup:** Hosted e-commerce platforms sometimes serve `Product` / `Offer` markup only to verified search-engine crawlers (IP / reverse-DNS checked). Before scoring schema completeness as 0 or reporting Product markup as missing on a hosted e-commerce platform (or when the vendor says markup is bot-only), verify with a search-engine-operated fetcher (Search Console URL Inspection, Rich Results Test, or another search engine's equivalent; user-agent spoofing is not a substitute). Until verified, report schema as **"not visible to non-crawler fetches; unverified for crawlers"** and mark the Schema completeness score as unverified rather than 0.
+
 ---
 
 ## Cross-Skill Integration
@@ -346,7 +348,7 @@ UCP itself is live; what's early is broad merchant adoption. Flag a literal
 
 | Error | Cause | Response |
 |-------|-------|----------|
-| No Product schema found | Page lacks JSON-LD | Analyze page content, generate recommended schema |
+| No Product schema found | Page lacks JSON-LD (or platform serves it only to verified crawlers) | On a hosted e-commerce platform or when the vendor says markup is bot-only, report "not visible to non-crawler fetches; unverified for crawlers" until verified with Search Console URL Inspection / Rich Results Test (or equivalent; user-agent spoofing is not a substitute). Otherwise analyze page content and generate recommended schema |
 | DataForSEO credentials missing | Env vars not set | Run analysis without marketplace data, note limitation |
 | Cost check blocked | Daily budget exceeded | Inform user, offer free-only analysis |
 | Empty Shopping results | No products for keyword | Suggest broader keyword, check location settings |
