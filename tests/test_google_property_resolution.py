@@ -144,6 +144,16 @@ def test_entries_sharing_a_domain_property_prefer_the_domains_own_entry() -> Non
     assert resolve_site_property({"sites": shared}, "ga4", "shop.example.com") == "properties/1"
     assert resolve_site_property({"sites": shared}, "ga4", "blog.example.com") == "properties/2"
 
+    # A host with its ``www.`` twin is one site, so the pair is not an
+    # ambiguity: the entry keyed by the domain serves its subdomains.
+    twins = {
+        "example.com": _site("example.com", ga4="properties/1"),
+        "www.example.com": _site("example.com", ga4="properties/1"),
+    }
+    for host in ("shop.example.com", "a.b.example.com"):
+        assert resolve_site_property({"sites": twins}, "ga4", host) == "properties/1"
+        assert resolve_site_property({"sites": twins}, "gsc", host) == "sc-domain:example.com"
+
     ambiguous = {
         "blog.example.com": _site("example.com", ga4="properties/2"),
         "docs.example.com": _site("example.com", ga4="properties/3"),
