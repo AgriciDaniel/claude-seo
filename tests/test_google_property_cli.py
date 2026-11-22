@@ -137,6 +137,25 @@ def test_www_key_matches_the_bare_host(run, script):
 
 
 @ALL
+def test_www_twin_entries_still_cover_the_domains_subdomains(run, script):
+    """A site mapped under both its bare and its ``www.`` host is one site.
+
+    Subdomain audits must resolve through that pair rather than fail as an
+    ambiguity, which is what the documented ``sites`` shape produced.
+    """
+    config = {
+        **LEGACY,
+        "sites": {
+            "example.com": MAPPED["sites"]["example.com"],
+            "www.example.com": MAPPED["sites"]["example.com"],
+        },
+    }
+    code, output, err = run(script, ["--domain", "shop.example.com"], config)
+    assert code == 0
+    assert output["property"] == SCRIPTS[script][4]
+
+
+@ALL
 @pytest.mark.parametrize("domain", ["notexample.com", "example.com.evil.test", "example.co"])
 def test_lookalike_host_is_refused(run, script, domain):
     code, output, err = run(script, ["--domain", domain], MAPPED)

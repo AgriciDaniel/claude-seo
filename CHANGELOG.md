@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Google property selection:** a site mapped in `sites` under both its bare
+  host and its `www.` host is one site, so a subdomain audit of that domain
+  now resolves through the pair. The tie-break compared the key against the
+  covered domain without stripping `www.`, so the documented twin shape was
+  read as an ambiguity and every subdomain audit of the domain exited with
+  "Multiple sites entries cover ..." before any API call. (#387 follow-up)
+
 ## [2.6.2] - 2026-11-15
 
 ### Security

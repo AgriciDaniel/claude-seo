@@ -67,7 +67,14 @@ def _match_site_entry(sites: dict, host: str) -> list:
     domain = max((covered for covered, _, _ in covering), key=len)
     best = [(key, values) for covered, key, values in covering if covered == domain]
     if len(best) > 1:
-        best = [(key, values) for key, values in best if _without_www(key) == domain]
+        # Prefer the entry keyed by the domain itself. A ``www.`` twin carries
+        # the same site and the same domain property, so without this the
+        # documented twin pair reads as an ambiguity on every subdomain audit.
+        own = [(key, values) for key, values in best if key == domain]
+        if own:
+            best = own
+        else:
+            best = [(key, values) for key, values in best if _without_www(key) == domain]
     if len(best) != 1:
         raise ValueError(
             f"Multiple sites entries cover {host!r}; add an entry for that exact host"
