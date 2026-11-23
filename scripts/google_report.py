@@ -1280,6 +1280,61 @@ def _build_audit_action_plan(data, section_num=5):
     return "\n".join(lines)
 
 
+def _visible_health_score(summary):
+    """Score to print. Insufficient means there is no number to show.
+
+    A missing status keeps the previous behavior: print summary.health_score.
+    """
+    if not isinstance(summary, dict):
+        return None
+    if summary.get("health_score_status") == "insufficient":
+        return None
+    return summary.get("health_score")
+
+
+def _health_score_label(summary):
+    """Card label. A partial score must not look like a full audit."""
+    if not isinstance(summary, dict) or summary.get("health_score_status") != "partial":
+        return "SEO Health Score"
+    coverage = summary.get("health_score_coverage")
+    if isinstance(coverage, bool) or not isinstance(coverage, (int, float)):
+        return "SEO Health Score (partial)"
+    if isinstance(coverage, float) and not coverage.is_integer():
+        shown = coverage
+    else:
+        shown = int(coverage)
+    return f"SEO Health Score (partial, {shown}% of weight)"
+
+
+def _health_score_note(summary):
+    """One sentence under the summary when the score is not a full audit."""
+    if not isinstance(summary, dict):
+        return ""
+    status = summary.get("health_score_status")
+    if status == "insufficient":
+        return (
+            "  <p>No SEO Health Score was calculated because no category "
+            "score was measured.</p>"
+        )
+    if status != "partial":
+        return ""
+    coverage = summary.get("health_score_coverage")
+    if isinstance(coverage, bool) or not isinstance(coverage, (int, float)):
+        cover = "part of the category weight"
+    else:
+        shown = int(coverage) if float(coverage).is_integer() else coverage
+        cover = f"{shown}% of category weight"
+    omitted = summary.get("health_score_omitted")
+    if isinstance(omitted, (list, tuple)) and omitted:
+        names = ", ".join(escape(str(name)) for name in omitted)
+    else:
+        names = "one or more categories"
+    return (
+        f"  <p>The SEO Health Score covers {cover}. "
+        f"Not measured: {names}. It is not a full-audit score.</p>"
+    )
+
+
 def _build_executive_summary(domain, timestamp, data, report_type):
     """Build the Executive Summary section with metric cards, issues, and wins."""
     lines = []
@@ -1307,12 +1362,22 @@ def _build_executive_summary(domain, timestamp, data, report_type):
                      f'Report (CrUX), Google Search Console, and the URL Inspection API as available.</p>')
     lines.append('')
 
+    note = _health_score_note(summary)
+    if note:
+        lines.append(note)
+        lines.append('')
+
     # Metric cards row
     cards = []
 
-    health_score = summary.get("health_score")
+    health_score = _visible_health_score(summary)
     if health_score is not None:
-        cards.append(("health", f"{health_score}/100", "SEO Health Score", _score_color(float(health_score))))
+        cards.append((
+            "health",
+            f"{health_score}/100",
+            _health_score_label(summary),
+            _score_color(float(health_score)),
+        ))
 
     # PSI performance score
     mobile = _mobile_pagespeed(data)
@@ -2510,7 +2575,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
         mobile = _mobile_pagespeed(data)
         perf_score = mobile.get("lighthouse_scores", {}).get("performance") if isinstance(mobile, dict) else None
         summary = data.get("summary", {}) if isinstance(data.get("summary"), dict) else {}
-        health_score = summary.get("health_score")
+        health_score = _visible_health_score(summary)
         display_score = health_score if health_score is not None else perf_score
         has_audit_schema = _has_audit_schema(data)
 
@@ -2518,7 +2583,10 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
             domain, "Full SEO Audit Report" if has_audit_schema else "Google SEO Intelligence Report",
             "Comprehensive Analysis",
             score=display_score,
-            score_label="SEO Health Score" if health_score is not None else ("Lighthouse Performance Score" if perf_score else None),
+            score_label=(
+                _health_score_label(summary) if health_score is not None
+                else ("Lighthouse Performance Score" if perf_score else None)
+            ),
             meta_items=[timestamp, "Full Audit"],
         ))
 
