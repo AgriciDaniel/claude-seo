@@ -185,6 +185,19 @@ Add `decoding="async"` to non-LCP images to prevent image decoding from blocking
 - Recommend CDN for image-heavy sites
 - Check for edge caching headers
 
+### Duplicate content
+
+Do not decide that two images are duplicates by looking at them. Run:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run image_duplicates.py --url <url> --json
+```
+
+- `exact_duplicates`: the same bytes at more than one URL. Keep one URL.
+- `near_duplicates`: different bytes whose difference hash is within `near_distance` (6). Say they look alike. Do not call them identical.
+- Decorative images and tracking pixels are listed under `skipped` and are not duplicates.
+- `indexed_image_search` is `not performed`. Do not claim the image was checked against Google's index.
+
 ## Output
 
 ### Image Audit Summary
@@ -197,6 +210,7 @@ Add `decoding="async"` to non-LCP images to prevent image decoding from blocking
 | Wrong Format | ⚠️ | XX |
 | No Dimensions | ⚠️ | XX |
 | Not Lazy Loaded | ⚠️ | XX |
+| Exact duplicate groups | ⚠️ | XX |
 
 ### Prioritized Optimization List
 
