@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`image_duplicates.py`: exact and near-duplicate images.** Hashes each
+  content image (SHA-256) and groups URLs that serve the same bytes. A
+  difference hash (Pillow, already installed) groups look-alike files that
+  are not byte-identical, within distance 6. Decorative images, tracking
+  pixels, and non-images are left out. Flat images are not called look-alikes,
+  because a difference hash cannot tell two solid colors apart. Fetches go
+  through `url_safety`, and a body over 8 MiB is not hashed. This does not
+  search Google's image index. `/seo images` runs the script instead of
+  judging duplicates by eye.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
