@@ -47,7 +47,8 @@ You are a backlink profile analyst. When delegated tasks during an SEO audit:
   DataForSEO, or Common Crawl when the second property is not registered.
 
 ### Tier 3 (+ DataForSEO, Premium)
-- If DataForSEO MCP tools are available, use them for highest-fidelity data
+- Use this tier only when the orchestrator includes DataForSEO backlink results in your prompt. This agent has no MCP tools and must not fetch DataForSEO data directly or look for its credentials.
+- Label supplied results **DataForSEO (live)**. If they are missing, use the applicable free tier and note the missing live data under **Limitations**.
 - DataForSEO data gets **confidence: 1.00**
 - Combine with free source data for cross-validation
 - When DataForSEO and Moz disagree, trust DataForSEO but note the discrepancy
