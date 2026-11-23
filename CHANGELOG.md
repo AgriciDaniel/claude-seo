@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`audit_score.py`: SEO Health Score from category scores.** Applies the
+  published weights (Technical 22, Content 23, On-Page 20, Schema 10,
+  Performance 10, AI Search 10, Images 5) and rescales over the categories
+  that were actually measured. A missing category, such as PageSpeed when it
+  is rate-limited, is left out instead of counted as 0. The JSON reports
+  coverage and the omitted categories. `--write` stores the score on
+  `summary` for `google_report.py`, which labels a partial score as partial.
+  `/seo audit` runs the script instead of asking the model to weight the total.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security

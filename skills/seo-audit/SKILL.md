@@ -35,7 +35,7 @@ metadata:
    - `seo-sxo` -- Search experience analysis: page-type mismatch, user stories, persona scoring (always include in full audits)
    - `seo-drift` -- Drift analysis: compare against stored baseline (spawn when drift baseline exists for the URL via `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_history.py <url>`)
    - `seo-ecommerce` -- Product schema, marketplace intelligence (spawn when E-commerce industry detected)
-5. **Score** -- aggregate into SEO Health Score (0-100)
+5. **Score** -- run the command in Scoring the health score. Do not weight, round, or fill the SEO Health Score yourself.
 6. **Persist audit artifacts** -- write all outputs under `{domain}-audit/`
 7. **Report** -- generate prioritized action plan and optional PDF/HTML report
 
@@ -112,6 +112,25 @@ Write `{domain}-audit/audit-data.json` with this shape so `"${CLAUDE_PLUGIN_ROOT
 | Performance (CWV) | 10% |
 | AI Search Readiness | 10% |
 | Images | 5% |
+
+`audit_score.py` is the only calculator for this table. A test fails if the table and the script disagree.
+
+## Scoring the health score
+
+Write each measured category into `audit-data.json` under `categories`, using a name from the table above and a `score` from 0 to 100. Leave `score` null when that category was not measured (PageSpeed rate-limited, a subagent that did not run). Do not substitute 0. Do not add SXO, Maps, or backlink scores here; those are separate rubrics, and an unknown name makes the script exit 2.
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run audit_score.py --data {domain}-audit/audit-data.json --write --json
+```
+
+Use the JSON, not your own arithmetic:
+
+- `complete`: all seven categories were measured. Report `health_score` as the SEO Health Score.
+- `partial`: report `health_score`, say it covers `coverage_percent`% of the weight, and name every category in `omitted`. Do not present it as a full-audit score.
+- `insufficient`: do not print a number. Say no category score was measured.
+- exit 2: fix the names or scores and run the command again.
+
+`--write` stores `summary.health_score` for `google_report.py`. The report labels a partial score as partial.
 
 ## Report Structure
 

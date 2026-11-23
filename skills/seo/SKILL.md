@@ -96,7 +96,7 @@ When the user invokes `/seo audit`, delegate to subagents in parallel:
 11. If e-commerce detected, also spawn seo-ecommerce agent
 12. If drift baseline exists for this URL (`"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run drift_history.py <url>`), also spawn seo-drift agent
 13. Always include seo-sxo in full audits (search experience applies to all sites)
-14. Collect results and generate unified report with SEO Health Score (0-100)
+14. Collect results, write `{domain}-audit/audit-data.json`, then score it with `audit_score.py` (see seo-audit's "Scoring the health score"). Do not compute the weighted score yourself.
 15. **Synthesize via the 10-principle framework** (see "Synthesis Methodology" below), walk PERCEIVE → ANALYZE → VALIDATE → ACT before bucketing findings into Critical / High / Medium / Low
 16. Create prioritized action plan with dependency sequencing + falsifiability per recommendation
 17. **Offer PDF report**: "Generate a professional PDF report? Use `/seo google report full`"
@@ -231,6 +231,8 @@ Weighted aggregate of all categories:
 | Performance (CWV) | 10% |
 | AI Search Readiness | 10% |
 | Images | 5% |
+
+`audit_score.py` applies this table. Do not recompute it. A category left null is dropped and the score is rescaled over the weight that was measured; the report must say that share. The command and the `complete` / `partial` / `insufficient` rules are in seo-audit's "Scoring the health score" section.
 
 ### Priority Levels
 - **Critical**: Blocks indexing or causes penalties (immediate fix required)
