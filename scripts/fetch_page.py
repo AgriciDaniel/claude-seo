@@ -54,6 +54,7 @@ from url_safety import (  # noqa: E402
     decode_response_text,
     read_bounded_until,
     safe_requests_session,
+    validate_custom_headers,
     validate_public_url_strict,
     validate_url_strict,
 )
@@ -116,6 +117,7 @@ def fetch_page(
     max_bytes: int = MAX_PAGE_BYTES,
     max_time: Optional[float] = None,
     public_only: bool = False,
+    extra_headers: Optional[dict[str, str]] = None,
 ) -> dict:
     """
     Fetch a web page and return response details.
@@ -144,6 +146,8 @@ def fetch_page(
         public_only: For a URL taken from a page rather than chosen by the
             operator: ``CLAUDE_SEO_LOCAL_TARGETS`` is ignored, so only public
             addresses are fetched.
+        extra_headers: Custom HTTP headers to include with the request. Sent
+            only to the audited origin; stripped across redirects to other hosts.
 
     Returns:
         Dictionary with url, status_code, content, headers, redirect_chain,
@@ -201,13 +205,16 @@ def fetch_page(
 
     result["url"] = norm_url
 
+    valid_extra = validate_custom_headers(extra_headers) if extra_headers else None
     headers = dict(DEFAULT_HEADERS)
     if user_agent:
         headers["User-Agent"] = user_agent
+    if valid_extra:
+        headers.update(valid_extra)
 
     try:
         session_options = {"public_only": True} if public_only else {}
-        with safe_requests_session(norm_url, **session_options) as session:
+        with safe_requests_session(norm_url, extra_headers=valid_extra, **session_options) as session:
             session.max_redirects = max_redirects
             response = session.get(
                 norm_url,
@@ -388,6 +395,16 @@ def main():
         ),
     )
     parser.add_argument(
+        "--header",
+        "-H",
+        action="append",
+        default=[],
+        help=(
+            "Custom HTTP header in 'Name: Value' format. "
+            "Can be repeated to pass multiple headers."
+        ),
+    )
+    parser.add_argument(
         "--render",
         choices=("auto", "always", "never"),
         default="never",
@@ -401,6 +418,24 @@ def main():
 
     args = parser.parse_args()
 
+    extra_headers: dict[str, str] = {}
+    for raw_header in args.header:
+        if ":" in raw_header:
+            name, val = raw_header.split(":", 1)
+            name = name.strip()
+            val = val.strip()
+            try:
+                validate_custom_headers({name: val})
+            except ValueError as exc:
+                print(f"Error: {exc}", file=sys.stderr)
+                sys.exit(2)
+            extra_headers[name] = val
+        else:
+            print(
+                f"Warning: header '{raw_header}' ignored (must be in 'Name: Value' format)",
+                file=sys.stderr,
+            )
+
     ua = args.user_agent
     if args.googlebot:
         ua = GOOGLEBOT_USER_AGENT
@@ -413,6 +448,7 @@ def main():
             mode=args.render,
             timeout_ms=args.timeout * 1000,
             user_agent=ua,
+            extra_headers=extra_headers or None,
         )
         if args.json:
             _emit_json(rendered, args.output, max_text=args.max_text)
@@ -439,6 +475,7 @@ def main():
         follow_redirects=not args.no_redirects,
         user_agent=ua,
         max_time=args.max_time,
+        extra_headers=extra_headers or None,
     )
 
     if args.json:
