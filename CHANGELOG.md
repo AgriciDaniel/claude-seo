@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Geo-grid zoom.** `maps-geo-grid.md` now sets the Maps `location_coordinate` zoom from the spacing between grid
+  points instead of a fixed `15z`, so a business one grid step away is no longer read as "not ranked" because it fell
+  outside the map view. The 7x7, 5 km example now uses `13z`.
+- **Reading each point.** The same reference now says to match the business by `cid` or `place_id`, to tell an outranked
+  point (all 20 results returned) from a sparse one (fewer returned), and to count a not-found point as 21 in the
+  average rank.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
