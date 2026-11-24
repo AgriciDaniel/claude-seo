@@ -35,7 +35,7 @@
 | `device` | No | "desktop" or "mobile" |
 | `depth` | No | Number of results to return |
 
-**Critical for geo-grid:** Use `location_coordinate` to simulate searches from specific GPS points. Format: `"40.7128,-74.0060,15z"`.
+**Critical for geo-grid:** Use `location_coordinate` to simulate searches from specific GPS points. Format: `"40.7128,-74.0060,15z"`. For a geo-grid, set the zoom from the spacing between grid points rather than a fixed 15z (see "Set the zoom from the grid spacing" in maps-geo-grid.md).
 
 ### Response Fields (per business item)
 

@@ -50,7 +50,7 @@ Use the Google Maps SERP API with `location_coordinate` parameter:
 ```json
 {
   "keyword": "dentist",
-  "location_coordinate": "30.2672,-97.7431,15z",
+  "location_coordinate": "30.2672,-97.7431,13z",
   "language_code": "en",
   "device": "mobile",
   "depth": 20
@@ -59,6 +59,49 @@ Use the Google Maps SERP API with `location_coordinate` parameter:
 
 For each grid point, fire one API call with the point's lat/lng. Parse the
 `items` array to find the target business rank (position in results).
+
+### Set the zoom from the grid spacing
+
+Use the same zoom at every point, chosen from the distance between points.
+
+- **No zoom:** DataForSEO picks one per coordinate. Some points then return no
+  results, and ranks are not comparable across the grid.
+- **A fixed 15z:** the view is too narrow for most grids. A Maps result only
+  covers the map view at that zoom. With points a kilometre or more apart, a
+  business one grid step to the side falls outside the view and reads as
+  "not ranked".
+
+```
+zoom = floor(log2(24045 * cos(center_lat * pi/180) / step_km)), clamped to 4..18
+location_coordinate = "<lat>,<lng>,<zoom>z"
+```
+
+**Where the formula comes from:**
+- A map tile is `40075 * cos(lat) / 2^zoom` km wide.
+- A portrait mobile view is about 1.5 tiles wide.
+- This is the largest zoom whose view still covers the grid spacing with
+  some room around it.
+
+**Example:** the 7x7 grid with a 5 km radius has `step_km` = 1.67. At Austin
+(latitude 30.27) that gives zoom 13. At 15z the view would be four times
+narrower.
+
+**Credit:** formula from OpenSEO (MIT),
+[`src/shared/local-seo.ts`](https://github.com/every-app/open-seo/blob/main/src/shared/local-seo.ts).
+
+### Reading the result at each point
+
+- **Match the business by `cid` or `place_id`**, not by name alone. Names
+  collide, for example two "Smith Plumbing" listings. Use the name only when no
+  ID is known.
+- **A missing rank needs the result count beside it.**
+  - All 20 results came back (the `depth`) and the business is not among them:
+    it was outranked.
+  - Fewer came back: the area has few listings for that search.
+  - Report the two separately.
+- **Average rank counts the misses.** Score a point where the business was not
+  found as 21 (one past `depth: 20`). An average over found points only makes a
+  weak grid look strong.
 
 **One task per request:** this is a Live endpoint, and Live endpoints accept
 exactly one task per POST. A 7x7 grid is 49 separate requests. They may run in
@@ -88,7 +131,7 @@ SoLV = (points_in_top_3 / total_grid_points) * 100
 
 ### Extended Metrics
 
-- **Average Rank**: Mean position across all grid points (lower = better)
+- **Average Rank**: Mean position across all grid points (lower = better), with a not-found point counted as 21
 - **Visibility Score**: Weighted average where top 3 = 3pts, 4-10 = 1pt, 10+ = 0pts
 - **Worst Quadrant**: Identify which compass direction has weakest rankings
 
