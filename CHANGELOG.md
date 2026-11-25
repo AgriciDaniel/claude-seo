@@ -80,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   blocks and nested list items lost their leading spaces and two-space line
   breaks became one, even when no phrase was replaced. Only spacing between
   two words is tidied now.
+- Expanded sitemap page-URL totals now exclude invalid child-sitemap locations from invalid_locs, keeping the page count identity consistent while retaining each index's invalid-location diagnostics.
 
 ## [2.6.2] - 2026-11-15
 
