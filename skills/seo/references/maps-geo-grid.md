@@ -63,9 +63,12 @@ For each grid point, fire one API call with the point's lat/lng. Parse the
 ### Set the zoom from the grid spacing
 
 Use the same zoom at every point, chosen from the distance between points.
+Report the zoom with the grid results, and keep it the same on every repeat
+run for one business so the scans stay comparable.
 
-- **No zoom:** DataForSEO picks one per coordinate. Some points then return no
-  results, and ranks are not comparable across the grid.
+- **No zoom:** the docs don't say which zoom applies when none is given, and
+  it may not match the grid spacing. Set it explicitly so every point uses the
+  same view.
 - **A fixed 15z:** the view is too narrow for most grids. A Maps result only
   covers the map view at that zoom. With points a kilometre or more apart, a
   business one grid step to the side falls outside the view and reads as
@@ -100,7 +103,7 @@ narrower.
   - Fewer came back: the area has few listings for that search.
   - Report the two separately.
 - **Average rank counts the misses.** Score a point where the business was not
-  found as 21 (one past `depth: 20`). An average over found points only makes a
+  found as `depth + 1` (21 at `depth: 20`). An average over found points only makes a
   weak grid look strong.
 
 **One task per request:** this is a Live endpoint, and Live endpoints accept
@@ -131,7 +134,7 @@ SoLV = (points_in_top_3 / total_grid_points) * 100
 
 ### Extended Metrics
 
-- **Average Rank**: Mean position across all grid points (lower = better), with a not-found point counted as 21
+- **Average Rank**: Mean position across all grid points (lower = better), with a not-found point counted as `depth + 1` (21 at `depth: 20`)
 - **Visibility Score**: Weighted average where top 3 = 3pts, 4-10 = 1pt, 10+ = 0pts
 - **Worst Quadrant**: Identify which compass direction has weakest rankings
 
