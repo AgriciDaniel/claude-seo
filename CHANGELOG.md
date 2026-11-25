@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so returning visitors are not counted again for each active date. Daily averages
   include quiet days, and a failed aggregate query leaves the distinct-user total
   unavailable while preserving the daily and landing-page data.
+- Matomo organic landing pages are ranked and counted by entry visits, matching
+  the landing-page bounce-rate denominator. Pages visited later in a session no
+  longer displace the pages where organic sessions actually started.
 
 ## [2.6.2] - 2026-11-15
 

@@ -368,7 +368,7 @@ def test_organic_report_builds_daily_and_pages(monkeypatch):
     assert len(data["top_pages"]) == 2
     top = data["top_pages"][0]
     assert top["url"] == "en"
-    assert top["visits"] == 146
+    assert top["visits"] == 111
     assert top["actions"] == 583
     assert top["hits"] == 181
     # 23 bounces / 111 entry visits
@@ -421,7 +421,7 @@ def test_top_pages_report_keeps_success_path():
     assert env["error"] is None
     assert env["data"]["total_organic_visits"] == 100
     assert env["data"]["pages"][0]["url"] == "/landing"
-    assert env["data"]["pages"][0]["visits"] == 42
+    assert env["data"]["pages"][0]["visits"] == 40
 
 
 def test_top_pages_cli_reports_failure_in_human_and_json_modes(
