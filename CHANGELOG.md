@@ -86,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keep robots.txt user-agent groups intact across Sitemap and other non-rule records, so crawler access findings and Content-Signal drafts follow the same RFC 9309 groups.
 - Fetch Matomo page views alongside visit metrics through API.get instead of counting downloads and outlinks as page views; keep absent page-view values unknown.
 - Surface Lighthouse runtime failures returned inside successful PageSpeed HTTP responses, while preserving available categories and field data for partial reports.
+- Unknown-path checks no longer report authentication, rate-limit, or server errors as a working missing-page response. Only 404/410 pass; unavailable probes retain their error and are explicitly inconclusive.
 
 ## [2.6.2] - 2026-11-15
 
