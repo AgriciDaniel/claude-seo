@@ -51,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **PageSpeed:** a field CLS percentile of 1 is reported as 0.01 for both URL and origin
   data. PSI encodes field CLS in hundredths; Lighthouse and direct CrUX scores keep their
   existing units.
+- Keyword Planner follows Google Ads continuation pages until the requested idea
+  limit or the end of the results, instead of silently stopping at a short first page.
 
 ## [2.6.2] - 2026-11-15
 
