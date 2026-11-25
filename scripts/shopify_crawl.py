@@ -853,10 +853,15 @@ def main(argv: list[str] | None = None) -> int:
         if args.resume and pages_file.exists():
             # A URL counts as done once it has a record that is not a failure;
             # failed and rate-limited URLs are fetched again.
+            # Reusing an output directory must not import another store's
+            # records, or pages outside this run's sitemap/filter/robots scope.
+            eligible_urls = set(urls)
             with pages_file.open(encoding="utf-8") as earlier:
                 for line in earlier:
                     try:
                         record = json.loads(line)
+                        if record.get("url") not in eligible_urls:
+                            continue
                         if record.get("failed"):
                             previous.pop(record["url"], None)
                         else:
