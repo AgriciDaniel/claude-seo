@@ -53,6 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   existing units.
 - Keyword Planner follows Google Ads continuation pages until the requested idea
   limit or the end of the results, instead of silently stopping at a short first page.
+- Claim verification scans retained spans once per pattern, avoiding quadratic
+  overlap checks on drafts with many statistics while preserving claim priority,
+  positions, and citation results.
 
 ## [2.6.2] - 2026-11-15
 
