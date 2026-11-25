@@ -48,6 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Page checks resolve resource URLs against the document base before checking
   mixed content, catching relative scripts and styles that load over HTTP on
   an HTTPS page with an HTTP base URL.
+- **PageSpeed:** a field CLS percentile of 1 is reported as 0.01 for both URL and origin
+  data. PSI encodes field CLS in hundredths; Lighthouse and direct CrUX scores keep their
+  existing units.
 
 ## [2.6.2] - 2026-11-15
 
