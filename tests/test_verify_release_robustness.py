@@ -163,3 +163,19 @@ def test_a_good_manifest_still_verifies(root, tmp_path, monkeypatch, capsys) -> 
     assert out.splitlines()[0] == "Verification: OK"
     assert "Manifest version: '2.6.1'  tag: 'v2.6.1'" in out
     assert "Files checked:    1" in out
+
+
+def test_files_the_manifest_does_not_list_are_ignored(root, tmp_path, monkeypatch, capsys) -> None:
+    """The documented contract: only manifest entries are checked."""
+    (root / "lib" / "unlisted.py").write_bytes(b"not in the manifest\n")
+    (root / ".venv").mkdir()
+    (root / ".venv" / "pyvenv.cfg").write_bytes(b"home = /usr/bin\n")
+    manifest = _write(tmp_path, {"version": "0", "files": {"lib/ok.py": GOOD_SHA}})
+    result = verify_release.verify(manifest, root)
+    assert result["ok"] is True
+    assert result["checked"] == 1
+    assert "extra" not in result
+    code, out, _err = _cli(monkeypatch, capsys, manifest, root)
+    assert code == 0
+    assert "unlisted" not in out and ".venv" not in out
+    assert "extra file" not in verify_release.__doc__
