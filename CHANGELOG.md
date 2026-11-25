@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Search Console HTML/PDF reports preserve incomplete aggregate status. The cover,
   summary, and performance metrics label fallback row sums as returned-row data,
   with a notice that site-wide totals are unavailable.
+- GSC `--days` counts inclusive dates back from the three-day data-lag cutoff or
+  an explicit end date. One- and two-day requests no longer send inverted ranges,
+  and the default request covers 28 dates instead of 26. Explicit start dates
+  continue to override the day count.
 
 ## [2.6.2] - 2026-11-15
 
