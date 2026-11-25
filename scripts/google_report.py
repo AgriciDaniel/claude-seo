@@ -2916,17 +2916,21 @@ def generate_xlsx(data, domain, report_type, output_dir):
         mobile = _mobile_pagespeed(data)
         scores = mobile.get("lighthouse_scores", {}) if isinstance(mobile, dict) else {}
         if scores:
+            # run_pagespeed marks its strategy and already converts every
+            # category to 0..100. Only unmarked legacy input may be fractional.
+            native_scores = mobile.get("strategy") in ("mobile", "desktop")
             ws.append(["Lighthouse Scores", ""])
             ws.append(["Category", "Score"])
             _style_header(ws, ws.max_row)
             for cat in ["performance", "accessibility", "best-practices", "seo"]:
                 val = scores.get(cat, scores.get(cat.replace("-", "_")))
                 if val is not None:
+                    score = int(val * 100) if not native_scores and val <= 1 else val
                     row_num = ws.max_row + 1
-                    _xlsx_append_row(ws, [cat.replace("-", " ").title(), int(val * 100) if val <= 1 else val])
+                    _xlsx_append_row(ws, [cat.replace("-", " ").title(), score])
                     ws.cell(row=row_num, column=2).fill = _severity_fill(
-                        "pass" if (val * 100 if val <= 1 else val) >= 90
-                        else "warning" if (val * 100 if val <= 1 else val) >= 50
+                        "pass" if score >= 90
+                        else "warning" if score >= 50
                         else "fail"
                     )
             ws.append([])
@@ -2942,7 +2946,7 @@ def generate_xlsx(data, domain, report_type, output_dir):
             for metric_name, metric_data in metrics.items():
                 if isinstance(metric_data, dict):
                     p75 = metric_data.get("percentile_p75", metric_data.get("p75", ""))
-                    rating = metric_data.get("category", "")
+                    rating = metric_data.get("rating", metric_data.get("category", ""))
                     _xlsx_append_row(ws, [metric_name, p75, rating])
             ws.append([])
 
