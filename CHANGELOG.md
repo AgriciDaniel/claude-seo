@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - GA4 device and country reports display their returned breakdown rows in text mode,
   instead of an unrelated organic summary with zero sessions, users, and pageviews.
+- GA4 organic reports obtain period-wide user counts from an aggregate API query,
+  so returning visitors are not counted again for each active date. Daily averages
+  include quiet days, and a failed aggregate query leaves the distinct-user total
+  unavailable while preserving the daily and landing-page data.
 
 ## [2.6.2] - 2026-11-15
 
