@@ -19,7 +19,8 @@ The Rich Results Test catches structural errors. This validator catches
 the *policy* errors: fields that parse fine but disqualify the product
 from a rich feature. It also flags the deprecated v1.x types
 (Vehicle Listing, Claim Review, Estimated Salary, Learning Video,
-Course Info, Special Announcement).
+Special Announcement). Course is not flagged: Google retired Course
+Info, which has no type of its own, and Course list is still live.
 
 Usage::
 

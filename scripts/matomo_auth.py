@@ -468,7 +468,7 @@ def detect_tier() -> dict:
             "tier": 1,
             "description": "Matomo configured (organic traffic + landing pages + referrers)",
             "capabilities": [
-                "VisitsSummary.get (total and per-day organic sessions)",
+                "API.get (total and per-day organic sessions and page views)",
                 "Actions.getEntryPageUrls (organic landing pages)",
                 "Actions.getPageUrls (all pages)",
                 "DevicesDetection.getType (device breakdown)",
