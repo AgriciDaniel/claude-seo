@@ -494,7 +494,9 @@ def test_seo_cockpit_installs_from_a_pinned_branch():
     source = entries["seo-cockpit"]["source"]
     assert isinstance(source, dict), "seo-cockpit must not be a relative path inside the plugin root"
     assert source["source"] == "git-subdir"
-    assert source["url"] == "AgriciDaniel/claude-seo"
+    # The full HTTPS URL: Claude Code clones the owner/repo shorthand over SSH,
+    # which fails for anyone without a GitHub SSH key (issue #529).
+    assert source["url"] == "https://github.com/AgriciDaniel/claude-seo.git"
     assert source["path"] == "plugins/seo-cockpit"
     assert source["ref"] == "seo-cockpit"
     assert re.fullmatch(r"[0-9a-f]{40}", source["sha"]), source.get("sha")
