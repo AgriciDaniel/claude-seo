@@ -143,6 +143,7 @@ Write `{domain}-audit/audit-data.json` with this shape so `"${CLAUDE_PLUGIN_ROOT
 - Current implementation
 - Validation errors
 - Missing opportunities
+- **Crawler-gated markup caveat:** On hosted e-commerce platforms, or when the vendor says markup is bot-only, do not report `Product` / `Offer` (or other) markup as absent from non-crawler fetches alone. Verify with a search-engine-operated fetcher (Search Console URL Inspection, Rich Results Test, or another search engine's equivalent; user-agent spoofing is not a substitute). Until verified, report "not visible to non-crawler fetches; unverified for crawlers" rather than flagging a defect.
 
 ### Performance
 - LCP, INP, CLS scores

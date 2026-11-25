@@ -27,6 +27,18 @@ metadata:
 2. Check for Microdata (`itemscope`, `itemprop`)
 3. Check for RDFa (`typeof`, `property`)
 4. Always recommend JSON-LD as primary format (Google's stated preference)
+5. **Crawler-gated markup (verified search crawlers only):** Some hosted
+   e-commerce platforms serve `Product` / `Offer` (or other) structured data
+   only to verified search-engine crawlers checked by IP / reverse DNS, so
+   browser fetches, `parse_html.py` / `render_page.py`, third-party validators
+   such as `validator.schema.org`, and spoofed `Googlebot` / `YandexBot`
+   User-Agent headers see only navigation markup or no product markup at all.
+   Before reporting markup as absent on a hosted e-commerce platform, or when
+   the vendor says markup is bot-only, verify with a fetcher operated by the
+   search engine itself (Search Console URL Inspection, Rich Results Test, or
+   the equivalent tool of another search engine). Until verified there, report
+   **"not visible to non-crawler fetches; unverified for crawlers"** instead of
+   missing. User-agent spoofing is not a substitute.
 
 ## Validation
 
@@ -180,7 +192,7 @@ When generating schema for a page:
 | Scenario | Action |
 |----------|--------|
 | URL unreachable | Report connection error with status code. Suggest verifying URL and checking if the page requires authentication. |
-| No schema markup found | Report that no JSON-LD, Microdata, or RDFa was detected. Recommend appropriate schema types based on page content analysis. |
+| No schema markup found | On a hosted e-commerce platform or when the vendor says markup is bot-only, do not report markup as absent until verified with a search-engine-operated fetcher (Search Console URL Inspection, Rich Results Test, or equivalent; user-agent spoofing is not a substitute); report "not visible to non-crawler fetches; unverified for crawlers". Otherwise report that no JSON-LD, Microdata, or RDFa was detected and recommend appropriate schema types based on page content analysis. |
 | Invalid JSON-LD syntax | Parse and report specific syntax errors (missing brackets, trailing commas, unquoted keys). Provide corrected JSON-LD output. |
 | Deprecated schema type detected | Flag the deprecated type with its retirement date. Recommend the current replacement type or advise removal if no replacement exists. |
 
