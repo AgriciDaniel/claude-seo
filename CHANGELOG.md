@@ -64,6 +64,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   of becoming a green 100. Unmarked legacy fractional-score input keeps its
   existing interpretation. CrUX field-data rows retain the producer's
   good/needs-improvement/poor ratings, with legacy category labels supported.
+- HTML parsing combines all generic robots meta tags. Later permissive or
+  empty tags no longer hide an earlier noindex restriction from drift checks
+  or page-level nofollow from backlink verification.
 
 ## [2.6.2] - 2026-11-15
 
