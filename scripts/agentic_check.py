@@ -214,7 +214,8 @@ def robots_lines(text: str) -> list:
 def parse_robots(text: str) -> dict:
     """Parse robots.txt into RFC 9309 groups plus global lines.
 
-    A group is one or more consecutive ``user-agent`` lines followed by rules.
+    A group is one or more ``user-agent`` lines followed by access rules.
+    Other records do not interrupt its user-agent block (RFC 9309 section 2.2.4).
     ``content-signal`` and other non-global lines attach to the current group.
     """
     groups: list = []
@@ -234,7 +235,9 @@ def parse_robots(text: str) -> dict:
             current["agents"].append(value)
             last_was_ua = True
             continue
-        last_was_ua = False
+        # Other records cannot end a group (RFC 9309 section 2.2.4).
+        if field in ("allow", "disallow"):
+            last_was_ua = False
         if field == "sitemap":
             global_lines["sitemap"].append(value)
         elif field == "agentmap":
