@@ -7,90 +7,143 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Search Console `--days` counts whole dates back from the data-lag cutoff.** The default
+  request covers 28 dates instead of 26, so its window starts two days earlier and default
+  totals run a little higher than before. `--days 1` and `--days 2` no longer send an inverted
+  range, `--end-date` without `--start-date` is honoured, and `--days 0` exits with code 2
+  before any request. An explicit start date still overrides the day count. (#475)
+- **`pagespeed_check.py` exits with code 1 when Lighthouse reports a runtime error** inside a
+  successful PageSpeed response. The error is in `error`; with `--json` the categories and
+  field data that were returned are kept. (#507)
+- **A field CLS percentile from PageSpeed is always read in hundredths.** A percentile of 1
+  is 0.01, not 1.0. A drift baseline captured earlier with such a value shows one improvement
+  on the next comparison. (#480)
+- **Drift reads every robots meta tag.** A baseline that stored only the last of several tags
+  can report `noindex_added` once on the next comparison: the noindex is real, it was only not
+  recorded before. (#486)
+- **Sitemap `totals.invalid_locs` counts page URLs only.** Invalid child-sitemap locations of a
+  sitemap index are no longer added to it; each index still reports its own
+  `invalid_loc_count`. (#502)
+- **Bing backlink discovery marks a later page as partial**, including the last page, when the
+  pages before it were not read. Only page 0 of a one-page result is complete. (#483)
+- **The unknown-path check in `agentic_check.py` passes on 404 or 410 only.** A 401, 403, 429
+  or 5xx answer is reported as inconclusive with its error, not as a working missing-page
+  response. (#508)
+- **UCP profile validation follows the specification:** `payment_handlers` must be present as
+  an object, empty registries are accepted, `capabilities` may be omitted, and a version that
+  is not a real calendar date is an error. (#512, #513)
+- **Matomo `totals.pageviews` can be `null`** when the instance returns no page-view metric. It
+  was filled with the action count before. (#506)
+- **GA4 `totals.users` can be `null`** when the period aggregate cannot be fetched; the daily
+  and landing-page data are still returned, with `totals_error`. (#468)
+- **Dependencies:** `idna` is now a declared requirement (it was already installed through
+  `requests`), and the floors of `htmldate` (1.11.0), `playwright` (1.65.1) and `numpy`
+  (2.4.6) are raised. A changed `requirements.txt` rebuilds the tool's virtual environment on
+  the next run. (#471, #492, #493, #494)
+- **Community integrations:** `docs/COMMUNITY-INTEGRATIONS.md` lists claude-seo-cloro
+  (issue #453, rbatista191) and claude-seo-goanyapi (issue #422, shineforever).
+
 ### Fixed
 
-- GA4 device and country reports display their returned breakdown rows in text mode,
-  instead of an unrelated organic summary with zero sessions, users, and pageviews.
-- GA4 organic reports obtain period-wide user counts from an aggregate API query,
-  so returning visitors are not counted again for each active date. Daily averages
-  include quiet days, and a failed aggregate query leaves the distinct-user total
-  unavailable while preserving the daily and landing-page data.
-- Matomo organic landing pages are ranked and counted by entry visits, matching
-  the landing-page bounce-rate denominator. Pages visited later in a session no
-  longer displace the pages where organic sessions actually started.
-- Shopify resumed crawls reuse records only for the current store's discovered,
-  eligible URLs. Cached pages from another store, a removed sitemap entry, or a
-  newly excluded/robots-disallowed path no longer contaminate the summary and sample.
-- Normalize internationalized WHOIS domain inputs to IDNA 2008 A-labels before
-  either backend, avoiding Unicode encoding failures in the socket fallback
-  and inconsistent system-client queries. Reject malformed domain arguments
-  before querying and report CLI input errors without a traceback.
-- Resolve local JSON-LD node references when checking merchant offers, return
-  policies, shipping details, and loyalty price specifications. Valid linked
-  graph nodes no longer produce false missing-type or missing-field findings;
-  unresolved or ambiguous references remain reportable, and graph scopes stay
-  separate without fetching external definitions or expanding cycles.
-- GSC quick wins consider all returned query rows before applying the 20-opportunity
-  limit. Eligible queries no longer disappear when the 200 highest-impression rows
-  rank outside positions 4-10.
-- Search Console HTML/PDF reports preserve incomplete aggregate status. The cover,
-  summary, and performance metrics label fallback row sums as returned-row data,
-  with a notice that site-wide totals are unavailable.
-- GSC `--days` counts inclusive dates back from the three-day data-lag cutoff or
-  an explicit end date. One- and two-day requests no longer send inverted ranges,
-  and the default request covers 28 dates instead of 26. Explicit start dates
-  continue to override the day count.
-- Indexing API publish receipts use the timestamp for the requested update or
-  deletion, instead of reporting an older notification of the opposite type.
-- GSC query and URL Inspection errors use the actual HTTP response status.
-  Numbers such as `403` in a property URL or error message no longer turn rate
-  limits, backend failures, or timeouts into false permission errors.
-- Page checks resolve resource URLs against the document base before checking
-  mixed content, catching relative scripts and styles that load over HTTP on
-  an HTTPS page with an HTTP base URL.
-- **PageSpeed:** a field CLS percentile of 1 is reported as 0.01 for both URL and origin
-  data. PSI encodes field CLS in hundredths; Lighthouse and direct CrUX scores keep their
-  existing units.
-- Keyword Planner follows Google Ads continuation pages until the requested idea
-  limit or the end of the results, instead of silently stopping at a short first page.
-- Claim verification scans retained spans once per pattern, avoiding quadratic
-  overlap checks on drafts with many statistics while preserving claim priority,
-  positions, and citation results.
-- Bing backlink discovery keeps a requested later page marked partial,
-  including the last page. Unread preceding pages no longer disappear behind
-  a successful complete-inventory result; returned link details are retained.
-- Excel reports retain the PageSpeed script's already-normalized Lighthouse
-  scores. A native score of 1/100 stays 1 and uses the failing color instead
-  of becoming a green 100. Unmarked legacy fractional-score input keeps its
-  existing interpretation. CrUX field-data rows retain the producer's
-  good/needs-improvement/poor ratings, with legacy category labels supported.
-- HTML parsing combines all generic robots meta tags. Later permissive or
-  empty tags no longer hide an earlier noindex restriction from drift checks
-  or page-level nofollow from backlink verification.
-- Page checks recognize the complete JSON-LD media type, preventing scripts with lookalike types or parameters from creating false invalid-JSON-LD findings.
-- Preload scoring no longer awards the inline speculation bonus to malformed JSON, non-object payloads, empty action arrays, or arrays without rule objects; observed blocks remain counted.
-- HTML extraction and page checks reject `NaN`, `Infinity`, and `-Infinity` in
-  JSON-LD, reporting the invalid block while keeping valid neighboring blocks.
-- Sitemap expansion preserves fractional seconds when selecting the oldest and
-  newest `lastmod` values, including timezone offsets and all nine accepted digits.
-- Sitemap discovery now compares Unicode and Punycode host spellings by their IDNA identity, preventing false cross-host warnings and duplicate URL inflation for internationalized domains.
-- Content quality phrase matching now recognizes line wrapping, repeated or nonbreaking whitespace, and typographic apostrophes without changing the existing phrase lists or whole-word matching.
-- `content_humanize.py` no longer strips Markdown indentation or hard line
-  breaks. Its double-space cleanup ran over the whole draft, so indented code
-  blocks and nested list items lost their leading spaces and two-space line
-  breaks became one, even when no phrase was replaced. Only spacing between
-  two words is tidied now.
-- Expanded sitemap page-URL totals now exclude invalid child-sitemap locations from invalid_locs, keeping the page count identity consistent while retaining each index's invalid-location diagnostics.
-- Transport header grading now rejects HSTS includeSubDomains directives with values, preventing ineffective headers from passing HSTS and preload checks.
-- Keep supported Course and Course list markup out of the merchant validator's retired-type failures; Course Info retirement does not retire the Course type.
-- Keep robots.txt user-agent groups intact across Sitemap and other non-rule records, so crawler access findings and Content-Signal drafts follow the same RFC 9309 groups.
-- Fetch Matomo page views alongside visit metrics through API.get instead of counting downloads and outlinks as page views; keep absent page-view values unknown.
-- Surface Lighthouse runtime failures returned inside successful PageSpeed HTTP responses, while preserving available categories and field data for partial reports.
-- Unknown-path checks no longer report authentication, rate-limit, or server errors as a working missing-page response. Only 404/410 pass; unavailable probes retain their error and are explicitly inconclusive.
-- Drift comparison ignores reordering independent JSON-LD blocks, preventing false schema-change warnings after template or plugin ordering changes. Existing snapshots work without migration; ordered values inside blocks and actual data changes remain significant.
-- Named Markdown footnotes now count as citation markers, preventing false uncited-claim warnings for references such as [^source]. Numeric references, ordinary bracketed text, and the existing proximity window keep their behavior.
-- UCP profile validation accepts empty required registries and omitted capabilities, while checking that payment_handlers is present as an object. Valid minimal discovery profiles no longer receive spurious missing-service/capability errors.
-- UCP version validation rejects malformed or impossible calendar dates and non-string component versions, preserving valid independent release dates and the existing missing-version diagnostics.
+- **Install:** seo-cockpit installs and updates without a GitHub SSH key. Its marketplace
+  source is the full HTTPS URL instead of the `owner/repo` shorthand, which Claude Code clones
+  over SSH. (issue #529, reported by ancestraljoe; first proposed by qangggggg in #417)
+- **GA4:** device and country reports print their breakdown rows in text mode instead of an
+  organic summary full of zeros. (#467, Afloat16)
+- **GA4:** the user total of an organic report is a period-wide distinct count from an
+  aggregate query, so returning visitors are not counted once per active day, and daily
+  averages include days without traffic. (#468, Afloat16)
+- **Search Console:** quick wins are chosen from every returned query row before the limit of
+  20, so eligible queries no longer disappear when the 200 rows with the most impressions rank
+  outside positions 4 to 10. (#473, Afloat16)
+- **Search Console:** `--days` requests the number of dates asked for; see Changed.
+  (#475, Afloat16)
+- **Search Console:** query and URL Inspection errors are classified by the real HTTP status.
+  A `403` inside a property URL or a message no longer turns a rate limit, a server error or
+  a timeout into "Permission denied". (#478, Afloat16)
+- **Report:** when Search Console totals are incomplete, the cover, summary and performance
+  cards label them as sums of the returned rows and say that site-wide totals are
+  unavailable. (#474, Afloat16)
+- **Report:** the Excel workbook keeps PageSpeed scores as the script wrote them, so a score of
+  1 out of 100 stays 1 and is coloured as failing instead of becoming 100, and CrUX rows keep
+  their good, needs-improvement and poor ratings. (#485, Afloat16)
+- **Indexing API:** a publish receipt shows the timestamp of the requested update or deletion,
+  not an older notification of the other type. (#477, Afloat16)
+- **Keyword Planner:** keyword ideas follow Google Ads continuation pages up to the requested
+  limit instead of stopping at a short first page. (#481, Afloat16)
+- **PageSpeed:** a field CLS percentile of 1 is reported as 0.01, for URL and origin data.
+  (#480, Afloat16)
+- **PageSpeed:** a Lighthouse runtime failure inside a successful response is reported as an
+  error, with the API key removed from the message. (#507, Afloat16)
+- **Bing:** a requested later page of backlink discovery stays marked partial and keeps its
+  link details. (#483, Afloat16)
+- **Matomo:** organic landing pages are ranked and counted by entry visits, so pages reached
+  later in a session no longer displace the pages where sessions started. (#469, Afloat16)
+- **Matomo:** page views come from the Actions metrics through `API.get`. Downloads and
+  outlinks are no longer counted as page views. (#506, Afloat16)
+- **Shopify:** a resumed crawl reuses stored records only for URLs that the current store
+  still lists and allows. Pages from another store, a removed sitemap entry or a newly
+  excluded path no longer reach the summary and the sample. (#470, Afloat16)
+- **Domain history:** internationalized domain names are converted to their IDNA form before
+  the WHOIS query, for the system client and the socket fallback alike, and a malformed domain
+  argument is rejected with a plain error before anything is queried. (#471, Afloat16)
+- **Schema:** offers, return policies, shipping details and loyalty price specifications that
+  are linked by `@id` inside the page are resolved before validation, so valid linked nodes no
+  longer give missing-type or missing-field findings. Unresolved and ambiguous references are
+  still reported. (#472, Afloat16)
+- **Schema:** `Course` markup, alone or in a Course list, is no longer failed as a retired
+  type. Google retired Course Info, not the Course type. (#504, Afloat16)
+- **Schema:** `NaN`, `Infinity` and `-Infinity` in JSON-LD are rejected as invalid JSON by the
+  HTML parser and the page checks, and valid blocks next to them are kept. (#490, Afloat16)
+- **Page checks:** resource URLs are resolved against the document base before the
+  mixed-content check, which catches relative scripts and styles that load over HTTP on an
+  HTTPS page. (#479, Afloat16)
+- **Page checks:** a script counts as JSON-LD only when its type is exactly
+  `application/ld+json` (any case, parameters ignored), so lookalike types no longer give
+  false invalid-JSON-LD findings. (#488, Afloat16)
+- **Parser:** all `robots` meta tags of a page are combined. A later permissive or empty tag
+  no longer hides an earlier `noindex` from drift checks or a page-level `nofollow` from
+  backlink verification. (#486, Afloat16)
+- **Preload:** the speculation-rules bonus is given only for a rule set that parses and holds
+  at least one rule, or for the `Speculation-Rules` header. Malformed JSON and empty action
+  lists no longer score. (#489, Afloat16)
+- **Sitemap:** fractional seconds are kept when the oldest and newest `lastmod` values are
+  chosen, with any timezone offset. (#491, Afloat16)
+- **Sitemap:** Unicode and Punycode spellings of one host are compared as the same host, which
+  removes false cross-host warnings and duplicate URLs for internationalized domains.
+  (#496, Afloat16)
+- **Sitemap:** invalid child-sitemap locations no longer inflate the page-URL total.
+  (#502, Afloat16)
+- **Drift:** a change in the order of independent JSON-LD blocks is no longer reported as a
+  schema change. Stored baselines work as they are; order inside a block and real data
+  changes still count. (#509, Afloat16)
+- **Transport:** an HSTS header whose `includeSubDomains` directive carries a value is graded
+  as invalid, as browsers treat it, and no longer passes the preload check. (#503, Afloat16)
+- **Agent readiness:** robots.txt user-agent groups stay intact across `Sitemap` and other
+  non-rule records, as RFC 9309 defines, so crawler access findings and Content-Signal drafts
+  read the same groups. (#505, Afloat16)
+- **Agent readiness:** an authentication, rate-limit or server error on the unknown-path
+  probe is reported as inconclusive instead of passing as a correct missing-page response.
+  (#508, Afloat16)
+- **Content:** phrase matching in `content_quality.py` works across line wraps, repeated or
+  non-breaking spaces and typographic apostrophes. (#497, Afloat16)
+- **Content:** `content_humanize.py` keeps Markdown indentation and two-space line breaks.
+  Only double spaces between two words are tidied. (#501, divya0795)
+- **Content:** named Markdown footnotes such as `[^source]` count as citation markers in
+  `content_verify.py`. (#511, Afloat16)
+- **Content:** claim verification checks overlapping matches once per pattern, which keeps
+  drafts with many statistics fast. (#482, Afloat16)
+- **UCP:** a minimal discovery profile with empty registries and no `capabilities` no longer
+  gets missing-service and missing-capability errors, and `payment_handlers` is checked.
+  (#512, Afloat16)
+- **UCP:** malformed or impossible version dates and non-string component versions are
+  rejected. (#513, Afloat16)
+- `scripts/shopify_crawl.py` and `scripts/parse_html.py` keep their executable bit.
+- The description of `verify_release.py` no longer promises a check for files that the
+  manifest does not list. The script never made one, and a virtual environment or an editor
+  folder would fail it. (follow-up to #461)
 
 ## [2.6.2] - 2026-11-15
 
