@@ -7,7 +7,7 @@ requests>=2.34.2,<3.0.0           # CVE-2024-47081, CVE-2024-35195 fixes
 idna>=3.20,<4.0.0                # Direct IDNA 2008 / UTS #46 import in domain_history.py
 lxml>=6.1.3,<7.0.0                # CVE-2025-24928 + additional libxml2 security patches
 lxml_html_clean>=0.4.5,<1.0.0     # lxml 6 removed html.clean into this standalone package
-playwright>=1.63.0,<2.0.0         # CVE-2025-59288 fix (macOS)
+playwright>=1.65.1,<2.0.0         # CVE-2025-59288 fix (macOS)
 urllib3>=2.8.0,<3.0.0             # High-severity urllib3 advisories GHSA-mf9v-mfxr-j63j, GHSA-qccp-gfcp-xxvc; 2.8.0 fixes
                                   # GHSA-8988-9cw3-xx77 (HTTPS proxy TLS settings ignored), GHSA-vxq7-64xx-v4gw (unbounded
                                   # chunk-size line buffering), GHSA-gh4c-6fx4-qh6g (chunked deflate infinite loop)
