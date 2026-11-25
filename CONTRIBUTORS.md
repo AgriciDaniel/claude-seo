@@ -157,10 +157,12 @@ not merged after review.
 
 ### v2.6.3
 
-| Reporter | Issue | Contribution category |
-|----------|-------|-----------------------|
+| Reporter | Issue or PR | Contribution category |
+|----------|-------------|-----------------------|
 | [@ancestraljoe](https://github.com/ancestraljoe) | [#529](https://github.com/AgriciDaniel/claude-seo/issues/529) | seo-cockpit install failing without a GitHub SSH key, with the exact error and the test that pinned the cause |
-| [@qangggggg](https://github.com/qangggggg) | [#417](https://github.com/AgriciDaniel/claude-seo/pull/417) | First proposed the HTTPS source URL for seo-cockpit |
+| [@qangggggg](https://github.com/qangggggg) | [#417](https://github.com/AgriciDaniel/claude-seo/pull/417) | First proposed the HTTPS source URL for seo-cockpit (closed pull request) |
+| [@rbatista191](https://github.com/rbatista191) | [#453](https://github.com/AgriciDaniel/claude-seo/issues/453) | Community integration listing: claude-seo-cloro, in its own repository |
+| [@shineforever](https://github.com/shineforever) | [#422](https://github.com/AgriciDaniel/claude-seo/issues/422) | Community integration listing: claude-seo-goanyapi, in its own repository |
 
 ### v2.5.1
 
