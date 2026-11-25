@@ -960,7 +960,9 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
     # --- JSON-LD --------------------------------------------------------
     jsonld_blocks = 0
     jsonld_errors: list[str] = []
-    for script in soup.find_all("script", attrs={"type": re.compile(r"ld\+json", re.I)}):
+    for script in soup.find_all("script"):
+        if _attr(script, "type").split(";", 1)[0].strip().lower() != "application/ld+json":
+            continue
         raw = script.string or script.get_text()
         if not raw or not raw.strip():
             continue
