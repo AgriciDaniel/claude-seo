@@ -75,6 +75,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   newest `lastmod` values, including timezone offsets and all nine accepted digits.
 - Sitemap discovery now compares Unicode and Punycode host spellings by their IDNA identity, preventing false cross-host warnings and duplicate URL inflation for internationalized domains.
 - Content quality phrase matching now recognizes line wrapping, repeated or nonbreaking whitespace, and typographic apostrophes without changing the existing phrase lists or whole-word matching.
+- `content_humanize.py` no longer strips Markdown indentation or hard line
+  breaks. Its double-space cleanup ran over the whole draft, so indented code
+  blocks and nested list items lost their leading spaces and two-space line
+  breaks became one, even when no phrase was replaced. Only spacing between
+  two words is tidied now.
 
 ## [2.6.2] - 2026-11-15
 
