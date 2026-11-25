@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GSC quick wins consider all returned query rows before applying the 20-opportunity
   limit. Eligible queries no longer disappear when the 200 highest-impression rows
   rank outside positions 4-10.
+- Search Console HTML/PDF reports preserve incomplete aggregate status. The cover,
+  summary, and performance metrics label fallback row sums as returned-row data,
+  with a notice that site-wide totals are unavailable.
 
 ## [2.6.2] - 2026-11-15
 
