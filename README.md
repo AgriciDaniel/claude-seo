@@ -246,14 +246,6 @@ powershell -ExecutionPolicy Bypass -File claude-seo\install.ps1
 
 </details>
 
-> **Two versions.** This public version is MIT licensed and free for everyone. [AI Marketing Hub Pro](https://www.skool.com/ai-marketing-hub-pro) members also get a private version with early access to new features. Members install it with:
->
-> ```bash
-> /plugin marketplace add AI-Marketing-Hub/claude-seo
-> /plugin install claude-seo@ai-marketing-hub-claude-seo
-> /seo setup
-> ```
-
 **Your first audit:**
 
 ```bash
@@ -265,6 +257,22 @@ claude                                   # start Claude Code
 /seo schema https://example.com          # check and generate structured data
 /seo local https://example.com           # local SEO and Google Business Profile
 ```
+
+<details>
+<summary><b>AI Marketing Hub Pro members: private version</b></summary>
+<br />
+
+This public version is MIT licensed and free for everyone. [AI Marketing Hub Pro](https://www.skool.com/ai-marketing-hub-pro) members also get a private version with early access to new features.
+
+`AI-Marketing-Hub/claude-seo` is a **private repository**: these commands only work from a GitHub account that has been given access to it. Without access, Claude Code reports an HTTPS or SSH authentication failure, which looks like a broken credential setup but means your account cannot see the repository. If you are not a member, use the [public install](#install) above.
+
+```bash
+/plugin marketplace add AI-Marketing-Hub/claude-seo
+/plugin install claude-seo@ai-marketing-hub-claude-seo
+/seo setup
+```
+
+</details>
 
 ## FAQ
 

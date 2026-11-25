@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- README: the Pro members' install note no longer reads like the last public
+  install step (#528). It moves below "Your first audit" into a collapsed
+  section, says that `AI-Marketing-Hub/claude-seo` is a private repository
+  that needs a GitHub account with access, explains the authentication error
+  you get without it, and links back to the public install.
+
 ## [2.6.2] - 2026-11-15
 
 ### Security
