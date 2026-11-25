@@ -40,16 +40,13 @@ from pathlib import Path
 # Types Google retired June 2025 (announced via developers.google.com/search/blog
 # /2025/06/simplifying-search-results). Generating any of these in 2026 is a
 # Critical finding because the rich result no longer renders.
+# Course is excluded: only Course Info was retired; Course list remains live.
 _DEPRECATED_TYPES: dict[str, str] = {
     "Vehicle": "Vehicle Listing rich result retired June 2025.",
     "VehicleListing": "Vehicle Listing rich result retired June 2025.",
     "ClaimReview": "Claim Review rich result retired June 2025.",
     "EstimatedSalary": "Estimated Salary rich result retired June 2025.",
     "LearningVideo": "Learning Video rich result retired June 2025.",
-    "Course": (
-        "The Course rich result is still live but the Course Info carousel "
-        "variant was retired June 2025. Verify which use-case applies."
-    ),
     "SpecialAnnouncement": (
         "Special Announcement rich result deprecated July 2025."
     ),
