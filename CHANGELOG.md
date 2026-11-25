@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.3] - 2026-11-26
+
+Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
+features.
+
 ### Changed
 
 - **Search Console `--days` counts whole dates back from the data-lag cutoff.** The default

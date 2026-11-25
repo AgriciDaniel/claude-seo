@@ -5,7 +5,7 @@ user-invocable: true
 argument-hint: "[command] [url]"
 license: MIT
 metadata:
-  version: "2.6.2"
+  version: "2.6.3"
 compatibility: "Requires BING_WEBMASTER_API_KEY and (optionally) INDEXNOW_KEY in ~/.claude/settings.json env. The skill ships with the claude-seo plugin; run extensions/bing-webmaster/install.sh once to store the keys."
 ---
 
