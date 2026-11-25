@@ -36,6 +36,7 @@ import json
 import os
 import re
 import sys
+from datetime import date
 from urllib.parse import urljoin, urlparse
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -74,6 +75,17 @@ def discovery_url_for(site: str) -> str:
 
 UCP_TRANSPORTS = {"rest", "mcp", "a2a", "embedded"}
 UCP_VERSION_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _is_version_date(value: object) -> bool:
+    """UCP versions use complete YYYY-MM-DD calendar dates (RFC 3339)."""
+    if not isinstance(value, str) or not UCP_VERSION_RE.fullmatch(value):
+        return False
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        return False
+    return True
 
 
 def parse_profile(payload: str) -> dict:
@@ -117,7 +129,7 @@ def parse_profile(payload: str) -> dict:
         return report
 
     version = ucp.get("version")
-    if not isinstance(version, str) or not UCP_VERSION_RE.match(version):
+    if not _is_version_date(version):
         report["issues"].append("version-missing-or-not-a-date")
     else:
         report["version"] = version
@@ -130,7 +142,7 @@ def parse_profile(payload: str) -> dict:
         # URIs platforms need to fetch.
         profiles = {}
         for ver, uri in supported.items():
-            if not isinstance(ver, str) or not UCP_VERSION_RE.match(ver):
+            if not _is_version_date(ver):
                 report["issues"].append(f"supported-version-key-not-a-date:{ver!r}")
                 continue
             if not isinstance(uri, str) or not uri.startswith(("http://", "https://")):
@@ -159,6 +171,8 @@ def parse_profile(payload: str) -> dict:
                     entry["issues"].append("unknown-transport")
                 if not variant.get("version"):
                     entry["issues"].append("missing-version")
+                elif not _is_version_date(variant["version"]):
+                    entry["issues"].append("version-not-a-date")
                 endpoint = variant.get("endpoint")
                 if endpoint is not None and not isinstance(endpoint, str):
                     entry["issues"].append("endpoint-not-a-string")
@@ -192,6 +206,8 @@ def parse_profile(payload: str) -> dict:
                 for field in ("version", "spec", "schema"):
                     if not variant.get(field):
                         entry["issues"].append(f"missing-{field}")
+                if variant.get("version") and not _is_version_date(variant["version"]):
+                    entry["issues"].append("version-not-a-date")
                 report["capabilities"].append(entry)
     return report
 

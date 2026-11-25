@@ -90,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Drift comparison ignores reordering independent JSON-LD blocks, preventing false schema-change warnings after template or plugin ordering changes. Existing snapshots work without migration; ordered values inside blocks and actual data changes remain significant.
 - Named Markdown footnotes now count as citation markers, preventing false uncited-claim warnings for references such as [^source]. Numeric references, ordinary bracketed text, and the existing proximity window keep their behavior.
 - UCP profile validation accepts empty required registries and omitted capabilities, while checking that payment_handlers is present as an object. Valid minimal discovery profiles no longer receive spurious missing-service/capability errors.
+- UCP version validation rejects malformed or impossible calendar dates and non-string component versions, preserving valid independent release dates and the existing missing-version diagnostics.
 
 ## [2.6.2] - 2026-11-15
 
