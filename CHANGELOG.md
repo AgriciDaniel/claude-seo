@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Sitemap expansion preserves fractional seconds when selecting the oldest and
   newest `lastmod` values, including timezone offsets and all nine accepted digits.
 - Sitemap discovery now compares Unicode and Punycode host spellings by their IDNA identity, preventing false cross-host warnings and duplicate URL inflation for internationalized domains.
+- Content quality phrase matching now recognizes line wrapping, repeated or nonbreaking whitespace, and typographic apostrophes without changing the existing phrase lists or whole-word matching.
 
 ## [2.6.2] - 2026-11-15
 
