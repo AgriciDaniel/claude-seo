@@ -85,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Keep supported Course and Course list markup out of the merchant validator's retired-type failures; Course Info retirement does not retire the Course type.
 - Keep robots.txt user-agent groups intact across Sitemap and other non-rule records, so crawler access findings and Content-Signal drafts follow the same RFC 9309 groups.
 - Fetch Matomo page views alongside visit metrics through API.get instead of counting downloads and outlinks as page views; keep absent page-view values unknown.
+- Surface Lighthouse runtime failures returned inside successful PageSpeed HTTP responses, while preserving available categories and field data for partial reports.
 
 ## [2.6.2] - 2026-11-15
 
