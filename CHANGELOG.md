@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   empty tags no longer hide an earlier noindex restriction from drift checks
   or page-level nofollow from backlink verification.
 - Page checks recognize the complete JSON-LD media type, preventing scripts with lookalike types or parameters from creating false invalid-JSON-LD findings.
+- Preload scoring no longer awards the inline speculation bonus to malformed JSON, non-object payloads, empty action arrays, or arrays without rule objects; observed blocks remain counted.
 
 ## [2.6.2] - 2026-11-15
 
