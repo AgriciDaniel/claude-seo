@@ -71,6 +71,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preload scoring no longer awards the inline speculation bonus to malformed JSON, non-object payloads, empty action arrays, or arrays without rule objects; observed blocks remain counted.
 - HTML extraction and page checks reject `NaN`, `Infinity`, and `-Infinity` in
   JSON-LD, reporting the invalid block while keeping valid neighboring blocks.
+- Sitemap expansion preserves fractional seconds when selecting the oldest and
+  newest `lastmod` values, including timezone offsets and all nine accepted digits.
 
 ## [2.6.2] - 2026-11-15
 
