@@ -14,6 +14,15 @@ features.
 
 ### Changed
 
+- **Matomo landing pages count entrances.** In `top_pages` and `pages`, `visits` is now the
+  number of visits that started on the page and `unique_visitors` the visitors who entered
+  there. Both keys used to count every visit that included the page, so the numbers drop and
+  the order changes. (#469)
+- **The Matomo organic report names `API.get` as its `method`** (it was `VisitsSummary.get`),
+  and a daily `pageviews` value can be `null`. (#506)
+- **`domain_history.py` takes a bare domain only.** A URL, a path or a trailing slash
+  (`https://example.com`, `example.com/`) exits with code 2, and `domain` in the output is the
+  IDNA A-label (`xn--...`), not the spelling that was passed. (#471)
 - **Search Console `--days` counts whole dates back from the data-lag cutoff.** The default
   request covers 28 dates instead of 26, so its window starts two days earlier and default
   totals run a little higher than before. `--days 1` and `--days 2` no longer send an inverted
@@ -35,18 +44,29 @@ features.
   pages before it were not read. Only page 0 of a one-page result is complete. (#483)
 - **The unknown-path check in `agentic_check.py` passes on 404 or 410 only.** A 401, 403, 429
   or 5xx answer is reported as inconclusive with its error, not as a working missing-page
-  response. (#508)
+  response. The `http-404` check is now titled "Unknown URLs report missing content" and its
+  data can carry `inconclusive` and `error`. (#508)
 - **UCP profile validation follows the specification:** `payment_handlers` must be present as
   an object, empty registries are accepted, `capabilities` may be omitted, and a version that
-  is not a real calendar date is an error. (#512, #513)
+  is not a real calendar date is an error. `missing-capabilities` is no longer emitted and an
+  empty `services` no longer gives `missing-services`. New issue codes:
+  `missing-payment-handlers`, `payment-handlers-not-an-object`, `capabilities-not-an-object`
+  and `version-not-a-date`. (#512, #513)
 - **Matomo `totals.pageviews` can be `null`** when the instance returns no page-view metric. It
   was filled with the action count before. (#506)
 - **GA4 `totals.users` can be `null`** when the period aggregate cannot be fetched; the daily
-  and landing-page data are still returned, with `totals_error`. (#468)
+  and landing-page data are still returned, with `totals_error`. Sessions and page views come
+  from the same aggregate query, and `avg_daily_sessions` divides by the days requested, not
+  by the days that had data. (#468)
+- **robots.txt groups follow RFC 9309.** A `Sitemap` line or another non-rule record no longer
+  ends a user-agent group, which can change which rules `agentic_check.py` applies to a
+  crawler and where `agentic_fix.py` places `Content-Signal`. (#505)
+- **An HSTS header with a valued `includeSubDomains` fails the HSTS grade** and the preload
+  check. (#503)
 - **Dependencies:** `idna` is now a declared requirement (it was already installed through
   `requests`), and the floors of `htmldate` (1.11.0), `playwright` (1.65.1) and `numpy`
   (2.4.6) are raised. A changed `requirements.txt` rebuilds the tool's virtual environment on
-  the next run. (#471, #492, #493, #494)
+  the next run. (#471; floors by Dependabot, #492, #493, #494)
 - **Community integrations:** `docs/COMMUNITY-INTEGRATIONS.md` lists claude-seo-cloro
   (issue #453, rbatista191) and claude-seo-goanyapi (issue #422, shineforever).
 
