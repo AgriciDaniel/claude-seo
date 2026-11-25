@@ -20,6 +20,7 @@ from typing import Optional
 
 try:
     from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
 except ImportError:
     print(
         "Error: google-api-python-client required. "
@@ -268,8 +269,8 @@ def query_search_analytics(
                 break
 
     except Exception as e:
-        error_str = str(e)
-        if "403" in error_str:
+        status = e.resp.status if isinstance(e, HttpError) else None
+        if status == 403:
             hint = (
                 " A domain property is written sc-domain:example.com."
                 if not site_url.startswith(("sc-domain:", "http://", "https://"))
@@ -282,7 +283,7 @@ def query_search_analytics(
                 "Settings > Users and permissions, or use your own account with "
                 "CLAUDE_SEO_GOOGLE_AUTH=adc after gcloud auth application-default login."
             )
-        elif "404" in error_str:
+        elif status == 404:
             result["error"] = (
                 f"Property '{site_url}' not found. "
                 "Use 'sc-domain:example.com' for domain properties or "

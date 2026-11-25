@@ -42,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   continue to override the day count.
 - Indexing API publish receipts use the timestamp for the requested update or
   deletion, instead of reporting an older notification of the opposite type.
+- GSC query and URL Inspection errors use the actual HTTP response status.
+  Numbers such as `403` in a property URL or error message no longer turn rate
+  limits, backend failures, or timeouts into false permission errors.
 
 ## [2.6.2] - 2026-11-15
 
