@@ -45,6 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GSC query and URL Inspection errors use the actual HTTP response status.
   Numbers such as `403` in a property URL or error message no longer turn rate
   limits, backend failures, or timeouts into false permission errors.
+- Page checks resolve resource URLs against the document base before checking
+  mixed content, catching relative scripts and styles that load over HTTP on
+  an HTTPS page with an HTTP base URL.
 
 ## [2.6.2] - 2026-11-15
 
