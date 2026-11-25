@@ -56,6 +56,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Claim verification scans retained spans once per pattern, avoiding quadratic
   overlap checks on drafts with many statistics while preserving claim priority,
   positions, and citation results.
+- Bing backlink discovery keeps a requested later page marked partial,
+  including the last page. Unread preceding pages no longer disappear behind
+  a successful complete-inventory result; returned link details are retained.
 
 ## [2.6.2] - 2026-11-15
 
