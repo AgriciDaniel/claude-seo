@@ -150,7 +150,7 @@ Write `{domain}-audit/audit-data.json` with this shape so `"${CLAUDE_PLUGIN_ROOT
 - Third-party script impact
 
 ### Images
-- Missing alt text
+- Missing alt text (content images only, using `parse_html.py` `images_summary.content` / `page_checks.py` `facts.images`; report unmarked decorative/UI icons and tracking pixels separately without penalizing the Images score)
 - Oversized images
 - Format recommendations
 

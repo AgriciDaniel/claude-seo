@@ -21,7 +21,9 @@ metadata:
 ## Checks
 
 ### Alt Text
-- Present on all `<img>` elements (except decorative: `role="presentation"`). `parse_html.py` marks these with `decorative: true`; do not flag them for missing alt text.
+- Classify images before counting: `parse_html.py` sets `image_class` (`"content"` vs `"decorative"`), `classification_reason`, and `decorative` on every `<img>`, and summarizes counts per class in `images_summary` (`content` and `decorative`, each with `total`, `with_alt`, `empty_alt`, `missing_alt`).
+- Content images (product/article photos, CDN product paths, large intrinsic dimensions) must have descriptive alt text.
+- Decorative/UI images, both explicitly marked (`aria-hidden="true"`, `role="presentation"`/`"none"`) and unmarked UI assets (tracking pixels, icons/badges/sprites, graphics `<= 48px`, images inside buttons or tooltips), are classified as `decorative`. Report missing alt per class; only **content-image** alt gaps drive the Images score and recommendations.
 - Descriptive: describes the image content, not "image.jpg" or "photo"
 - Includes relevant keywords where natural, not keyword-stuffed
 - Length: 10-125 characters
@@ -192,7 +194,9 @@ Add `decoding="async"` to non-LCP images to prevent image decoding from blocking
 | Metric | Status | Count |
 |--------|--------|-------|
 | Total Images | - | XX |
-| Missing Alt Text | ❌ | XX |
+| Content Images | - | XX |
+| Missing Alt (Content) | ❌ | XX |
+| Decorative / UI Images (missing alt) | ℹ️ | XX (XX) |
 | Oversized (>200KB) | ⚠️ | XX |
 | Wrong Format | ⚠️ | XX |
 | No Dimensions | ⚠️ | XX |
@@ -208,7 +212,7 @@ Sorted by file size impact (largest savings first):
 
 ### Recommendations
 1. Convert X images to WebP format (est. XX KB savings)
-2. Add alt text to X images
+2. Add alt text to X content images
 3. Add dimensions to X images
 4. Enable lazy loading on X below-fold images
 5. Compress X oversized images

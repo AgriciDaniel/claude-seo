@@ -186,6 +186,73 @@ def test_decorative_follows_aria_hidden_and_presentation_roles(html, expected):
     assert _image(html)["decorative"] is expected
 
 
+@pytest.mark.parametrize(
+    "html, expected_class, expected_reason",
+    [
+        # Tracking pixels
+        ('<img src="https://www.facebook.com/tr?id=123&ev=PageView" width="1" height="1">', "decorative", "tracking-pixel"),
+        ('<img src="https://www.facebook.com/tr?id=123&ev=PageView">', "decorative", "tracking-pixel"),
+        ('<img src="https://bat.bing.com/action/0?ti=123">', "decorative", "tracking-pixel"),
+        ('<img src="/analytics/1x1.gif">', "decorative", "tracking-pixel"),
+        ('<img src="/img/spacer.gif">', "decorative", "tracking-pixel"),
+        ('<img src="/beacon.png" width="0" height="0">', "decorative", "tracking-pixel"),
+        (f'<img src="{GIF_1X1}">', "decorative", "tracking-pixel"),
+        # Small UI dimensions (<= 48px)
+        ('<img src="/ui/check.png" width="24" height="24">', "decorative", "small-dimensions"),
+        ('<img src="/ui/badge.png" width="48" height="48">', "decorative", "small-dimensions"),
+        ('<img src="/ui/star.png" style="width: 16px; height: 16px;">', "decorative", "small-dimensions"),
+        ('<img src="/ui/dot.png" width="20">', "decorative", "small-dimensions"),
+        # UI URL / class patterns
+        ('<img src="/assets/icons/shipping.svg">', "decorative", "ui-pattern"),
+        ('<img src="/static/badges/verified.png">', "decorative", "ui-pattern"),
+        ('<img src="/img/sprites/nav-sprite.png">', "decorative", "ui-pattern"),
+        ('<img src="/img/tooltip-info.png">', "decorative", "ui-pattern"),
+        ('<img src="/static/x.png" class="ui-icon">', "decorative", "ui-pattern"),
+        ('<img src="/static/x.png" class="product-badge">', "decorative", "ui-pattern"),
+        # UI containers (buttons, tooltips)
+        ('<button type="button"><img src="/assets/close.svg"></button>', "decorative", "ui-container"),
+        ('<div role="tooltip"><img src="/assets/hint.png"></div>', "decorative", "ui-container"),
+        ('<span data-tooltip="Shipping info"><img src="/assets/truck.png"></span>', "decorative", "ui-container"),
+        # Content images that MUST stay classified as content
+        ('<img src="/products/shoe.jpg" width="800" height="600">', "content", None),
+        ('<img src="/products/google-pixel-9-pro.jpg" width="800" height="800">', "content", None),
+        ('<img src="/products/star-wars-mug.jpg">', "content", None),
+        (f'<img src="{GIF_1X1}" data-src="/products/camera.jpg">', "content", None),
+        ('<button class="zoom"><img src="/cdn/products/shoe.jpg" width="600" height="600"></button>', "content", None),
+        ('<button class="gallery"><img src="/products/shoe.jpg"></button>', "content", None),
+        ('<img src="/banner.jpg" width="1200" height="40">', "content", None),
+        ('<img src="/photo.jpg" style="border-width: 1px;">', "content", None),
+        ('<img src="/photo.jpg" width="100%" height="auto">', "content", None),
+    ],
+)
+def test_image_classification_separates_content_from_unmarked_ui_and_pixels(
+    html, expected_class, expected_reason
+):
+    img = _image(html)
+    assert img["image_class"] == expected_class
+    assert img["classification_reason"] == expected_reason
+    assert img["decorative"] is (expected_class == "decorative")
+
+
+def test_images_summary_counts_missing_alt_per_class_on_catalog_page():
+    html = (
+        '<img src="/products/a.webp" alt="Blue jacket" width="800" height="600">'
+        '<img src="/products/b.webp" alt="Red scarf" width="800" height="600">'
+        '<img src="/products/c.webp" alt="Wool hat" width="800" height="600">'
+        '<img src="/assets/icons/shipping.svg" width="24" height="24">'
+        '<img src="/static/badges/verified.png">'
+        '<div role="tooltip"><img src="/assets/hint.png"></div>'
+        '<img src="https://www.facebook.com/tr?id=123&ev=PageView" width="1" height="1">'
+    )
+    result = parse_html(html, PAGE)
+
+    assert result["images_summary"] == {
+        "total": 7,
+        "content": {"total": 3, "with_alt": 3, "empty_alt": 0, "missing_alt": 0},
+        "decorative": {"total": 4, "with_alt": 0, "empty_alt": 0, "missing_alt": 4},
+    }
+
+
 def test_probe_images_asks_for_the_resolved_source(monkeypatch):
     probed = []
 
@@ -648,8 +715,8 @@ def test_existing_keys_keep_their_shape_and_the_output_is_json():
     assert list(result["images"][0])[:6] == ["src", "alt", "width", "height", "loading", "lazy_method"]
     assert set(result) == {
         "title", "meta_description", "meta_robots", "canonical", "h1", "h2", "h3",
-        "images", "links", "schema", "open_graph", "twitter_card", "word_count", "hreflang",
-        "heading_outline", "schema_invalid", "hidden_text",
+        "images", "images_summary", "links", "schema", "open_graph", "twitter_card", "word_count",
+        "hreflang", "heading_outline", "schema_invalid", "hidden_text",
     }
     json.dumps(result)
 

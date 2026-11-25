@@ -84,6 +84,9 @@ except ImportError:
     _HTML_PARSER = "html.parser"
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+from parse_html import classify_image  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Thresholds: one table. A value documented in this repository wins over the
@@ -199,7 +202,7 @@ CHECKS: dict[str, tuple[str, str]] = {
     "uses-frames": ("attention", "The page uses frames. Content inside frames is hard for search engines to attribute to this URL."),
     "deprecated-html-tags": ("review", "The page uses HTML tags that are obsolete, such as <center> or <font>."),
     "placeholder-text": ("attention", "Placeholder text such as lorem ipsum was found in the visible content."),
-    "images-missing-alt": ("review", "Some images have no alt attribute. Screen readers and image search rely on alt text. An empty alt is correct for decorative images."),
+    "images-missing-alt": ("review", "Some content images have no alt attribute. Screen readers and image search rely on alt text. An empty alt is correct for decorative images."),
     "images-missing-dimensions": ("review", "Some images have no width and height attributes, which lets the layout shift while they load."),
     "first-image-lazy-loaded": ("review", "The first image in the main content is lazy loaded. It is often the largest paint, and lazy loading delays it."),
     "links-without-text": ("review", "Some links have no accessible text: no link text, no label and no image alt text."),
@@ -842,6 +845,7 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
 
     # --- Images ---------------------------------------------------------
     images_total = images_empty_alt = 0
+    content_total = decorative_total = decorative_missing_alt = 0
     missing_alt: list[str] = []
     missing_dimensions: list[str] = []
     for img in soup.find_all("img"):
@@ -851,9 +855,17 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
         if not src:
             continue
         images_total += 1
+        image_class, _reason = classify_image(img, src)
+        is_decorative = image_class == "decorative"
+        if is_decorative:
+            decorative_total += 1
+        else:
+            content_total += 1
         alt = img.get("alt")
         if alt is None:
-            if not _is_decorative(img):
+            if is_decorative:
+                decorative_missing_alt += 1
+            else:
                 missing_alt.append(src)
         elif not _attr(img, "alt") and not _is_decorative(img):
             # An empty alt is valid for decorative images. Counted as a fact, never a finding.
@@ -861,7 +873,7 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
         if not _attr(img, "width") or not _attr(img, "height"):
             missing_dimensions.append(src)
     if missing_alt:
-        add("images-missing-alt", f"{len(missing_alt)} of {images_total} images: {_sample(missing_alt)}",
+        add("images-missing-alt", f"{len(missing_alt)} of {content_total} content images: {_sample(missing_alt)}",
             len(missing_alt))
     if missing_dimensions:
         add("images-missing-dimensions",
@@ -1023,8 +1035,10 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
         "meta_charset": _trim(meta_charset, 40) or None,
         "header_charset": _trim(header_charset, 40) or None,
         "has_viewport": has_viewport,
-        "images": {"total": images_total, "missing_alt": len(missing_alt), "empty_alt": images_empty_alt,
-                   "missing_dimensions": len(missing_dimensions), "first_image_lazy": first_image_lazy},
+        "images": {"total": images_total, "content_total": content_total, "decorative_total": decorative_total,
+                   "missing_alt": len(missing_alt), "decorative_missing_alt": decorative_missing_alt,
+                   "empty_alt": images_empty_alt, "missing_dimensions": len(missing_dimensions),
+                   "first_image_lazy": first_image_lazy},
         "links": {"total": links_total, "without_text": len(links_without_text),
                   "generic_anchor": len(generic_anchors), "http_on_https": len(insecure_links)},
         "mixed_content": len(mixed),
