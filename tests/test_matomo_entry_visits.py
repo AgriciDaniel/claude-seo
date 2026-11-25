@@ -26,7 +26,9 @@ def test_limited_landing_report_ranks_and_counts_entrances(monkeypatch, reporter
     def request(url, token, params, **kwargs):
         assert url == "https://analytics.example.com/"
         assert params["segment"] == "referrerType==search"
-        if params["method"] == "VisitsSummary.get":
+        if params["method"] == "API.get":
+            # The daily summary: VisitsSummary and Actions metrics in one call.
+            assert "nb_pageviews" in params["columns"].split(",")
             data = {"2026-11-01": {"nb_visits": 110, "nb_actions": 330}}
         else:
             assert params["method"] == "Actions.getEntryPageUrls"
@@ -52,7 +54,7 @@ def test_limited_landing_report_ranks_and_counts_entrances(monkeypatch, reporter
 @pytest.mark.parametrize("visitor_key", ["entry_nb_uniq_visitors", "sum_daily_entry_nb_uniq_visitors"])
 def test_entry_only_response_keeps_its_visit_count(monkeypatch, visitor_key):
     def request(url, token, params, **kwargs):
-        data = {} if params["method"] == "VisitsSummary.get" else [{
+        data = {} if params["method"] == "API.get" else [{
             "label": "/landing", "entry_nb_visits": 80, "entry_bounce_count": 8,
             visitor_key: 60,
         }]
