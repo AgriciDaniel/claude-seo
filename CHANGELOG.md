@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Prioritized image preloads count as LCP resource hints.** The preload audit
+  recognizes `fetchpriority="high"` on image preload links, including responsive
+  `imagesrcset` declarations, so CSS background and video poster images receive
+  the same hint credit as an image element. Unsupported priority attributes on
+  `video`, `source`, and other elements no longer inflate the resource count.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
