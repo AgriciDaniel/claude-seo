@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **WebMCP form drafts preserve multiple selections.** Checkbox groups sharing
+  a name and multiple-selection lists now accept arrays of their option values.
+  Generated handlers update each checked or selected state before submitting,
+  instead of assigning a scalar to a collection or discarding extra selections.
+  Single checkboxes remain booleans, and hidden fallback fields are preserved.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
