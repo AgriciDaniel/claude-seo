@@ -245,3 +245,87 @@ def test_svg_content_type_is_trusted_when_the_root_is_past_the_sniffed_bytes(fak
 
     assert result["served_format"] == "svg"
     assert result["probe_error"] is None
+
+
+@pytest.mark.parametrize(
+    "src",
+    [
+        "data:image/svg+xml;base64,PHN2Zz4=",
+        "blob:https://example.com/image-id",
+        "",
+        "relative.jpg",
+        "http://[bad/a.jpg",
+    ],
+)
+def test_non_network_sources_do_not_use_probe_budget(fake_get, src):
+    calls, responses = fake_get
+    first = "https://example.com/first.jpg"
+    second = "https://example.com/second.jpg"
+    responses[first] = _FakeResponse(WEBP, {"Content-Type": "image/webp"})
+    images = [{"src": src}, {"src": first}, {"src": second}, {"src": first}]
+
+    probe_images(images, limit=1)
+
+    assert [url for url, _ in calls] == [first]
+    assert images[1]["served_format"] == images[3]["served_format"] == "webp"
+    assert "probe limit" in images[2]["probe_error"]
+    assert "probe limit" not in images[0]["probe_error"]
+
+
+def test_inline_images_do_not_hide_a_later_lazy_loaded_hero(fake_get):
+    calls, responses = fake_get
+    hero = "https://example.com/hero.jpg"
+    responses[hero] = _FakeResponse(WEBP, {"Content-Type": "image/webp"})
+    html = "".join(f'<img src="data:image/svg+xml,%3Csvg%20id={i}%3E">' for i in range(50))
+    html += '<img src="data:image/gif;base64,R0lGODlhAQAB" data-src="/hero.jpg">'
+    images = parse_html.parse_html(html, "https://example.com/page")["images"]
+
+    probe_images(images)
+
+    assert len(images) == 51
+    assert [url for url, _ in calls] == [hero]
+    assert images[-1]["served_format"] == "webp"
+    assert images[-1]["probed_src"] == hero
+    assert all(image["probe_error"] == "not an http(s) URL" for image in images[:-1])
+
+
+def test_non_network_diagnostics_survive_an_exhausted_budget(fake_get):
+    calls, responses = fake_get
+    url = "https://example.com/image.jpg"
+    responses[url] = _FakeResponse(JPEG, {"Content-Type": "image/jpeg"})
+    images = [
+        {"src": url},
+        {"src": "data:image/svg+xml;base64,PHN2Zz4="},
+        {"src": "http://[bad/a.jpg"},
+    ]
+
+    probe_images(images, limit=1)
+
+    assert len(calls) == 1
+    assert images[1]["probe_error"] == "not an http(s) URL"
+    assert images[2]["probe_error"].startswith("malformed URL")
+
+
+@pytest.mark.parametrize("status_code", [200, 404])
+def test_unsuccessful_web_probes_still_use_the_budget(fake_get, status_code):
+    calls, responses = fake_get
+    first = "https://example.com/missing.jpg"
+    responses[first] = _FakeResponse(b"<html>Missing", {"Content-Type": "text/html"}, status_code)
+    images = [{"src": first}, {"src": "https://example.com/next.jpg"}]
+
+    probe_images(images, limit=1)
+
+    assert [url for url, _ in calls] == [first]
+    assert images[0]["probe_error"] is not None
+    assert "probe limit" in images[1]["probe_error"]
+
+
+def test_zero_budget_still_diagnoses_non_network_sources(fake_get):
+    calls, _ = fake_get
+    images = [{"src": "data:image/svg+xml;base64,PHN2Zz4="}, {"src": "https://example.com/a.jpg"}]
+
+    probe_images(images, limit=0)
+
+    assert calls == []
+    assert images[0]["probe_error"] == "not an http(s) URL"
+    assert "probe limit" in images[1]["probe_error"]
