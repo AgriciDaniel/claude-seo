@@ -32,6 +32,7 @@ Outputs in --out:
     pages.jsonl   one record per URL (machine input; never hand this to a model)
     summary.json  aggregate counts, issue tallies, latency percentiles
     sample.json   a stratified sample of pages per template type
+    html/        optional page HTML; each record's html_file names its artifact
 
 Usage:
     python shopify_crawl.py https://shop.example --out ./crawl
@@ -47,6 +48,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures as futures
+import hashlib
 import json
 import os
 import random
@@ -507,8 +509,14 @@ def crawl_one(session_for: Callable[[], requests.Session], url: str, origin: Ori
             text = scrub(decode_body(content, response), sig_headers)
             record.update(analyze_html(text))
             if save_html_dir:
-                name = re.sub(r"[^A-Za-z0-9]+", "_", urlparse(url).path)[:120] or "index"
-                (save_html_dir / f"{name}.html").write_text(text, encoding="utf-8")
+                # Slugs alone collide after punctuation removal/truncation,
+                # and omit query variants. Keep a readable prefix, but key
+                # the artifact by the full URL, including path case.
+                name = re.sub(r"[^A-Za-z0-9]+", "_", urlparse(url).path)[:48] or "index"
+                digest = hashlib.sha256(url.encode("utf-8")).hexdigest()
+                filename = f"{name}-{digest}.html"
+                (save_html_dir / filename).write_text(text, encoding="utf-8")
+                record["html_file"] = filename
         else:
             response.close()
         return record
