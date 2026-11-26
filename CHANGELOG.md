@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Canonical extraction resolves relative targets against the document base.** Drift now
+  detects a changed `<base>` target when the canonical `href` stays the same, and equivalent
+  relative and absolute declarations compare alike. Existing drift baselines that recorded a
+  relative canonical should be refreshed to store the resolved target.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new

@@ -9,6 +9,8 @@ Usage:
 
 Output keys (JSON):
     title, meta_description, meta_robots, canonical
+                          canonical is resolved against the document base
+                          when available; empty or malformed values are kept
     h1, h2, h3            heading texts per level (plus h1_suspicious and so
                           on when a heading looks like a counter)
     heading_outline       [{level, text}] for h1 to h6 in document order,
@@ -731,7 +733,16 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         (link for link in soup.find_all("link") if _has_rel_token(link, "canonical")), None
     )
     if canonical:
-        result["canonical"] = canonical.get("href")
+        href = canonical.get("href")
+        result["canonical"] = href
+        if resource_base_url and href and href.strip():
+            try:
+                # The target follows <base>, just like an ordinary link.
+                # Drift must detect a changed base even when href is unchanged.
+                result["canonical"] = urljoin(resource_base_url, href.strip())
+            except ValueError:
+                # Preserve malformed declarations for the audit to inspect.
+                pass
 
     # Hreflang
     for link in soup.find_all("link"):
