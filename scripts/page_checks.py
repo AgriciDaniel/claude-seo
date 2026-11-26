@@ -608,18 +608,23 @@ def _heading_skips(soup) -> tuple[list[str], int, int]:
         if not text:
             continue
         level = int(h.name[1])
-        in_template = h.find_parent(list(_CHROME_TAGS)) is not None
         in_main = main_root is not None and any(p is main_root for p in h.parents)
-        if main_root is not None and not in_main:
+        # Navigation, sidebars and footers can also be nested in <main>.
+        # Their levels belong to the template sequence, so they must not
+        # bridge a skip in the content or reset its previous level. A header
+        # inside the content root introduces that content, not the site.
+        in_template = (
+            h.find_parent(["nav", "footer", "aside"]) is not None
+            or (main_root is not None and not in_main)
+            or (main_root is None and h.find_parent("header") is not None)
+        )
+        if in_template:
             if prev_template_level is not None and level > prev_template_level + 1:
                 template_skips += 1
             prev_template_level = level
         else:
             if prev_level is not None and level > prev_level + 1:
-                if in_template:
-                    template_skips += 1
-                else:
-                    content_skips += 1
+                content_skips += 1
             prev_level = level
         if level == 1:
             h1.append(text)
