@@ -653,9 +653,12 @@ def _csp_issues(directives: dict[str, list[str]]) -> list[str]:
             continue
         sources = directives[name]
         strict = any(s.startswith(("'nonce-", "'sha256-", "'sha384-", "'sha512-")) for s in sources)
-        if "'unsafe-inline'" in sources and not strict:
+        # Compatibility sources are safe only with a nonce/hash trust root;
+        # strict-dynamic alone blocks modern scripts but leaves weak fallbacks.
+        dynamic = strict and "'strict-dynamic'" in sources
+        if "'unsafe-inline'" in sources and not (strict or dynamic):
             issues.append(f"'unsafe-inline' in {name}.")
-        if name == element_name:
+        if name == element_name and not dynamic:
             for loose in ("*", "https:", "http:", "data:"):
                 if loose in sources:
                     issues.append(f"{loose} in {name} allows scripts from almost anywhere.")
