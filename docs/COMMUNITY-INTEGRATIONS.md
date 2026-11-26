@@ -15,6 +15,8 @@ extensions. A separate repository listed here is the way to offer one.
 | Integration | Maintainer | What it does | Cost |
 |---|---|---|---|
 | [claude-seo-proxlane](https://github.com/proxlane/claude-seo-proxlane) | [@scarsam](https://github.com/scarsam) (maintains Proxlane) | Fetches pages through a self-hosted Proxlane gateway that fails over between scraping providers and reports why a page failed (gone, blocked, rate limited). | Gateway is self-hosted; the scraping providers behind it are paid. |
+| [claude-seo-cloro](https://github.com/cloro-dev/claude-seo-cloro) | [@rbatista191](https://github.com/rbatista191) (works at cloro) | Asks ChatGPT, Google AI Mode, Gemini and Bing AI Mode a prompt from a chosen country and reports whether the answer mentions or cites a brand, with its sources. | Paid cloro API (Free plan: 500 credits a month); 5 to 7 credits a call. |
+| [claude-seo-goanyapi](https://github.com/GoAnyAPI/claude-seo-goanyapi) | [@shineforever](https://github.com/shineforever) (works on GoAnyAPI) | Adds third-party search data from GoAnyAPI's HTTP API: competitor top-10 positions, keyword volumes and difficulty, backlinks, traffic estimates, Google Ads Transparency lookups and reverse AdSense. | Paid GoAnyAPI, prepaid credits (about $0.001 a credit); 1 to 3 credits a call. |
 
 ## Getting listed
 

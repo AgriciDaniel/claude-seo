@@ -91,7 +91,8 @@ def _extract_speculation_actions(body: str) -> list[str]:
         # string, or null is valid JSON but carries no action fields.
         return []
     for action_kind in ("prefetch", "prerender"):
-        if isinstance(payload.get(action_kind), list):
+        rules = payload.get(action_kind)
+        if isinstance(rules, list) and any(isinstance(rule, dict) for rule in rules):
             actions.add(action_kind)
     return sorted(actions)
 
@@ -132,7 +133,7 @@ def analyse(html: str, headers: Optional[dict] = None) -> dict:
     # absence of bfcache-killers, and the absence of deprecated prerender.
     score = 0
     recs: list[str] = []
-    if speculation_blocks or speculation_header:
+    if actions or speculation_header:
         score += 25
     else:
         recs.append(

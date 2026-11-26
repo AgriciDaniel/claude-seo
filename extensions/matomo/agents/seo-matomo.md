@@ -55,7 +55,7 @@ Match existing claude-seo patterns:
 - Note data source as "Matomo Reporting API (live)" to distinguish from
   GA4, CrUX, or static crawl analysis
 - Include data freshness notes (Matomo archives data; the
-  `VisitsSummary.get` per-day numbers may lag by 30-60 minutes; archived
+  per-day numbers from `API.get` may lag by 30-60 minutes; archived
   reports can take longer)
 
 ## Audit Persistence

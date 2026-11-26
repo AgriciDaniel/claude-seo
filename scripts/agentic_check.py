@@ -214,7 +214,8 @@ def robots_lines(text: str) -> list:
 def parse_robots(text: str) -> dict:
     """Parse robots.txt into RFC 9309 groups plus global lines.
 
-    A group is one or more consecutive ``user-agent`` lines followed by rules.
+    A group is one or more ``user-agent`` lines followed by access rules.
+    Other records do not interrupt its user-agent block (RFC 9309 section 2.2.4).
     ``content-signal`` and other non-global lines attach to the current group.
     """
     groups: list = []
@@ -234,7 +235,9 @@ def parse_robots(text: str) -> dict:
             current["agents"].append(value)
             last_was_ua = True
             continue
-        last_was_ua = False
+        # Other records cannot end a group (RFC 9309 section 2.2.4).
+        if field in ("allow", "disallow"):
+            last_was_ua = False
         if field == "sitemap":
             global_lines["sitemap"].append(value)
         elif field == "agentmap":
@@ -1257,19 +1260,30 @@ def audit_ua_matrix(url: str) -> tuple[list, dict]:
 
 
 def audit_not_found(root: str) -> tuple[list, dict]:
-    """Does an unknown URL return a real 404? Catch-all 200s break discovery files."""
+    """Does an unknown URL report missing content? Catch-all 200s break discovery files."""
     probe = f"{root}/claude-seo-404-probe-{os.urandom(4).hex()}"
     rec = fetch(probe)
     data = {"probe_url": probe, "status": rec["status"], "content_type": _ctype(rec)}
     catch_all = rec["status"] == 200
     data["catch_all_200"] = catch_all
+    if catch_all:
+        status = "warn"
+        fix = ("Unknown paths return 200. Crawlers see soft 404s, and Lighthouse fails llms-txt and "
+               "ard-schema on the catch-all page. Serve a real 404 for paths that do not exist.")
+    elif rec["status"] in (404, 410):
+        status, fix = "pass", None
+    else:
+        status = "info"
+        data["inconclusive"] = True
+        if rec.get("error"):
+            data["error"] = rec["error"]
+        observed = f"HTTP {rec['status']}" if rec["status"] else "no HTTP response"
+        fix = (f"The unknown-path probe returned {observed}, so missing-page handling could not "
+               "be verified. Retry when the site is reachable and allows the probe; unknown "
+               "paths should return 404 or 410.")
     return [_check(
-        "http-404", "Unknown URLs return a real 404", "P1",
-        "warn" if catch_all else ("pass" if rec["status"] and rec["status"] >= 400 else "info"),
-        "HTTP semantics (RFC 9110); Google soft-404 guidance", data,
-        "Unknown paths return 200. Crawlers see soft 404s, and Lighthouse fails llms-txt and "
-        "ard-schema on the catch-all page. Serve a real 404 for paths that do not exist."
-        if catch_all else None)], data
+        "http-404", "Unknown URLs report missing content", "P1", status,
+        "HTTP semantics (RFC 9110); Google soft-404 guidance", data, fix)], data
 
 
 def summarize(checks: list) -> dict:

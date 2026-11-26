@@ -599,6 +599,11 @@ def _grade_hsts(raw: Optional[str], https: bool) -> dict:
             hsts["issues"].append(message)
             hsts["preload_gaps"].append(message)
             return hsts
+        if key == "includesubdomains" and _sep:
+            message = "includeSubDomains must be valueless, so browsers ignore this invalid HSTS header."
+            hsts["issues"].append(message)
+            hsts["preload_gaps"].append(message)
+            return hsts
         if key:
             directives[key] = value.strip().strip('"')
     max_age = directives.get("max-age", "")
@@ -648,8 +653,9 @@ def _csp_issues(directives: dict[str, list[str]]) -> list[str]:
             continue
         sources = directives[name]
         strict = any(s.startswith(("'nonce-", "'sha256-", "'sha384-", "'sha512-")) for s in sources)
-        # CSP3 ignores compatibility sources when strict-dynamic is effective.
-        dynamic = "'strict-dynamic'" in sources
+        # Compatibility sources are safe only with a nonce/hash trust root;
+        # strict-dynamic alone blocks modern scripts but leaves weak fallbacks.
+        dynamic = strict and "'strict-dynamic'" in sources
         if "'unsafe-inline'" in sources and not (strict or dynamic):
             issues.append(f"'unsafe-inline' in {name}.")
         if name == element_name and not dynamic:

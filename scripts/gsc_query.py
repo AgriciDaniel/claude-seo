@@ -20,6 +20,7 @@ from typing import Optional
 
 try:
     from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
 except ImportError:
     print(
         "Error: google-api-python-client required. "
@@ -74,6 +75,22 @@ def _validate_dimensions(dimensions: Optional[list]) -> list[str]:
 def _parse_dimensions(raw: str) -> list[str]:
     """Parse a comma-separated CLI dimension list, preserving an empty list."""
     return _validate_dimensions([item.strip() for item in raw.split(",") if item.strip()])
+
+
+def _resolve_date_range(
+    start_date: Optional[str], end_date: Optional[str], days: int = 28,
+) -> tuple[str, str]:
+    """Count inclusive dates back from the explicit or data-lag end date."""
+    end_date = end_date or (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
+    if not start_date:
+        if days < 1:
+            raise ValueError("days must be a positive integer")
+        try:
+            end = datetime.strptime(end_date, "%Y-%m-%d")
+        except (TypeError, ValueError) as exc:
+            raise ValueError("end_date must use YYYY-MM-DD") from exc
+        start_date = (end - timedelta(days=days - 1)).strftime("%Y-%m-%d")
+    return start_date, end_date
 
 
 def _totals_from_row(row: dict) -> dict:
@@ -161,7 +178,8 @@ def query_search_analytics(
 
     Args:
         site_url: GSC property (e.g., 'sc-domain:example.com' or 'https://example.com/').
-        start_date: Start date (YYYY-MM-DD). Default: 28 days ago.
+        start_date: Start date (YYYY-MM-DD). Default: 27 days before end_date
+            for an inclusive 28-day period.
         end_date: End date (YYYY-MM-DD). Default: 3 days ago (data lag).
         dimensions: List of dimensions: query, page, country, device, date, searchAppearance.
         search_type: web, image, video, news, discover, googleNews.
@@ -191,6 +209,7 @@ def query_search_analytics(
 
     try:
         dimensions = _validate_dimensions(dimensions)
+        start_date, end_date = _resolve_date_range(start_date, end_date)
     except ValueError as exc:
         result["error"] = str(exc)
         return result
@@ -200,10 +219,6 @@ def query_search_analytics(
         result["error"] = "Could not build GSC service. Check service account credentials."
         return result
 
-    if not start_date:
-        start_date = (datetime.now() - timedelta(days=28)).strftime("%Y-%m-%d")
-    if not end_date:
-        end_date = (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
     result["date_range"] = {"start": start_date, "end": end_date}
     if _date_range_overlaps(start_date, end_date, GSC_ANOMALY_START, GSC_ANOMALY_END):
         result["warnings"].append(GSC_ANOMALY_WARNING)
@@ -254,8 +269,8 @@ def query_search_analytics(
                 break
 
     except Exception as e:
-        error_str = str(e)
-        if "403" in error_str:
+        status = e.resp.status if isinstance(e, HttpError) else None
+        if status == 403:
             hint = (
                 " A domain property is written sc-domain:example.com."
                 if not site_url.startswith(("sc-domain:", "http://", "https://"))
@@ -268,7 +283,7 @@ def query_search_analytics(
                 "Settings > Users and permissions, or use your own account with "
                 "CLAUDE_SEO_GOOGLE_AUTH=adc after gcloud auth application-default login."
             )
-        elif "404" in error_str:
+        elif status == 404:
             result["error"] = (
                 f"Property '{site_url}' not found. "
                 "Use 'sc-domain:example.com' for domain properties or "
@@ -342,7 +357,7 @@ def query_search_analytics(
     # Quick wins: position 4-10 with high impressions
     if "query" in dimensions:
         sorted_by_impressions = sorted(all_rows, key=lambda r: r.get("impressions", 0), reverse=True)
-        for row in sorted_by_impressions[:200]:
+        for row in sorted_by_impressions:
             pos = row.get("position", 0)
             if 4 <= pos <= 10 and row.get("impressions", 0) > 50:
                 result["quick_wins"].append({
@@ -353,8 +368,9 @@ def query_search_analytics(
                     "ctr": round(row.get("ctr", 0) * 100, 2),
                     "opportunity": "Position 4-10 with high impressions -- small ranking improvement yields significant traffic gain",
                 })
-
-        result["quick_wins"] = result["quick_wins"][:20]
+                # Limit eligible opportunities, not the rows searched for them.
+                if len(result["quick_wins"]) == 20:
+                    break
 
     return result
 
@@ -447,7 +463,10 @@ def main():
         "--domain",
         help="Audited site domain/URL; resolves its sites entry and refuses another site's default.",
     )
-    parser.add_argument("--days", "-d", type=int, default=28, help="Number of days (default: 28)")
+    parser.add_argument(
+        "--days", "-d", type=int, default=28,
+        help="Inclusive days ending at --end-date or 3 days ago (default: 28); ignored when --start-date is set",
+    )
     parser.add_argument("--start-date", help="Start date (YYYY-MM-DD)")
     parser.add_argument("--end-date", help="End date (YYYY-MM-DD)")
     parser.add_argument(
@@ -507,9 +526,8 @@ def main():
     elif args.command == "sitemaps":
         result = list_sitemaps(prop)
     else:
-        start = args.start_date or (datetime.now() - timedelta(days=args.days)).strftime("%Y-%m-%d")
-        end = args.end_date or (datetime.now() - timedelta(days=3)).strftime("%Y-%m-%d")
         try:
+            start, end = _resolve_date_range(args.start_date, args.end_date, args.days)
             dims = _parse_dimensions(args.dimensions)
         except ValueError as exc:
             parser.error(str(exc))

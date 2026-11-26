@@ -31,6 +31,13 @@ Attribution header on every bundled prompt file (automated by `scripts/sync_flow
 
 ## Community Pull Requests
 
+### v2.6.3
+
+| Contributor | PR | Contribution category | Review outcome |
+|------------|----|-----------------------|----------------|
+| [@Afloat16](https://github.com/Afloat16) | [#467](https://github.com/AgriciDaniel/claude-seo/pull/467), [#468](https://github.com/AgriciDaniel/claude-seo/pull/468), [#469](https://github.com/AgriciDaniel/claude-seo/pull/469), [#470](https://github.com/AgriciDaniel/claude-seo/pull/470), [#471](https://github.com/AgriciDaniel/claude-seo/pull/471), [#472](https://github.com/AgriciDaniel/claude-seo/pull/472), [#473](https://github.com/AgriciDaniel/claude-seo/pull/473), [#474](https://github.com/AgriciDaniel/claude-seo/pull/474), [#475](https://github.com/AgriciDaniel/claude-seo/pull/475), [#477](https://github.com/AgriciDaniel/claude-seo/pull/477), [#478](https://github.com/AgriciDaniel/claude-seo/pull/478), [#479](https://github.com/AgriciDaniel/claude-seo/pull/479), [#480](https://github.com/AgriciDaniel/claude-seo/pull/480), [#481](https://github.com/AgriciDaniel/claude-seo/pull/481), [#482](https://github.com/AgriciDaniel/claude-seo/pull/482), [#483](https://github.com/AgriciDaniel/claude-seo/pull/483), [#485](https://github.com/AgriciDaniel/claude-seo/pull/485), [#486](https://github.com/AgriciDaniel/claude-seo/pull/486), [#488](https://github.com/AgriciDaniel/claude-seo/pull/488), [#489](https://github.com/AgriciDaniel/claude-seo/pull/489), [#490](https://github.com/AgriciDaniel/claude-seo/pull/490), [#491](https://github.com/AgriciDaniel/claude-seo/pull/491), [#496](https://github.com/AgriciDaniel/claude-seo/pull/496), [#497](https://github.com/AgriciDaniel/claude-seo/pull/497), [#502](https://github.com/AgriciDaniel/claude-seo/pull/502), [#503](https://github.com/AgriciDaniel/claude-seo/pull/503), [#504](https://github.com/AgriciDaniel/claude-seo/pull/504), [#505](https://github.com/AgriciDaniel/claude-seo/pull/505), [#506](https://github.com/AgriciDaniel/claude-seo/pull/506), [#507](https://github.com/AgriciDaniel/claude-seo/pull/507), [#508](https://github.com/AgriciDaniel/claude-seo/pull/508), [#509](https://github.com/AgriciDaniel/claude-seo/pull/509), [#511](https://github.com/AgriciDaniel/claude-seo/pull/511), [#512](https://github.com/AgriciDaniel/claude-seo/pull/512), [#513](https://github.com/AgriciDaniel/claude-seo/pull/513) | 35 correctness fixes: GA4, Search Console, reports, PageSpeed, Indexing API, Keyword Planner, Bing, Matomo, Shopify, domain history, schema, page checks, parser, preload, sitemap, drift, transport grading, agent readiness, content, UCP | Merged; executable bits restored after #470 and #490, and the Matomo entrance tests aligned after #469 and #506 |
+| [@divya0795](https://github.com/divya0795) | [#501](https://github.com/AgriciDaniel/claude-seo/pull/501) | `content_humanize.py` keeps Markdown indentation and hard line breaks | Merged |
+
 ### v2.6.2
 
 | Contributor | PR | Contribution category | Review outcome |
@@ -147,6 +154,15 @@ not merged after review.
 | [@olivierroy](https://github.com/olivierroy) | [#43](https://github.com/AgriciDaniel/claude-seo/pull/43) | Extension install fix |
 
 ## Community Issue Reports
+
+### v2.6.3
+
+| Reporter | Issue or PR | Contribution category |
+|----------|-------------|-----------------------|
+| [@ancestraljoe](https://github.com/ancestraljoe) | [#529](https://github.com/AgriciDaniel/claude-seo/issues/529) | seo-cockpit install failing without a GitHub SSH key, with the exact error and the test that pinned the cause |
+| [@qangggggg](https://github.com/qangggggg) | [#417](https://github.com/AgriciDaniel/claude-seo/pull/417) | First proposed the HTTPS source URL for seo-cockpit (closed pull request) |
+| [@rbatista191](https://github.com/rbatista191) | [#453](https://github.com/AgriciDaniel/claude-seo/issues/453) | Community integration listing: claude-seo-cloro, in its own repository |
+| [@shineforever](https://github.com/shineforever) | [#422](https://github.com/AgriciDaniel/claude-seo/issues/422) | Community integration listing: claude-seo-goanyapi, in its own repository |
 
 ### v2.5.1
 

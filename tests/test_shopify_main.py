@@ -129,6 +129,64 @@ def _env(signature_input: str, extra: str = "") -> str:
             f"Signature = sig1=:{SECRET}:\n")
 
 
+@pytest.mark.parametrize("foreign_url", [
+    "https://another-shop.example/products/foreign",
+    "http://shop.example/products/plaintext",
+    "https://other.shop.example/products/subdomain",
+])
+def test_resume_does_not_import_another_origin(run, tmp_path, foreign_url):
+    code, _, _ = run(_Store(products=2))
+    assert code == 0
+    pages_file = tmp_path / "crawl" / "pages.jsonl"
+    foreign = json.loads(pages_file.read_text().splitlines()[0])
+    foreign["url"] = foreign_url
+    with pages_file.open("a", encoding="utf-8") as output:
+        output.write(json.dumps(foreign) + "\n")
+
+    store = _Store(products=2)
+    code, summary, _ = run(store, argv=["--resume"])
+
+    assert code == 0
+    assert summary["pages_crawled"] == summary["urls_discovered"] == 2
+    assert store.page_urls() == []  # Eligible cached pages still avoid a refetch.
+    sample = json.loads((tmp_path / "crawl" / "sample.json").read_text())
+    assert all(record["url"].startswith(HOST + "/") for record in sample)
+
+
+@pytest.mark.parametrize("scope", ["include", "exclude", "robots", "sitemap"])
+def test_resume_reapplies_current_crawl_scope(run, tmp_path, scope):
+    assert run(_Store(products=2))[0] == 0
+    argv = ["--resume"]
+    store = _Store(products=2)
+    if scope == "include":
+        argv += ["--include", r"/products/p0$"]
+    elif scope == "exclude":
+        argv += ["--exclude", r"/products/p1$"]
+    elif scope == "robots":
+        store.robots = _Response(200, ROBOTS + b"Disallow: /products/p1\n")
+    else:
+        store = _Store(products=1)
+
+    code, summary, _ = run(store, argv=argv)
+
+    assert code == 0
+    assert summary["pages_crawled"] == summary["urls_discovered"] == 1
+    assert store.page_urls() == []
+    sample = json.loads((tmp_path / "crawl" / "sample.json").read_text())
+    assert [record["url"] for record in sample] == [f"{HOST}/products/p0"]
+
+
+def test_resume_keeps_current_cached_pages_and_fetches_new_urls(run, tmp_path):
+    assert run(_Store(products=1))[0] == 0
+    store = _Store(products=2)
+
+    code, summary, _ = run(store, argv=["--resume"])
+
+    assert code == 0
+    assert summary["pages_crawled"] == summary["urls_discovered"] == 2
+    assert store.page_urls() == [f"{HOST}/products/p1"]
+
+
 def _signature_input(tag: str = "web-bot-auth", expires: int = FUTURE) -> str:
     return (f'sig1=("@authority" "signature-agent");keyid="key-1";nonce="n";'
             f'tag="{tag}";created=1700000000;expires={expires}')
