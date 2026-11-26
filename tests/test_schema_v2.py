@@ -176,7 +176,12 @@ def test_validate_eu_mode_requires_energy_class() -> None:
     rules = [f["rule"] for f in result["findings"]]
     assert "missing-eu-energy-class" in rules
 
-    product["energyEfficiencyClass"] = "A"
+    product["hasCertification"] = {
+        "@type": "Certification",
+        "name": "EPREL",
+        "issuedBy": {"@type": "Organization", "name": "European_Commission"},
+        "certificationIdentification": "123456",
+    }
     result = ev.validate(product, require_eu_energy=True)
     rules = [f["rule"] for f in result["findings"]]
     assert "missing-eu-energy-class" not in rules

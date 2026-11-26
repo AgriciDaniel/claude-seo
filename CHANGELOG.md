@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Product energy labels use supported markup.** The opt-in `--eu` schema check
+  recognizes EPREL `hasCertification` objects and legacy
+  `hasEnergyConsumptionDetails`, including local node references and repeated
+  properties. It no longer rejects those representations or accepts the
+  nonstandard `energyEfficiencyClass` property as evidence of an energy label.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
