@@ -196,6 +196,42 @@ def organic_traffic_report(
             result["error"] = f"GA4 API error: {e}"
         return result
 
+    # Users are distinct across the requested period, not additive across
+    # dates. Ask GA4 to aggregate without the date dimension rather than
+    # counting a returning user once for every day they visited.
+    total_sessions = sum(d["sessions"] for d in result["daily_data"])
+    result["totals"] = {
+        "sessions": total_sessions,
+        "users": None,
+        "pageviews": sum(d["pageviews"] for d in result["daily_data"]),
+        "avg_daily_sessions": round(total_sessions / max(1, days), 1),
+    }
+    try:
+        totals_request = RunReportRequest(
+            property=prop,
+            metrics=[
+                Metric(name="sessions"),
+                Metric(name="totalUsers"),
+                Metric(name="screenPageViews"),
+            ],
+            date_ranges=daily_request.date_ranges,
+            dimension_filter=daily_request.dimension_filter,
+            limit=1,
+        )
+        totals_response = client.run_report(totals_request)
+        values = totals_response.rows[0].metric_values if totals_response.rows else None
+        sessions, users, pageviews = (int(v.value) for v in values) if values else (0, 0, 0)
+        result["totals"] = {
+            "sessions": sessions,
+            "users": users,
+            "pageviews": pageviews,
+            "avg_daily_sessions": round(sessions / max(1, days), 1),
+        }
+    except Exception as e:
+        # Keep the daily and landing-page reports useful, but never present
+        # summed daily users as a period-wide distinct count.
+        result["totals_error"] = f"Error fetching period totals: {e}"
+
     # Top landing pages by organic sessions
     try:
         pages_request = RunReportRequest(
@@ -243,18 +279,6 @@ def organic_traffic_report(
         # Non-fatal: daily data succeeded, pages failed
         result["pages_error"] = f"Error fetching top pages: {e}"
 
-    # Calculate totals
-    if result["daily_data"]:
-        total_sessions = sum(d["sessions"] for d in result["daily_data"])
-        total_users = sum(d["users"] for d in result["daily_data"])
-        total_pageviews = sum(d["pageviews"] for d in result["daily_data"])
-        result["totals"] = {
-            "sessions": total_sessions,
-            "users": total_users,
-            "pageviews": total_pageviews,
-            "avg_daily_sessions": round(total_sessions / len(result["daily_data"]), 1),
-        }
-
     return result
 
 
@@ -276,7 +300,7 @@ def top_pages_report(
     """
     report = organic_traffic_report(property_id, days, limit)
     # Slim it down to just pages
-    return {
+    result = {
         "property": property_id,
         "report": "top_organic_pages",
         "date_range": report.get("date_range"),
@@ -285,6 +309,9 @@ def top_pages_report(
         "quota_tokens_used": report.get("quota_tokens_used"),
         "error": report.get("error") or report.get("pages_error"),
     }
+    if report.get("totals_error"):
+        result["totals_error"] = report["totals_error"]
+    return result
 
 
 def device_breakdown(
@@ -492,6 +519,9 @@ def main():
         if not args.json:
             sys.exit(1)
 
+    if result.get("totals_error"):
+        print(f"Warning: {result['totals_error']}", file=sys.stderr)
+
     if args.json:
         print(json.dumps(result, indent=2, default=str))
     else:
@@ -503,13 +533,29 @@ def main():
             for i, page in enumerate(result.get("pages", [])[:20], 1):
                 print(f"  {i:2d}. {page['landing_page']}")
                 print(f"      Sessions: {page['sessions']:,} | Users: {page['users']:,} | Bounce: {page['bounce_rate']}%")
+        elif args.report in {"device", "country"}:
+            is_device = args.report == "device"
+            print(f"=== Organic Traffic by {'Device' if is_device else 'Country'} ===")
+            print(f"Property: {prop}")
+            dr = result.get("date_range", {})
+            print(f"Period: {dr.get('start')} to {dr.get('end')}")
+            rows = result.get("devices" if is_device else "countries", [])
+            if not rows:
+                print("\nNo organic traffic data for this period.")
+            for row in rows:
+                label = row["category" if is_device else "country"]
+                print(f"\n  {label}: {row['sessions']:,} sessions | {row['users']:,} users")
+                if is_device:
+                    print(f"    Bounce: {row['bounce_rate']}% | Engagement: {row['engagement_rate']}%")
         else:
             totals = result.get("totals", {})
             print("=== GA4 Organic Traffic Report ===")
             print(f"Property: {prop}")
             dr = result.get("date_range", {})
             print(f"Period: {dr.get('start')} to {dr.get('end')}")
-            print(f"\nSessions: {totals.get('sessions', 0):,} | Users: {totals.get('users', 0):,} | Pageviews: {totals.get('pageviews', 0):,}")
+            users = totals.get("users")
+            users_text = f"{users:,}" if users is not None else "unavailable"
+            print(f"\nSessions: {totals.get('sessions', 0):,} | Users: {users_text} | Pageviews: {totals.get('pageviews', 0):,}")
             print(f"Avg Daily Sessions: {totals.get('avg_daily_sessions', 0):,.0f}")
 
             quota = result.get("quota_tokens_used")

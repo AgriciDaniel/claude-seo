@@ -643,6 +643,11 @@ def _inherit_context(node: dict[str, Any], context: Any) -> dict[str, Any]:
     return {"@context": context, **node}
 
 
+def _reject_json_constant(value: str) -> None:
+    """Reject JavaScript numeric constants that are outside JSON syntax."""
+    raise ValueError(f"Invalid JSON constant: {value}")
+
+
 def parse_html(html: str, base_url: Optional[str] = None) -> dict:
     """
     Parse HTML and extract SEO-relevant elements.
@@ -697,6 +702,7 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         result["title"] = _element_text(title_tag)
 
     # Meta tags
+    robots_directives = []
     for meta in soup.find_all("meta"):
         name = meta.get("name", "").lower()
         property_attr = meta.get("property", "").lower()
@@ -705,7 +711,7 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         if name == "description":
             result["meta_description"] = content
         elif name == "robots":
-            result["meta_robots"] = content
+            robots_directives.append(content)
 
         # Open Graph
         if property_attr.startswith("og:"):
@@ -714,6 +720,11 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
         # Twitter Card
         if name.startswith("twitter:"):
             result["twitter_card"][name] = content
+
+    if robots_directives:
+        # Separate generic robots tags combine. A later permissive or empty
+        # tag cannot erase an earlier noindex/nofollow restriction.
+        result["meta_robots"] = ", ".join(value for value in robots_directives if value)
 
     # Canonical
     canonical = next(
@@ -837,7 +848,7 @@ def parse_html(html: str, base_url: Optional[str] = None) -> dict:
             too_deep = json_depth_exceeds(script.string or "", _MAX_JSON_LD_DEPTH)
             if too_deep:
                 raise ValueError("JSON-LD nested too deep")
-            schema_data = json.loads(script.string)
+            schema_data = json.loads(script.string, parse_constant=_reject_json_constant)
             # Flatten @graph containers so each @type is a separate entry.
             # The container is not an entity, so it carries no @type of its
             # own, but its @context is inherited by the entries it holds.

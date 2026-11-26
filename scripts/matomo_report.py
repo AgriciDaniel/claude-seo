@@ -213,14 +213,19 @@ def organic_traffic_report(site_id: str, url: str, token: str,
     """
     Organic traffic trend from Matomo using the ``referrerType==search`` segment.
 
-    Combines a per-day VisitsSummary with the top organic landing pages.
+    Combines daily VisitsSummary and Actions metrics via API.get with the
+    top organic landing pages. Page views stay unknown if the metric is absent.
     Returns an envelope with date_range, totals, daily_data, and top_pages.
     """
     start, end = _date_range(days)
     date_arg = f"{start},{end}"
 
     summary_resp = _request(url, token, {
-        "method": "VisitsSummary.get",
+        # API.get combines the selected VisitsSummary and Actions metrics.
+        # nb_actions includes downloads/outlinks and cannot stand in for views.
+        "method": "API.get",
+        "columns": "nb_visits,nb_uniq_visitors,nb_actions,nb_pageviews,"
+                   "bounce_count,sum_visit_length",
         "idSite": site_id,
         "period": "day",
         "date": date_arg,
@@ -238,7 +243,8 @@ def organic_traffic_report(site_id: str, url: str, token: str,
         visits = _bounded_int(row.get("nb_visits"))
         uniq = _uniq(row)
         actions = _bounded_int(row.get("nb_actions"))
-        pageviews = _bounded_int(row.get("nb_pageviews"), actions)
+        pageviews = (_bounded_int(row["nb_pageviews"])
+                     if row.get("nb_pageviews") is not None else None)
         bounce_count = _bounded_int(row.get("bounce_count"))
         sum_visit_length = _bounded_int(row.get("sum_visit_length"))
         daily_data.append({
@@ -252,7 +258,10 @@ def organic_traffic_report(site_id: str, url: str, token: str,
         })
         totals["visits"] += visits
         totals["unique_visitors"] += uniq
-        totals["pageviews"] += pageviews
+        if pageviews is None:
+            totals["pageviews"] = None
+        elif totals["pageviews"] is not None:
+            totals["pageviews"] += pageviews
         totals["bounce_count"] += bounce_count
         totals["sum_visit_length"] += sum_visit_length
         totals["actions"] += actions
@@ -273,7 +282,7 @@ def organic_traffic_report(site_id: str, url: str, token: str,
         "date": date_arg,
         "segment": "referrerType==search",
         "filter_limit": str(min(limit, MAX_LIMIT)),
-        "filter_sort_column": "nb_visits",
+        "filter_sort_column": "entry_nb_visits",
         "filter_sort_order": "desc",
     })
     top_pages = []
@@ -286,8 +295,9 @@ def organic_traffic_report(site_id: str, url: str, token: str,
             entry_visits = _bounded_int(row.get("entry_nb_visits"))
             top_pages.append({
                 "url": row.get("label", ""),
-                "visits": _bounded_int(row.get("nb_visits")),
-                "unique_visitors": _uniq(row),
+                "visits": entry_visits,
+                "unique_visitors": _bounded_int(row.get(
+                    "entry_nb_uniq_visitors", row.get("sum_daily_entry_nb_uniq_visitors"))),
                 "actions": _bounded_int(row.get("entry_nb_actions")),
                 "bounce_rate": _bounce_rate_pct(
                     row.get("entry_bounce_count"), entry_visits),
@@ -308,7 +318,7 @@ def organic_traffic_report(site_id: str, url: str, token: str,
     if pages_error:
         result["pages_error"] = pages_error
 
-    return _envelope("success", result, None, method="VisitsSummary.get")
+    return _envelope("success", result, None, method="API.get")
 
 
 def top_pages_report(site_id: str, url: str, token: str,

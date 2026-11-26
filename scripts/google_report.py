@@ -144,6 +144,12 @@ def _gsc_anomaly_warning(gsc_data: dict) -> str:
     return ""
 
 
+def _gsc_totals_incomplete(gsc_data: dict) -> bool:
+    """Respect explicit completeness metadata while supporting older exports."""
+    return (gsc_data.get("totals_complete") is False
+            or gsc_data.get("totals_source") == "partial_row_sum")
+
+
 # ─── Chart Setup ─────────────────────────────────────────────────────────────
 
 def _setup_matplotlib():
@@ -1329,10 +1335,13 @@ def _build_executive_summary(domain, timestamp, data, report_type):
     # GSC totals
     gsc = data.get("gsc", {})
     if gsc.get("totals"):
+        partial_totals = _gsc_totals_incomplete(gsc)
         clicks = gsc["totals"].get("clicks") or 0
-        cards.append(("clicks", f"{clicks:,}", "Total Clicks", BRAND["primary"]))
+        clicks_label = "Clicks in Returned Rows" if partial_totals else "Total Clicks"
+        cards.append(("clicks", f"{clicks:,}", clicks_label, BRAND["primary"]))
         impr = gsc["totals"].get("impressions") or 0
-        cards.append(("impr", f"{impr:,}", "Impressions", BRAND["secondary"]))
+        impr_label = "Impressions in Returned Rows" if partial_totals else "Impressions"
+        cards.append(("impr", f"{impr:,}", impr_label, BRAND["secondary"]))
 
     # Indexation
     inspection = data.get("inspection", {})
@@ -1697,6 +1706,7 @@ def _build_gsc_section(gsc_data, chart_paths, section_num=3, fig_start=1):
 
     totals = gsc_data.get("totals", {})
     dr = gsc_data.get("date_range", {})
+    partial_totals = _gsc_totals_incomplete(gsc_data)
 
     if totals:
         domain = escape(str(gsc_data.get("property", "?")))
@@ -1708,21 +1718,31 @@ def _build_gsc_section(gsc_data, chart_paths, section_num=3, fig_start=1):
                          f'{escape(gsc_warning)}</div>')
         queries_count = escape(str(gsc_data.get("row_count", 0)))
         impr_total = totals.get("impressions") or 0
-        lines.append(f'  <p><strong>{domain}</strong> appeared in <strong>{queries_count}</strong> unique search queries '
-                     f'with <strong>{impr_total:,}</strong> total impressions during this period.</p>')
+        if partial_totals:
+            lines.append('  <div class="highlight"><strong>Site-wide totals are unavailable.</strong> '
+                         'Clicks, impressions, and CTR below describe only the returned rows '
+                         'and must not be treated as site-wide totals.</div>')
+            lines.append(f'  <p>The <strong>{queries_count}</strong> returned rows contain '
+                         f'<strong>{impr_total:,}</strong> impressions during this period.</p>')
+        else:
+            lines.append(f'  <p><strong>{domain}</strong> appeared in <strong>{queries_count}</strong> unique search queries '
+                         f'with <strong>{impr_total:,}</strong> total impressions during this period.</p>')
         lines.append('')
 
         clicks_val = f'{totals.get("clicks") or 0:,}'
         impr_val = f'{totals.get("impressions") or 0:,}'
         ctr_val = f'{totals.get("ctr", 0)}%'
         rows_val = str(gsc_data.get("row_count", 0))
+        clicks_label = "Clicks in Returned Rows" if partial_totals else "Total Clicks"
+        impr_label = "Impressions in Returned Rows" if partial_totals else "Total Impressions"
+        ctr_label = "CTR in Returned Rows" if partial_totals else "Average CTR"
 
         # Metric cards in single row
         lines.append(f'  <h3>{section_num}.1 Key Metrics</h3>')
         lines.append('  <div class="four-col">')
-        lines.append(f'    <div class="col">{_metric_card(clicks_val, "Total Clicks", BRAND["primary"])}</div>')
-        lines.append(f'    <div class="col">{_metric_card(impr_val, "Total Impressions", BRAND["secondary"])}</div>')
-        lines.append(f'    <div class="col">{_metric_card(ctr_val, "Average CTR", BRAND["accent"])}</div>')
+        lines.append(f'    <div class="col">{_metric_card(clicks_val, clicks_label, BRAND["primary"])}</div>')
+        lines.append(f'    <div class="col">{_metric_card(impr_val, impr_label, BRAND["secondary"])}</div>')
+        lines.append(f'    <div class="col">{_metric_card(ctr_val, ctr_label, BRAND["accent"])}</div>')
         lines.append(f'    <div class="col">{_metric_card(rows_val, "Queries Found", BRAND["dark"])}</div>')
         lines.append('  </div>')
         lines.append('  <hr class="divider">')
@@ -2440,7 +2460,7 @@ def generate_report(report_type, data, domain, output_dir, output_format="pdf"):
             domain, "Search Console Performance",
             "Google Search Analytics Report",
             score=f"{clicks:,}",
-            score_label="Total Clicks",
+            score_label="Clicks in Returned Rows" if _gsc_totals_incomplete(gsc) else "Total Clicks",
             meta_items=[timestamp, "Google Search Console API"],
         ))
 
@@ -2896,17 +2916,21 @@ def generate_xlsx(data, domain, report_type, output_dir):
         mobile = _mobile_pagespeed(data)
         scores = mobile.get("lighthouse_scores", {}) if isinstance(mobile, dict) else {}
         if scores:
+            # run_pagespeed marks its strategy and already converts every
+            # category to 0..100. Only unmarked legacy input may be fractional.
+            native_scores = mobile.get("strategy") in ("mobile", "desktop")
             ws.append(["Lighthouse Scores", ""])
             ws.append(["Category", "Score"])
             _style_header(ws, ws.max_row)
             for cat in ["performance", "accessibility", "best-practices", "seo"]:
                 val = scores.get(cat, scores.get(cat.replace("-", "_")))
                 if val is not None:
+                    score = int(val * 100) if not native_scores and val <= 1 else val
                     row_num = ws.max_row + 1
-                    _xlsx_append_row(ws, [cat.replace("-", " ").title(), int(val * 100) if val <= 1 else val])
+                    _xlsx_append_row(ws, [cat.replace("-", " ").title(), score])
                     ws.cell(row=row_num, column=2).fill = _severity_fill(
-                        "pass" if (val * 100 if val <= 1 else val) >= 90
-                        else "warning" if (val * 100 if val <= 1 else val) >= 50
+                        "pass" if score >= 90
+                        else "warning" if score >= 50
                         else "fail"
                     )
             ws.append([])
@@ -2922,7 +2946,7 @@ def generate_xlsx(data, domain, report_type, output_dir):
             for metric_name, metric_data in metrics.items():
                 if isinstance(metric_data, dict):
                     p75 = metric_data.get("percentile_p75", metric_data.get("p75", ""))
-                    rating = metric_data.get("category", "")
+                    rating = metric_data.get("rating", metric_data.get("category", ""))
                     _xlsx_append_row(ws, [metric_name, p75, rating])
             ws.append([])
 

@@ -111,6 +111,25 @@ def test_equivalent_backlink_is_still_exact(fake_network, href, target_url):
     assert result["anchor_text"] == "The target page"
 
 
+@pytest.mark.parametrize("href, target_url", [
+    ("https://target.example/tool?utm_source=partner", "https://target.example/tool"),
+    ("https://target.example/tool", "https://target.example/tool?utm_source=partner"),
+    ("https://target.example/tool?id=Blue&utm_source=partner",
+     "https://target.example/tool?id=Blue&utm_medium=email"),
+])
+def test_tracking_parameters_do_not_hide_exact_backlink(fake_network, href, target_url):
+    fake_network["page"] = _page(_html(
+        '<nav><a href="https://target.example/" rel="nofollow">Home</a></nav>'
+        f'<a href="{href}" rel="sponsored">The target page</a>'
+    ))
+
+    result = verify_backlinks.verify_single_backlink(SOURCE, target_url)
+
+    assert result["match_type"] == "exact_url"
+    assert result["anchor_text"] == "The target page"
+    assert result["rel_attributes"] == ["sponsored"]
+
+
 def test_domain_match_still_reported_when_no_exact_link(fake_network):
     fake_network["page"] = _page(_html(
         '<a href="https://sub.target.example/x">sub</a>'

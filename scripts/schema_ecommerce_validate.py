@@ -19,7 +19,8 @@ The Rich Results Test catches structural errors. This validator catches
 the *policy* errors: fields that parse fine but disqualify the product
 from a rich feature. It also flags the deprecated v1.x types
 (Vehicle Listing, Claim Review, Estimated Salary, Learning Video,
-Course Info, Special Announcement).
+Special Announcement). Course is not flagged: Google retired Course
+Info, which has no type of its own, and Course list is still live.
 
 Usage::
 
@@ -40,16 +41,13 @@ from pathlib import Path
 # Types Google retired June 2025 (announced via developers.google.com/search/blog
 # /2025/06/simplifying-search-results). Generating any of these in 2026 is a
 # Critical finding because the rich result no longer renders.
+# Course is excluded: only Course Info was retired; Course list remains live.
 _DEPRECATED_TYPES: dict[str, str] = {
     "Vehicle": "Vehicle Listing rich result retired June 2025.",
     "VehicleListing": "Vehicle Listing rich result retired June 2025.",
     "ClaimReview": "Claim Review rich result retired June 2025.",
     "EstimatedSalary": "Estimated Salary rich result retired June 2025.",
     "LearningVideo": "Learning Video rich result retired June 2025.",
-    "Course": (
-        "The Course rich result is still live but the Course Info carousel "
-        "variant was retired June 2025. Verify which use-case applies."
-    ),
     "SpecialAnnouncement": (
         "Special Announcement rich result deprecated July 2025."
     ),
@@ -121,10 +119,72 @@ def _as_dicts(value) -> list[dict]:
     return []
 
 
-def _has_loyalty_price(offer: dict) -> bool:
+def _reference_resolver(payload):
+    """Resolve exact local @id references within their graph, without fetching.
+
+    Only unambiguous definitions are used. This deliberately does not expand
+    contexts/relative IRIs or merge partial definitions of the same node.
+    References are read on demand, so cycles do not expand the input tree.
+    """
+    scopes: dict[int, dict[str, dict | None]] = {}
+    has_base_context = False
+
+    def has_base(value):
+        if isinstance(value, dict):
+            return "@base" in value or any(has_base(child) for child in value.values())
+        return isinstance(value, list) and any(has_base(child) for child in value)
+
+    def visit(value, definitions, *, document=False):
+        nonlocal has_base_context
+        if isinstance(value, dict):
+            has_base_context |= has_base(value.get("@context"))
+            scopes[id(value)] = definitions
+            node_id = value.get("@id")
+            if isinstance(node_id, str) and node_id and set(value) - {"@id", "@context"}:
+                if node_id not in definitions:
+                    definitions[node_id] = value
+                elif definitions[node_id] != value:
+                    definitions[node_id] = None
+            for key, child in value.items():
+                if key in ("@context", "@value"):
+                    continue
+                # A document's bare @graph is its default graph. Embedded
+                # graphs have their own definitions, even for the same @id.
+                if key == "@graph" and not (
+                    document and set(value) <= {"@context", "@graph"}
+                ):
+                    visit(child, {})
+                else:
+                    visit(child, definitions)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child, definitions)
+
+    visit(payload, {}, document=True)
+
+    def resolve(value):
+        if isinstance(value, dict) and set(value) == {"@id"}:
+            node_id = value["@id"]
+            if isinstance(node_id, str):
+                # A compact IRI prefix can be rebound by a local context.
+                # Resolving those requires context expansion, not string keys.
+                explicit_id = node_id.startswith(("https://", "http://", "_:"))
+                if ":" in node_id and not explicit_id:
+                    return value
+                # Relative IDs can mean different nodes under scoped @base
+                # contexts. Leave them unresolved without JSON-LD expansion.
+                if has_base_context and not explicit_id:
+                    return value
+                return scopes.get(id(value), {}).get(node_id) or value
+        return value
+
+    return resolve
+
+
+def _has_loyalty_price(offer: dict, resolve) -> bool:
     return any(
         _has_type(spec, "UnitPriceSpecification") and spec.get("validForMemberTier")
-        for spec in _as_dicts(offer.get("priceSpecification"))
+        for spec in (resolve(value) for value in _as_dicts(offer.get("priceSpecification")))
     )
 
 
@@ -134,6 +194,7 @@ def _has_type(payload: dict, target_type: str) -> bool:
 
 def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
     findings: list[dict] = []
+    resolve = _reference_resolver(payload)
 
     # 1. Deprecated rich-result type generation.
     for kind in _all_types(payload):
@@ -182,6 +243,7 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
             # list entries reports them instead of silently passing.
             offers_list = [offers]
 
+        offers_list = [resolve(offer) for offer in offers_list]
         for offer in offers_list:
             if not isinstance(offer, dict):
                 findings.append({
@@ -229,6 +291,7 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
             })
         else:
             for policy in _as_dicts(return_policy):
+                policy = resolve(policy)
                 for field in _REQUIRED_RETURN_POLICY_FIELDS:
                     if field not in policy:
                         findings.append({
@@ -248,6 +311,7 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
             })
         else:
             for details in _as_dicts(shipping):
+                details = resolve(details)
                 for field in _REQUIRED_SHIPPING_FIELDS:
                     if field not in details:
                         findings.append({
@@ -258,7 +322,7 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
 
         # 6. Loyalty / MemberProgram visibility (Medium).
         if not prod.get("hasMemberProgram") and not any(
-            _has_loyalty_price(o) for o in offers_list if isinstance(o, dict)
+            _has_loyalty_price(o, resolve) for o in offers_list if isinstance(o, dict)
         ):
             findings.append({
                 "severity": "Medium",

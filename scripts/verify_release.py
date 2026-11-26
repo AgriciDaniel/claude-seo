@@ -11,7 +11,10 @@ After installing from a tag::
 
 The script returns exit code 0 when every file in the manifest is
 present and matches the recorded SHA-256, and exit code 1 (with a
-human-readable report) on any mismatch, missing file, or extra file.
+human-readable report) on any mismatch, missing file, or manifest entry
+that points outside the checkout. Files on disk that the manifest does
+not list are not checked: a virtual environment, an editor folder or
+any other untracked file leaves the result unchanged.
 
 This pairs with ``scripts/release_sign.py`` (used by the maintainer to
 generate the manifest at release time) and the GitHub release
@@ -93,9 +96,9 @@ def verify(manifest_path: Path, root: Path = REPO_ROOT) -> dict:
                       (through ``..`` or a symlink) to a place outside
                       ``root``. They are never opened or hashed and
                       always fail verification.
-        extra       : paths on disk (and git-tracked) but not in
-                      manifest. Empty unless caller passes a tracked
-                      file list; default behaviour leaves this empty.
+
+    Files under ``root`` that the manifest does not list are not
+    examined and are not reported.
     """
     with manifest_path.open(encoding="utf-8") as fh:
         manifest = json.load(fh)

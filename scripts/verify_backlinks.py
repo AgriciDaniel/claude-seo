@@ -49,6 +49,7 @@ sys.path.insert(0, _SCRIPTS_DIR)
 try:
     from fetch_page import fetch_page
     from google_auth import validate_url
+    from page_checks import url_match_key
     from parse_html import parse_html
     from url_safety import URLSafetyError, safe_requests_head
 except ImportError as e:
@@ -111,13 +112,8 @@ def _head_check(url: str, timeout: int = 15) -> dict:
 
 
 def _normalize_url(url: str) -> str:
-    """Ignore host case, trailing slashes and fragments, preserving page identity."""
-    parsed = urlparse(url)
-    path = parsed.path.rstrip("/") or "/"
-    normalized = parsed._replace(
-        scheme=parsed.scheme.lower(), netloc=parsed.netloc.lower(), path=path, fragment=""
-    ).geturl()
-    return re.sub(r"%[0-9a-fA-F]{2}", lambda match: match[0].upper(), normalized)
+    """Preserve page identity while ignoring tracking parameters and URL spelling."""
+    return url_match_key(url)
 
 
 # Directives whose value follows a colon, so "max-snippet: 10" is not a

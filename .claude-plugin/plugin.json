@@ -1,6 +1,6 @@
 {
   "name": "claude-seo",
-  "version": "2.6.2",
+  "version": "2.6.3",
   "description": "Comprehensive SEO analysis plugin for Claude Code. 29 sub-skills (22 core + 1 orchestrator + 1 framework + 5 extension mirrors) and 20 sub-agents cover technical SEO, content quality, schema, sitemaps, Core Web Vitals, local SEO, backlinks, AI/GEO, ecommerce, hreflang, SXO, clustering, drift monitoring, and Google APIs. Includes optional extensions, SPA-aware rendering, portability, and hardened SSRF/DNS-rebinding safe fetchers.",
   "author": {
     "name": "AgriciDaniel",

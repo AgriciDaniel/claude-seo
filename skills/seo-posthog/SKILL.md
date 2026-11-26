@@ -4,7 +4,7 @@ description: PostHog MCP extension. PostHog analytics as a GA4 alternative or co
 metadata:
   author: AgriciDaniel
   original_author: AlexMili
-  version: "2.6.2"
+  version: "2.6.3"
 compatibility: "Requires the PostHog MCP server (https://mcp.posthog.com/mcp) connected to Claude Code. No local credentials are stored by this extension. The skill and agent ship with the claude-seo plugin; extensions/posthog/install.sh registers the MCP server and, on a manual install, also copies both."
 ---
 

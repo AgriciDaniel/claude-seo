@@ -18,6 +18,7 @@ import time
 
 try:
     from googleapiclient.discovery import build
+    from googleapiclient.errors import HttpError
 except ImportError:
     print(
         "Error: google-api-python-client required. "
@@ -101,17 +102,17 @@ def inspect_url(
     try:
         response = service.urlInspection().index().inspect(body=body).execute()
     except Exception as e:
-        error_str = str(e)
-        if "403" in error_str:
+        status = e.resp.status if isinstance(e, HttpError) else None
+        if status == 403:
             result["error"] = (
                 f"Permission denied. Add the service account as an Owner "
                 f"in GSC property '{site_url}'."
             )
-        elif "429" in error_str:
+        elif status == 429:
             result["error"] = (
                 f"Rate limit exceeded. URL Inspection: {QPM_LIMIT} QPM / {DAILY_LIMIT} QPD per site."
             )
-        elif "400" in error_str:
+        elif status == 400:
             result["error"] = (
                 f"Invalid request. Ensure the URL '{inspection_url}' belongs to "
                 f"property '{site_url}'."
