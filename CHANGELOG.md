@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **HTML charset detection respects comments and tag boundaries.** The shared
+  decoder skips commented declarations and markup inside another tag's
+  attributes, recognizes only the exact `meta` tag name, and keeps quoted
+  greater-than signs inside attributes. Non-ASCII metadata is no longer
+  garbled by these false encoding declarations. The byte-scan limit and
+  BOM/header encoding precedence remain unchanged.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new

@@ -1317,14 +1317,16 @@ DEFAULT_REQUEST_HEADERS = {
 
 _CONTENT_TYPE_CHARSET_RE = re.compile(r"charset\s*=\s*['\"]?([^;,'\"\s>]+)", re.IGNORECASE)
 # HTML's encoding prescan reads attributes, not the substring "charset=".
-_META_TAG_RE = re.compile(r"<meta\b([^>]*)>", re.IGNORECASE)
+_PRESCAN_TAG_RE = re.compile(r"</?[A-Za-z][^\t\n\f\r >]*")
+_PRESCAN_SPACE = "\t\n\f\r "
 # An unquoted value runs to whitespace or ">", as in HTML, so
 # ``content=text/html;charset=windows-1252`` is one value. The value part is
 # optional so a run of name characters with no "=" is consumed in one step
 # instead of being rescanned from every offset (quadratic on hostile input).
 _META_ATTR_RE = re.compile(
-    r"([^\s=/>]+)(?:\s*=\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s>]+)))?",
-    re.IGNORECASE,
+    r"([^\t\n\f\r =/>]+)"
+    r"(?:[\t\n\f\r ]*=[\t\n\f\r ]*(?:\"([^\"]*)\"|'([^']*)'|([^\t\n\f\r >]+)))?",
+    re.IGNORECASE | re.ASCII,
 )
 _BOMS = (
     (b"\xef\xbb\xbf", "utf-8-sig"),
@@ -1345,6 +1347,79 @@ def _extract_charset_from_content_type(content_type: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
+def _prescan_tag_end(head: str, position: int) -> int | None:
+    """Consume attributes, treating quotes as delimiters only after '='."""
+    size = len(head)
+    while position < size:
+        while position < size and head[position] in _PRESCAN_SPACE + "/":
+            position += 1
+        if position == size:
+            return None
+        if head[position] == ">":
+            return position + 1
+
+        name_start = position
+        while position < size and head[position] not in _PRESCAN_SPACE + "/>":
+            if head[position] == "=" and position > name_start:
+                break
+            position += 1
+        while position < size and head[position] in _PRESCAN_SPACE:
+            position += 1
+        if position == size:
+            return None
+        if head[position] != "=":
+            continue
+        position += 1
+        while position < size and head[position] in _PRESCAN_SPACE:
+            position += 1
+        if position == size:
+            return None
+        if head[position] in ("'", '"'):
+            end = head.find(head[position], position + 1)
+            if end < 0:
+                return None
+            position = end + 1
+        else:
+            while position < size and head[position] not in _PRESCAN_SPACE + ">":
+                position += 1
+    return None
+
+
+def _prescan_meta_attributes(head: str) -> Iterator[str]:
+    """Yield real meta-tag attributes without rescanning comments or tag values."""
+    position = 0
+    while (start := head.find("<", position)) >= 0:
+        if head.startswith("<!--", start):
+            end = head.find("-->", start + 2)
+            if end < 0:
+                return
+            position = end + 3
+            continue
+
+        tag = _PRESCAN_TAG_RE.match(head, start)
+        if tag:
+            is_meta = (
+                head[start:start + 5].lower() == "<meta"
+                and head[start + 5:start + 6] in ("\t", "\n", "\f", "\r", " ", "/")
+            )
+            attributes_start = start + 5 if is_meta else tag.end()
+            # Quotes protect ">" as well as nested "<meta" text. An
+            # unfinished tag consumes the rest of the bounded prescan.
+            end = _prescan_tag_end(head, attributes_start)
+            if end is None:
+                return
+            if is_meta:
+                yield head[attributes_start:end - 1]
+            position = end
+        elif head[start + 1:start + 2] in ("!", "/", "?"):
+            end = head.find(">", start + 2)
+            if end < 0:
+                return
+            position = end + 1
+        else:
+            position = start + 1
+
+
 def _extract_meta_charset(raw: bytes) -> str | None:
     """Return a meta encoding, using HTML's prescan rules.
 
@@ -1352,13 +1427,15 @@ def _extract_meta_charset(raw: bytes) -> str | None:
     the same tag's ``http-equiv`` is ``content-type``. ``charset=`` inside
     another attribute, such as an og:image URL, is not the document encoding.
     """
-    head = raw[:4096].decode("ascii", errors="ignore")
-    for match in _META_TAG_RE.finditer(head):
+    # Preserve byte positions: dropping non-ASCII bytes could turn another
+    # tag name into "meta". Only ASCII syntax is significant to the prescan.
+    head = raw[:4096].decode("latin-1")
+    for attributes in _prescan_meta_attributes(head):
         charset = None
         got_pragma = False
         need_pragma = None
         seen: set[str] = set()
-        for attr in _META_ATTR_RE.finditer(match.group(1)):
+        for attr in _META_ATTR_RE.finditer(attributes):
             name = attr.group(1).lower()
             if name in seen:
                 continue
