@@ -16,7 +16,6 @@ import argparse
 import hashlib
 import json
 import os
-import re
 import sqlite3
 import subprocess
 import sys
@@ -164,7 +163,7 @@ def fetch_page_data(url: str) -> dict:
             tmp_path = tmp.name
 
         proc = subprocess.run(
-            [sys.executable, fetch_script, url, "--output", tmp_path],
+            [sys.executable, fetch_script, url, "--output", tmp_path, "--json", "--max-text", "1"],
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -172,23 +171,38 @@ def fetch_page_data(url: str) -> dict:
             timeout=60,
         )
 
-        if proc.returncode != 0:
-            error_msg = proc.stderr.strip() if proc.stderr else "Unknown fetch error"
+        try:
+            metadata = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            metadata = None
+        fetch_error = metadata.get("error") if isinstance(metadata, dict) else None
+        if proc.returncode != 0 or fetch_error:
+            error_msg = fetch_error or (proc.stderr or "").strip() or "Unknown fetch error"
             result["error"] = f"Fetch failed: {error_msg}"
+            return result
+        if not isinstance(metadata, dict):
+            result["error"] = "Fetch did not return valid JSON metadata"
+            return result
+        result["status_code"] = metadata.get("status_code")
+        # A size-limited fetch exits successfully so callers can inspect its
+        # prefix. Drift requires the complete page before comparing or saving
+        # it as a known-good baseline. JSON preview truncation is unrelated:
+        # --output holds the full fetched HTML even with --max-text 1.
+        if metadata.get("too_large"):
+            result["error"] = "Fetch returned incomplete HTML: response exceeded the body size limit"
+            return result
+        if metadata.get("too_large") is not False or metadata.get("output_written") is not True:
+            result["error"] = "Fetch did not confirm a complete saved HTML document"
             return result
 
         with open(tmp_path, "r", encoding="utf-8", errors="replace") as f:
             html_content = f.read()
 
-        # Extract status code from stderr output (fetch_page.py prints "Status: NNN")
-        status_match = re.search(r"Status:\s*(\d+)", proc.stderr or "")
-        result["status_code"] = int(status_match.group(1)) if status_match else 200
         result["html"] = html_content
 
         # Relative resources belong to the final document after redirects,
-        # not the originally requested URL. Older fetch output may omit it.
-        final_url_match = re.search(r"^URL:\s*(\S+)", proc.stderr or "", re.MULTILINE)
-        final_url = final_url_match.group(1) if final_url_match else url
+        # not the originally requested URL.
+        final_url = metadata.get("url") or url
 
         # Step 2: Parse the HTML via parse_html.py
         parse_script = os.path.join(SCRIPTS_DIR, "parse_html.py")

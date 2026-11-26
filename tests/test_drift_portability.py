@@ -31,7 +31,10 @@ def test_fetch_page_data_uses_tempfile_not_dev_stdout_or_stdin() -> None:
             output_path = Path(cmd[cmd.index("--output") + 1])
             temp_paths.append(output_path)
             output_path.write_bytes(b"<html><title>caf\xc3\xa9 \x8f</title></html>")
-            return SimpleNamespace(returncode=0, stdout="", stderr="Status: 203\n")
+            return SimpleNamespace(returncode=0, stdout=json.dumps({
+                "status_code": 203, "url": "https://example.com/", "too_large": False,
+                "output_written": True, "error": None,
+            }), stderr="")
 
         if cmd[1].endswith("parse_html.py"):
             assert "input" not in kwargs
