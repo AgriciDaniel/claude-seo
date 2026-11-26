@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **On-page heading order keeps content and template sequences separate.** Headings in
+  navigation, sidebars or footers nested inside the main content no longer hide a real
+  heading-level skip or create a false one by resetting the content's previous level.
+  Their skips are counted in the template facts. Headers inside the content root retain
+  their headings in the content sequence.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
