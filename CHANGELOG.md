@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Visual above-fold findings require viewport overlap.** Headings, CTA candidates and
+  hero images now consider later matching elements when the first is hidden or off screen.
+  Elements wholly above, below, left or right of the desktop viewport no longer count;
+  partially visible elements still do. Hidden or off-screen hero images no longer mask a
+  visible image later in the same container.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new

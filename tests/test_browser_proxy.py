@@ -1142,6 +1142,7 @@ class _VisualManager:
             route=lambda *_a: None,
             goto=lambda *_a, **_k: None,
             query_selector=lambda *_a: None,
+            query_selector_all=lambda *_a: [],
             evaluate=lambda *_a: 16,
         )
         context = SimpleNamespace(
