@@ -20,8 +20,11 @@ TOOL_RE = re.compile(
     r"`((?:serp|kw_data|keywords_data|dataforseo_labs|dataforseo_backlinks|backlinks|on_page|"
     r"domain_analytics|business_data|content_analysis|ai_optimization|ai_opt)_[a-z0-9_]*[a-z0-9])`"
 )
-# Cost-ledger keys and REST endpoints that are not MCP tools.
-NOT_MCP = {"backlinks_auth"}
+# Cost-ledger keys, REST endpoints, and local JSON fields that are not MCP tools.
+NOT_MCP = {
+    "backlinks_auth",
+    "serp_matrix",  # JSON output field from the local serp_overlap.py script.
+}
 
 
 def _tools() -> set[str]:

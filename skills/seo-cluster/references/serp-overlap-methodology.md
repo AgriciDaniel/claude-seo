@@ -14,15 +14,48 @@ content architecture rather than relying on keyword text similarity or stemming.
 For each keyword in the candidate set, retrieve the top 10 organic results:
 - Use WebSearch or DataForSEO `serp_organic_live_advanced`
 - Extract only organic result URLs (ignore ads, featured snippets, PAA, knowledge panels)
-- Normalize URLs: strip protocol, trailing slash, and query parameters (except meaningful ones)
-- Store as a set of 10 URLs per keyword
+- Keep URLs in organic ranking order and save them once per keyword.
+- Do not guess URLs, fill missing results, or include ads/PAA as organic results.
+
+Save `serp-results.json` with a `serps` list. Each entry has a `keyword`, ranked
+`urls`, and an optional `error` string when collection failed. This intentionally
+incomplete example demonstrates missing-data reporting:
+
+```json
+{
+  "serps": [
+    {"keyword": "CRM software", "urls": ["https://example.com/crm"]},
+    {"keyword": "best CRM", "urls": [], "error": "Search provider unavailable"}
+  ]
+}
+```
+
+The script accepts up to 200 keywords and 4 MiB of UTF-8 JSON. It considers only
+the first 10 supplied organic positions, never a later result to fill a gap.
+
+URL comparison normalizes scheme/host case, IDNA host names, default ports,
+unreserved percent escapes, fragments, and known attribution parameters
+(`utm_*`, `gclid`, `dclid`, `fbclid`, `msclkid`, `mc_cid`, `mc_eid`, `_ga`). It
+preserves the scheme, path case, trailing slash, and all other query parameters.
+Do not merge those page identities without redirect or canonical evidence.
 
 ### Step 2: Pairwise Comparison
 
-For each pair of keywords (A, B):
-1. Retrieve the URL sets: `urls_A` and `urls_B`
-2. Compute overlap: `shared = urls_A intersection urls_B`
-3. Score: `overlap_score = len(shared)`
+Run the saved results through the bundled script:
+
+```bash
+"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run serp_overlap.py serp-results.json > serp-overlap.json
+```
+
+The script normalizes and deduplicates each result set once, computes every
+pairwise intersection, and reports the shared URLs. Copy its JSON output field `serp_matrix` into
+`cluster-plan.json`; retain `pairs` and `coverage` as evidence.
+
+Ten unique valid URLs and no fetch error are required for a complete SERP. If
+either side is incomplete, its pair score is `null` and the relationship is
+`inconclusive`. `observed_shared_count` is only the overlap in the available
+data, not a complete top-ten score. Collect the missing results or leave the
+relationship unresolved.
 
 ### Step 3: Apply Thresholds
 
@@ -43,23 +76,23 @@ Scores in the 3-4 range require tiebreaking:
 
 ## Optimization Strategy
 
-Full pairwise comparison of N keywords requires N*(N-1)/2 SERP fetches. For 40
-keywords, that is 780 comparisons. Optimize by reducing unnecessary checks:
+N keywords need N collected SERPs and N*(N-1)/2 local comparisons. For 40
+keywords, collect 40 result sets and let the script compute all 780 comparisons.
 
 ### Pre-Grouping
 
 1. Classify all keywords by intent (Informational, Commercial, Transactional)
 2. Group keywords that share the same head term (e.g., "CRM software" variants)
-3. Only run pairwise SERP comparison within pre-groups
-4. Cross-check boundary keywords (highest volume in each group) across groups
+3. Use the full computed matrix to check both within-group and boundary pairs
+4. Revisit the intent grouping when the observed SERPs disagree with it
 
-### Skip Rules
+### Evidence Rules
 
-- If keywords A and B are both long-tail variants of the same head term AND share
-  the same intent, assume overlap 4-6 (same cluster) without checking SERP
-- If keywords are in different intent categories, assume overlap 0-2 unless they
-  share a head term
-- Verify assumptions with spot-check SERP comparisons (sample 20% of skipped pairs)
+- Intent or word similarity cannot substitute for a measured overlap score.
+- A-B and B-C sharing 7 results does not prove that A-C shares 7 results. Check
+  every pair before merging several keywords into one post.
+- Missing, invalid, or duplicate results remain coverage gaps; do not assign a
+  guessed score to make the matrix look complete.
 
 ## Scoring Matrix Format
 
@@ -78,7 +111,8 @@ Store the overlap data as a symmetric matrix in `cluster-plan.json`:
 }
 ```
 
-Diagonal is always 10 (a keyword overlaps perfectly with itself).
+The diagonal is 10 for a complete SERP and `null` for an incomplete one. Every
+pair involving an incomplete SERP is also `null`, with details in `coverage`.
 
 ## Anti-Patterns
 
@@ -103,6 +137,7 @@ Diagonal is always 10 (a keyword overlaps perfectly with itself).
 
 ## Caching
 
-Within a single clustering session, cache all SERP results. If keyword A's results
-are fetched for the A-B comparison, reuse them for the A-C comparison. This halves
-the number of actual SERP fetches needed.
+Keep `serp-results.json` for the session and reuse it for every comparison.
+Re-fetch only to fill coverage gaps or deliberately refresh a keyword. Collect
+all results for the same location, language, device, and time window; the script
+compares supplied URLs and cannot establish those collection conditions itself.

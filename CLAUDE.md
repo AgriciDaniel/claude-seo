@@ -94,7 +94,7 @@ claude-seo/
     seo-flow.md                  # FLOW framework integration
   hooks/                           # Quality gate hooks
     hooks.json                   # PostToolUse schema validation
-  scripts/                         # 67 Python execution scripts
+  scripts/                         # 68 Python execution scripts
     google_auth.py               # Credential management (OAuth, SA, API key, 4-tier detection)
     google_properties.py         # Picks the GSC/GA4 property for the audited domain, fails closed on a mismatch
     profile_paths.py             # Credential directory (CLAUDE_SEO_PROFILE_DIR, default ~/.config/claude-seo)
@@ -116,6 +116,7 @@ claude-seo/
     youtube_search.py            # YouTube Data API v3
     nlp_analyze.py               # Cloud Natural Language API
     keyword_planner.py           # Google Ads Keyword Planner
+    serp_overlap.py              # Saved organic SERP overlap matrix, pairwise evidence and coverage
     fetch_page.py                # Page fetcher with UA rotation
     parse_html.py                # HTML parser for SEO elements
     page_checks.py               # Deterministic single-page on-page checker (47 checks, JSON findings)

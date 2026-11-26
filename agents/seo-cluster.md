@@ -6,7 +6,7 @@ description: >
   hub-and-spoke content architecture, and generates internal link matrices.
 model: opus
 maxTurns: 40
-tools: WebSearch, WebFetch, Read, Write, Glob, Grep
+tools: WebSearch, WebFetch, Read, Write, Bash, Glob, Grep
 ---
 
 <!-- Original concept: Lutfiya Miller, Semantic Cluster Engine (Pro Hub Challenge) -->
@@ -22,10 +22,13 @@ When given a seed keyword or set of keywords:
    PAA questions, long-tail modifiers, question variants, intent modifiers)
 2. **Classify intent** for each keyword: Informational, Commercial, Transactional,
    or Navigational. Remove navigational keywords from clustering.
-3. **Compare SERPs** pairwise within intent groups. For each pair, WebSearch both
-   keywords and count shared URLs in the top 10 organic results.
-4. **Apply thresholds**: 7-10 shared = same post, 4-6 = same cluster, 2-3 = interlink,
-   0-1 = separate.
+3. **Collect SERPs** once per keyword, recording the ranked top 10 organic URLs
+   in `serp-results.json` as described in the methodology reference. Run
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run serp_overlap.py serp-results.json > serp-overlap.json`.
+4. **Use the computed evidence**: 7-10 shared = same post, 4-6 = same cluster,
+   2-3 = interlink, 0-1 = separate. Copy the returned matrix without recomputing
+   it. Null scores are inconclusive, not zero; collect missing results before
+   assigning those relationships. Review scores of 3 or 4 using intent and volume.
 5. **Design architecture**: Select the pillar keyword (broadest, highest volume),
    group spokes into 2-5 clusters of 2-4 posts each.
 6. **Build link matrix**: Mandatory (spoke-pillar bidirectional), recommended

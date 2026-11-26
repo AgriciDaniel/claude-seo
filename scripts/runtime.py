@@ -49,7 +49,7 @@ ALLOWED_CORE_SCRIPTS = frozenset(
         "moz_api.py", "nlp_analyze.py", "page_checks.py", "pagespeed_check.py",
         "parasite_risk.py", "parse_html.py", "preload_check.py", "render_page.py",
         "portability_check.py", "consistency_check.py",
-        "schema_ecommerce_validate.py", "schema_generate.py", "seo_updates.py",
+        "schema_ecommerce_validate.py", "schema_generate.py", "seo_updates.py", "serp_overlap.py",
         "shopify_crawl.py", "shopify_env.py",
         "sitemap_discovery.py", "sync_flow.py", "transport_check.py", "ucp_check.py",
         "unlighthouse_run.py",

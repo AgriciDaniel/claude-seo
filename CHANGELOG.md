@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Reproducible SERP-overlap computation.** `serp_overlap.py` computes the keyword
+  matrix, threshold relationships, and shared-URL evidence from saved top-ten
+  organic results. The clustering skill and agent collect each keyword once and
+  use the script instead of counting intersections in prose. Incomplete searches
+  produce null scores and an inconclusive relationship, with coverage diagnostics.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
