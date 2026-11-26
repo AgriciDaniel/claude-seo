@@ -60,9 +60,9 @@ cohere-ai
 
 Only 11% of domains are cited by both ChatGPT and Google AI Overviews, so platform optimization matters.
 
-## DataForSEO Integration (Optional)
+## DataForSEO Evidence (Optional)
 
-If DataForSEO MCP tools are available, use `ai_optimization_chat_gpt_scraper` for live ChatGPT visibility and `ai_opt_llm_ment_search` for LLM mention tracking.
+Use live ChatGPT visibility and LLM mention results only when the orchestrator includes them in your prompt. Label that evidence **DataForSEO (live)** and list any missing datasets under **Limitations**. This agent has no MCP tools and must not fetch DataForSEO data directly or look for its credentials.
 
 ## Output Format
 
