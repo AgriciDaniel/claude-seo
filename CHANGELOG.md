@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Saved Shopify HTML no longer overwrites another page with a similar URL.**
+  Artifact names include a full-URL digest, keeping query variants, punctuation,
+  long paths, and case-sensitive paths separate. Each saved page's `html_file`
+  field identifies its filename inside the crawl's `html/` directory.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
