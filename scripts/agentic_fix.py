@@ -89,7 +89,8 @@ def add_content_signal(robots_text: str, signal: str) -> dict:
             current["last_ua"] = idx
             in_ua_block = True
             continue
-        in_ua_block = False
+        if field in ("allow", "disallow"):
+            in_ua_block = False
         if current is not None and field == "content-signal":
             current["has_signal"] = True
 
@@ -117,8 +118,8 @@ def add_content_signal(robots_text: str, signal: str) -> dict:
 def _field(line: str) -> str:
     """Lower-cased field name; "" for blank or comment lines.
 
-    A line with a colon but no name (': junk') is a non-user-agent field, as in
-    agentic_check.parse_robots, so it ends a user-agent block.
+    A line with a colon but no name (': junk') is an unknown record, as in
+    agentic_check.parse_robots; it does not end a user-agent block.
     """
     body = line.lstrip("\ufeff").split("#", 1)[0]
     if ":" not in body:

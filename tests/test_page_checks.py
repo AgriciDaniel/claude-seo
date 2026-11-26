@@ -80,6 +80,37 @@ def nested(depth: int) -> str:
     return main_content("<div>" * depth + "x" + "</div>" * depth)
 
 
+@pytest.mark.parametrize("parser", ["html.parser", "lxml"])
+@pytest.mark.parametrize(
+    "media_type",
+    ["text/x-example-ld+json", "application/ld+json-template", "ld+json",
+     "text/plain; example=application/ld+json"],
+)
+def test_jsonld_checks_ignore_other_script_media_types(monkeypatch, parser, media_type):
+    if parser == "lxml":
+        pytest.importorskip("lxml")
+    monkeypatch.setattr(page_checks, "_HTML_PARSER", parser)
+
+    result = run(head=f'<script type="{media_type}">{{not JSON}}</script>')
+
+    assert result["facts"]["jsonld_blocks"] == 0
+    assert result["facts"]["jsonld_invalid"] == 0
+    assert "invalid-jsonld" not in ids(result)
+
+
+@pytest.mark.parametrize(
+    "media_type",
+    ["application/ld+json", "APPLICATION/LD+JSON", " application/ld+json ; charset=utf-8 "],
+)
+def test_jsonld_checks_preserve_real_media_type_validation(media_type):
+    result = run(head=(f'<script type="{media_type}">{{"@type":"Article"}}</script>'
+                       f'<script type="{media_type}">{{not JSON}}</script>'))
+
+    assert result["facts"]["jsonld_blocks"] == 2
+    assert result["facts"]["jsonld_invalid"] == 1
+    assert finding(result, "invalid-jsonld")["count"] == 1
+
+
 FRAMESET = (
     "<!doctype html><html lang=\"en\"><head><title>Frames</title></head>"
     "<frameset cols=\"50%,50%\"><frame src=\"a.html\"><frame src=\"b.html\"></frameset></html>"

@@ -332,6 +332,35 @@ def test_auto_stamped_lastmod_shows_as_a_full_share():
     assert (item["lastmod_identical_share"], item["lastmod_oldest"], item["lastmod_newest"]) == (1.0, stamp, stamp)
 
 
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize(
+    "oldest, newest",
+    [
+        ("2026-11-16T12:00:00.1Z", "2026-11-16T12:00:00.9Z"),
+        ("2026-11-16T12:00:00.123456701Z", "2026-11-16T12:00:00.123456709Z"),
+        ("2026-11-16T14:00:00.1+02:00", "2026-11-16T07:00:00.9-05:00"),
+        ("2026-11-16T12:00:00Z", "2026-11-16T12:00:00.000000001Z"),
+    ],
+)
+def test_lastmod_extrema_preserve_fractional_seconds(reverse, oldest, newest):
+    stamps = [oldest, newest]
+    if reverse:
+        stamps.reverse()
+    result, _ = run({SITE + "/sitemap.xml": urlset(
+        *((f"{SITE}/p{index}", stamp) for index, stamp in enumerate(stamps))
+    )})
+    item = file_for(result, "/sitemap.xml")
+
+    assert item["lastmod_oldest"] == oldest
+    assert item["lastmod_newest"] == newest
+    assert item["lastmod_invalid_count"] == 0
+
+
+def test_fractional_timestamp_spellings_compare_as_the_same_instant():
+    assert (discovery._parse_w3c_datetime("2026-11-16T14:00:00.1+02:00")
+            == discovery._parse_w3c_datetime("2026-11-16T12:00:00.100000000Z"))
+
+
 def test_file_without_lastmod_reports_no_share():
     result, _ = run({SITE + "/sitemap.xml": urlset(SITE + "/a")})
     item = file_for(result, "/sitemap.xml")

@@ -234,7 +234,13 @@ def get_link_details(
     successful_detail_calls = 0
     detail_pages_fetched = 0
     count_total_pages = max(1, _bounded_int(payload.get("TotalPages"), 1))
-    complete = len(targets) == len(raw_targets) and page + 1 >= count_total_pages
+    # This call reads one discovery page, not every page preceding it.
+    # Reaching the last page alone cannot establish a complete inventory.
+    complete = len(targets) == len(raw_targets) and page == 0 and count_total_pages == 1
+    if page != 0 or count_total_pages > 1:
+        warnings.append(
+            f"Only GetLinkCounts page {page + 1} of {count_total_pages} was read"
+        )
 
     for target in targets:
         target_url = target["Url"]

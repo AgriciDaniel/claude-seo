@@ -123,8 +123,11 @@ Desktop skips a plugin whose folder contains another plugin's
   private commit, because the same commit is published on `origin`. It must
   never contain `research/` or other private-only files.
 - **Marketplace entry.** Both marketplaces install the cockpit with a
-  `git-subdir` source: `url` `AgriciDaniel/claude-seo`, `path`
-  `plugins/seo-cockpit`, `ref` `seo-cockpit` and a pinned 40-character `sha`.
+  `git-subdir` source: `url` `https://github.com/AgriciDaniel/claude-seo.git`,
+  `path` `plugins/seo-cockpit`, `ref` `seo-cockpit` and a pinned 40-character
+  `sha`. The `url` is the full HTTPS URL, not the `owner/repo` shorthand:
+  Claude Code clones the shorthand over SSH, which fails without a GitHub SSH
+  key (issue #529).
   The private marketplace points at the public repository too, so this entry
   is identical in both trees and is not part of the identity divergence.
 - **Cockpit release.** Commit the change on `seo-cockpit`, run

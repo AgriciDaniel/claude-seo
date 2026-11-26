@@ -145,7 +145,8 @@ def notify_url(
     try:
         response = service.urlNotifications().publish(body=body).execute()
         metadata = response.get("urlNotificationMetadata", {})
-        latest = metadata.get("latestUpdate", {}) or metadata.get("latestRemove", {})
+        notification_field = "latestRemove" if action == "URL_DELETED" else "latestUpdate"
+        latest = metadata.get(notification_field, {})
         result["notify_time"] = latest.get("notifyTime")
     except Exception as e:
         error_str = str(e)

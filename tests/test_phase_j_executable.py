@@ -62,6 +62,7 @@ def test_parse_profile_valid_spec_profile():
     """Shape from ucp.dev (2026-08-25) and a live Shopify profile."""
     payload = json.dumps({"ucp": {
         "version": "2026-08-25",
+        "payment_handlers": {},
         "supported_versions": {"2026-04-08": "https://s.example/.well-known/ucp/2026-04-08"},
         "services": {"dev.ucp.shopping": [
             {"version": "2026-08-25", "spec": "https://ucp.dev/x", "transport": "mcp",
