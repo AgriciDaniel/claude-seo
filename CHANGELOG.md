@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Empty backlink API responses no longer unlock health scoring.** The report
+  validator checks the actual `data` payload inside a response envelope, so a
+  success status and metadata cannot substitute for missing measurements.
+  Measured zero counts, direct payloads, and partial responses containing data
+  continue to pass the source-availability check.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new

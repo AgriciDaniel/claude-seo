@@ -262,9 +262,13 @@ def _scoreable_sources_present(report_data: dict) -> list:
     for key in SCOREABLE_SOURCES:
         value = report_data.get(key)
         if isinstance(value, dict):
-            if value and not value.get("error"):
-                present.append(key)
-        elif value:
+            if value.get("error"):
+                continue
+            # API clients wrap their payload in status/data/error/metadata.
+            # A successful response with no payload contains no measurements;
+            # its status and timestamp must not unlock a numeric score.
+            value = value.get("data", value)
+        if value:
             present.append(key)
     return present
 
