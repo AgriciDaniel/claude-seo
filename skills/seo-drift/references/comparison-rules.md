@@ -94,7 +94,7 @@ These changes may impact rankings or CTR but are sometimes intentional.
 - **Cross-ref**: `/seo page <url>`
 
 ### Rule 14: Schema/JSON-LD Content Modified
-- **Compare**: Baseline `schema_hash` vs current `schema_hash`
+- **Compare**: A hash over the baseline's stored JSON-LD blocks vs the same hash over the current blocks. The order of separate blocks is ignored; order inside a block counts. The finding reports these two hashes, not the stored `schema_hash` (used only for baselines without stored JSON-LD).
 - **Threshold**: Hash differs AND schema still exists (removal is Rule 1)
 - **Action**: Validate modified schema. Check for type changes, removed properties, or new validation errors.
 - **Cross-ref**: `/seo schema <url>`

@@ -294,6 +294,11 @@ _UNSPACED_LANGS = ("zh", "ja", "th", "lo", "km", "my")
 # ---------------------------------------------------------------------------
 
 
+def _reject_json_constant(value: str) -> None:
+    """Reject JavaScript numeric constants that are outside JSON syntax."""
+    raise ValueError(f"Invalid JSON constant: {value}")
+
+
 def _trim(value: object, limit: int = EVIDENCE_MAX_CHARS) -> str:
     """One line of untrusted text: control characters removed, cut to ``limit``."""
     text = re.sub(r"\s+", " ", _CONTROL_RE.sub(" ", str(value))).strip()
@@ -908,12 +913,16 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
     mixed: list[str] = []
     if is_https:
         for el in soup.find_all(list(_MIXED_CONTENT_TAGS)):
-            if _attr(el, "src").lower().startswith("http://"):
-                mixed.append(_attr(el, "src"))
+            src = _attr(el, "src")
+            resolved = _join(base_url, src) if src else ""
+            if resolved.lower().startswith("http://"):
+                mixed.append(resolved)
         for link in soup.find_all("link", href=True):
             rels = _rels(link)
-            if ("stylesheet" in rels or "preload" in rels) and _attr(link, "href").lower().startswith("http://"):
-                mixed.append(_attr(link, "href"))
+            href = _attr(link, "href")
+            resolved = _join(base_url, href) if href else ""
+            if ("stylesheet" in rels or "preload" in rels) and resolved.lower().startswith("http://"):
+                mixed.append(resolved)
     if mixed:
         add("mixed-content", f"{len(mixed)} resource(s): {_sample(mixed)}", len(mixed))
 
@@ -956,13 +965,15 @@ def run_checks(html: str, page_url: str, headers: Optional[dict] = None,
     # --- JSON-LD --------------------------------------------------------
     jsonld_blocks = 0
     jsonld_errors: list[str] = []
-    for script in soup.find_all("script", attrs={"type": re.compile(r"ld\+json", re.I)}):
+    for script in soup.find_all("script"):
+        if _attr(script, "type").split(";", 1)[0].strip().lower() != "application/ld+json":
+            continue
         raw = script.string or script.get_text()
         if not raw or not raw.strip():
             continue
         jsonld_blocks += 1
         try:
-            json.loads(raw)
+            json.loads(raw, parse_constant=_reject_json_constant)
         except RecursionError:
             jsonld_errors.append(f"block {jsonld_blocks}: nested too deeply to parse")
         except ValueError as exc:

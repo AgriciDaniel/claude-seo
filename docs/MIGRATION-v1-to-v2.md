@@ -135,9 +135,10 @@ silently allow private-IP fetches.
 ### 2. `seo-schema` flags retired rich-result types as Critical
 
 If your generated JSON-LD includes `@type: ClaimReview`, `Vehicle`,
-`EstimatedSalary`, `LearningVideo`, `SpecialAnnouncement`, or
-`CourseInfo` (carousel variant), the new
+`EstimatedSalary`, `LearningVideo` or `SpecialAnnouncement`, the new
 `scripts/schema_ecommerce_validate.py` will emit a `Critical` finding.
+Since v2.6.3 `Course` is not flagged: Google retired Course Info, which
+has no type of its own, and Course list is still live.
 
 **Action:** consult `skills/seo-schema/references/deprecated-types-2024-2026.md`
 for the recommended replacement per type. If you need to keep the

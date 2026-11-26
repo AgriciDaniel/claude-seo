@@ -10,7 +10,7 @@ from preload_check import analyse  # noqa: E402
 
 def test_unquoted_attributes_and_rel_tokens_are_recognized():
     result = analyse('''
-        <script type=speculationrules>{"prerender": []}</script>
+        <script type=speculationrules>{"prerender": [{"urls": ["/next"]}]}</script>
         <link rel="PRELOAD stylesheet" href=/app.css as=style>
         <link rel=prerender href=/next>
         <img src=/hero.jpg fetchpriority=high>

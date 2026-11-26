@@ -323,7 +323,9 @@ def _count_phrase_hits(text: str, patterns: Iterable[str]) -> list[str]:
     Counting that prefix made one sentence two filler hits, which moved
     ``filler_score`` from 25 to 50 and raised the filler flag.
     """
-    lowered = text.lower()
+    # Wrapping, nonbreaking spaces, and a typeset apostrophe do not change
+    # the existing phrase signal. Keep the canonical pattern names below.
+    lowered = " ".join(text.lower().replace("\u2019", "'").split())
     hits = []
     for pattern in patterns:
         if re.search(rf"(?<!\w){re.escape(pattern)}(?!\w)", lowered):
@@ -478,9 +480,12 @@ def main() -> int:
         path = Path(args.source)
         text = path.read_text(encoding="utf-8", errors="replace")
         if path.suffix.lower() in {".html", ".htm", ".xhtml"}:
-            from bs4 import BeautifulSoup
+            from bs4 import BeautifulSoup, FeatureNotFound
 
-            soup = BeautifulSoup(text, "html.parser")
+            try:
+                soup = BeautifulSoup(text, "lxml")
+            except FeatureNotFound:
+                soup = BeautifulSoup(text, "html.parser")
             for tag in soup(["head", "script", "style", "noscript", "template"]):
                 tag.decompose()
             text = (soup.body or soup).get_text(" ", strip=True)

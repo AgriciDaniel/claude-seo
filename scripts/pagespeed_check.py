@@ -167,6 +167,13 @@ def run_pagespeed(
     # Record which Lighthouse build PSI ran, so reports can cite it instead of
     # assuming the latest stable release.
     result["lighthouse_version"] = lr.get("lighthouseVersion")
+    runtime_error = lr.get("runtimeError") or {}
+    if runtime_error and runtime_error.get("code") != "NO_ERROR":
+        code = runtime_error.get("code") or "UNKNOWN_ERROR"
+        message = runtime_error.get("message") or "Lighthouse could not complete the audit."
+        result["error"] = redact_google_api_key(f"Lighthouse runtime error {code}: {message}")
+    # A failed Lighthouse run can still carry useful scored categories and
+    # independent CrUX field data. Keep those while surfacing the failure.
     for cat_key, cat_data in lr.get("categories", {}).items():
         # Lighthouse emits score: null for categories it could not evaluate
         # (scoreDisplayMode "error"/"notApplicable"). Skip them rather than
@@ -203,9 +210,9 @@ def run_pagespeed(
                     p75 = metric_data.get("percentile")
                     category = metric_data.get("category", "NONE")
                     if p75 is not None:
-                        # CLS from PSI is already numeric
+                        # PSI encodes field CLS in hundredths, including 0 and 1.
                         if crux_name == "cumulative_layout_shift":
-                            p75_val = p75 / 100 if p75 > 1 else p75
+                            p75_val = p75 / 100
                         else:
                             p75_val = p75
                         result["field_metrics"][f"{field_source}_{crux_name}"] = {

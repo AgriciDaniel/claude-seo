@@ -21,6 +21,30 @@ if _SCRIPTS not in sys.path:
 import preload_check  # noqa: E402
 
 
+def test_empty_or_malformed_rule_sets_do_not_receive_speculation_points() -> None:
+    baseline = preload_check.analyse("")["score"]
+    for body in ('{broken', 'null', '[]', '{}', '{"prefetch": []}',
+                 '{"prefetch": false}', '{"prerender": [null, 1, "x"]}'):
+        result = preload_check.analyse(f'<script type="speculationrules">{body}</script>')
+
+        assert result["speculation_rules"]["inline_blocks"] == 1
+        assert result["speculation_rules"]["actions"] == [], body
+        assert result["score"] == baseline, body
+        assert any("speculationrules" in advice for advice in result["recommendations"]), body
+
+
+def test_nonempty_rule_sets_and_external_rule_headers_keep_their_points() -> None:
+    valid = '<script type="speculationrules">{"prefetch":[{"urls":["/next"]}]}</script>'
+    broken = '<script type="speculationrules">null</script>'
+    baseline = preload_check.analyse("")["score"]
+
+    result = preload_check.analyse(broken + valid)
+    assert result["speculation_rules"]["inline_blocks"] == 2
+    assert result["speculation_rules"]["actions"] == ["prefetch"]
+    assert result["score"] == baseline + 25
+    assert preload_check.analyse(broken, {"Speculation-Rules": '"/rules.json"'})["score"] == baseline + 25
+
+
 def test_non_object_speculationrules_body_yields_no_actions() -> None:
     # Valid JSON that is not an object: array, null, string, number.
     for body in ('[{"source": "list", "urls": ["/next"]}]', "null", '"x"', "123"):

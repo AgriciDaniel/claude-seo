@@ -17,7 +17,7 @@ What counts as a claim
 What counts as a citation marker
 ================================
 - A nearby (`<= 200 chars`) markdown/HTML link: `[Source](https://…)`
-- A footnote-style reference: `[^1]` or `[1]`
+- A footnote-style reference: `[^source]`, `[^1]`, or `[1]`
 - An inline attribution to a named source: "Forrester said", "per Gartner"
 - A schema.org Citation block (rough detection of nearby `@type`:
   `"Citation"` JSON)
@@ -61,6 +61,7 @@ import argparse
 import json
 import re
 import sys
+from heapq import merge
 from pathlib import Path
 
 # Claim patterns. Each is (regex, label). Order matters: first match
@@ -103,7 +104,7 @@ _CLAIM_PATTERNS: tuple[tuple[re.Pattern, str], ...] = (
 _CITATION_PATTERNS: tuple[re.Pattern, ...] = (
     re.compile(r"\[[^\]]+\]\(https?://[^)]+\)"),  # markdown link
     re.compile(r"<a\s+[^>]*href=[\"']https?://[^\"']+[\"']"),  # HTML link
-    re.compile(r"\[\^?\d+\]"),  # footnote-style [1] or [^1]
+    re.compile(r"\[(?:\^[^\[\]\s]+|\d+)\]"),  # named/numeric footnotes or [1]
     re.compile(r"@type\s*:\s*[\"']Citation[\"']"),  # schema.org Citation
     re.compile(
         # "Source:", "Via:", "See also:", "Cited in", "Cited by" or
@@ -134,15 +135,24 @@ def extract_claims(text: str) -> list[dict]:
     """Find every claim-like span; mark whether each has a nearby citation."""
     found_spans: list[tuple[int, int, str]] = []
     for pattern, label in _CLAIM_PATTERNS:
+        added_spans: list[tuple[int, int, str]] = []
+        occupied = 0
         for m in pattern.finditer(text):
+            start, end = m.span()
             # Skip if an earlier (more specific) pattern already covered
             # this span; prevents 47% double-counting as statistic + quantity.
-            if any(s <= m.start() < e or s < m.end() <= e for s, e, _ in found_spans):
+            # Both finditer and retained spans are ordered. Visit each prior
+            # span at most once per pattern instead of rescanning the full
+            # claim list for every match in a long draft.
+            while occupied < len(found_spans) and found_spans[occupied][1] <= start:
+                occupied += 1
+            if occupied < len(found_spans) and found_spans[occupied][0] < end:
                 continue
-            found_spans.append((m.start(), m.end(), label))
+            added_spans.append((start, end, label))
+        found_spans = list(merge(found_spans, added_spans))
 
     claims: list[dict] = []
-    for start, end, label in sorted(found_spans):
+    for start, end, label in found_spans:
         cite = _has_citation_near(text, start)
         claims.append({
             "text": text[start:end].strip(),
