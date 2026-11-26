@@ -290,17 +290,23 @@ def probe_image_format(src: str, timeout: int = 15) -> dict:
 def probe_images(images: list, timeout: int = 15, limit: int = 50) -> list:
     """Add the served-format fields from ``probe_image_format`` to each image entry.
 
-    Probes at most ``limit`` distinct URLs; entries past the limit get
-    ``probe_error`` set so the report never guesses their format.
+    Probes at most ``limit`` distinct HTTP(S) URLs; entries past the limit
+    get ``probe_error`` set so the report never guesses their format.
+    Malformed and non-web sources are diagnosed without using that budget.
 
     A lazy-loaded image is probed at its ``resolved_src``, since its ``src``
     is only a placeholder. ``probed_src`` records the URL that was asked for.
     """
     cache: dict = {}
+    probes = 0
     for image in images:
         src = image.get("resolved_src") or image.get("src", "")
         if src not in cache:
-            if len(cache) >= limit:
+            try:
+                is_web_url = urlparse(src).scheme in ("http", "https") if src else False
+            except ValueError:
+                is_web_url = False
+            if is_web_url and probes >= limit:
                 cache[src] = {
                     "served_format": None,
                     "served_bytes": None,
@@ -308,6 +314,8 @@ def probe_images(images: list, timeout: int = 15, limit: int = 50) -> list:
                     "probe_error": f"skipped: probe limit of {limit} images reached",
                 }
             else:
+                if is_web_url:
+                    probes += 1
                 cache[src] = probe_image_format(src, timeout=timeout)
         image.update(cache[src])
         image["probed_src"] = src
