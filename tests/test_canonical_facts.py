@@ -87,6 +87,8 @@ WRONG = [
      "developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading"),
     (r"(?i)canonical to (the )?(main )?category page", "give each paginated page its own canonical",
      "developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading"),
+    (r"(?i)canonical to (page 1|page one|the first page)", "give each paginated page its own canonical",
+     "developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading"),
 ]
 
 
