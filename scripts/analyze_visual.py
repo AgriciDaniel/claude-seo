@@ -59,6 +59,17 @@ def normalize_url(url: str) -> tuple[str, ParseResult]:
     return url, parsed
 
 
+def _above_fold_matches(page, selector: str, viewport: dict):
+    """Yield visible matches whose boxes overlap the initial viewport."""
+    for element in page.query_selector_all(selector):
+        box = element.bounding_box()
+        if (box and box["width"] > 0 and box["height"] > 0
+                and box["x"] < viewport["width"] and box["y"] < viewport["height"]
+                and box["x"] + box["width"] > 0 and box["y"] + box["height"] > 0
+                and element.is_visible()):
+            yield element
+
+
 def analyze_visual(url: str, timeout: int = 30000) -> dict:
     """
     Analyze visual aspects of a web page.
@@ -117,18 +128,15 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             result["sandbox"] = chromium_sandboxed(browser)
 
             # Desktop analysis
-            desktop = new_guarded_context(browser, route_handler, viewport={"width": 1920, "height": 1080})
+            desktop_viewport = {"width": 1920, "height": 1080}
+            desktop = new_guarded_context(browser, route_handler, viewport=desktop_viewport)
             page = desktop.new_page()
             page.route("**/*", route_handler)
             page.goto(url, wait_until="networkidle", timeout=timeout)
             require_public_page(page)
 
             # Check H1 visibility above fold
-            h1 = page.query_selector("h1")
-            if h1:
-                box = h1.bounding_box()
-                if box and box["y"] < 1080:
-                    result["above_fold"]["h1_visible"] = True
+            result["above_fold"]["h1_visible"] = any(_above_fold_matches(page, "h1", desktop_viewport))
 
             # Check for CTA buttons above fold
             cta_selectors = [
@@ -143,12 +151,9 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             ]
             for selector in cta_selectors:
                 try:
-                    cta = page.query_selector(selector)
-                    if cta:
-                        box = cta.bounding_box()
-                        if box and box["y"] < 1080:
-                            result["above_fold"]["cta_visible"] = True
-                            break
+                    if any(_above_fold_matches(page, selector, desktop_viewport)):
+                        result["above_fold"]["cta_visible"] = True
+                        break
                 except Exception:
                     pass
 
@@ -161,12 +166,13 @@ def analyze_visual(url: str, timeout: int = 30000) -> dict:
             ]
             for selector in hero_selectors:
                 try:
-                    hero = page.query_selector(selector)
-                    if hero:
+                    for hero in _above_fold_matches(page, selector, desktop_viewport):
                         src = hero.get_attribute("src")
                         if src:
                             result["above_fold"]["hero_image"] = src
                             break
+                    if result["above_fold"]["hero_image"]:
+                        break
                 except Exception:
                     pass
 
