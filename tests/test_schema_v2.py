@@ -42,7 +42,8 @@ def test_reservation_kind_override() -> None:
         kind="LodgingReservation",
     )
     assert r["@type"] == "LodgingReservation"
-    assert r["reservationFor"]["@type"] == "Place"
+    assert r["reservationFor"]["@type"] == "LodgingBusiness"
+    assert r["checkinTime"] == "2026-08-12T15:00:00Z"
 
 
 def test_reservation_includes_under_name_when_customer_provided() -> None:
