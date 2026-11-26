@@ -141,7 +141,7 @@ Publishers face highest E-E-A-T scrutiny.
 ### Pagination
 - Proper pagination for multi-page articles
 - Or infinite scroll with proper indexing
-- Canonical to page 1 or full article
+- Give each page of a multi-page article a self-referencing canonical (do not canonicalize page 2+ to page 1)
 
 ## Key Metrics to Track
 

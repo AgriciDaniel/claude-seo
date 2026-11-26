@@ -111,9 +111,11 @@
 ## Technical Considerations
 
 ### Pagination
-- Use rel="next"/rel="prev" or load-more
-- Ensure all products are crawlable
-- Canonical to main category page
+- Link pages with crawlable `<a href>` links (no `nofollow`), and link every page back to page 1
+- Give each paginated page a self-referencing canonical (do not canonicalize page 2+ to page 1)
+- Google no longer uses rel="next"/rel="prev" (fine to keep for other engines, not required)
+- Use a unique URL per page (e.g. `?page=2`), never `#` fragments; load-more and infinite scroll need paginated URLs behind them
+- Keep filter and sort variants out of the index (noindex or robots.txt), not the pagination itself
 
 ### Faceted Navigation
 - Noindex filter combinations that create duplicate content

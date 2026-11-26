@@ -82,6 +82,13 @@ WRONG = [
     (r"December 2025 JS SEO guidance, structured data injected via JavaScript may face delayed",
      "the guide warns about Shopping crawl frequency for dynamic Product markup",
      "developers.google.com/search/docs/appearance/structured-data/generate-structured-data-with-javascript"),
+    # Issue #514: e-commerce plan template pagination advice.
+    (r'(?i)\buse rel="?next"?\s*/\s*rel="?prev', "Google no longer uses rel=next/prev (since 2019)",
+     "developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading"),
+    (r"(?i)canonical to (the )?(main )?category page", "give each paginated page its own canonical",
+     "developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading"),
+    (r"(?i)canonical to (page 1|page one|the first page)", "give each paginated page its own canonical",
+     "developers.google.com/search/docs/specialty/ecommerce/pagination-and-incremental-page-loading"),
 ]
 
 
