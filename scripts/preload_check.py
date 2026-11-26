@@ -72,11 +72,53 @@ if _SCRIPTS_DIR not in sys.path:
 from url_safety import URLSafetyError, decode_response_text, safe_requests_get  # noqa: E402
 
 _UNLOAD_LISTENER_RE = re.compile(
-    r'\b(?:addEventListener|on)\s*\(\s*["\']?unload["\']?', re.IGNORECASE,
+    r'\b(?:addEventListener|on)\s*\(\s*(["\'])unload\1\s*,',
 )
 _BEFOREUNLOAD_LISTENER_RE = re.compile(
-    r'\b(?:addEventListener|on)\s*\(\s*["\']?beforeunload["\']?', re.IGNORECASE,
+    r'\b(?:addEventListener|on)\s*\(\s*(["\'])beforeunload\1\s*,',
 )
+_JAVASCRIPT_TYPES = {
+    "application/ecmascript", "application/javascript",
+    "application/x-ecmascript", "application/x-javascript",
+    "text/ecmascript", "text/javascript", "text/javascript1.0",
+    "text/javascript1.1", "text/javascript1.2", "text/javascript1.3",
+    "text/javascript1.4", "text/javascript1.5", "text/jscript",
+    "text/livescript", "text/x-ecmascript", "text/x-javascript",
+}
+
+
+def _unload_signals(soup: BeautifulSoup) -> tuple[bool, bool]:
+    """Inspect inline scripts and Window event attributes for static signals.
+
+    This is not JavaScript execution or a syntax-tree analysis: external scripts,
+    indirect registrations, and strings or comments inside JavaScript still need
+    browser verification. Page prose and non-executable data are not scripts.
+    """
+    has_unload = False
+    has_beforeunload = False
+    for element in soup.find_all(True):
+        if element.find_parent(["template", "noscript", "textarea", "title"]) is not None:
+            continue
+        for name, value in element.attrs.items():
+            if name.startswith("on") and isinstance(value, str):
+                has_unload |= bool(_UNLOAD_LISTENER_RE.search(value))
+                has_beforeunload |= bool(_BEFOREUNLOAD_LISTENER_RE.search(value))
+        if element.name != "script":
+            if element.name in {"body", "frameset"}:
+                has_unload |= element.has_attr("onunload")
+                has_beforeunload |= element.has_attr("onbeforeunload")
+            continue
+        if element.has_attr("src"):
+            continue
+        script_type = (element.get("type") or "").strip().lower()
+        if not element.has_attr("type") and element.get("language"):
+            script_type = "text/" + element["language"].strip().lower()
+        if script_type not in {"", "module"} and script_type not in _JAVASCRIPT_TYPES:
+            continue
+        body = element.string or ""
+        has_unload |= bool(_UNLOAD_LISTENER_RE.search(body))
+        has_beforeunload |= bool(_BEFOREUNLOAD_LISTENER_RE.search(body))
+    return has_unload, has_beforeunload
 
 
 def _extract_speculation_actions(body: str) -> list[str]:
@@ -126,8 +168,7 @@ def analyse(html: str, headers: Optional[dict] = None) -> dict:
             break
     cache_control_no_store = "no-store" in cc_value.lower()
 
-    has_unload = bool(_UNLOAD_LISTENER_RE.search(html))
-    has_beforeunload = bool(_BEFOREUNLOAD_LISTENER_RE.search(html))
+    has_unload, has_beforeunload = _unload_signals(soup)
 
     # Score: 25 pts each for speculation rules, preload-with-LCP hint,
     # absence of bfcache-killers, and the absence of deprecated prerender.

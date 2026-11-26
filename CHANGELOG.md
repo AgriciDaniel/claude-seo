@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Preload checks no longer treat example text as unload listeners.** The static
+  signal now inspects inline JavaScript and Window event-handler attributes,
+  skipping prose, HTML comments, data blocks, and inert template content. Event
+  names must match exactly; `unloading` and variable names no longer cause a
+  bfcache warning or a 25-point deduction.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
