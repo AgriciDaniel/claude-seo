@@ -75,6 +75,61 @@ def test_exact_link_wins_over_earlier_same_domain_link(fake_network):
     assert result["rel_attributes"] == ["follow"]
 
 
+@pytest.mark.parametrize("earlier_url, target_url", [
+    ("https://target.example/product?id=other", "https://target.example/product?id=wanted"),
+    ("https://target.example/Tool", "https://target.example/tool"),
+    ("https://target.example/product?sku=BLUE", "https://target.example/product?sku=blue"),
+    ("https://target.example/catalog;v=1", "https://target.example/catalog;v=2"),
+    ("https://target.example/search", "https://target.example/search?term=seo"),
+    ("https://target.example/path%2Fpart", "https://target.example/path/part"),
+])
+def test_distinct_page_cannot_hide_exact_backlink(fake_network, earlier_url, target_url):
+    fake_network["page"] = _page(_html(
+        f'<a href="{earlier_url}" rel="nofollow">Another page</a>'
+        f'<a href="{target_url}" rel="sponsored">The target page</a>'
+    ))
+
+    result = verify_backlinks.verify_single_backlink(SOURCE, target_url)
+
+    assert result["match_type"] == "exact_url"
+    assert result["anchor_text"] == "The target page"
+    assert result["rel_attributes"] == ["sponsored"]
+
+
+@pytest.mark.parametrize("href, target_url", [
+    ("https://TARGET.example/tool/#details", "https://target.example/tool"),
+    ("https://target.example/", "https://target.example"),
+    ("https://target.example/tool?q=seo#details", "https://target.example/tool?q=seo"),
+    ("https://target.example/path%2fpart?q=a%2fb", "https://target.example/path%2Fpart?q=a%2Fb"),
+])
+def test_equivalent_backlink_is_still_exact(fake_network, href, target_url):
+    fake_network["page"] = _page(_html(f'<a href="{href}">The target page</a>'))
+
+    result = verify_backlinks.verify_single_backlink(SOURCE, target_url)
+
+    assert result["match_type"] == "exact_url"
+    assert result["anchor_text"] == "The target page"
+
+
+@pytest.mark.parametrize("href, target_url", [
+    ("https://target.example/tool?utm_source=partner", "https://target.example/tool"),
+    ("https://target.example/tool", "https://target.example/tool?utm_source=partner"),
+    ("https://target.example/tool?id=Blue&utm_source=partner",
+     "https://target.example/tool?id=Blue&utm_medium=email"),
+])
+def test_tracking_parameters_do_not_hide_exact_backlink(fake_network, href, target_url):
+    fake_network["page"] = _page(_html(
+        '<nav><a href="https://target.example/" rel="nofollow">Home</a></nav>'
+        f'<a href="{href}" rel="sponsored">The target page</a>'
+    ))
+
+    result = verify_backlinks.verify_single_backlink(SOURCE, target_url)
+
+    assert result["match_type"] == "exact_url"
+    assert result["anchor_text"] == "The target page"
+    assert result["rel_attributes"] == ["sponsored"]
+
+
 def test_domain_match_still_reported_when_no_exact_link(fake_network):
     fake_network["page"] = _page(_html(
         '<a href="https://sub.target.example/x">sub</a>'
