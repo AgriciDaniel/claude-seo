@@ -195,7 +195,12 @@ def _tool_name(form, index: int) -> str:
 
 def _form_fields(form) -> list:
     fields = []
-    for el in form.find_all(["input", "select", "textarea"]):
+    elements = form.find_all(["input", "select", "textarea"])
+    checkbox_values: dict[str, list[str]] = {}
+    for el in elements:
+        if el.name == "input" and (el.get("type") or "").lower() == "checkbox" and el.get("name"):
+            checkbox_values.setdefault(el["name"], []).append(el.get("value", "on"))
+    for el in elements:
         name = el.get("name")
         kind = (el.get("type") or el.name).lower()
         if not name or kind in ("hidden", "submit", "button", "reset", "image", "file", "password"):
@@ -210,7 +215,14 @@ def _form_fields(form) -> list:
                   "description": label}
         if el.name == "select":
             options = [o.get("value", o.get_text(strip=True)) for o in el.find_all("option")]
-            schema["enum"] = [o for o in options if o]
+            if el.has_attr("multiple"):
+                schema.update(type="array", uniqueItems=True,
+                              items={"type": "string", "enum": list(dict.fromkeys(options))})
+            else:
+                schema["enum"] = [o for o in options if o]
+        if kind == "checkbox" and len(checkbox_values.get(name, [])) > 1:
+            schema = {"type": "array", "description": name, "uniqueItems": True,
+                      "items": {"type": "string", "enum": list(dict.fromkeys(checkbox_values[name]))}}
         if kind == "email":
             schema["format"] = "email"
         if kind == "radio":
@@ -297,8 +309,19 @@ if (mc?.registerTool && form) {{
       for (const [key, value] of Object.entries(input)) {{
         const field = form.elements.namedItem(key);
         if (!field) continue;
-        if (field.type === "checkbox") field.checked = Boolean(value);
-        else if ("value" in field) field.value = String(value);
+        // namedItem returns a RadioNodeList for any repeated name, including
+        // checkbox groups. Its value setter only selects radio buttons.
+        const controls = field instanceof RadioNodeList ? Array.from(field) : [field];
+        const checkboxes = controls.filter(control => control.type === "checkbox");
+        if (checkboxes.length) {{
+          const selected = Array.isArray(value) ? new Set(value.map(String)) : null;
+          for (const checkbox of checkboxes) {{
+            checkbox.checked = selected ? selected.has(checkbox.value) : Boolean(value);
+          }}
+        }} else if (field.type === "select-multiple") {{
+          const selected = new Set(value.map(String));
+          for (const option of field.options) option.selected = selected.has(option.value);
+        }} else if ("value" in field) field.value = String(value);
       }}
       form.requestSubmit(); // same submit handler and validation as the UI
       return {{ content: [{{ type: "text", text: "Submitted. TODO: describe the visible result." }}] }};
