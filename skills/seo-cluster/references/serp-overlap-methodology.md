@@ -48,7 +48,7 @@ Run the saved results through the bundled script:
 ```
 
 The script normalizes and deduplicates each result set once, computes every
-pairwise intersection, and reports the shared URLs. Copy its `serp_matrix` into
+pairwise intersection, and reports the shared URLs. Copy its JSON output field `serp_matrix` into
 `cluster-plan.json`; retain `pairs` and `coverage` as evidence.
 
 Ten unique valid URLs and no fetch error are required for a complete SERP. If

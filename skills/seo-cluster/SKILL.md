@@ -65,7 +65,7 @@ the full algorithm.
    methodology reference. Record failed or incomplete searches honestly.
 3. Run the deterministic comparison:
    `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run serp_overlap.py serp-results.json > serp-overlap.json`
-4. Copy `serp_matrix` into `cluster-plan.json` and use the pairwise evidence below.
+4. Copy the JSON output field `serp_matrix` into `cluster-plan.json` and use the pairwise evidence below.
    A null score means incomplete data: fetch the missing results or leave the
    relationship inconclusive. Never replace it with a guessed score.
 
