@@ -377,10 +377,23 @@ def rule_13_og_tags_removed(baseline: dict, current: dict) -> dict:
 
 def rule_14_schema_modified(baseline: dict, current: dict) -> dict:
     """WARNING: Schema/JSON-LD content modified."""
-    old_hash = baseline.get("schema_hash")
     new_schema = current.get("schema", [])
-    new_schema_str = json.dumps(new_schema, sort_keys=True)
-    new_hash = hash_content(new_schema_str) if new_schema else None
+    # Separate JSON-LD blocks have no ordering semantics. Compare the stored
+    # payload as well so existing baselines need no hash or database migration.
+    # Preserve arrays inside each block, especially ordered @list and @context.
+    if baseline.get("schema_json") is not None:
+        def block_hash(blocks):
+            if not blocks:
+                return None
+            serialized = sorted(json.dumps(block, sort_keys=True) for block in blocks)
+            return hash_content(json.dumps(serialized))
+
+        old_hash = block_hash(json.loads(baseline["schema_json"] or "[]"))
+        new_hash = block_hash(new_schema)
+    else:
+        old_hash = baseline.get("schema_hash")
+        new_schema_str = json.dumps(new_schema, sort_keys=True)
+        new_hash = hash_content(new_schema_str) if new_schema else None
 
     # Only trigger if schema exists in both and hash differs (removal is Rule 1)
     triggered = (

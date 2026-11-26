@@ -73,3 +73,30 @@ def test_negotiation_still_warns_without_vary_accept(monkeypatch):
     checks, _ = audit_response(monkeypatch, rec, "negotiation")
     assert checks[0]["status"] == "warn"
     assert "Vary: Accept" in checks[0]["fix"]
+
+
+@pytest.mark.parametrize("route", ["alternate", "sibling"])
+def test_textual_md_file_with_generic_binary_type_remains_supported(monkeypatch, route):
+    checks, data = audit_response(monkeypatch, response("application/octet-stream"), route)
+    assert checks[0]["status"] == "pass"
+    candidate = data["alternates"][0] if route == "alternate" else data["md_sibling"]
+    assert candidate["ok"] is True
+
+
+@pytest.mark.parametrize("route", ["alternate", "sibling"])
+@pytest.mark.parametrize("text", ["\x00\x01binary", "bad\ufffdencoding", "  \n\t"])
+def test_binary_or_undecodable_md_file_cannot_pass(monkeypatch, route, text):
+    checks, _ = audit_response(monkeypatch, response("application/octet-stream", text), route)
+    assert checks[0]["status"] == "info"
+
+
+def test_generic_binary_type_cannot_establish_negotiation(monkeypatch):
+    checks, _ = audit_response(monkeypatch, response("application/octet-stream"), "negotiation")
+    assert checks[0]["status"] == "info"
+
+
+def test_generic_binary_alternate_redirected_away_from_md_does_not_pass(monkeypatch):
+    rec = response("application/octet-stream")
+    rec["final_url"] = "https://example.com/download.bin"
+    checks, _ = audit_response(monkeypatch, rec, "alternate")
+    assert checks[0]["status"] == "info"

@@ -95,3 +95,36 @@ def test_stray_zwj_between_digits_still_stripped():
     cleaned, removed = strip_invisible("12‍34")
     assert cleaned == "1234"
     assert removed == {"zero-width-joiner": 1}
+
+
+def test_markdown_indentation_survives():
+    # Drafts are Markdown: leading spaces are structure (indented code,
+    # nested list items), not stray spacing from a deleted phrase.
+    text = (
+        "Install it:\n"
+        "\n"
+        "    pip install foo\n"
+        "    foo --check\n"
+        "\n"
+        "- First item\n"
+        "    - Nested item\n"
+        "        - Deeper item\n"
+    )
+    result = humanize(text)
+    assert result["cleaned"] == text
+    assert result["change_count"] == 0
+
+
+def test_markdown_hard_line_break_survives():
+    # Two trailing spaces are a Markdown hard line break.
+    text = "Call us today  \nWe answer within the hour."
+    assert humanize(text)["cleaned"] == text
+
+
+def test_indentation_survives_a_phrase_swap_on_the_same_line():
+    result = humanize("- Roofing\n    - Delve into the gutters first.\n")
+    assert result["cleaned"] == "- Roofing\n    - Explore the gutters first.\n"
+
+
+def test_spacing_inside_a_line_is_still_tidied():
+    assert humanize("Roofs  and gutters , all year.")["cleaned"] == "Roofs and gutters, all year."

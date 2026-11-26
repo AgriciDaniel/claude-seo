@@ -214,7 +214,8 @@ def robots_lines(text: str) -> list:
 def parse_robots(text: str) -> dict:
     """Parse robots.txt into RFC 9309 groups plus global lines.
 
-    A group is one or more consecutive ``user-agent`` lines followed by rules.
+    A group is one or more ``user-agent`` lines followed by access rules.
+    Other records do not interrupt its user-agent block (RFC 9309 section 2.2.4).
     ``content-signal`` and other non-global lines attach to the current group.
     """
     groups: list = []
@@ -234,7 +235,9 @@ def parse_robots(text: str) -> dict:
             current["agents"].append(value)
             last_was_ua = True
             continue
-        last_was_ua = False
+        # Other records cannot end a group (RFC 9309 section 2.2.4).
+        if field in ("allow", "disallow"):
+            last_was_ua = False
         if field == "sitemap":
             global_lines["sitemap"].append(value)
         elif field == "agentmap":
@@ -1027,12 +1030,22 @@ def _vary_covers_accept(vary: str) -> bool:
     return "accept" in tokens or "*" in tokens
 
 
-def _markdown_response(rec: dict, *, negotiated: bool = False) -> bool:
+def _markdown_response(rec: dict, *, negotiated: bool = False, url: str = "") -> bool:
     """Require a nonempty Markdown/text representation, not merely non-HTML."""
     media_type = _ctype(rec).split(";", 1)[0].strip()
     allowed = {"text/markdown"} if negotiated else {"text/markdown", "text/plain", "text/x-markdown"}
-    return (rec["status"] == 200 and media_type in allowed
-            and bool((rec.get("text") or "").strip()))
+    text = rec.get("text") or ""
+    if rec["status"] != 200 or not text.strip():
+        return False
+    if media_type in allowed:
+        return True
+    # Static servers without a Markdown mapping commonly send octet-stream.
+    # Keep this fallback tied to a .md resource and a usable decoded text body.
+    final_url = rec.get("final_url") or url
+    return (not negotiated and media_type == "application/octet-stream"
+            and urlparse(final_url).path.lower().endswith(".md")
+            and "\ufffd" not in text
+            and not any(ord(char) < 32 and char not in "\t\r\n" for char in text))
 
 
 def audit_markdown(url: str, page: dict) -> tuple[list, dict]:
@@ -1048,14 +1061,14 @@ def audit_markdown(url: str, page: dict) -> tuple[list, dict]:
     for alt in (page.get("soup_links") or {}).get("markdown_alternates", [])[:3]:
         rec = fetch(alt)
         alternates.append({"url": alt, "status": rec["status"], "content_type": _ctype(rec),
-                           "ok": _markdown_response(rec)})
+                           "ok": _markdown_response(rec, url=alt)})
     data["alternates"] = alternates
     parsed = urlparse(url)
     sibling = (f"{parsed.scheme}://{parsed.netloc}"
                + (parsed.path.rstrip("/") + ".md" if parsed.path.strip("/") else "/index.md"))
     sib = fetch(sibling)
     data["md_sibling"] = {"url": sibling, "status": sib["status"], "content_type": _ctype(sib),
-                          "ok": _markdown_response(sib)}
+                          "ok": _markdown_response(sib, url=sibling)}
     ok = negotiated or any(a["ok"] for a in alternates) or data["md_sibling"]["ok"]
     issues = []
     if negotiated and not vary_accept:
@@ -1265,19 +1278,30 @@ def audit_ua_matrix(url: str) -> tuple[list, dict]:
 
 
 def audit_not_found(root: str) -> tuple[list, dict]:
-    """Does an unknown URL return a real 404? Catch-all 200s break discovery files."""
+    """Does an unknown URL report missing content? Catch-all 200s break discovery files."""
     probe = f"{root}/claude-seo-404-probe-{os.urandom(4).hex()}"
     rec = fetch(probe)
     data = {"probe_url": probe, "status": rec["status"], "content_type": _ctype(rec)}
     catch_all = rec["status"] == 200
     data["catch_all_200"] = catch_all
+    if catch_all:
+        status = "warn"
+        fix = ("Unknown paths return 200. Crawlers see soft 404s, and Lighthouse fails llms-txt and "
+               "ard-schema on the catch-all page. Serve a real 404 for paths that do not exist.")
+    elif rec["status"] in (404, 410):
+        status, fix = "pass", None
+    else:
+        status = "info"
+        data["inconclusive"] = True
+        if rec.get("error"):
+            data["error"] = rec["error"]
+        observed = f"HTTP {rec['status']}" if rec["status"] else "no HTTP response"
+        fix = (f"The unknown-path probe returned {observed}, so missing-page handling could not "
+               "be verified. Retry when the site is reachable and allows the probe; unknown "
+               "paths should return 404 or 410.")
     return [_check(
-        "http-404", "Unknown URLs return a real 404", "P1",
-        "warn" if catch_all else ("pass" if rec["status"] and rec["status"] >= 400 else "info"),
-        "HTTP semantics (RFC 9110); Google soft-404 guidance", data,
-        "Unknown paths return 200. Crawlers see soft 404s, and Lighthouse fails llms-txt and "
-        "ard-schema on the catch-all page. Serve a real 404 for paths that do not exist."
-        if catch_all else None)], data
+        "http-404", "Unknown URLs report missing content", "P1", status,
+        "HTTP semantics (RFC 9110); Google soft-404 guidance", data, fix)], data
 
 
 def summarize(checks: list) -> dict:

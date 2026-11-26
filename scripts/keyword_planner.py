@@ -151,7 +151,8 @@ def generate_keyword_ideas(
 
         response = kp_service.generate_keyword_ideas(request=request)
 
-        for idea in response.results:
+        # Iterate the SDK pager: .results contains only the current page.
+        for idea in response:
             metrics = idea.keyword_idea_metrics
             monthly_volumes = []
             for mv in metrics.monthly_search_volumes:

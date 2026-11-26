@@ -10,7 +10,7 @@ is the canonical "expired-domain abuse" pattern under current QRG
 
 Approach
 ========
-1. WHOIS lookup via the system ``whois`` binary (no extra Python dep).
+1. WHOIS lookup via the system ``whois`` binary.
    Falls back to a ``socket``-based query against IANA referral chain
    if ``whois`` is unavailable.
 2. Parse the creation date from the WHOIS response.
@@ -62,6 +62,8 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from typing import Optional
+
+import idna
 
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
@@ -192,6 +194,15 @@ def _extract(field_labels: tuple[str, ...], text: str) -> Optional[str]:
 
 
 def lookup(domain: str) -> dict:
+    # WHOIS queries use ASCII A-labels. IDNA 2008 also keeps names such as
+    # faß.de distinct from fass.de, unlike the stdlib's IDNA 2003 codec.
+    # Validate before either backend so URL/option/control-character input
+    # cannot be interpreted as a different query by the system binary.
+    try:
+        domain = idna.encode(domain, uts46=True).decode("ascii").removesuffix(".")
+    except idna.IDNAError as exc:
+        raise ValueError(f"Invalid domain: {exc}") from exc
+
     raw = _shell_whois(domain)
     source = "whois-binary"
     if raw is None:
@@ -290,7 +301,10 @@ def main() -> int:
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
-    record = lookup(args.domain)
+    try:
+        record = lookup(args.domain)
+    except ValueError as exc:
+        parser.error(str(exc))
     result = assess_risk(record, args.topic, args.baseline_topic)
 
     if args.json:
