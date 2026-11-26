@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Drift rejects incomplete page fetches before saving or comparing them.**
+  Snapshot capture now reads the fetcher's JSON completion and output receipt
+  instead of parsing human-readable stderr. A body cut off by the size cap
+  can no longer become a known-good baseline or a false content-removal alert.
+  Complete pages retain their actual status code and final document URL.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new

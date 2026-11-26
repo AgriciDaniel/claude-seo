@@ -24,8 +24,9 @@ def test_snapshot_uses_final_url_for_relative_links(monkeypatch, final_url):
     def run(command, **kwargs):
         if command[1].endswith("fetch_page.py"):
             Path(command[command.index("--output") + 1]).write_text(html, encoding="utf-8")
-            metadata = f"URL: {final_url}\n" if final_url else ""
-            return SimpleNamespace(returncode=0, stdout="", stderr=metadata + "Status: 200\n")
+            metadata = {"url": final_url, "status_code": 200, "too_large": False,
+                        "output_written": True, "error": None}
+            return SimpleNamespace(returncode=0, stdout=json.dumps(metadata), stderr="")
         assert command[1].endswith("parse_html.py")
         base_url = command[command.index("--url") + 1]
         parsed = parse_html(Path(command[2]).read_text(encoding="utf-8"), base_url)
