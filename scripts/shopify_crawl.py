@@ -368,7 +368,13 @@ def fetch_sitemap_urls(session, origin: Origin, governor: RateLimitGovernor,
         if response.status_code != 200:
             response.close()
             continue
-        content, too_large = read_bounded(response, MAX_SITEMAP_BYTES)
+        try:
+            content, too_large = read_bounded(response, MAX_SITEMAP_BYTES)
+        except requests.RequestException as exc:
+            # With stream=True the request can fail after headers arrive.
+            # A broken child must not prevent discovery from its siblings.
+            log(f"  sitemap failed {current}: {scrub(str(exc), sig_headers)[:300]}")
+            continue
         if too_large:
             log(f"  sitemap skipped, larger than {MAX_SITEMAP_BYTES} bytes: {current}")
             continue
@@ -499,7 +505,15 @@ def crawl_one(session_for: Callable[[], requests.Session], url: str, origin: Ori
         record["content_type"] = content_type
         record["html"] = response.status_code == 200 and "html" in content_type
         if record["html"]:
-            content, too_large = read_bounded(response, MAX_PAGE_BYTES)
+            try:
+                content, too_large = read_bounded(response, MAX_PAGE_BYTES)
+            except requests.RequestException as exc:
+                # read_bounded closes the response even when iter_content
+                # fails. Retry without parsing or saving the partial body.
+                record["html"] = False
+                record["error"] = scrub(str(exc), sig_headers)[:300]
+                time.sleep(1 + attempt)
+                continue
             if too_large:
                 record["html"] = False
                 record["too_large"] = True
@@ -520,7 +534,8 @@ def crawl_one(session_for: Callable[[], requests.Session], url: str, origin: Ori
 def summarize(records: list[dict]) -> dict:
     by_template = Counter(r["template"] for r in records)
     statuses = Counter(r.get("status") for r in records)
-    ok = [r for r in records if r.get("status") == 200]
+    # A 200 header does not make an exhausted body-read failure a success.
+    ok = [r for r in records if r.get("status") == 200 and not r.get("failed")]
     # Sitemaps list agents.md, feeds and other non-HTML resources too; issue
     # counts only make sense for HTML documents.
     html_pages = [r for r in ok if r.get("html")]

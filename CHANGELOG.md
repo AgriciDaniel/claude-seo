@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Shopify crawls recover from interrupted streamed responses: page bodies use
+  the existing retry limit, failed reads stay resumable without counting as
+  successful pages, and a broken sitemap does not abort sibling discovery.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
