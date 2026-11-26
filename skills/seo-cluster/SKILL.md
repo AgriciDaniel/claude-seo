@@ -59,10 +59,15 @@ This is the core differentiator. Load `references/serp-overlap-methodology.md` f
 the full algorithm.
 
 **Process:**
-1. Group keywords by initial intent guess (reduces pairwise comparisons)
-2. For each candidate pair within a group, WebSearch both keywords
-3. Count shared URLs in the top 10 organic results (ignore ads, featured snippets, PAA)
-4. Apply thresholds:
+1. Group keywords by initial intent guess, then collect each keyword's top 10
+   organic result URLs once (ignore ads, featured snippets, PAA).
+2. Save the ranked URLs to `serp-results.json` using the input format in the
+   methodology reference. Record failed or incomplete searches honestly.
+3. Run the deterministic comparison:
+   `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run serp_overlap.py serp-results.json > serp-overlap.json`
+4. Copy `serp_matrix` into `cluster-plan.json` and use the pairwise evidence below.
+   A null score means incomplete data: fetch the missing results or leave the
+   relationship inconclusive. Never replace it with a guessed score.
 
 | Shared Results | Relationship | Action |
 |---------------|-------------|--------|
@@ -71,10 +76,11 @@ the full algorithm.
 | 2-3 | Interlink | Place in adjacent clusters, add cross-links |
 | 0-1 | Separate | Assign to different clusters or exclude |
 
-**Optimization:** With 40 keywords, full pairwise = 780 comparisons. Instead:
-- Pre-group by intent (4 groups of ~10 = 4 x 45 = 180 comparisons)
-- Only cross-check group boundary keywords
-- Skip pairs where both are long-tail variants of the same head term (assume same cluster)
+**Optimization:** With 40 keywords, collect 40 SERPs once; the script computes all
+780 comparisons locally. Reuse those results throughout the planning session.
+Intent and volume still guide architecture, especially for scores of 3 or 4.
+Do not merge a chain of related pairs into one post without checking every pair
+in that proposed post.
 
 **DataForSEO integration:** If DataForSEO MCP is available, use `serp_organic_live_advanced`
 instead of WebSearch for SERP data. Run `"${CLAUDE_PLUGIN_ROOT}/scripts/claude-seo" run dataforseo_costs.py check serp_organic_live_advanced --count N`
@@ -275,6 +281,8 @@ All outputs are written to the current working directory:
 | File | Description |
 |------|-------------|
 | `cluster-plan.json` | Machine-readable cluster plan (full data) |
+| `serp-results.json` | Collected organic result URLs, once per keyword |
+| `serp-overlap.json` | Reproducible overlap matrix, shared URLs, and coverage |
 | `cluster-plan.md` | Human-readable cluster plan summary |
 | `cluster-map.html` | Interactive SVG visualization |
 | `cluster-briefs/` | Content briefs (if no claude-blog) |
