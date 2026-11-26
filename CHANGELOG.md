@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Markdown delivery validates exact response media types and nonempty bodies while retaining textual .md files served as application/octet-stream.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new

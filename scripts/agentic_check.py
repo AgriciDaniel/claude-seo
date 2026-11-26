@@ -1030,11 +1030,29 @@ def _vary_covers_accept(vary: str) -> bool:
     return "accept" in tokens or "*" in tokens
 
 
+def _markdown_response(rec: dict, *, negotiated: bool = False, url: str = "") -> bool:
+    """Require a nonempty Markdown/text representation, not merely non-HTML."""
+    media_type = _ctype(rec).split(";", 1)[0].strip()
+    allowed = {"text/markdown"} if negotiated else {"text/markdown", "text/plain", "text/x-markdown"}
+    text = rec.get("text") or ""
+    if rec["status"] != 200 or not text.strip():
+        return False
+    if media_type in allowed:
+        return True
+    # Static servers without a Markdown mapping commonly send octet-stream.
+    # Keep this fallback tied to a .md resource and a usable decoded text body.
+    final_url = rec.get("final_url") or url
+    return (not negotiated and media_type == "application/octet-stream"
+            and urlparse(final_url).path.lower().endswith(".md")
+            and "\ufffd" not in text
+            and not any(ord(char) < 32 and char not in "\t\r\n" for char in text))
+
+
 def audit_markdown(url: str, page: dict) -> tuple[list, dict]:
     neg = fetch(url, headers={"Accept": "text/markdown"})
     neg_ct = _ctype(neg)
     vary_accept = _vary_covers_accept((neg.get("headers") or {}).get("vary", ""))
-    negotiated = neg["status"] == 200 and "text/markdown" in neg_ct
+    negotiated = _markdown_response(neg, negotiated=True)
     data = {"negotiation": {"status": neg["status"], "content_type": neg_ct,
                             "vary_accept": vary_accept,
                             "x_markdown_tokens": (neg.get("headers") or {}).get("x-markdown-tokens"),
@@ -1043,14 +1061,14 @@ def audit_markdown(url: str, page: dict) -> tuple[list, dict]:
     for alt in (page.get("soup_links") or {}).get("markdown_alternates", [])[:3]:
         rec = fetch(alt)
         alternates.append({"url": alt, "status": rec["status"], "content_type": _ctype(rec),
-                           "ok": rec["status"] == 200 and not _ctype(rec).startswith("text/html")})
+                           "ok": _markdown_response(rec, url=alt)})
     data["alternates"] = alternates
     parsed = urlparse(url)
     sibling = (f"{parsed.scheme}://{parsed.netloc}"
                + (parsed.path.rstrip("/") + ".md" if parsed.path.strip("/") else "/index.md"))
     sib = fetch(sibling)
     data["md_sibling"] = {"url": sibling, "status": sib["status"], "content_type": _ctype(sib),
-                          "ok": sib["status"] == 200 and not _ctype(sib).startswith("text/html")}
+                          "ok": _markdown_response(sib, url=sibling)}
     ok = negotiated or any(a["ok"] for a in alternates) or data["md_sibling"]["ok"]
     issues = []
     if negotiated and not vary_accept:
