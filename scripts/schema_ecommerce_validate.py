@@ -2,8 +2,8 @@
 """
 Product schema validator focused on Google merchant-listing fields.
 
-The 2025 Google Search docs for Product structured data list four
-property groups that strongly influence merchant listing diagnostics:
+Google Search's Product structured data documentation covers these
+merchant listing diagnostics:
 
   - ``name`` + ``image`` + ``offers``   (confirmed merchant listing minimum)
   - ``offers.@type`` must be ``Offer``  (not ``AggregateOffer``)
@@ -11,8 +11,8 @@ property groups that strongly influence merchant listing diagnostics:
   - ``hasMerchantReturnPolicy``         (recommended or conditional)
   - ``shippingDetails``                 (recommended or conditional)
   - ``MemberProgram``                    (loyalty pricing visibility)
-  - ``energyEfficiencyClass``            (REQUIRED in the EU for in-scope
-                                          categories under EPREL)
+  - ``hasCertification``                 (EPREL energy labels in ``--eu`` mode;
+                                          legacy energy markup also supported)
   - ``ProductGroup`` for size/colour variants
 
 The Rich Results Test catches structural errors. This validator catches
@@ -29,6 +29,10 @@ Usage::
     python scripts/schema_ecommerce_validate.py product.json --json
 
 Exit code 0 on PASS, 1 on at least one Critical or High finding.
+
+``--eu`` checks energy-label markup for products the caller has already
+identified as in scope. It does not determine regulatory applicability or
+verify a certification against the EPREL registry.
 """
 
 from __future__ import annotations
@@ -65,6 +69,11 @@ _REQUIRED_SHIPPING_FIELDS = (
     "shippingDestination",
     "deliveryTime",
 )
+_EU_ENERGY_CATEGORIES = {
+    f"{namespace}EUEnergyEfficiencyCategory{category}"
+    for namespace in ("https://schema.org/", "http://schema.org/")
+    for category in ("A", "A1Plus", "A2Plus", "A3Plus", "B", "C", "D", "E", "F", "G")
+}
 
 
 def _node_types(payload: dict) -> list[str]:
@@ -190,6 +199,42 @@ def _has_loyalty_price(offer: dict, resolve) -> bool:
 
 def _has_type(payload: dict, target_type: str) -> bool:
     return target_type in _node_types(payload)
+
+
+def _has_eu_energy_label(product: dict, resolve) -> bool:
+    """Recognize Google's EPREL markup and supported legacy energy categories.
+
+    https://developers.google.com/search/docs/appearance/structured-data/merchant-listing#certification
+    This is a markup-presence check, not verification of an EPREL registration.
+    Rating-only certificates are an alternative for NO/CH/UK, not EU labels.
+    """
+    for value in _as_dicts(product.get("hasCertification")):
+        certificate = resolve(value)
+        if not _has_type(certificate, "Certification") or certificate.get("name") != "EPREL":
+            continue
+        code = certificate.get("certificationIdentification")
+        if not isinstance(code, str) or not code.strip():
+            continue
+        for value in _as_dicts(certificate.get("issuedBy")):
+            issuer = resolve(value)
+            if _has_type(issuer, "Organization") and issuer.get("name") in ("EC", "European_Commission"):
+                return True
+
+    # Google still accepts hasEnergyConsumptionDetails. Do not require
+    # merchants using that representation to invent energyEfficiencyClass.
+    for value in _as_dicts(product.get("hasEnergyConsumptionDetails")):
+        details = resolve(value)
+        if not _has_type(details, "EnergyConsumptionDetails"):
+            continue
+        categories = details.get("hasEnergyEfficiencyCategory")
+        if not isinstance(categories, list):
+            categories = [categories]
+        for category in categories:
+            if isinstance(category, dict):
+                category = category.get("@id")
+            if isinstance(category, str) and category in _EU_ENERGY_CATEGORIES:
+                return True
+    return False
 
 
 def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
@@ -332,13 +377,15 @@ def validate(payload: dict | list, *, require_eu_energy: bool = False) -> dict:
                            "pricing in Google Shopping.",
             })
 
-        # 7. EU energy label (only fires if --eu flag is set).
-        if require_eu_energy and "energyEfficiencyClass" not in prod:
+        # 7. Energy markup for products the caller selected with --eu.
+        if require_eu_energy and not _has_eu_energy_label(prod, resolve):
             findings.append({
                 "severity": "High",
                 "rule": "missing-eu-energy-class",
-                "message": "EU mode: in-scope products require "
-                           "energyEfficiencyClass per EPREL regulation.",
+                "message": "EU mode: no supported energy-label markup found. "
+                           "Use hasCertification with an EPREL identifier and "
+                           "EC/European_Commission issuer, or legacy "
+                           "hasEnergyConsumptionDetails with an EU energy category.",
             })
 
     # 8. ProductGroup variant guidance: emit as Info if a Product is found
@@ -373,7 +420,7 @@ def main() -> int:
     parser.add_argument("source", nargs="?", default="-",
                         help="JSON-LD file path or '-' for stdin (default '-').")
     parser.add_argument("--eu", action="store_true",
-                        help="Require energyEfficiencyClass (EPREL scope).")
+                        help="Check EU energy-label markup for products already identified as in scope.")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
 
