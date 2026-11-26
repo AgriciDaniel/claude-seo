@@ -114,10 +114,20 @@ def analyse(html: str, headers: Optional[dict] = None) -> dict:
                  for link in soup.find_all("link")]
     preload_count = sum("preload" in rels for rels in link_rels)
     prerender_count = sum("prerender" in rels for rels in link_rels)
-    high_priority = [element for element in soup.find_all(attrs={"fetchpriority": True})
-                     if element["fetchpriority"].lower() == "high"]
+    high_priority = [
+        element for element in soup.find_all(["img", "link", "script"], attrs={"fetchpriority": True})
+        if element["fetchpriority"].lower() == "high"
+    ]
     fetchpriority_count = len(high_priority)
-    lcp_img_hint = any(element.name in {"img", "video", "source"} for element in high_priority)
+    lcp_img_hint = any(
+        element.name == "img" or (
+            element.name == "link"
+            and "preload" in {rel.lower() for rel in element.get("rel", [])}
+            and (element.get("as") or "").lower() == "image"
+            and any((element.get(attr) or "").strip() for attr in ("href", "imagesrcset"))
+        )
+        for element in high_priority
+    )
 
     cc_value = ""
     for key, value in headers.items():
@@ -145,8 +155,8 @@ def analyse(html: str, headers: Optional[dict] = None) -> dict:
         score += 25
     else:
         recs.append(
-            "Mark the LCP hero image with fetchpriority=\"high\" so the "
-            "browser preloads it ahead of other resources."
+            "Prioritize the LCP image with fetchpriority=\"high\" on its "
+            "<img> or <link rel=\"preload\" as=\"image\"> element."
         )
 
     if not cache_control_no_store and not has_unload:
