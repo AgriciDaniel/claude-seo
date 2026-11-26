@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Reservation JSON-LD follows the selected subtype.** Hotel bookings now use
+  check-in/out, car rentals and taxis use pickup times, and event or travel times
+  belong to the reserved Event, TrainTrip, or Flight. The reserved object is no
+  longer always a Place outside the default restaurant case. Unsupported taxi
+  end times and party sizes on unrelated types produce an actionable usage error
+  instead of emitting invalid fields.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new

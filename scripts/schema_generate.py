@@ -51,6 +51,19 @@ import json
 import sys
 from typing import Optional
 
+# Reserved object, start/end property names, and whether the times belong
+# on reservationFor rather than the booking. See each subtype's examples at
+# https://schema.org/Reservation. Only food reservations use startTime/endTime.
+_RESERVATION_SHAPES = {
+    "FoodEstablishmentReservation": ("FoodEstablishment", "startTime", "endTime", False),
+    "LodgingReservation": ("LodgingBusiness", "checkinTime", "checkoutTime", False),
+    "RentalCarReservation": ("Car", "pickupTime", "dropoffTime", False),
+    "TaxiReservation": ("TaxiService", "pickupTime", None, False),
+    "EventReservation": ("Event", "startDate", "endDate", True),
+    "TrainReservation": ("TrainTrip", "departureTime", "arrivalTime", True),
+    "FlightReservation": ("Flight", "departureTime", "arrivalTime", True),
+}
+
 
 def reservation(
     provider: str,
@@ -64,21 +77,36 @@ def reservation(
     customer_email: Optional[str] = None,
     kind: str = "FoodEstablishmentReservation",
 ) -> dict:
-    """Build a Reservation JSON-LD block. Defaults to FoodEstablishment."""
+    """Build subtype-specific Reservation JSON-LD from supplied booking details.
+
+    start/end refer to the reserved experience: check-in/out for lodging,
+    pickup/dropoff for a rental car, event dates, or trip departure/arrival.
+    TaxiReservation has a pickup time only. party_size is supported for food
+    and taxi reservations; it does not describe rooms, tickets or passengers
+    on the other subtypes.
+    """
+    if kind not in _RESERVATION_SHAPES:
+        raise ValueError(f"Unsupported reservation kind: {kind!r}")
+    object_type, start_key, end_key, nested = _RESERVATION_SHAPES[kind]
+    if end and end_key is None:
+        raise ValueError(f"{kind} has no end-time property; omit --end")
+    if party_size is not None and kind not in ("FoodEstablishmentReservation", "TaxiReservation"):
+        raise ValueError("--party-size is supported only for FoodEstablishmentReservation and TaxiReservation")
+
     payload: dict = {
         "@context": "https://schema.org",
         "@type": kind,
         "reservationStatus": "https://schema.org/ReservationConfirmed",
         "provider": {"@type": "Organization", "name": provider},
         "reservationFor": {
-            "@type": "FoodEstablishment" if kind == "FoodEstablishmentReservation"
-                     else "Place",
+            "@type": object_type,
             "name": reservation_for_name or provider,
         },
-        "startTime": start,
     }
+    time_target = payload["reservationFor"] if nested else payload
+    time_target[start_key] = start
     if end:
-        payload["endTime"] = end
+        time_target[end_key] = end
     if party_size is not None:
         payload["partySize"] = int(party_size)
     if reservation_id:
@@ -260,9 +288,10 @@ def main() -> int:
     res = sub.add_parser("reservation",
                          help="FoodEstablishmentReservation et al.")
     res.add_argument("--provider", required=True)
-    res.add_argument("--start", required=True, help="ISO 8601 startTime.")
-    res.add_argument("--end")
-    res.add_argument("--party-size", type=int)
+    res.add_argument("--start", required=True,
+                     help="ISO 8601 start, check-in, pickup, or departure time for the selected kind.")
+    res.add_argument("--end", help="ISO 8601 end, checkout, dropoff, or arrival time (not for taxis).")
+    res.add_argument("--party-size", type=int, help="Party size for food or taxi reservations only.")
     res.add_argument("--reservation-id")
     res.add_argument("--reservation-for-name")
     res.add_argument("--customer-name")
@@ -270,11 +299,7 @@ def main() -> int:
     res.add_argument(
         "--reservation-kind", dest="reservation_kind",
         default="FoodEstablishmentReservation",
-        choices=(
-            "FoodEstablishmentReservation", "LodgingReservation",
-            "RentalCarReservation", "TaxiReservation", "EventReservation",
-            "TrainReservation", "FlightReservation",
-        ),
+        choices=tuple(_RESERVATION_SHAPES),
     )
 
     ord_p = sub.add_parser("order", help="OrderAction (potentialAction).")
@@ -310,13 +335,16 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.kind == "reservation":
-        payload = reservation(
-            args.provider, args.start, end=args.end, party_size=args.party_size,
-            reservation_id=args.reservation_id,
-            reservation_for_name=args.reservation_for_name,
-            customer_name=args.customer_name, customer_email=args.customer_email,
-            kind=args.reservation_kind,
-        )
+        try:
+            payload = reservation(
+                args.provider, args.start, end=args.end, party_size=args.party_size,
+                reservation_id=args.reservation_id,
+                reservation_for_name=args.reservation_for_name,
+                customer_name=args.customer_name, customer_email=args.customer_email,
+                kind=args.reservation_kind,
+            )
+        except ValueError as exc:
+            res.error(str(exc))
     elif args.kind == "order":
         payload = order_action(
             args.merchant, order_url=args.order_url, name=args.name,
