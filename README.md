@@ -51,9 +51,16 @@ Claude SEO is built from 29 sub-skills and 20 specialist agents, and up to 17 ag
 
 ## See it in action
 
-Watch the tour in under four minutes. Coral, Violet and Red install Claude SEO, audit a real site and read the plan:
+Two videos. The tour takes under four minutes: Coral, Violet and Red install Claude SEO, audit a real site and read the plan. The masterclass is the full walkthrough: 47 minutes, two live sites, a team of AI agents and every step explained.
 
-<a href="https://www.youtube.com/watch?v=1VQvcKMcVsk"><img src="assets/readme/homies-tour.jpg" width="640" height="360" alt="Watch the Claude SEO video tour on YouTube: a full SEO team in your terminal, presented by Coral, Violet and Red" /></a>
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=1VQvcKMcVsk"><img src="assets/readme/homies-tour.jpg" width="49%" alt="Watch the Claude SEO video tour on YouTube: a full SEO team in your terminal, presented by Coral, Violet and Red" /></a>
+  <a href="https://www.youtube.com/watch?v=ahcFBHCOk_Y"><img src="assets/readme/masterclass-mega-seo.jpg" width="49%" alt="Watch the Claude SEO masterclass on YouTube: a full site audit of two live websites with AI agents, 47 minutes" /></a>
+</p>
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=1VQvcKMcVsk">The tour (4 min)</a> · <a href="https://www.youtube.com/watch?v=ahcFBHCOk_Y">The masterclass (47 min)</a>
+</p>
 
 Type `/seo` in Claude Code to see every command:
 
