@@ -13,8 +13,11 @@ Ledger: ~/.config/claude-seo/dataforseo-ledger.json
 Set CLAUDE_SEO_CONFIG_DIR to point both somewhere else (used by the tests).
 
 Usage:
-    python dataforseo_costs.py estimate <endpoint> [--count N]
-    python dataforseo_costs.py check <endpoint> [--count N]
+    python dataforseo_costs.py estimate <endpoint> [--count N] [--items N]
+    python dataforseo_costs.py check <endpoint> [--count N] [--items N]
+
+<endpoint> is a v3 path such as /v3/serp/google/organic/live/advanced or a
+dataforseo-mcp-server 2.8.10 tool name such as serp_organic_live_advanced.
     python dataforseo_costs.py log <endpoint> <cost> [--note TEXT]
     python dataforseo_costs.py summary [--days N]
     python dataforseo_costs.py today
@@ -54,80 +57,184 @@ CONFIG_FILE = CONFIG_DIR / "dataforseo-costs.json"
 LEDGER_FILE = CONFIG_DIR / "dataforseo-ledger.json"
 LOCK_FILE = CONFIG_DIR / "dataforseo-ledger.lock"
 
-# ----- cost table (USD per call, standard queue) -----
-# Source: https://dataforseo.com/pricing
-# Prices are approximate; actual costs may vary by parameters.
+# ----- cost table (USD) -----
+# Keyed on the DataForSEO v3 endpoint path, which is what DataForSEO bills and
+# what dataforseo-mcp-server 3.x takes as `path` in `api_request`.
+#
+# Source: the per-API pages under https://dataforseo.com/pricing, read
+# 2026-11-15. Live mode unless noted; merchant entries use the standard queue,
+# because scripts/dataforseo_merchant.py posts tasks there.
+#
+# Each entry has one of two shapes:
+#   {"task": T, "item": I}    T per task plus I per returned item/row
+#   {"task": T, "block": N}   T per started block of N results (SERP-style;
+#                             depth is rounded up to the next block)
+# A price that is per task only is {"task": T, "item": 0}.
+#
+# Paid parameters are not modelled: search operators (x5) and pixel rankings
+# or AI Overview (+1 base) on SERP, include_clickstream_data (x2) on Labs,
+# enable_javascript / enable_browser_rendering and similar on On-Page. The
+# billed amount is the `cost` field of the real response; with
+# dataforseo-mcp-server 3.x it is returned only when `noAiMode` is true.
 COST_TABLE = {
-    # SERP
-    "serp_organic_live_advanced": 0.002,
-    "serp_organic_live_regular": 0.001,
-    "serp_google_images_live_advanced": 0.002,
-    "serp_google_images_live_regular": 0.001,
-    "serp_youtube_organic_live_advanced": 0.002,
-    "serp_youtube_video_info_live_advanced": 0.002,
-    "serp_youtube_video_comments_live_advanced": 0.002,
-    "serp_youtube_video_subtitles_live_advanced": 0.002,
-    # Keywords Data
-    "kw_data_google_ads_search_volume": 0.05,
-    "kw_data_google_trends_explore": 0.01,
-    # DataForSEO Labs
-    "dataforseo_labs_google_keyword_ideas": 0.05,
-    "dataforseo_labs_google_keyword_suggestions": 0.05,
-    "dataforseo_labs_google_related_keywords": 0.05,
-    "dataforseo_labs_bulk_keyword_difficulty": 0.01,
-    "dataforseo_labs_search_intent": 0.01,
-    "dataforseo_labs_google_competitors_domain": 0.05,
-    "dataforseo_labs_google_domain_rank_overview": 0.01,
-    "dataforseo_labs_bulk_traffic_estimation": 0.01,
-    "dataforseo_labs_google_ranked_keywords": 0.05,
-    "dataforseo_labs_google_relevant_pages": 0.05,
-    "dataforseo_labs_google_domain_intersection": 0.05,
-    "dataforseo_labs_google_subdomains": 0.05,
-    "dataforseo_labs_google_top_searches": 0.05,
-    # On-Page
-    "on_page_instant_pages": 0.01,
-    "on_page_content_parsing": 0.01,
-    "on_page_lighthouse": 0.02,
-    # Backlinks
-    "backlinks_summary": 0.02,
-    "backlinks_backlinks": 0.02,
-    "backlinks_anchors": 0.02,
-    "backlinks_referring_domains": 0.02,
-    "backlinks_bulk_spam_score": 0.01,
-    "backlinks_timeseries_summary": 0.02,
-    "backlinks_domain_intersection": 0.05,
-    # Domain Analytics
-    "domain_analytics_technologies_domain_technologies": 0.01,
-    "domain_analytics_whois_overview": 0.005,
-    # Content Analysis
-    "content_analysis_search": 0.02,
-    "content_analysis_summary": 0.02,
-    "content_analysis_phrase_trends": 0.02,
-    # Business Data
-    "business_data_business_listings_search": 0.05,
-    # AI / GEO
-    "ai_optimization_chat_gpt_scraper": 0.05,
-    # The official response example for /v3/ai_optimization/llm_mentions/search/live
-    # reports cost 0.103 (checked 2026-09-23); the old 0.05 understated it.
-    "ai_opt_llm_ment_search": 0.103,
-    "ai_opt_llm_ment_top_domains": 0.05,
-    "ai_opt_llm_ment_top_pages": 0.05,
-    "ai_opt_llm_ment_agg_metrics": 0.05,
-    "ai_opt_llm_ment_cross_agg_metrics": 0.05,
-    # Merchant (e-commerce)
-    "merchant_google_products_search": 0.02,
-    "merchant_amazon_products_search": 0.02,
-    "merchant_google_sellers_search": 0.02,
+    # SERP API
+    "/v3/serp/google/organic/live/advanced": {"task": 0.002, "block": 10},
+    "/v3/serp/google/organic/live/regular": {"task": 0.002, "block": 10},
+    "/v3/serp/google/images/live/advanced": {"task": 0.002, "block": 100},
+    "/v3/serp/youtube/organic/live/advanced": {"task": 0.002, "block": 20},
+    "/v3/serp/youtube/video_info/live/advanced": {"task": 0.006, "item": 0},
+    "/v3/serp/youtube/video_comments/live/advanced": {"task": 0.002, "block": 20},
+    "/v3/serp/youtube/video_subtitles/live/advanced": {"task": 0.006, "item": 0},
+    # Keywords Data API (billed for setting the task; search_volume takes up
+    # to 1,000 keywords, explore up to 5)
+    "/v3/keywords_data/google_ads/search_volume/live": {"task": 0.09, "item": 0},
+    "/v3/keywords_data/google_trends/explore/live": {"task": 0.011, "item": 0},
+    # DataForSEO Labs API (Google): one rate for all endpoints listed here
+    "/v3/dataforseo_labs/google/keyword_ideas/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/keyword_suggestions/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/related_keywords/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/bulk_keyword_difficulty/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/search_intent/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/competitors_domain/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/domain_rank_overview/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/bulk_traffic_estimation/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/ranked_keywords/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/relevant_pages/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/domain_intersection/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/subdomains/live": {"task": 0.012, "item": 0.00012},
+    "/v3/dataforseo_labs/google/top_searches/live": {"task": 0.012, "item": 0.00012},
+    # On-Page API
+    "/v3/on_page/instant_pages": {"task": 0.00015, "item": 0},
+    "/v3/on_page/content_parsing/live": {"task": 0.00015, "item": 0},
+    "/v3/on_page/lighthouse/live/json": {"task": 0.005, "item": 0},
+    # Backlinks API: one rate for all endpoints
+    "/v3/backlinks/summary/live": {"task": 0.024, "item": 0.000036},
+    "/v3/backlinks/backlinks/live": {"task": 0.024, "item": 0.000036},
+    "/v3/backlinks/anchors/live": {"task": 0.024, "item": 0.000036},
+    "/v3/backlinks/referring_domains/live": {"task": 0.024, "item": 0.000036},
+    "/v3/backlinks/bulk_spam_score/live": {"task": 0.024, "item": 0.000036},
+    "/v3/backlinks/timeseries_summary/live": {"task": 0.024, "item": 0.000036},
+    "/v3/backlinks/domain_intersection/live": {"task": 0.024, "item": 0.000036},
+    # Domain Analytics API
+    "/v3/domain_analytics/technologies/domain_technologies/live": {"task": 0.012, "item": 0},
+    "/v3/domain_analytics/whois/overview/live": {"task": 0.12, "item": 0.0012},
+    # Content Analysis API: one rate for all endpoints
+    "/v3/content_analysis/search/live": {"task": 0.024, "item": 0.000036},
+    "/v3/content_analysis/summary/live": {"task": 0.024, "item": 0.000036},
+    "/v3/content_analysis/phrase_trends/live": {"task": 0.024, "item": 0.000036},
+    # Business Data API
+    "/v3/business_data/business_listings/search/live": {"task": 0.012, "item": 0.00036},
+    # AI Optimization API
+    "/v3/ai_optimization/chat_gpt/llm_scraper/live/advanced": {"task": 0.004, "item": 0},
+    "/v3/ai_optimization/llm_mentions/search/live": {"task": 0.1, "item": 0.001},
+    "/v3/ai_optimization/llm_mentions/top_domains/live": {"task": 0.1, "item": 0.001},
+    "/v3/ai_optimization/llm_mentions/top_pages/live": {"task": 0.1, "item": 0.001},
+    "/v3/ai_optimization/llm_mentions/aggregated_metrics/live": {"task": 0.1, "item": 0.001},
+    "/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live": {"task": 0.1, "item": 0.001},
+    # Merchant API (standard queue)
+    "/v3/merchant/google/products/task_post": {"task": 0.001, "block": 40},
+    "/v3/merchant/google/sellers/task_post": {"task": 0.001, "block": 10},
+    "/v3/merchant/amazon/products/task_post": {"task": 0.0015, "block": 100},
 }
+
+# Names used with dataforseo-mcp-server 2.8.10 and in older skill texts, so
+# callers that pass them keep hitting the budget gate. serp_google_images_live_regular
+# has no v3 endpoint (images is advanced or html only) and is no longer priced.
+V2_ALIASES = {
+    "serp_organic_live_advanced": "/v3/serp/google/organic/live/advanced",
+    "serp_organic_live_regular": "/v3/serp/google/organic/live/regular",
+    "serp_google_images_live_advanced": "/v3/serp/google/images/live/advanced",
+    "serp_youtube_organic_live_advanced": "/v3/serp/youtube/organic/live/advanced",
+    "serp_youtube_video_info_live_advanced": "/v3/serp/youtube/video_info/live/advanced",
+    "serp_youtube_video_comments_live_advanced": "/v3/serp/youtube/video_comments/live/advanced",
+    "serp_youtube_video_subtitles_live_advanced": "/v3/serp/youtube/video_subtitles/live/advanced",
+    "kw_data_google_ads_search_volume": "/v3/keywords_data/google_ads/search_volume/live",
+    "kw_data_google_trends_explore": "/v3/keywords_data/google_trends/explore/live",
+    "dataforseo_labs_google_keyword_ideas": "/v3/dataforseo_labs/google/keyword_ideas/live",
+    "dataforseo_labs_google_keyword_suggestions": "/v3/dataforseo_labs/google/keyword_suggestions/live",
+    "dataforseo_labs_google_related_keywords": "/v3/dataforseo_labs/google/related_keywords/live",
+    "dataforseo_labs_bulk_keyword_difficulty": "/v3/dataforseo_labs/google/bulk_keyword_difficulty/live",
+    "dataforseo_labs_search_intent": "/v3/dataforseo_labs/google/search_intent/live",
+    "dataforseo_labs_google_competitors_domain": "/v3/dataforseo_labs/google/competitors_domain/live",
+    "dataforseo_labs_google_domain_rank_overview": "/v3/dataforseo_labs/google/domain_rank_overview/live",
+    "dataforseo_labs_bulk_traffic_estimation": "/v3/dataforseo_labs/google/bulk_traffic_estimation/live",
+    "dataforseo_labs_google_ranked_keywords": "/v3/dataforseo_labs/google/ranked_keywords/live",
+    "dataforseo_labs_google_relevant_pages": "/v3/dataforseo_labs/google/relevant_pages/live",
+    "dataforseo_labs_google_domain_intersection": "/v3/dataforseo_labs/google/domain_intersection/live",
+    "dataforseo_labs_google_subdomains": "/v3/dataforseo_labs/google/subdomains/live",
+    "dataforseo_labs_google_top_searches": "/v3/dataforseo_labs/google/top_searches/live",
+    "on_page_instant_pages": "/v3/on_page/instant_pages",
+    "on_page_content_parsing": "/v3/on_page/content_parsing/live",
+    "on_page_lighthouse": "/v3/on_page/lighthouse/live/json",
+    "backlinks_summary": "/v3/backlinks/summary/live",
+    "backlinks_backlinks": "/v3/backlinks/backlinks/live",
+    "backlinks_anchors": "/v3/backlinks/anchors/live",
+    "backlinks_referring_domains": "/v3/backlinks/referring_domains/live",
+    "backlinks_bulk_spam_score": "/v3/backlinks/bulk_spam_score/live",
+    "backlinks_timeseries_summary": "/v3/backlinks/timeseries_summary/live",
+    "backlinks_domain_intersection": "/v3/backlinks/domain_intersection/live",
+    "domain_analytics_technologies_domain_technologies": "/v3/domain_analytics/technologies/domain_technologies/live",
+    "domain_analytics_whois_overview": "/v3/domain_analytics/whois/overview/live",
+    "content_analysis_search": "/v3/content_analysis/search/live",
+    "content_analysis_summary": "/v3/content_analysis/summary/live",
+    "content_analysis_phrase_trends": "/v3/content_analysis/phrase_trends/live",
+    "business_data_business_listings_search": "/v3/business_data/business_listings/search/live",
+    "ai_optimization_chat_gpt_scraper": "/v3/ai_optimization/chat_gpt/llm_scraper/live/advanced",
+    "ai_opt_llm_ment_search": "/v3/ai_optimization/llm_mentions/search/live",
+    "ai_opt_llm_ment_top_domains": "/v3/ai_optimization/llm_mentions/top_domains/live",
+    "ai_opt_llm_ment_top_pages": "/v3/ai_optimization/llm_mentions/top_pages/live",
+    "ai_opt_llm_ment_agg_metrics": "/v3/ai_optimization/llm_mentions/aggregated_metrics/live",
+    "ai_opt_llm_ment_cross_agg_metrics": "/v3/ai_optimization/llm_mentions/cross_aggregated_metrics/live",
+    "merchant_google_products_search": "/v3/merchant/google/products/task_post",
+    "merchant_google_sellers_search": "/v3/merchant/google/sellers/task_post",
+    "merchant_amazon_products_search": "/v3/merchant/amazon/products/task_post",
+}
+
+# Items assumed per call for per-item endpoints when the caller does not pass
+# --items. 100 is the default `limit` of the Labs, Backlinks and Content
+# Analysis endpoints; pass the real limit for larger requests.
+DEFAULT_ITEMS = 100
 
 # Endpoints that always require confirmation regardless of mode
 WARN_ENDPOINTS = {
-    "backlinks_backlinks",
-    "backlinks_domain_intersection",
-    "ai_optimization_chat_gpt_scraper",
-    "ai_opt_llm_ment_search",
-    "merchant_amazon_products_search",
+    "/v3/backlinks/backlinks/live",
+    "/v3/backlinks/domain_intersection/live",
+    "/v3/ai_optimization/chat_gpt/llm_scraper/live/advanced",
+    "/v3/ai_optimization/llm_mentions/search/live",
+    "/v3/merchant/amazon/products/task_post",
 }
+
+
+def canonical_endpoint(name):
+    """Map a v2 tool name or any spelling of a v3 path to the COST_TABLE key.
+
+    Accepts "serp_organic_live_advanced", "/v3/serp/...", "v3/serp/...",
+    "serp/google/...", a trailing slash, and the ".ai" suffix that the 3.x MCP
+    server appends in its default mode. Unknown names are returned unchanged.
+    """
+    name = (name or "").strip()
+    if name in V2_ALIASES:
+        return V2_ALIASES[name]
+    path = name.rstrip("/")
+    if path.endswith(".ai"):
+        path = path[:-3]
+    path = "/" + path.lstrip("/")
+    if not path.startswith("/v3/"):
+        path = "/v3" + path
+    return path if path in COST_TABLE else name
+
+
+def call_cost(endpoint, items=None):
+    """Return (cost of one call, items assumed) for a COST_TABLE key."""
+    price = COST_TABLE[endpoint]
+    block = price.get("block")
+    if block:
+        n = items if items else block
+        return price["task"] * -(-n // block), n
+    if price.get("item"):
+        n = DEFAULT_ITEMS if items is None else items
+        return price["task"] + price["item"] * n, n
+    return price["task"], items
 
 DEFAULT_CONFIG = {
     "mode": "threshold",
@@ -275,13 +382,12 @@ def _today_spend(ledger):
 
 def cmd_estimate(args):
     """Estimate cost for an API call."""
-    endpoint = args.endpoint
+    endpoint = canonical_endpoint(args.endpoint)
     count = args.count or 1
-    unit_cost = COST_TABLE.get(endpoint)
 
-    if unit_cost is None:
-        # Try fuzzy match
-        matches = [k for k in COST_TABLE if endpoint in k]
+    if endpoint not in COST_TABLE:
+        # Try fuzzy match over paths and v2 names
+        matches = [k for k in [*COST_TABLE, *V2_ALIASES] if endpoint and endpoint in k]
         if matches:
             result = {
                 "status": "unknown_endpoint",
@@ -298,11 +404,14 @@ def cmd_estimate(args):
         json.dump(result, sys.stdout, indent=2)
         return
 
+    unit_cost, items = call_cost(endpoint, args.items)
     total = unit_cost * count
     result = {
         "status": "estimated",
         "endpoint": endpoint,
-        "unit_cost_usd": unit_cost,
+        "price": COST_TABLE[endpoint],
+        "items_per_call": items,
+        "unit_cost_usd": round(unit_cost, 6),
         "count": count,
         "total_cost_usd": round(total, 4),
     }
@@ -317,10 +426,9 @@ def cmd_check(args):
     """Check if an API call should proceed (cost + approval logic)."""
     cfg = _load_config()
     ledger = _ledger_snapshot()
-    endpoint = args.endpoint
+    endpoint = canonical_endpoint(args.endpoint)
     count = args.count or 1
-    unit_cost = COST_TABLE.get(endpoint)
-    if unit_cost is None:
+    if endpoint not in COST_TABLE:
         result = {
             "status": "needs_approval",
             "endpoint": endpoint,
@@ -331,6 +439,7 @@ def cmd_check(args):
         }
         json.dump(result, sys.stdout, indent=2)
         return
+    unit_cost, items = call_cost(endpoint, args.items)
     total = unit_cost * count
     today_total = _today_spend(ledger)
     daily_limit = cfg.get("daily_limit", 10.00)
@@ -355,7 +464,9 @@ def cmd_check(args):
     needs_approval = False
     approval_reason = None
 
-    if endpoint in cfg.get("warn_endpoints", WARN_ENDPOINTS):
+    # Saved configs may still list v2 names; compare canonical forms.
+    warn = {canonical_endpoint(e) for e in cfg.get("warn_endpoints", WARN_ENDPOINTS)}
+    if endpoint in warn:
         needs_approval = True
         approval_reason = "warn_endpoint"
     elif mode == "always":
@@ -369,7 +480,8 @@ def cmd_check(args):
     result = {
         "status": "needs_approval" if needs_approval else "approved",
         "endpoint": endpoint,
-        "unit_cost_usd": unit_cost,
+        "items_per_call": items,
+        "unit_cost_usd": round(unit_cost, 6),
         "count": count,
         "total_cost_usd": round(total, 4),
         "today_spend_usd": round(today_total, 4),
@@ -394,7 +506,9 @@ def cmd_log(args):
     """Log a completed API call cost."""
     entry = {
         "timestamp": datetime.now().isoformat(),
-        "endpoint": args.endpoint,
+        # v2 names and path spellings are stored as the v3 path, so `today`
+        # groups the same endpoint under one key.
+        "endpoint": canonical_endpoint(args.endpoint),
         "cost": args.cost,
     }
     if args.note:
@@ -538,6 +652,13 @@ def cmd_reset(args):
     json.dump(result, sys.stdout, indent=2)
 
 
+def _non_negative_int(value):
+    n = int(value)
+    if n < 0:
+        raise argparse.ArgumentTypeError("must be 0 or greater")
+    return n
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="DataForSEO API cost estimation and budget tracking"
@@ -546,17 +667,24 @@ def main():
 
     # estimate
     p_est = sub.add_parser("estimate", help="Estimate cost for an API call")
-    p_est.add_argument("endpoint", help="DataForSEO MCP tool name")
+    endpoint_help = "v3 path (/v3/serp/google/organic/live/advanced) or 2.8.10 tool name"
+    items_help = (
+        "Items/results per call: the request's limit or depth. "
+        f"Default: one block for SERP-style endpoints, {DEFAULT_ITEMS} for per-item endpoints"
+    )
+    p_est.add_argument("endpoint", help=endpoint_help)
     p_est.add_argument("--count", type=int, default=1, help="Number of calls")
+    p_est.add_argument("--items", type=_non_negative_int, help=items_help)
 
     # check
     p_chk = sub.add_parser("check", help="Check if call should proceed")
-    p_chk.add_argument("endpoint", help="DataForSEO MCP tool name")
+    p_chk.add_argument("endpoint", help=endpoint_help)
     p_chk.add_argument("--count", type=int, default=1, help="Number of calls")
+    p_chk.add_argument("--items", type=_non_negative_int, help=items_help)
 
     # log
     p_log = sub.add_parser("log", help="Log a completed API call cost")
-    p_log.add_argument("endpoint", help="DataForSEO MCP tool name")
+    p_log.add_argument("endpoint", help=endpoint_help)
     p_log.add_argument("cost", type=float, help="Actual cost in USD")
     p_log.add_argument("--note", help="Optional note")
 
