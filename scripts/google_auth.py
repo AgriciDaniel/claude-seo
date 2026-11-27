@@ -964,11 +964,14 @@ def detect_tier() -> dict:
     config = load_config()
 
     has_api_key = bool(config.get("api_key"))
-    has_authenticated = False
     has_ga4 = False
+    has_gcloud = _load_gcloud_adc() is not None
+    # An explicit choice of the gcloud sign-in wins, as in get_oauth_credentials.
+    gcloud_only = has_gcloud and _prefers_gcloud()
+    has_authenticated = gcloud_only
     # Check OAuth token
     token_data = _load_oauth_token()
-    if token_data and token_data.get("access_token"):
+    if not has_authenticated and token_data and token_data.get("access_token"):
         has_authenticated = True
 
     # Check service account
@@ -985,16 +988,27 @@ def detect_tier() -> dict:
                 except (json.JSONDecodeError, IOError):
                     pass
 
+    # Otherwise the person's own gcloud sign-in is the fallback, as in
+    # get_oauth_credentials and check_credentials.
+    if not has_authenticated and has_gcloud:
+        has_authenticated = gcloud_only = True
+
     site_map = config.get("sites") or {}
     has_site_ga4 = isinstance(site_map, dict) and any(
         isinstance(site, dict) and site.get("ga4_property_id")
         for site in site_map.values()
     )
-    if has_authenticated and (config.get("ga4_property_id") or has_site_ga4):
+    has_ga4_property = bool(config.get("ga4_property_id") or has_site_ga4)
+    # The documented gcloud login grants webmasters.readonly and cloud-platform
+    # only: no Analytics or Indexing scope, so neither API is listed for it.
+    if has_authenticated and has_ga4_property and not gcloud_only:
         has_ga4 = True
 
     # A read-only sign-in (the default --auth) cannot use the Indexing API.
-    indexing = [] if has_authenticated and indexing_scope_error() else ["Indexing API"]
+    if gcloud_only or (has_authenticated and indexing_scope_error()):
+        indexing = []
+    else:
+        indexing = ["Indexing API"]
 
     if has_ga4:
         return {
@@ -1016,7 +1030,12 @@ def detect_tier() -> dict:
                 "Search Console", "URL Inspection", "Sitemaps",
                 *indexing,
             ],
-            "missing": "Add 'ga4_property_id' to unlock GA4 organic traffic reports",
+            "missing": (
+                "The gcloud sign-in has no Analytics scope: sign in with --auth and set "
+                "'ga4_property_id' to unlock GA4 organic traffic reports"
+                if gcloud_only
+                else "Add 'ga4_property_id' to unlock GA4 organic traffic reports"
+            ),
         }
     elif has_api_key:
         return {

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `google_auth.py --check` now counts the person's own gcloud sign-in
+  (`gcloud auth application-default login`, the fastest path in `--setup`)
+  when it reports the credential tier. It was rated tier 0 "API Key Only",
+  so the seo-google agent skipped Search Console, URL Inspection and GA4 even
+  though the credentials worked and the same check listed those APIs as OK.
+  A gcloud-only sign-in stays at tier 1 and does not list the Indexing API or
+  GA4: the documented gcloud login grants neither scope.
+
 ## [2.6.3] - 2026-11-26
 
 Fixes release: 36 community fixes, three dependency updates and maintainer follow-ups. No new
