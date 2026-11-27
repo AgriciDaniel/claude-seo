@@ -83,17 +83,34 @@ def _config(**fields) -> None:
     Path(google_auth.CONFIG_PATH).write_text(json.dumps({"api_key": "k", **fields}))
 
 
+GCLOUD_ONLY = ["PageSpeed Insights", "CrUX", "CrUX History", "Search Console", "URL Inspection", "Sitemaps"]
+
+
 @pytest.mark.parametrize("choice", ["", "adc"])
-def test_a_gcloud_sign_in_counts_toward_the_credential_tier(isolated, monkeypatch, choice):
+@pytest.mark.parametrize("property_id", [None, "123456789"])
+def test_a_gcloud_sign_in_counts_toward_the_credential_tier(isolated, monkeypatch, choice, property_id):
     # The agent picks its workflow from this tier, so a gcloud-only person
-    # rated tier 0 would never get Search Console or GA4 data.
+    # rated tier 0 would never get Search Console data. The documented gcloud
+    # login grants neither the Analytics nor the Indexing scope, so GA4 and the
+    # Indexing API stay out even when a property is set.
     if choice:
         monkeypatch.setenv("CLAUDE_SEO_GOOGLE_AUTH", choice)
     _adc(isolated)
-    _config()
-    assert google_auth.detect_tier()["tier"] == 1
+    _config(**({"ga4_property_id": property_id} if property_id else {}))
+    tier = google_auth.detect_tier()
+    assert tier["tier"] == 1
+    assert tier["capabilities"] == GCLOUD_ONLY
+    assert "--auth" in tier["missing"]
+
+
+def test_a_saved_sign_in_used_before_gcloud_keeps_ga4_and_indexing(isolated):
+    # gcloud is only the fallback here: the saved OAuth token is what is used.
+    _adc(isolated)
+    Path(google_auth.TOKEN_PATH).write_text(json.dumps({"access_token": "at", "refresh_token": "rt", "expires_at": 9e9}))
     _config(ga4_property_id="123456789")
-    assert google_auth.detect_tier()["tier"] == 2
+    tier = google_auth.detect_tier()
+    assert tier["tier"] == 2
+    assert tier["capabilities"] == [*GCLOUD_ONLY, "Indexing API", "GA4 Organic Traffic"]
 
 
 def test_without_a_gcloud_sign_in_an_api_key_stays_tier_0(isolated):
