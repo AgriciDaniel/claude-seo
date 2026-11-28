@@ -14,9 +14,23 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-PS1_FILES = subprocess.run(
-    ["git", "ls-files", "*.ps1"], cwd=ROOT, capture_output=True, text=True, check=True
-).stdout.split()
+
+
+def _ps1_files() -> list[str]:
+    """Tracked .ps1 files, or every .ps1 on disk when there is no git checkout
+    (a release zip or tarball), so the suite still collects outside git."""
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "*.ps1"], cwd=ROOT, capture_output=True, text=True, check=True
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return sorted(
+            str(p.relative_to(ROOT)) for p in ROOT.rglob("*.ps1") if ".git" not in p.parts
+        )
+    return result.stdout.split()
+
+
+PS1_FILES = _ps1_files()
 
 
 @pytest.mark.parametrize("rel", PS1_FILES)

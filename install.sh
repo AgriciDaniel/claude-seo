@@ -24,17 +24,48 @@ main() {
     # resolution and validates the minimum supported version.
     command -v git >/dev/null 2>&1 || { echo "✗ Git is required but not installed."; exit 1; }
 
-    # Create directories
-    mkdir -p "${SKILL_DIR}"
-    mkdir -p "${AGENT_DIR}"
-
-    # Clone or update
+    # Clone or update. Download first, so a failed clone leaves ~/.claude untouched.
     TEMP_DIR=$(mktemp -d)
     cleanup() { rm -rf -- "${TEMP_DIR}"; }
     trap cleanup EXIT
 
     echo "↓ Downloading Claude SEO (${REPO_TAG})..."
-    git clone --depth 1 --branch "${REPO_TAG}" "${REPO_URL}" "${TEMP_DIR}/claude-seo" 2>/dev/null
+    if ! clone_output=$(git clone --depth 1 --branch "${REPO_TAG}" "${REPO_URL}" "${TEMP_DIR}/claude-seo" 2>&1); then
+        echo "✗ Could not download ${REPO_URL} at ${REPO_TAG}. Nothing was installed." >&2
+        echo "${clone_output}" >&2
+        exit 1
+    fi
+
+    # Track what this installer owns. A skill or agent with the same name that
+    # an earlier claude-seo install did not create belongs to the user, so it is
+    # moved to a dated backup folder instead of being overwritten. The manifest
+    # also lets uninstall.sh remove only what was installed here.
+    MANIFEST_NAME=".claude-seo-manifest"
+    OLD_MANIFEST=""
+    if [ -f "${SKILL_DIR}/${MANIFEST_NAME}" ]; then
+        OLD_MANIFEST=$(cat "${SKILL_DIR}/${MANIFEST_NAME}")
+    fi
+    NEW_MANIFEST="${TEMP_DIR}/manifest"
+    : > "${NEW_MANIFEST}"
+    BACKUP_DIR="${HOME}/.claude/claude-seo-backup-$(date +%Y%m%d-%H%M%S)"
+    claim() {
+        # $1: absolute target path, $2: manifest key relative to ~/.claude
+        local path="$1" key="$2"
+        if grep -qxF "${key}" "${NEW_MANIFEST}"; then
+            return 0
+        fi
+        if [ -e "${path}" ] && ! printf '%s\n' "${OLD_MANIFEST}" | grep -qxF "${key}"; then
+            mkdir -p "$(dirname "${BACKUP_DIR}/${key}")"
+            mv "${path}" "${BACKUP_DIR}/${key}"
+            echo "  Backed up existing ${path} to ${BACKUP_DIR}/${key}"
+        fi
+        echo "${key}" >> "${NEW_MANIFEST}"
+    }
+
+    # Create directories
+    claim "${SKILL_DIR}" "skills/seo"
+    mkdir -p "${SKILL_DIR}"
+    mkdir -p "${AGENT_DIR}"
 
     # Copy skill files
     echo "→ Installing skill files..."
@@ -45,6 +76,7 @@ main() {
         for skill_dir in "${TEMP_DIR}/claude-seo/skills"/*/; do
             skill_name=$(basename "${skill_dir}")
             target="${HOME}/.claude/skills/${skill_name}"
+            claim "${target}" "skills/${skill_name}"
             mkdir -p "${target}"
             cp -r "${skill_dir}"* "${target}/"
         done
@@ -71,7 +103,12 @@ main() {
 
     # Copy agents
     echo "→ Installing subagents..."
-    cp -r "${TEMP_DIR}/claude-seo/agents/"*.md "${AGENT_DIR}/" 2>/dev/null || true
+    for agent_file in "${TEMP_DIR}/claude-seo/agents/"*.md; do
+        [ -f "${agent_file}" ] || continue
+        agent_name=$(basename "${agent_file}")
+        claim "${AGENT_DIR}/${agent_name}" "agents/${agent_name}"
+        cp "${agent_file}" "${AGENT_DIR}/${agent_name}"
+    done
 
     # Copy shared scripts
     if [ -d "${TEMP_DIR}/claude-seo/scripts" ]; then
@@ -110,13 +147,19 @@ main() {
                     [ -d "${ext_skill}" ] || continue
                     ext_skill_name=$(basename "${ext_skill}")
                     target="${HOME}/.claude/skills/${ext_skill_name}"
+                    claim "${target}" "skills/${ext_skill_name}"
                     mkdir -p "${target}"
                     cp -r "${ext_skill}"* "${target}/"
                 done
             fi
             # Extension agents
             if [ -d "${ext_dir}agents" ]; then
-                cp -r "${ext_dir}agents/"*.md "${AGENT_DIR}/" 2>/dev/null || true
+                for agent_file in "${ext_dir}agents/"*.md; do
+                    [ -f "${agent_file}" ] || continue
+                    agent_name=$(basename "${agent_file}")
+                    claim "${AGENT_DIR}/${agent_name}" "agents/${agent_name}"
+                    cp "${agent_file}" "${AGENT_DIR}/${agent_name}"
+                done
             fi
             # Extension references
             if [ -d "${ext_dir}references" ]; then
@@ -129,6 +172,12 @@ main() {
                 cp -r "${ext_dir}scripts/"* "${SKILL_DIR}/extensions/${ext_name}/scripts/"
             fi
         done
+    fi
+
+    # Record what this install owns, for the next install and for uninstall.sh.
+    cp "${NEW_MANIFEST}" "${SKILL_DIR}/${MANIFEST_NAME}"
+    if [ -d "${BACKUP_DIR}" ]; then
+        echo "  Your own files that shared a name with Claude SEO are in ${BACKUP_DIR}"
     fi
 
     # Copy requirements.txt to skill dir so users can retry later
